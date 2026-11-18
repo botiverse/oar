@@ -23,6 +23,11 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude skills join contex
     // Two directories, one frontmatter name: only one of them is runnable.
     await skill(cwd, "oar-same-a", "name: oar-same\ndescription: Same A");
     await skill(cwd, "oar-same-b", "name: oar-same\ndescription: Same B\nuser-invocable: false");
+    // A directory named differently from its skill: Claude lists the directory as the command's alias.
+    await skill(cwd, "oar-other-dir", "name: oar-renamed\ndescription: Renamed fixture");
+    // The visible sibling is not runnable; the runnable one is hidden from the model.
+    await skill(cwd, "oar-pair-a", "name: oar-pair\ndescription: Pair A\nuser-invocable: false");
+    await skill(cwd, "oar-pair-b", "name: oar-pair\ndescription: Pair B\ndisable-model-invocation: true");
     vi.stubEnv("CLAUDE_CONFIG_DIR", join(root, "config"));
     vi.stubEnv("ANTHROPIC_API_KEY", undefined);
     vi.stubEnv("CLAUDE_CODE_OAUTH_TOKEN", undefined);
@@ -42,6 +47,13 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude skills join contex
     const [hidden] = byName("oar-model-hidden");
     assert.equal(hidden?.userInvocable, true, JSON.stringify(ours));
     assert.equal(hidden.scope, "project");
+    const [renamed] = byName("oar-renamed");
+    assert.equal(renamed?.userInvocable, true, JSON.stringify(ours));
+    assert.equal(renamed.description, "Renamed fixture");
+    for (const entry of byName("oar-pair")) {
+      assert.notEqual(entry.userInvocable, true, JSON.stringify(ours));
+      assert.notEqual(entry.description, "Pair B", JSON.stringify(ours));
+    }
     const same = byName("oar-same");
     assert.ok(same.length > 0, JSON.stringify(ours));
     for (const entry of same) {

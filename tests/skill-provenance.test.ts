@@ -108,6 +108,28 @@ test("Claude catalog joins native descriptions and invocability and keeps model-
   ] });
 });
 
+test("Claude catalog joins a command only to the skill file it came from", () => {
+  const context = { skills: { totalSkills: 3, includedSkills: 3, skillFrontmatter: [
+    { name: "renamed", source: "projectSettings", path: "/w/.claude/skills/other-dir/SKILL.md" },
+    { name: "pair", source: "projectSettings", path: "/w/.claude/skills/pair-a/SKILL.md" },
+    { name: "tool:lint", source: "plugin", pluginName: "tool", path: "/p/tool/skills/lint/SKILL.md" },
+  ] } };
+  const initialized = { commands: [
+    { name: "renamed", description: "Dir differs (project)", aliases: ["other-dir"] },
+    // The visible pair-a is not runnable; this command is its model-hidden sibling pair-b.
+    { name: "pair", description: "Pair B (project)", aliases: ["pair-b"] },
+    { name: "tool:lint", description: "Lint it" },
+  ] };
+  expect(projectClaudeSkillCatalog(context, initialized).items).toEqual([
+    // A directory named differently from its skill is listed as the command's alias.
+    { name: "renamed", source: "projectSettings", scope: "project", path: "/w/.claude/skills/other-dir/SKILL.md", description: "Dir differs", userInvocable: true },
+    // The alias names another directory: not this skill's command, so nothing is known.
+    { name: "pair", source: "projectSettings", scope: "project", path: "/w/.claude/skills/pair-a/SKILL.md" },
+    // A plugin skill's name carries its plugin prefix; the file is still lint.
+    { name: "tool:lint", source: "plugin", scope: "other", plugin: "tool", path: "/p/tool/skills/lint/SKILL.md", description: "Lint it", userInvocable: true },
+  ]);
+});
+
 test("Claude catalog claims nothing it cannot read", () => {
   const context = { skills: { totalSkills: 3, includedSkills: 2, skillFrontmatter: [{ name: "plugin-skill", source: "plugin", pluginName: "p" }] } };
   // No command catalog: no descriptions, no invocability; the context list said it left a skill out.

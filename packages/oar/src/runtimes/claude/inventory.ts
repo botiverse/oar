@@ -31,6 +31,28 @@ const CLAUDE_COMMAND_LABELS = { project: " (project)", user: " (user)" } as cons
  */
 const INVOCABILITY_VERIFIED = new Set(["userSettings", "projectSettings"]);
 
+/**
+ * The file a command came from, as Claude names it: a skill directory whose
+ * name differs from its frontmatter `name` is listed with that directory as
+ * its alias (2.1.322/2.1.326: `renamed` with `aliases: ["other-dir"]`).
+ */
+function fileStem(path: string): string {
+  const parts = path.split(/[\\/]/u);
+  const file = parts.at(-1) ?? "";
+  return file === "SKILL.md" ? parts.at(-2) ?? "" : file.replace(/\.md$/u, "");
+}
+
+/** Whether this command is the skill's own: its alias, or its name when it has none, names the skill's file. */
+function ownCommand(skill: SkillEntry, command: JsonRecord): boolean {
+  const aliases = Array.isArray(command.aliases) ? command.aliases.filter((alias): alias is string => typeof alias === "string") : [];
+  if (skill.path === undefined) {
+    return aliases.length === 0;
+  }
+  const stem = fileStem(skill.path);
+  // A plugin skill's name carries its plugin as a `plugin:` prefix.
+  return aliases.length === 0 ? stem === skill.name.slice(skill.name.lastIndexOf(":") + 1) : aliases.includes(stem);
+}
+
 function unlabeled(description: string, scope: SkillEntry["scope"]): string {
   const label = scope === "project" || scope === "user" ? CLAUDE_COMMAND_LABELS[scope] : undefined;
   return label !== undefined && description.endsWith(label) ? description.slice(0, -label.length) : description;
@@ -82,7 +104,7 @@ export function projectClaudeSkillCatalog(context: JsonRecord, initialized: Json
       return skill;
     }
     const command = commands.get(skill.name);
-    const usable = command !== undefined && command !== null && (command.builtin !== true || skill.scope === "builtin") ? command : undefined;
+    const usable = command !== undefined && command !== null && (command.builtin === true ? skill.scope === "builtin" : ownCommand(skill, command)) ? command : undefined;
     const description = typeof usable?.description === "string" ? unlabeled(usable.description, skill.scope) : "";
     // Only this skill's own command makes it runnable. A duplicate name or a
     // builtin of the same name runs something else, so the answer is unknown.
