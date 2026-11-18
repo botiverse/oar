@@ -126,7 +126,7 @@ export async function up(dir: string, specs: readonly string[], upOptions: UpOpt
       const message = store.post(from, text, to);
       agents.get(from)?.replied();
       for (const name of to) {
-        agents.get(name)?.deliver(message);
+        agents.get(name)?.deliver(message, !agents.has(from));
       }
       return message;
     },
