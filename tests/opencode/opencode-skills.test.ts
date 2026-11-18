@@ -47,6 +47,32 @@ test("v2 reads skills only after native activation settles and omits bodies", as
   expect(fake.killed()).toBe(true);
 });
 
+test.each([
+  ["2.2.7", "builtin"], ["opencode v2.3.0", "builtin"],
+  ["2.2.8", undefined], ["2.3.2", undefined], ["2.4.0", undefined],
+  ["2.2.7-rc.1", undefined], ["2.3.0+custom", undefined], ["2.03.0", undefined],
+] as const)("v2 builtin skill identities are verified for the exact release: %s", async (version, scope) => {
+  const uris = ["skill://opencode/SKILL.md", "skill://report/SKILL.md", "skill://third-party/SKILL.md"];
+  serve(uris.map(path => ({ name: path, path })));
+  const result = await opencodeRuntime.skills({ ...installation, version }, { cwd: "/project" });
+  expect(result).toMatchObject({ kind: "ok", partial: false });
+  if (result.kind === "ok") {
+    expect(result.items.map(item => ({ name: item.name, path: item.path, scope: item.scope, source: item.source })))
+      .toEqual(uris.map((path, index) => ({ name: path, path, scope: index < 2 ? scope : undefined, source: undefined })));
+  }
+  expect(versionRun).not.toHaveBeenCalled(); expect(spawn).toHaveBeenCalledOnce();
+});
+
+test.each([["2.2.7", "builtin"], ["2.3.2", undefined]] as const)("detected version %s controls builtin skill scope without an extra query", async (version, scope) => {
+  versionRun.mockResolvedValue({ ok: true, stdout: version, stderr: "", exitCode: 0 });
+  serve([{ name: "opencode", path: "skill://opencode/SKILL.md" }]);
+  const result = await opencodeRuntime.skills({ kind: "available", via: "executable", command: "opencode" }, { cwd: "/project" });
+  expect(result.kind).toBe("ok");
+  if (result.kind === "ok") { expect(result.items[0]?.scope).toBe(scope); }
+  expect(versionRun).toHaveBeenCalledOnce(); expect(versionRun.mock.calls[0]?.[1]).toEqual(["--version"]);
+  expect(spawn).toHaveBeenCalledOnce();
+});
+
 test.each([{ plugins: [], partial: false }, { plugins: [{ state: { status: "failed", error: "PRIVATE FAILURE" } }], partial: true }])("empty catalog is partial only for failed plugins: $partial", async ({ plugins, partial }) => {
   serve([], plugins);
   await expect(opencodeRuntime.skills(installation, { cwd: "/project" })).resolves.toMatchObject({ kind: "ok", items: [], partial });
@@ -87,7 +113,8 @@ test("v1 debug skill returns native metadata and builtin provenance", async () =
     return { ok: true, exitCode: null, stderr: "", stdout: "" };
   });
   const result = await opencodeRuntime.skills({ ...installation, version: "1.18.30" }, { cwd: "/project", env: readerEnvironment() });
-  expect(result).toMatchObject({ kind: "ok", view: "discovered", items: [{ name: "builtin", source: "builtin" }, { name: "shared", path: "/home/.claude/skills/shared/SKILL.md" }] });
+  expect(result).toMatchObject({ kind: "ok", view: "discovered", items: [{ name: "builtin", source: "builtin", scope: "builtin" }, { name: "shared", path: "/home/.claude/skills/shared/SKILL.md" }] });
+  if (result.kind === "ok") { expect(result.items[0]).not.toHaveProperty("path"); }
   expect(versionRun.mock.calls[0]?.[1]).toEqual(["debug", "skill"]);
   expectReaderEnvironment(versionRun.mock.calls[0]?.[2]?.env);
   expect(spawn).not.toHaveBeenCalled();

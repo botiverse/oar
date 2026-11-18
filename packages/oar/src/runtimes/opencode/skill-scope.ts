@@ -1,6 +1,7 @@
 import { realpath, stat } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { SkillEntry } from "../../contracts/inventory.js";
+import type { OpencodeRelease } from "./version.js";
 import { environmentHome } from "../../shared/environment-home.js";
 import { environmentValue } from "../../shared/environment.js";
 
@@ -17,7 +18,9 @@ function contains(root: string, path: string): boolean {
 }
 
 /** Classify returned paths only under measured native roots, never by a brand substring. */
-export async function opencodeSkillScopes(cwd: string, env: NodeJS.ProcessEnv, major: 1 | 2): Promise<(path: string) => Promise<Pick<SkillEntry, "scope">>> {
+export async function opencodeSkillScopes(cwd: string, env: NodeJS.ProcessEnv, release: OpencodeRelease): Promise<(path: string) => Promise<Pick<SkillEntry, "scope">>> {
+  const { major, version } = release;
+  const builtinUrisVerified = major === 2 && ["2.2.7", "2.3.0"].includes(version);
   const home = environmentHome(env);
   const skillHome = environmentValue(env, "OPENCODE_TEST_HOME") ?? home;
   const xdg = environmentValue(env, "XDG_CONFIG_HOME");
@@ -43,9 +46,9 @@ export async function opencodeSkillScopes(cwd: string, env: NodeJS.ProcessEnv, m
   }
   return async (path) => {
     if (path === "<built-in>") { return { scope: "builtin" }; }
-    // These exact URIs are registered by the native built-in plugin. Other
-    // skill:// URIs can be third-party registrations and carry no scope.
-    if (major === 2 && ["skill://opencode/SKILL.md", "skill://report/SKILL.md"].includes(path)) { return { scope: "builtin" }; }
+    // Only 2.2.7 and 2.3.0 establish these built-in registrations.
+    // Other releases and third-party skill:// identities keep unknown scope.
+    if (builtinUrisVerified && ["skill://opencode/SKILL.md", "skill://report/SKILL.md"].includes(path)) { return { scope: "builtin" }; }
     if (!isAbsolute(path)) { return {}; }
     const resolved = await canonical(path);
     if (resolved === undefined) { return {}; }

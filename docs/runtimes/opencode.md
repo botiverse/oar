@@ -897,9 +897,11 @@ does not silently ignore a requested tier or alter a global default.
 Model ids are `provider/model` (`opencode/big-pickle`). `session/set_model`
 answers `{}` and 1.18.30 pushes nothing, although the switch applies, so OAR
 switches with `session/set_config_option` on `model`, whose answer lists
-every option with its current value. `listModels` reads
+every option with its current value. On v1, `listModels` reads
 `opencode models --verbose` (every configured provider's models, with each
-model's `variants`). On both lines the query runs in
+model's `variants`). On v2 it runs `opencode models --standalone` and returns
+the bare model IDs, without variant or display metadata. On both lines the query
+runs in
 `ListModelsOptions.cwd` (default: the host's cwd), because project
 configuration there can add providers.
 
@@ -1376,10 +1378,12 @@ skill endpoint alone can return a successful empty list before registration
 finishes. The v2 reader requires 2.2.7 or newer for this verified barrier;
 older v2 installations return `version_unsupported` from this reader only.
 
-Results have `view: "discovered"`. Native names, descriptions and paths are
-preserved, including shared `.claude/skills` and `.agents/skills` paths. V1's
-explicit builtin marker supplies `source: "builtin"`; v2 does not expose an
-origin field and OAR does not invent one. Native `autoinvoke: false` maps to
+Results have `view: "discovered"`. Native names and descriptions are preserved.
+Native filesystem paths are kept, including shared `.claude/skills` and
+`.agents/skills` paths. V1's `<built-in>` marker instead supplies
+`source: "builtin"` with no `path`; v2 keeps its native path, including
+`skill://` URIs, without inventing an origin field. Native `autoinvoke: false`
+maps to
 `disableModelInvocation: true`. No skill body is returned.
 
 An empty catalog is accepted after readiness, without requiring a nonempty
@@ -1404,10 +1408,13 @@ Skill provenance adds `scope` for native built-ins and paths inside verified
 user/project loading roots, after canonical path comparison. Shared Claude and
 Agents directories are treated according to their actual home or project root.
 Unmatched custom/remote roots and unknown `skill://` identities remain unknown;
-no plugin identity is inferred. Raw source/path remain unchanged. See the
+no plugin identity is inferred. Returned native paths remain unchanged except
+for v1's `<built-in>` marker, which becomes `source: "builtin"` with no `path`.
+See the
 [mapping and limits](inventory.md#skill-provenance).
 
 The built-in URI allowlist is version-bound to the verified 2.2.7/2.3.0
-catalog: `skill://opencode/SKILL.md` and `skill://report/SKILL.md`. New or
-renamed built-ins remain without scope until verified. Recheck these native
-identities during the daily runtime version check before updating the mapping.
+catalogs: `skill://opencode/SKILL.md` and `skill://report/SKILL.md`. Other
+versions, including 2.3.2, prereleases and custom-suffix builds, retain these
+URIs without scope. New or renamed built-ins also remain unknown until
+verified. Recheck these native identities during the daily runtime version check before updating the mapping.

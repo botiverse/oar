@@ -85,6 +85,18 @@ describe.skipIf(!enabled)("OpenCode native skill discovery", () => {
           // Windows may report a long name for an input rooted at its 8.3 alias.
           expect(await realpath(item.path)).toBe(await realpath(join(path, name, "SKILL.md")));
         }));
+        if (major === 1) {
+          const builtin = result.items.find(skill => skill.source === "builtin");
+          assert.ok(builtin); expect(builtin.scope).toBe("builtin"); expect(builtin).not.toHaveProperty("path");
+        } else {
+          const verified = /^(?:opencode\s+)?v?(?:2\.2\.7|2\.3\.0)$/u.test(version.stdout.trim());
+          const uris = ["skill://opencode/SKILL.md", "skill://report/SKILL.md"];
+          if (verified) { expect(result.items.map(skill => skill.path)).toEqual(expect.arrayContaining(uris)); }
+          for (const skill of result.items.filter(item => item.path?.startsWith("skill://") === true)) {
+            expect(skill.scope).toBe(verified && uris.includes(skill.path ?? "") ? "builtin" : undefined);
+            expect(skill).not.toHaveProperty("source");
+          }
+        }
         expect(result.items.some(skill => skill.name === "malformed")).toBe(false);
         expect(JSON.stringify(result)).not.toMatch(/PRIVATE SKILL BODY|PRIVATE PLUGIN FAILURE/u);
         expect(await readFile(join(f.roots["home-claude"], "home-claude", "SKILL.md"), "utf8")).toContain("PRIVATE SKILL BODY");

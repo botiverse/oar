@@ -26,7 +26,7 @@ controls. A real plugin that throws during activation also returned the catalog
 with `partial:true` and completed cleanup on both versions. The v1 success control passed; its HTTP-specific controls are skipped.
 Each result retains metadata only. No skill bodies, provider details or raw
 plugin errors reach the caller. Native paths are retained; v1's `<built-in>`
-marker becomes `source: "builtin"`. V2 exposes no origin field, so OAR retains
+marker becomes `source: "builtin"` with no `path`. V2 exposes no origin field, so OAR retains
 its path (including `skill://` URIs) without inventing one.
 
 Native catalog parsing skips the malformed frontmatter fixture. A successful
@@ -132,3 +132,32 @@ match and return valid JSON on the supported systems, once that release is the
 supported version floor.
 An issue closure or a small-catalog success alone does not establish that
 large stdout writes drain before exit.
+
+## Exact-version builtin provenance
+
+November 18, 2026, isolated Linux x64 controls reproduced a mismatch between
+OAR's documented version boundary and its implementation. Before the fix,
+OpenCode 2.3.2 received `scope: "builtin"` for the `opencode` and `report`
+skill URIs because classification checked only the major version.
+
+The reader now passes its already-resolved full release identifier to the
+classifier. Only stable 2.2.7 and 2.3.0 can receive builtin scope for
+`skill://opencode/SKILL.md` and `skill://report/SKILL.md`. Other releases,
+prereleases and custom builds retain the URI with unknown scope. This adds no
+version process. Existing numeric release comparisons keep their behavior.
+
+[Selected before/after results](scope-selected.json) retain exact package
+identities and metadata. Native 2.2.7 and 2.3.0 preserve the verified mapping;
+2.3.2 preserves both URI strings without scope. Seeing those spellings on
+2.3.2 does not verify their registration ownership, so this control does not
+extend the allowlist. The separate `skill://browser/SKILL.md` identity stays
+unknown on all three v2 releases. All six filesystem fixtures retain their
+user/project scope and native paths. V1 1.19.5 still maps its explicit
+`<built-in>` marker to `source: "builtin"` and `scope: "builtin"`, omitting
+`path`.
+
+Run the vendor command above with each exact binary. V1's success control
+passes; all three v2 versions pass success, transport failure, deadline and
+plugin-failure controls, including process and port cleanup. Public-reader
+unit controls also cover newer versions, suffixed builds, a noncanonical
+numeric spelling and version detection when installation metadata is absent.

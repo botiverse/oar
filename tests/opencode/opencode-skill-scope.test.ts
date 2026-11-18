@@ -22,7 +22,7 @@ test.each([1, 2] as const)("OpenCode v%s scopes use real native roots, including
     await mkdir(cwd, { recursive: true }); await mkdir(join(repo, ".git"));
     await Promise.all(Object.values(paths).map(async path => { await mkdir(join(path, ".."), { recursive: true }); await writeFile(path, "fixture"); }));
     await symlink(join(root, "outside"), join(repo, ".opencode"), process.platform === "win32" ? "junction" : "dir");
-    const classify = await opencodeSkillScopes(cwd, { HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: config }, major);
+    const classify = await opencodeSkillScopes(cwd, { HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: config }, { major, minor: major === 1 ? 19 : 2, patch: major === 1 ? 5 : 7, version: major === 1 ? "1.19.5" : "2.2.7" });
     await expect(classify(paths.user)).resolves.toEqual({ scope: "user" });
     await expect(classify(paths.project)).resolves.toEqual({ scope: "project" });
     await expect(classify(paths.config)).resolves.toEqual({ scope: "user" });

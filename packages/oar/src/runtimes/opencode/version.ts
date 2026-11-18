@@ -4,8 +4,8 @@ import { processFailure } from "../../shared/executable/diagnostics.js";
 import { runExecutable } from "../../shared/executable/run.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 
-/** A native release's numeric version; a prerelease suffix compares as its release. */
-export interface OpencodeRelease { readonly major: 1 | 2; readonly minor: number; readonly patch: number }
+/** Numeric comparisons ignore suffixes; version retains the full release identifier. */
+export interface OpencodeRelease { readonly major: 1 | 2; readonly minor: number; readonly patch: number; readonly version: string }
 
 /** The two independently maintained native lines share one command name. */
 export async function opencodeRelease(installation: ExecutableInstallation, options?: Pick<SessionOptions, "cwd" | "env"> & { readonly signal?: AbortSignal }): Promise<OpencodeRelease> {
@@ -27,10 +27,10 @@ export async function opencodeRelease(installation: ExecutableInstallation, opti
 
 /** Synchronous read of a `--version` line; undefined when it names neither line. */
 export function parseOpencodeRelease(version: string): OpencodeRelease | undefined {
-  const match = /^(?:opencode\s+)?v?([12])\.(\d+)\.(\d+)(?:\S*)$/u.exec(version.trim());
-  const [, major, minor, patch] = match ?? [];
+  const match = /^(?:opencode\s+)?v?([12])\.(\d+)\.(\d+)(\S*)$/u.exec(version.trim());
+  const [, major, minor, patch, suffix] = match ?? [];
   if ((major === "1" || major === "2") && minor !== undefined && patch !== undefined) {
-    return { major: major === "1" ? 1 : 2, minor: Number(minor), patch: Number(patch) };
+    return { major: major === "1" ? 1 : 2, minor: Number(minor), patch: Number(patch), version: `${major}.${minor}.${patch}${suffix ?? ""}` };
   }
   return undefined;
 }

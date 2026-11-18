@@ -57,7 +57,8 @@ checked on November 16; not every enum member has a live fixture observation.
   identity; temporary does not imply builtin.
 - OpenCode 1.19.5 returns the `<built-in>` marker. In 2.2.7/2.3.0 the built-in
   plugin registers `skill://opencode/SKILL.md`; 2.3.0 also registers
-  `skill://report/SKILL.md`. No general URI-prefix rule is used. Filesystem
+  `skill://report/SKILL.md`. This inference is limited to those exact releases;
+  other versions retain the URI without scope. No general URI-prefix rule is used. Filesystem
   classification uses real paths under home `.claude/skills`, `.agents/skills`,
   XDG config `opencode/skill(s)` and project ancestor `.claude/skills`,
   `.agents/skills`, `.opencode/skill(s)`. V1 stops at the repository root;
