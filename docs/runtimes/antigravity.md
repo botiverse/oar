@@ -413,7 +413,21 @@ passed the same-name case once; neither establishes a macOS fix. No supported MC
 `session/new` replies contain no tool catalog, and no MCP-ready notification
 was observed or found in the public ACP documentation. OAR therefore adds no
 unverified wait or retry; the existing vendor regression remains intact.
-See the [failure timeline and controls](../../experiments/antigravity-mcp-readiness/README.md).
+Repeated fresh-process controls on 1.5.10 and 1.5.11 did not reproduce the
+defect on Linux, macOS or Windows ([readiness runs](https://github.com/botiverse/oar/pull/952)).
+Non-reproduction does not establish a native fix; [#871](https://github.com/botiverse/oar/issues/871)
+remains open. CI now uses 1.5.11 for the ACP baseline without adding a readiness
+wait or retry. See the [failure timeline and controls](../../experiments/antigravity-mcp-readiness/README.md).
+
+**A separate macOS 1.5.0 collision can select the user server.** Both MCP
+calls completed, but the same-name session echo returned the user server's
+synthetic identity instead of its expected `none`. The native trace logged
+that `echo` already existed and skipped the incoming entry; it does not
+establish the internal cause. [#958](https://github.com/botiverse/oar/issues/958)
+retains the November 18 occurrence and a separate matching November 16 result.
+The full macOS 1.5.11 vendor run and three fresh repeats in #952 returned the
+expected session and user identities in all four samples. This is separate
+from #871's empty catalog, and non-reproduction does not prove it fixed.
 
 The [shared activity mappings](../spec/record-stream.md#the-rules) account
 for Antigravity's direct `mcp_<server>_<tool>` namespace and capitalized
@@ -626,7 +640,7 @@ The [migration report](../../experiments/antigravity-cli-acp-2026-11-05.md)
 links repeatable native controls and the runtime-specific vendor tests.
 The local behavior suite covers prompt, steer, queue, cancellation, resume,
 models, images and disposal as applicable. Required CI installs the pinned
-CLI 1.5.0 archive on Linux, macOS and Windows, verifies its SHA-512, and runs
+CLI 1.5.11 archive on Linux, macOS and Windows, verifies its SHA-512, and runs
 the behavior and vendor suites with an isolated home and local provider.
 The manual sharing-evidence workflow uses the same installer. The local
 Linux results do not stand in for CI's macOS/Windows runs.
@@ -678,7 +692,7 @@ The [file-reader comparison](../../experiments/antigravity-file-skills/README.md
 records native 1.5.10/1.5.11 controls for roots, manifests, YAML, plugins,
 duplicates, signed-out reads and MCP startup, plus an unresolved native builtin
 omission observed during development. The separate pinned 1.5.11 CI comparison
-preserves the existing 1.5.0 ACP baseline. Windows CI asserts the native reader
+remains separate from the ACP baseline. Windows CI asserts the native reader
 and signed-out guard. A Windows junction-cwd comparison exposed different
 workspace discovery; Windows will use the file reader only after that rule
 is measured and the full comparison passes.

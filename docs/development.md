@@ -199,7 +199,7 @@ session IDs and local paths; publish selected evidence only.
 explain which other observations remain active and why.
 
 The separate Antigravity file-skill comparison uses 1.5.11 from
-`.github/antigravity-file-skills.json`, after the existing 1.5.0 ACP controls.
+`.github/antigravity-file-skills.json`, after the 1.5.11 ACP controls.
 It compares native `/skills` with the local reader across isolated catalog
 fixtures on Linux and macOS, records three file-read timings per stage, and
 checks synthetic MCP start markers and signed-out reads. Windows uses a native
@@ -287,7 +287,7 @@ still cannot ship.
   assertions); and Kimi 2.4.1's native login tests against a local
   OAuth/model server, including browser suppression and credential writes,
   plus native workspace skill discovery cleanup on success, error and timeout.
-  The agy CLI 1.5.0 (Antigravity) is installed from official platform
+  The agy CLI 1.5.11 (Antigravity) is installed from official platform
   downloads with pinned SHA-512 digests
   ([`install-antigravity.mjs`](../.github/scripts/install-antigravity.mjs))
   and runs the `antigravity-aimock` behavior and vendor suites against a
