@@ -28,10 +28,10 @@ test("Devin reads native metadata without a session or skill body and preserves 
   ]);
   const result = await devinRuntime.skills(installation, { cwd: "/project", env: readerEnvironment() });
   expect(result).toMatchObject({ kind: "ok", view: "discovered", partial: false, scope: { kind: "workspace", cwd: resolve("/project") }, items: [
-    { name: "devin-cli", source: "Builtin", scope: "builtin", disableModelInvocation: false },
-    { name: "project", description: "Fixture", source: "Devin", path: "/project/.devin/skills/project", disableModelInvocation: true },
-    { name: "compat", source: "Claude", disableModelInvocation: false },
-    { name: "unknown", source: "Future", disableModelInvocation: true },
+    { name: "devin-cli", source: "Builtin", scope: "builtin", userInvocable: false, disableModelInvocation: false },
+    { name: "project", description: "Fixture", source: "Devin", path: "/project/.devin/skills/project", userInvocable: true, disableModelInvocation: true },
+    { name: "compat", source: "Claude", userInvocable: true, disableModelInvocation: false },
+    { name: "unknown", source: "Future", userInvocable: false, disableModelInvocation: true },
     { name: "missing-fields" },
   ] });
   expect(JSON.stringify(result)).not.toContain("PRIVATE_BODY");

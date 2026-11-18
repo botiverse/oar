@@ -32,3 +32,13 @@ test("Grok preserves native bundled source and path alongside legacy string sour
     ]
   `);
 });
+
+test("Grok preserves explicit invocation booleans and leaves missing or malformed flags unknown", () => {
+  expect(projectGrokSkills({ skills: [
+    { name: "yes", userInvocable: true }, { name: "no", userInvocable: false },
+    { name: "absent" }, { name: "invalid", userInvocable: "false" },
+  ] })).toEqual([
+    { name: "yes", userInvocable: true }, { name: "no", userInvocable: false },
+    { name: "absent" }, { name: "invalid" },
+  ]);
+});

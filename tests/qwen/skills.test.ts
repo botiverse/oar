@@ -56,3 +56,13 @@ test.each(["unsupported", "error", "exit", "hang"])("native %s is reported witho
 test.each([0, -1, Infinity, NaN])("invalid timeout rejects before launch: %s", async timeoutMs => {
   await expect(qwenRuntime.skills(installation, { cwd, timeoutMs })).rejects.toThrow(RangeError);
 });
+
+test("Qwen retains explicit invocation flags without defaulting absent metadata", async () => {
+  // oxlint-disable-next-line oxc/no-map-spread -- Keep the common native fixture immutable across cases.
+  const skills = [true, false, undefined, "false"].map(userInvocable => ({ ...row, userInvocable }));
+  const result = await query({ ...snapshot, skills });
+  assert.equal(result.kind, "ok");
+  expect(result.items.map(skill => skill.userInvocable)).toEqual([true, false, undefined, undefined]);
+  expect(result.items[2]).not.toHaveProperty("userInvocable");
+  expect(result.items[3]).not.toHaveProperty("userInvocable");
+});

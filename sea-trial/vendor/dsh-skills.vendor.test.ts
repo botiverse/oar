@@ -30,7 +30,7 @@ describe.skipIf(!dshEnabled)("DSH native skill discovery", () => {
         assert.equal(result.kind, "ok", JSON.stringify(result));
         expect(result.items).toEqual(rows.map(row => ({ name: row.name, description: row.description, path: row.path, source: row.source,
           scope: row.source === "bundled" ? "builtin" : (String(row.source).startsWith("user-") ? "user" : "project"),
-          disableModelInvocation: asRecord(row.invocation)?.modelInvocable === false })));
+          userInvocable: asRecord(row.invocation)?.userInvocable, disableModelInvocation: asRecord(row.invocation)?.modelInvocable === false })));
         expect(result.partial).toBe(false);
         expect(result.view).toBe("discovered");
         expect(JSON.stringify(result)).not.toContain("PRIVATE");
@@ -66,7 +66,7 @@ describe.skipIf(!dshEnabled)("DSH native skill discovery", () => {
           expect(skills.map(row => row.name)).toEqual(expect.arrayContaining(["bundled-fixture", "project-agents", "project-dsh", "user-agents", "user-dsh"]));
           expect(result.items).toEqual(skills.map(row => ({ name: row.name, description: row.description, path: row.path, source: row.source,
             scope: row.source === "bundled" ? "builtin" : (String(row.source).startsWith("user-") ? "user" : "project"),
-            disableModelInvocation: asRecord(row.invocation)?.modelInvocable === false })));
+            userInvocable: asRecord(row.invocation)?.userInvocable, disableModelInvocation: asRecord(row.invocation)?.modelInvocable === false })));
           const directory = path.resolve(process.env.OAR_TRIAL_RUN_DIR ?? "oar-trial-run", "dsh-skills");
           await mkdir(directory, { recursive: true });
           await writeFile(path.join(directory, "partial.json"), JSON.stringify({ native, result, processExited: true, providerRequests: 0 }, null, 2)

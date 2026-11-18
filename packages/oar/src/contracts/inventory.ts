@@ -24,8 +24,9 @@ export interface SkillEntry {
   readonly disableModelInvocation?: boolean;
   /**
    * Whether a person can run it directly (a slash command), from the runtime's
-   * own command catalog. Absent means the runtime did not say; `false` means
-   * its catalog was read and does not offer this skill.
+   * invocation metadata or command catalog. Absent means the runtime did not
+   * say; `false` means native metadata explicitly disallows it or its verified
+   * command catalog does not offer this skill.
    */
   readonly userInvocable?: boolean;
 }

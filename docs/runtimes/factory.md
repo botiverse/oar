@@ -60,7 +60,7 @@ native process without initializing a session or sending a prompt. It returns
 `view: "discovered"`, including builtins and disabled or non-user-invocable
 skills. Native location is preserved as `source`; personal, project, builtin
 and automation map to user, project, builtin and other scopes. Native plugin
-identity and enabled state are copied when present. User invocation is not
+identity, enabled state and `userInvocable` are copied when present. User invocation is not
 model invocation, so `disableModelInvocation` remains absent.
 
 The answer is complete unless native `projectAvailable` is false. Native

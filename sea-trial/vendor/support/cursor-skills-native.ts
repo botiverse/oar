@@ -45,7 +45,7 @@ try {
   const packageText = await readFile(join(sdkRoot, "package.json"), "utf8");
   const packageJson = asRecord(parseJson(packageText));
   assert.ok(packageJson !== null);
-  await writeFile(output, JSON.stringify({ version: packageJson.version, sourceSha256: createHash("sha256").update(original).digest("hex"), blockedConnections, skills: skills.map(skill => { const value = asRecord(skill.toJson()); assert.ok(value !== null); return { path: value.fullPath, description: value.description ?? "", disableModelInvocation: value.disableModelInvocation ?? false, invalid: value.parseError !== undefined }; }) }, null, 2));
+  await writeFile(output, JSON.stringify({ version: packageJson.version, sourceSha256: createHash("sha256").update(original).digest("hex"), blockedConnections, skills: skills.map(skill => { const value = asRecord(skill.toJson()); assert.ok(value !== null); return { fields: Object.keys(value).toSorted(), userInvocable: typeof value.userInvocable === "boolean" ? value.userInvocable : undefined, path: value.fullPath, description: value.description ?? "", disableModelInvocation: value.disableModelInvocation ?? false, invalid: value.parseError !== undefined }; }) }, null, 2));
 } finally { await release?.(); imports.deregister(); }
 process.exit(0);
 

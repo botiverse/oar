@@ -1426,6 +1426,10 @@ names or saved default, so those fields stay absent. Skills and commands come
 from `get_commands`: skill entries use their native name without the `skill:`
 invocation prefix and retain `sourceInfo.path`/`source`; extension and prompt
 entries retain their invocation names and source labels in `commands()`.
+Both SDK and RPC skill results report `userInvocable: true`: Pi offers every
+loaded skill as `/skill:name`, including model-hidden skills. The native loader
+does not implement `user-invocable: false`; it still offers that fixture in
+`get_commands`. [Pinned control](../../experiments/skill-invocability/README.md).
 RPC omits command `argumentHint` and skill `disableModelInvocation`; OAR does
 not fill them from the host SDK. Both inventories report `partial:false` on a successful
 query: native `get_commands` enumerates every loaded skill, registered extension

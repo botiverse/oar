@@ -1,7 +1,7 @@
 /* oxlint-disable oxc/no-map-spread -- Project only native skill metadata. */
 import type { InventoryReader, SkillEntry } from "../../contracts/inventory.js";
 import { readExecutableVersion } from "../../shared/executable/index.js";
-import { inventoryOk, inventoryRead, named, nativeRows, skillScope, textField, unavailableInventory, unsupportedInventory, workspaceScope } from "../../shared/inventory.js";
+import { boolField, inventoryOk, inventoryRead, named, nativeRows, skillScope, textField, unavailableInventory, unsupportedInventory, workspaceScope } from "../../shared/inventory.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { DshCommandError, dshControl } from "./control.js";
 import { dshEnvironment, launchDsh } from "./launch.js";
@@ -14,6 +14,7 @@ function project(row: JsonRecord): SkillEntry {
     ...textField("source", row.source), ...skillScope(row.source, {
       bundled: "builtin", custom: "other", runtime: "other", "user-dsh": "user", "user-agents": "user", "project-dsh": "project", "project-agents": "project",
     }),
+    ...boolField("userInvocable", invocation?.userInvocable),
     ...(typeof invocation?.modelInvocable === "boolean" ? { disableModelInvocation: !invocation.modelInvocable } : {}),
   };
 }

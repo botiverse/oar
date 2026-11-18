@@ -11,6 +11,7 @@ function project(row: JsonRecord): SkillEntry {
     ...textField("path", row.filePath), ...textField("source", row.location),
     ...skillScope(row.location, { personal: "user", project: "project", builtin: "builtin", automation: "other" }),
     ...textField("plugin", row.pluginId), ...boolField("enabled", row.enabled),
+    ...boolField("userInvocable", row.userInvocable),
   };
 }
 

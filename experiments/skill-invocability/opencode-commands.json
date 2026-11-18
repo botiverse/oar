@@ -1,0 +1,678 @@
+[
+  {
+    "runtime": "opencode-v1",
+    "version": "1.19.5",
+    "fixtures": {
+      "oar-default": "",
+      "oar-hidden": "user-invocable: false\n",
+      "oar-invocable": "user-invocable: true\n",
+      "oar-manual": "disable-model-invocation: true\n"
+    },
+    "selected": [
+      {
+        "name": "oar-manual",
+        "fields": [
+          "content",
+          "description",
+          "location",
+          "name"
+        ]
+      },
+      {
+        "name": "oar-invocable",
+        "fields": [
+          "content",
+          "description",
+          "location",
+          "name"
+        ]
+      },
+      {
+        "name": "oar-default",
+        "fields": [
+          "content",
+          "description",
+          "location",
+          "name"
+        ]
+      },
+      {
+        "name": "oar-hidden",
+        "fields": [
+          "content",
+          "description",
+          "location",
+          "name"
+        ]
+      }
+    ],
+    "catalogCount": 5,
+    "commandCollision": false,
+    "timings": {
+      "debugSkillMs": 1310.6303932145238,
+      "serverReadyMs": 1187.120582908392,
+      "beforeCommandMs": 1218.390860594809,
+      "commandQueryMs": 110.21673725917935,
+      "serverThroughCommandMs": 1328.6136258393526
+    },
+    "commands": [
+      {
+        "name": "init",
+        "fields": [
+          "description",
+          "hints",
+          "name",
+          "source",
+          "template"
+        ],
+        "source": "command"
+      },
+      {
+        "name": "review",
+        "fields": [
+          "description",
+          "hints",
+          "name",
+          "source",
+          "subtask",
+          "template"
+        ],
+        "source": "command"
+      },
+      {
+        "name": "customize-opencode",
+        "fields": [
+          "description",
+          "hints",
+          "name",
+          "source",
+          "template"
+        ],
+        "source": "skill"
+      },
+      {
+        "name": "oar-manual",
+        "fields": [
+          "description",
+          "hints",
+          "name",
+          "source",
+          "template"
+        ],
+        "source": "skill"
+      },
+      {
+        "name": "oar-default",
+        "fields": [
+          "description",
+          "hints",
+          "name",
+          "source",
+          "template"
+        ],
+        "source": "skill"
+      },
+      {
+        "name": "oar-invocable",
+        "fields": [
+          "description",
+          "hints",
+          "name",
+          "source",
+          "template"
+        ],
+        "source": "skill"
+      },
+      {
+        "name": "oar-hidden",
+        "fields": [
+          "description",
+          "hints",
+          "name",
+          "source",
+          "template"
+        ],
+        "source": "skill"
+      }
+    ]
+  },
+  {
+    "runtime": "opencode-v1",
+    "version": "1.19.5",
+    "fixtures": {
+      "oar-default": "",
+      "oar-hidden": "user-invocable: false\n",
+      "oar-invocable": "user-invocable: true\n",
+      "oar-manual": "disable-model-invocation: true\n"
+    },
+    "selected": [
+      {
+        "name": "oar-invocable",
+        "fields": [
+          "content",
+          "description",
+          "location",
+          "name"
+        ]
+      },
+      {
+        "name": "oar-default",
+        "fields": [
+          "content",
+          "description",
+          "location",
+          "name"
+        ]
+      },
+      {
+        "name": "oar-hidden",
+        "fields": [
+          "content",
+          "description",
+          "location",
+          "name"
+        ]
+      },
+      {
+        "name": "oar-manual",
+        "fields": [
+          "content",
+          "description",
+          "location",
+          "name"
+        ]
+      }
+    ],
+    "catalogCount": 5,
+    "commandCollision": false,
+    "timings": {
+      "debugSkillMs": 1349.7748211957514,
+      "serverReadyMs": 1158.5518131032586,
+      "beforeCommandMs": 1184.9361923523247,
+      "commandQueryMs": 103.93928969278932,
+      "serverThroughCommandMs": 1288.881504908204
+    },
+    "commands": [
+      {
+        "name": "init",
+        "fields": [
+          "description",
+          "hints",
+          "name",
+          "source",
+          "template"
+        ],
+        "source": "command"
+      },
+      {
+        "name": "review",
+        "fields": [
+          "description",
+          "hints",
+          "name",
+          "source",
+          "subtask",
+          "template"
+        ],
+        "source": "command"
+      },
+      {
+        "name": "customize-opencode",
+        "fields": [
+          "description",
+          "hints",
+          "name",
+          "source",
+          "template"
+        ],
+        "source": "skill"
+      },
+      {
+        "name": "oar-manual",
+        "fields": [
+          "description",
+          "hints",
+          "name",
+          "source",
+          "template"
+        ],
+        "source": "skill"
+      },
+      {
+        "name": "oar-invocable",
+        "fields": [
+          "description",
+          "hints",
+          "name",
+          "source",
+          "template"
+        ],
+        "source": "skill"
+      },
+      {
+        "name": "oar-default",
+        "fields": [
+          "description",
+          "hints",
+          "name",
+          "source",
+          "template"
+        ],
+        "source": "skill"
+      },
+      {
+        "name": "oar-hidden",
+        "fields": [
+          "description",
+          "hints",
+          "name",
+          "source",
+          "template"
+        ],
+        "source": "skill"
+      }
+    ]
+  },
+  {
+    "runtime": "opencode-v1",
+    "version": "1.19.5",
+    "fixtures": {
+      "oar-default": "",
+      "oar-hidden": "user-invocable: false\n",
+      "oar-invocable": "user-invocable: true\n",
+      "oar-manual": "disable-model-invocation: true\n"
+    },
+    "selected": [
+      {
+        "name": "oar-manual",
+        "fields": [
+          "content",
+          "description",
+          "location",
+          "name"
+        ]
+      },
+      {
+        "name": "oar-invocable",
+        "fields": [
+          "content",
+          "description",
+          "location",
+          "name"
+        ]
+      },
+      {
+        "name": "oar-default",
+        "fields": [
+          "content",
+          "description",
+          "location",
+          "name"
+        ]
+      },
+      {
+        "name": "oar-hidden",
+        "fields": [
+          "content",
+          "description",
+          "location",
+          "name"
+        ]
+      }
+    ],
+    "catalogCount": 5,
+    "commandCollision": true,
+    "timings": {
+      "debugSkillMs": 1315.04528503865,
+      "serverReadyMs": 1161.8882389739156,
+      "beforeCommandMs": 1189.8517948575318,
+      "commandQueryMs": 110.61072768643498,
+      "serverThroughCommandMs": 1300.4691898822784
+    },
+    "commands": [
+      {
+        "name": "init",
+        "fields": [
+          "description",
+          "hints",
+          "name",
+          "source",
+          "template"
+        ],
+        "source": "command"
+      },
+      {
+        "name": "review",
+        "fields": [
+          "description",
+          "hints",
+          "name",
+          "source",
+          "subtask",
+          "template"
+        ],
+        "source": "command"
+      },
+      {
+        "name": "oar-default",
+        "fields": [
+          "agent",
+          "description",
+          "hints",
+          "model",
+          "name",
+          "source",
+          "subtask",
+          "template"
+        ],
+        "source": "command"
+      },
+      {
+        "name": "customize-opencode",
+        "fields": [
+          "description",
+          "hints",
+          "name",
+          "source",
+          "template"
+        ],
+        "source": "skill"
+      },
+      {
+        "name": "oar-manual",
+        "fields": [
+          "description",
+          "hints",
+          "name",
+          "source",
+          "template"
+        ],
+        "source": "skill"
+      },
+      {
+        "name": "oar-hidden",
+        "fields": [
+          "description",
+          "hints",
+          "name",
+          "source",
+          "template"
+        ],
+        "source": "skill"
+      },
+      {
+        "name": "oar-invocable",
+        "fields": [
+          "description",
+          "hints",
+          "name",
+          "source",
+          "template"
+        ],
+        "source": "skill"
+      }
+    ]
+  },
+  {
+    "runtime": "opencode-v2",
+    "version": "opencode v2.2.7",
+    "fixtures": {
+      "oar-default": "",
+      "oar-hidden": "user-invocable: false\n",
+      "oar-invocable": "user-invocable: true\n",
+      "oar-manual": "disable-model-invocation: true\n"
+    },
+    "selected": [
+      {
+        "name": "oar-default",
+        "fields": [
+          "content",
+          "description",
+          "id",
+          "name",
+          "path"
+        ]
+      },
+      {
+        "name": "oar-hidden",
+        "fields": [
+          "content",
+          "description",
+          "id",
+          "name",
+          "path"
+        ]
+      },
+      {
+        "name": "oar-invocable",
+        "fields": [
+          "content",
+          "description",
+          "id",
+          "name",
+          "path"
+        ]
+      },
+      {
+        "name": "oar-manual",
+        "fields": [
+          "autoinvoke",
+          "content",
+          "description",
+          "id",
+          "name",
+          "path"
+        ],
+        "autoinvoke": false
+      }
+    ],
+    "catalogCount": 7,
+    "commandCollision": false,
+    "timings": {
+      "serverReadyMs": 348.49242586642504,
+      "beforeCommandMs": 1241.0250245593488,
+      "commandQueryMs": 1.393298152834177,
+      "serverThroughCommandMs": 1242.4223856069148
+    },
+    "commands": [
+      {
+        "name": "init",
+        "fields": [
+          "description",
+          "name"
+        ]
+      },
+      {
+        "name": "review",
+        "fields": [
+          "description",
+          "name"
+        ]
+      },
+      {
+        "name": "goal",
+        "fields": [
+          "description",
+          "name"
+        ]
+      }
+    ]
+  },
+  {
+    "runtime": "opencode-v2",
+    "version": "opencode v2.2.7",
+    "fixtures": {
+      "oar-default": "",
+      "oar-hidden": "user-invocable: false\n",
+      "oar-invocable": "user-invocable: true\n",
+      "oar-manual": "disable-model-invocation: true\n"
+    },
+    "selected": [
+      {
+        "name": "oar-default",
+        "fields": [
+          "content",
+          "description",
+          "id",
+          "name",
+          "path"
+        ]
+      },
+      {
+        "name": "oar-hidden",
+        "fields": [
+          "content",
+          "description",
+          "id",
+          "name",
+          "path"
+        ]
+      },
+      {
+        "name": "oar-invocable",
+        "fields": [
+          "content",
+          "description",
+          "id",
+          "name",
+          "path"
+        ]
+      },
+      {
+        "name": "oar-manual",
+        "fields": [
+          "autoinvoke",
+          "content",
+          "description",
+          "id",
+          "name",
+          "path"
+        ],
+        "autoinvoke": false
+      }
+    ],
+    "catalogCount": 7,
+    "commandCollision": false,
+    "timings": {
+      "serverReadyMs": 350.8110227994621,
+      "beforeCommandMs": 1316.4945505559444,
+      "commandQueryMs": 1.2660548090934753,
+      "serverThroughCommandMs": 1317.765492014587
+    },
+    "commands": [
+      {
+        "name": "init",
+        "fields": [
+          "description",
+          "name"
+        ]
+      },
+      {
+        "name": "review",
+        "fields": [
+          "description",
+          "name"
+        ]
+      },
+      {
+        "name": "goal",
+        "fields": [
+          "description",
+          "name"
+        ]
+      }
+    ]
+  },
+  {
+    "runtime": "opencode-v2",
+    "version": "opencode v2.2.7",
+    "fixtures": {
+      "oar-default": "",
+      "oar-hidden": "user-invocable: false\n",
+      "oar-invocable": "user-invocable: true\n",
+      "oar-manual": "disable-model-invocation: true\n"
+    },
+    "selected": [
+      {
+        "name": "oar-default",
+        "fields": [
+          "content",
+          "description",
+          "id",
+          "name",
+          "path"
+        ]
+      },
+      {
+        "name": "oar-hidden",
+        "fields": [
+          "content",
+          "description",
+          "id",
+          "name",
+          "path"
+        ]
+      },
+      {
+        "name": "oar-invocable",
+        "fields": [
+          "content",
+          "description",
+          "id",
+          "name",
+          "path"
+        ]
+      },
+      {
+        "name": "oar-manual",
+        "fields": [
+          "autoinvoke",
+          "content",
+          "description",
+          "id",
+          "name",
+          "path"
+        ],
+        "autoinvoke": false
+      }
+    ],
+    "catalogCount": 7,
+    "commandCollision": true,
+    "timings": {
+      "serverReadyMs": 345.2738570049405,
+      "beforeCommandMs": 1365.2709247544408,
+      "commandQueryMs": 2.6330389082431793,
+      "serverThroughCommandMs": 1367.9093807004392
+    },
+    "commands": [
+      {
+        "name": "init",
+        "fields": [
+          "description",
+          "name"
+        ]
+      },
+      {
+        "name": "review",
+        "fields": [
+          "description",
+          "name"
+        ]
+      },
+      {
+        "name": "goal",
+        "fields": [
+          "description",
+          "name"
+        ]
+      },
+      {
+        "name": "oar-default",
+        "fields": [
+          "description",
+          "name"
+        ]
+      }
+    ]
+  }
+]

@@ -57,9 +57,9 @@ test("Pi RPC retains package identity independently of user, project and tempora
     { name: "skill:project", source: "skill", sourceInfo: { source: "git:example.test/fixture", path: "/b", scope: "project", origin: "package" } },
     { name: "skill:temporary", source: "skill", sourceInfo: { source: "cli", path: "/c", scope: "temporary", origin: "top-level" } },
   ])).toEqual([
-    { name: "user", source: "npm:fixture", path: "/a", scope: "user", plugin: "npm:fixture" },
-    { name: "project", source: "git:example.test/fixture", path: "/b", scope: "project", plugin: "git:example.test/fixture" },
-    { name: "temporary", source: "cli", path: "/c", scope: "other" },
+    { name: "user", userInvocable: true, source: "npm:fixture", path: "/a", scope: "user", plugin: "npm:fixture" },
+    { name: "project", userInvocable: true, source: "git:example.test/fixture", path: "/b", scope: "project", plugin: "git:example.test/fixture" },
+    { name: "temporary", userInvocable: true, source: "cli", path: "/c", scope: "other" },
   ]);
 });
 

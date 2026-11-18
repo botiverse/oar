@@ -2,7 +2,7 @@ import { RequestError, type AnyMessage } from "@agentclientprotocol/sdk";
 import type { InventoryReader, SkillEntry } from "../../contracts/inventory.js";
 import { createAcpClient, methods, startAcpProcess } from "../../shared/acp/process.js";
 import { sessionEnvironment } from "../../shared/environment.js";
-import { inventoryOk, inventoryRead, named, nativeRows, skillScope, textField, unavailableInventory, unsupportedInventory, workspaceScope } from "../../shared/inventory.js";
+import { boolField, inventoryOk, inventoryRead, named, nativeRows, skillScope, textField, unavailableInventory, unsupportedInventory, workspaceScope } from "../../shared/inventory.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 
 /** Consume only solicited replies. Native notifications and error details stay private. */
@@ -24,7 +24,7 @@ function project(row: JsonRecord): SkillEntry {
   }
   return { name: named(row), ...textField("description", row.description), ...textField("path", row.installedPath),
     source: row.level, ...skillScope(row.level, { bundled: "builtin", user: "user", project: "project", extension: "other" }),
-    ...textField("plugin", row.extensionName), enabled: row.status === "ok", disableModelInvocation: !row.modelInvocable };
+    ...textField("plugin", row.extensionName), ...boolField("userInvocable", row.userInvocable), enabled: row.status === "ok", disableModelInvocation: !row.modelInvocable };
 }
 
 /** Workspace catalog before any session, prompt, authentication or provider connection request. */

@@ -141,7 +141,9 @@ without starting ACP or submitting a prompt. The reader returns `discovered`
 metadata: `name`, `description`, native `provider` as `source`, and non-empty
 `base_dir` as `path`. That path is the native skill directory, not a fabricated
 `SKILL.md` filename. `triggers` determines `disableModelInvocation`: it is true
-when the native list does not contain `model`, and absent if the list is absent.
+when the native list does not contain `model`. `userInvocable` is true when
+that same list contains `user`, false otherwise; both fields stay absent if
+the list is absent.
 Skill bodies and native warning/error text are not returned.
 
 `provider: "Builtin"` maps to `scope: "builtin"`. Other measured providers

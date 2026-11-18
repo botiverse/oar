@@ -20,7 +20,7 @@ function project(row: JsonRecord): SkillEntry {
     name: named(row), ...textField("description", row.description),
     ...textField("source", row.provider), ...skillScope(row.provider, { Builtin: "builtin" }),
     ...(row.base_dir === "" ? {} : textField("path", row.base_dir)),
-    ...(triggers === undefined ? {} : { disableModelInvocation: !triggers.includes("model") }),
+    ...(triggers === undefined ? {} : { disableModelInvocation: !triggers.includes("model"), userInvocable: triggers.includes("user") }),
   };
 }
 /** Native CLI catalog, including bundled skills; no session or model request. */
