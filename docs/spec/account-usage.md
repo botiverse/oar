@@ -353,8 +353,11 @@ above). Claude's limit-reset calls instead answer with a typed outcome
 (`not_attempted` or `unknown`) when their `timeoutMs` runs out, after
 ending the UI process. Reasons do not include tokens, credential values, or raw provider responses.
 
-Kimi rejects an unreadable response body, invalid JSON, or a response with no
-usable quota windows. A window with a malformed present usage metric is omitted;
+Kimi rejects an unreadable response body or invalid JSON. Absent or empty
+quota data returns `quota_unavailable`; present but malformed quota data
+still rejects when no usable windows remain
+([mapping](../runtimes/kimi.md#process-ownership-installation-and-account-usage)).
+A window with a malformed present usage metric is omitted;
 other valid windows remain. A missing native `used` metric retains its zero
 meaning, while an invalid value never becomes zero. Malformed Extra Usage data
 does not supply a window or override exhausted subscription limits. An
