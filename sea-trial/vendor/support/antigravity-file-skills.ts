@@ -127,7 +127,7 @@ export async function compareAntigravityFileSkills(output: string): Promise<void
       }
       observations.push({ case: stage, timingsMs: timings });
     }
-    observations.push(...await antigravitySkillMcpControl(installation, home, cwd, nativeEnv, env));
+    await antigravitySkillMcpControl(installation, home, cwd, nativeEnv, env, observations);
     // The verified path still works signed out, and touches no files.
     const settings = join(home, ".gemini/antigravity-cli/settings.json");
     await file(settings, "{}\n");
