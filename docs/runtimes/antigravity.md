@@ -310,10 +310,16 @@ conversation per listing. A signed-in Linux 1.5.10 account measured 1.5 to 8.5 m
 selection, confirmed restoration, and unchanged defaults in a fresh session after
 a separate leave-selected control. Flash exposed low/medium/high; Sonnet, Opus
 thinking and GPT-OSS exposed no thought-level selector. That account had no
-non-default Gemini model, so Hydrogen remains unverified there. Native startup
+non-default Gemini model. Native startup
 writes conversation state, summaries and logs and may access the network; this is
 not a promise of no persistent writes. See the
 [account evidence, costs and persistence limits](../../experiments/antigravity-model-menus/README.md#signed-in-result-and-product-readback).
+
+On 2026-11-18 at 04:28 UTC, xxchan confirmed that Gemini 4 Hydrogen, selected as a
+non-default model, shows its effort menu through `listModels()` on their signed-in
+account (Raft Computer 1.25.7-rc.1, OAR 0.116). The `agy` version is unknown. This
+confirms effort-menu visibility only.
+
 Listing requests `session/close` only when advertised. Close failure alone does
 not discard an obtained catalog; restoration failure always does
 ([query costs](#orientation-query-costs)).
