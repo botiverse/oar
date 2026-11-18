@@ -7,6 +7,7 @@
 - [Antigravity file skill discovery](antigravity-file-skills/README.md): native 1.5.10/1.5.11 catalog comparisons, precedence, signed-out reads and synthetic MCP startup controls.
 
 - [Qwen current context](qwen-native/context-usage-2026-11-18.md): native post-turn and resumed counts, local readback cost and unknown pre-turn zero.
+- [Qwen model-list authentication](qwen-native/model-auth-2026-11-18.md): native startup refusal, typed result and configured catalog controls.
 
 - [Cursor per-call context](cursor-context-1.4.1/README.md): SDK 1.4.1 native model-call input, inclusive cache counts and unchanged turn spend.
 
