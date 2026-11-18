@@ -3,13 +3,18 @@ import { mkdtempSync, realpathSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
+import { inspect } from "node:util";
+import { captureCleanupEvidence, expectCleanupEvidence } from "../fixtures/cleanup-evidence.js";
+import { cleanupFailureReason } from "../../packages/oar/src/shared/executable/process-cleanup-diagnostics.js";
 import { ResumeCwdError, UnsupportedOptionError } from "../../packages/oar/src/index.js";
 import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
 import { antigravityAcpProfile } from "../../packages/oar/src/runtimes/antigravity/session.js";
 import { devinAcpProfile } from "../../packages/oar/src/runtimes/devin/session.js";
 import { kimiAcpProfile } from "../../packages/oar/src/runtimes/kimi/session.js";
 import { opencodeAcpProfile, opencodeV2AcpProfile, opencodeBackgroundChildProfile } from "../../packages/oar/src/runtimes/opencode/session.js";
+
+afterEach(() => { vi.restoreAllMocks(); });
 
 const installation = { kind: "available", via: "executable", command: process.execPath } as const;
 const fixture = fileURLToPath(new URL("../fixtures/fake-acp-missing-resume.mjs", import.meta.url));
@@ -44,7 +49,9 @@ for (const [name, native] of [["antigravity", antigravityAcpProfile], ["devin", 
       expect(readFileSync(log, "utf8").trim().split("\n")).toEqual(reason === "listing_unavailable" ? ["initialize"] : ["initialize", "session/list"]);
     } finally { rmSync(dir, { recursive: true, force: true }); }
   });
+  // oxlint-disable-next-line eslint/max-statements -- Keep native error and the same operation's cleanup evidence together.
   test.each(listingFailures)(`${name} preserves listing $name and never resumes`, async ({ scenario, expected }) => {
+    const cleanupEvidence = captureCleanupEvidence();
     const temporary = mkdtempSync(path.join(tmpdir(), "oar-acp-cwd-list-error-"));
     const dir = realpathSync(temporary);
     const log = path.join(dir, "calls.txt");
@@ -53,8 +60,14 @@ for (const [name, native] of [["antigravity", antigravityAcpProfile], ["devin", 
         FAKE_RESUME_CASE: JSON.stringify({ succeed: true, ...scenario }), FAKE_ACP_CALL_LOG: log,
       } });
       const failure: unknown = await opening.then(async (session) => { await session.dispose(); return null; }, (error: unknown) => error);
-      expect(failure).not.toBeInstanceOf(UnsupportedOptionError);
-      expect(failure).toMatchObject(expected);
+      const cleanup = "exitOnList" in scenario ? undefined : cleanupEvidence();
+      const reason = cleanupFailureReason(cleanup);
+      if (cleanup !== undefined) { expectCleanupEvidence(cleanup, reason); }
+      const diagnostic = inspect(failure, { depth: 8, breakLength: Infinity });
+      expect(failure, diagnostic).not.toBeInstanceOf(UnsupportedOptionError);
+      expect(failure, diagnostic).toMatchObject({ ...expected,
+        ...("message" in expected ? { message: `${expected.message}${reason === undefined ? "" : `; ${reason}`}` } : {}),
+      });
       expect(readFileSync(log, "utf8").trim().split("\n")).toEqual(["initialize", "session/list"]);
     } finally { rmSync(dir, { recursive: true, force: true }); }
   });

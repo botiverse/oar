@@ -142,3 +142,29 @@ The [November 17 assertion audit](assertion-audit.md) applies the captured
 Windows timeout evidence to the native cleanup controls. It preserves the
 one-second cancellation budget and distinguishes unverified cleanup from
 actual descendant reclamation.
+
+## Startup refusals with cleanup evidence (2026-11-18)
+
+The Windows main run after PR #944 failed two native-refusal controls:
+[DSH missing `open()` and OpenCode v2 `session/list` RPC failure](https://github.com/botiverse/oar/actions/runs/44310976742/job/134824727518).
+The OpenCode assertion printed the original `listing unavailable` prefix plus
+`Descendant cleanup could not be verified`, but the renderer truncated the
+remaining message. The DSH diff likewise omitted its actual full message.
+That log alone does not establish the failed observation phase or reason.
+
+These controls now capture their actual cleanup instance and apply the
+existing strict evidence validator before accepting any appended diagnostic.
+Successful observations require no suffix. Unverified cleanup is accepted
+only for a recorded Windows timeout with the unchanged phase budget and an
+elapsed duration consistent with that budget; other sources, command errors,
+missing roots, unexplained warnings and changed budgets fail. The full native
+message plus that exact observed suffix, error class, code and RPC cause
+remain asserted. DSH's three refusals are separate cases so each owns one
+cleanup instance. The deliberate native-process-exit case keeps its original
+assertions because it need not start OAR cleanup.
+
+Failure messages include the complete synthetic error, and the existing
+`cancellation-timing` artifact retains cleanup observations for these cases.
+This corrects the tests' assumption that a native startup refusal can never
+carry a cleanup diagnostic. It does not identify or fix the cause of a slow
+Windows process-table observation, change a deadline, or retry a failed run.
