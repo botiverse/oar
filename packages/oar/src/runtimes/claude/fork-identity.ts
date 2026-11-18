@@ -34,6 +34,12 @@ export function claudeStatusSessionId(answer: JsonRecord): string | null {
 /** Why the fork cannot open as `expected`: claude's own report differs, or it gave none. Null when it confirms. */
 export function claudeForkIdRefusal(expected: string, answer: JsonRecord | Error): string | null {
   if (answer instanceof Error) { return `${answer.message}, so the fork's session id ${expected} cannot be confirmed`; }
+  // A claude without get_status answers with an error response: the fork fails closed (Session.id would be unconfirmed).
+  const response = asRecord(answer.response);
+  if (response?.subtype === "error") {
+    const said = typeof response.error === "string" && response.error.length > 0 ? `: ${response.error}` : "";
+    return `claude refused get_status${said}, so the fork's session id ${expected} cannot be confirmed`;
+  }
   const reported = claudeStatusSessionId(answer);
   if (reported === expected) { return null; }
   return reported === null

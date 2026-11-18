@@ -125,6 +125,36 @@ test.each([
   expect(fake.killed()).toBe(true);
 });
 
+test("a fork whose get_status write throws (EPIPE) fails the open and still stops the process", async () => {
+  const fake = fakeLineProcess((text, child) => {
+    const request = asRecord(JSON.parse(text));
+    if (asRecord(request?.request)?.subtype === "get_status") { throw Object.assign(new Error("write EPIPE"), { code: "EPIPE" }); }
+    child.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request?.request_id, response: {} } })}\n`);
+  });
+  spawnLineProcess.mockReturnValue(fake);
+  const failure: unknown = await claudeSession(installation, { cwd: "/work", resume: "source", fork: {} }).catch((error: unknown) => error);
+  expect(failure).toBeInstanceOf(Error);
+  expect(failure instanceof Error ? failure.message : "").toMatch(/^write EPIPE, so the fork's session id \S+ cannot be confirmed$/u);
+  expect(fake.killed()).toBe(true);
+});
+
+// [env] 2.1.323 answers an unknown control subtype with this error response; a claude without get_status fails the fork closed.
+test("a claude that refuses get_status fails the fork open with its words and stops the process", async () => {
+  const fake = fakeLineProcess((text, child) => {
+    const request = asRecord(JSON.parse(text));
+    const subtype = asRecord(request?.request)?.subtype;
+    const response = subtype === "get_status"
+      ? { subtype: "error", request_id: request?.request_id, error: "Unsupported control request subtype: get_status", error_code: "unsupported_request" }
+      : { subtype: "success", request_id: request?.request_id, response: {} };
+    child.emit(`${JSON.stringify({ type: "control_response", response })}\n`);
+  });
+  spawnLineProcess.mockReturnValue(fake);
+  const failure: unknown = await claudeSession(installation, { cwd: "/work", resume: "source", fork: {} }).catch((error: unknown) => error);
+  expect(failure).toBeInstanceOf(Error);
+  expect(failure instanceof Error ? failure.message : "").toMatch(/^claude refused get_status: Unsupported control request subtype: get_status, so the fork's session id \S+ cannot be confirmed$/u);
+  expect(fake.killed()).toBe(true);
+});
+
 test("a plain resume sends no get_status", async () => {
   const fake = forkedClaude();
   const session = await claudeSession(installation, { cwd: "/work", resume: "existing" });

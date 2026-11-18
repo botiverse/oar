@@ -133,7 +133,10 @@ export function claudeOpenSettings(child: ClaudeProcess, limits: ClaudeOpenLimit
       privateIds.add(id);
       const timer = setTimeout(() => { resolve(new Error(`claude did not answer get_status within ${String(CLAUDE_EFFORT_READBACK_MS)} ms`)); }, CLAUDE_EFFORT_READBACK_MS);
       try {
-        if (lifetime.exited) { resolve(exitError("get_status")); } else { child.write(claudeStatusRequest(id)); }
+        if (lifetime.exited) { resolve(exitError("get_status")); } else {
+          // A closed stdin (EPIPE) throws here: it is a refusal too, so the process is still stopped.
+          try { child.write(claudeStatusRequest(id)); } catch (error) { resolve(error instanceof Error ? error : new Error(String(error))); }
+        }
         const refusal = claudeForkIdRefusal(expected, await promise);
         if (refusal !== null) { child.kill(); await child.exited; throw new Error(refusal); }
       } finally {
