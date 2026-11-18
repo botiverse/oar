@@ -1,0 +1,239 @@
+{
+  "scope": "Linux smoke control only; all-platform readiness pending",
+  "results": [
+    {
+      "version": "1.5.10",
+      "platform": "linux",
+      "arch": "x64",
+      "node": "v24.19.0",
+      "artifact": {
+        "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.10-5253791805734912/linux-x64/cli_linux_x64.tar.gz",
+        "integrity": "sha512-cTroQIRddHNuLUqW9dhOM1PWFOc6h1eT3fUAmXzO4JWVRIzr/Y6U/dkM4qD6l3B70cwpdj3P4ByUXYDJIjQ3jw=="
+      },
+      "manifestSha256": "b35855366169dee0f26ed0685c4a841e1a7ce7ad21fc1a91e13cc43230eb9676",
+      "observations": [
+        {
+          "label": "configured-provider-auth",
+          "elapsedMs": 813.731066,
+          "result": {
+            "kind": "logged_in",
+            "source": "agy models"
+          }
+        },
+        {
+          "label": "configured-provider-usage",
+          "elapsedMs": 1088.025689,
+          "result": {
+            "kind": "probe_error",
+            "error": "Error",
+            "message": "Error: Antigravity account usage: agy reported no usable quota buckets"
+          }
+        },
+        {
+          "label": "configured-provider-native-usage",
+          "elapsedMs": 633.115785,
+          "result": {
+            "ok": true,
+            "exitCode": null,
+            "stdout": "{\"conversation_id\":\"\",\"status\":\"SUCCESS\",\"response\":\"\",\"duration_seconds\":0,\"num_turns\":0,\"usage\":{\"input_tokens\":0,\"output_tokens\":0,\"thinking_tokens\":0,\"cache_read_tokens\":0,\"total_tokens\":0},\"command\":{\"name\":\"usage\",\"data\":{\"groups\":[]}}}\n",
+            "stderr": "",
+            "stdoutTruncated": false,
+            "stderrTruncated": false
+          }
+        },
+        {
+          "label": "signed-out-auth",
+          "elapsedMs": 581.242886,
+          "result": {
+            "kind": "logged_out",
+            "source": "agy models"
+          }
+        },
+        {
+          "label": "signed-out-usage",
+          "elapsedMs": 485.5700420000003,
+          "result": {
+            "kind": "reauth_required",
+            "reason": "not_authenticated"
+          }
+        },
+        {
+          "label": "direct",
+          "cwd": "<home>/project space \u4e2d\u6587",
+          "command": "verified-native",
+          "started": "2026-11-18T15:45:56.554Z",
+          "version": {
+            "ok": true,
+            "stdout": "1.5.10",
+            "exitCode": null
+          },
+          "turn": {
+            "kind": "ended",
+            "outcome": {
+              "kind": "completed"
+            },
+            "text": "READINESS_OK"
+          },
+          "disposeMs": 532.102269,
+          "survivorsAtDispose": [],
+          "survivorsAfterGrace": [],
+          "ended": "2026-11-18T15:45:59.097Z",
+          "observedProcessCount": 3
+        },
+        {
+          "label": "junction",
+          "cwd": "<home>/junction space \u4e2d\u6587",
+          "command": "verified-native",
+          "started": "2026-11-18T15:45:59.117Z",
+          "version": {
+            "ok": true,
+            "stdout": "1.5.10",
+            "exitCode": null
+          },
+          "turn": {
+            "kind": "ended",
+            "outcome": {
+              "kind": "completed"
+            },
+            "text": "READINESS_OK"
+          },
+          "disposeMs": 653.5755229999995,
+          "survivorsAtDispose": [],
+          "survivorsAfterGrace": [],
+          "ended": "2026-11-18T15:46:01.373Z",
+          "observedProcessCount": 3
+        }
+      ]
+    },
+    {
+      "version": "1.5.11",
+      "platform": "linux",
+      "arch": "x64",
+      "node": "v24.19.0",
+      "artifact": {
+        "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.11-6132547114106880/linux-x64/cli_linux_x64.tar.gz",
+        "integrity": "sha512-2tPAFeiWT83BY5sTtxUvTLhMsb3jhXB+K83wldbxgx9PZSEZmuxJnMBS+emZBrf9vFLCc98GTVy3yEsGi6POUA=="
+      },
+      "manifestSha256": "b35855366169dee0f26ed0685c4a841e1a7ce7ad21fc1a91e13cc43230eb9676",
+      "observations": [
+        {
+          "label": "configured-provider-auth",
+          "elapsedMs": 339.52397599999995,
+          "result": {
+            "kind": "logged_in",
+            "source": "agy models"
+          }
+        },
+        {
+          "label": "configured-provider-usage",
+          "elapsedMs": 732.070044,
+          "result": {
+            "kind": "probe_error",
+            "error": "Error",
+            "message": "Error: Antigravity account usage: agy did not answer SUCCESS"
+          }
+        },
+        {
+          "label": "configured-provider-native-usage",
+          "elapsedMs": 350.22751400000016,
+          "result": {
+            "ok": false,
+            "exitCode": 2,
+            "stdout": "{\"conversation_id\":\"\",\"status\":\"ERROR\",\"response\":\"\",\"error\":\"/usage failed: not available with a Gemini API key; see <url> for the key's usage\",\"duration_seconds\":0,\"num_turns\":0,\"usage\":{\"input_tokens\":0,\"output_tokens\":0,\"thinking_tokens\":0,\"cache_read_tokens\":0,\"total_tokens\":0},\"finished_reason\":\"error\"}\n",
+            "stderr": "error: /usage failed: not available with a Gemini API key; see <url> for the key's usage\n",
+            "stdoutTruncated": false,
+            "stderrTruncated": false
+          }
+        },
+        {
+          "label": "signed-out-auth",
+          "elapsedMs": 321.89064800000006,
+          "result": {
+            "kind": "logged_out",
+            "source": "agy models"
+          }
+        },
+        {
+          "label": "signed-out-usage",
+          "elapsedMs": 283.7616360000002,
+          "result": {
+            "kind": "reauth_required",
+            "reason": "not_authenticated"
+          }
+        },
+        {
+          "label": "direct",
+          "cwd": "<home>/project space \u4e2d\u6587",
+          "command": "verified-native",
+          "started": "2026-11-18T15:45:04.686Z",
+          "version": {
+            "ok": true,
+            "stdout": "1.5.11",
+            "exitCode": null
+          },
+          "turn": {
+            "kind": "ended",
+            "outcome": {
+              "kind": "completed"
+            },
+            "text": "READINESS_OK"
+          },
+          "disposeMs": 173.06070900000032,
+          "survivorsAtDispose": [],
+          "survivorsAfterGrace": [],
+          "ended": "2026-11-18T15:45:05.946Z",
+          "observedProcessCount": 3
+        },
+        {
+          "label": "junction",
+          "cwd": "<home>/junction space \u4e2d\u6587",
+          "command": "verified-native",
+          "started": "2026-11-18T15:45:05.954Z",
+          "version": {
+            "ok": true,
+            "stdout": "1.5.11",
+            "exitCode": null
+          },
+          "turn": {
+            "kind": "ended",
+            "outcome": {
+              "kind": "completed"
+            },
+            "text": "READINESS_OK"
+          },
+          "disposeMs": 156.4669530000001,
+          "survivorsAtDispose": [],
+          "survivorsAfterGrace": [],
+          "ended": "2026-11-18T15:45:07.136Z",
+          "observedProcessCount": 3
+        }
+      ],
+      "mcpFreshControls": [
+        {
+          "round": 1,
+          "started": "2026-11-18T15:45:24.825Z",
+          "ended": "2026-11-18T15:45:30.017Z",
+          "ok": true,
+          "exitCode": null,
+          "diagnostics": null
+        },
+        {
+          "round": 2,
+          "started": "2026-11-18T15:45:30.018Z",
+          "ended": "2026-11-18T15:45:37.215Z",
+          "ok": true,
+          "exitCode": null,
+          "diagnostics": null
+        },
+        {
+          "round": 3,
+          "started": "2026-11-18T15:45:37.216Z",
+          "ended": "2026-11-18T15:45:45.191Z",
+          "ok": true,
+          "exitCode": null,
+          "diagnostics": null
+        }
+      ]
+    }
+  ]
+}

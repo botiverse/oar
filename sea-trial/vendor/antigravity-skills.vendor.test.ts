@@ -54,10 +54,18 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("Antigravity nati
       expect(rows.some(row => row.name === "oar-hidden")).toBe(false);
       const result = await antigravityRuntime.skills(installation, { cwd: f.cwd, env: overlay({ ...f.nativeEnv, AGY_CLI_DISABLE_AUTO_UPDATE: "false" }) });
       assert.equal(result.kind, "ok", JSON.stringify(result));
-      expect(result.items).toEqual(rows.map(row => ({ name: row.name, userInvocable: true, description: row.description, path: row.path,
-        ...(row.plugin === undefined ? {} : { plugin: row.plugin }), ...(row.builtin === true ? { scope: "builtin" } : {}), disableModelInvocation: row.model_invocable === false })));
+      const local = (process.platform === "linux" || process.platform === "darwin") && (installation.version === "1.5.10" || installation.version === "1.5.11");
+      // The versioned file reader declares partial and omits only this unverified builtin mount.
+      // Match every other native row exactly, including local skills named swarm.
+      const verifiedRows = local ? rows.filter(row => !(row.builtin === true && row.path === join(f.home, ".gemini/antigravity-cli/builtin/skills/native_swarm/SKILL.md"))) : rows;
+      const expected = [];
+      for (const row of verifiedRows) {
+        expected.push({ name: row.name, userInvocable: true, description: row.description, path: row.path,
+          ...(row.plugin === undefined ? {} : { plugin: row.plugin }), ...(row.builtin === true ? { scope: "builtin" } : {}), disableModelInvocation: row.model_invocable === false });
+      }
+      expect(result.items).toEqual(expected);
       expect(result.items.find(row => row.name === "oar-manual")?.disableModelInvocation).toBe(true);
-      expect(result.partial).toBe(false); expect(result.view).toBe("discovered");
+      expect(result.partial).toBe(local); expect(result.view).toBe("discovered");
       expect(JSON.stringify(result)).not.toContain("PRIVATE SKILL BODY");
       expect(f.raw).toHaveLength(0);
       expect(createHash("sha256").update(await readFile(installation.command)).digest("hex")).toBe(beforeBinary);

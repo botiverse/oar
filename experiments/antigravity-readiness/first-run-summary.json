@@ -1,0 +1,430 @@
+[
+  {
+    "lane": "linux-1.5.10",
+    "version": "1.5.10",
+    "node": "v24.22.2",
+    "platform": "linux",
+    "arch": "x64",
+    "behavior": {
+      "pass": 18,
+      "skip": 2
+    },
+    "vendor": {
+      "pass": 16,
+      "fail": 1
+    },
+    "extraMcp": [
+      {
+        "round": 1,
+        "started": "2026-11-18T15:50:04.751Z",
+        "ended": "2026-11-18T15:50:07.974Z",
+        "ok": true,
+        "exitCode": null,
+        "diagnostics": null
+      },
+      {
+        "round": 2,
+        "started": "2026-11-18T15:50:07.975Z",
+        "ended": "2026-11-18T15:50:11.104Z",
+        "ok": true,
+        "exitCode": null,
+        "diagnostics": null
+      },
+      {
+        "round": 3,
+        "started": "2026-11-18T15:50:11.104Z",
+        "ended": "2026-11-18T15:50:14.306Z",
+        "ok": true,
+        "exitCode": null,
+        "diagnostics": null
+      }
+    ],
+    "lifecycle": [
+      {
+        "label": "direct",
+        "turn": {
+          "kind": "ended",
+          "outcome": {
+            "kind": "completed"
+          },
+          "text": "READINESS_OK"
+        },
+        "disposeMs": 71.38605199999984,
+        "survivorsAtDispose": [],
+        "survivorsAfterGrace": []
+      },
+      {
+        "label": "junction",
+        "turn": {
+          "kind": "ended",
+          "outcome": {
+            "kind": "completed"
+          },
+          "text": "READINESS_OK"
+        },
+        "disposeMs": 59.58063699999957,
+        "survivorsAtDispose": [],
+        "survivorsAfterGrace": []
+      }
+    ]
+  },
+  {
+    "lane": "linux-1.5.11",
+    "version": "1.5.11",
+    "node": "v24.22.2",
+    "platform": "linux",
+    "arch": "x64",
+    "behavior": {
+      "pass": 18,
+      "skip": 2
+    },
+    "vendor": {
+      "pass": 16,
+      "fail": 1
+    },
+    "extraMcp": [
+      {
+        "round": 1,
+        "started": "2026-11-18T15:50:04.741Z",
+        "ended": "2026-11-18T15:50:07.723Z",
+        "ok": true,
+        "exitCode": null,
+        "diagnostics": null
+      },
+      {
+        "round": 2,
+        "started": "2026-11-18T15:50:07.724Z",
+        "ended": "2026-11-18T15:50:10.647Z",
+        "ok": true,
+        "exitCode": null,
+        "diagnostics": null
+      },
+      {
+        "round": 3,
+        "started": "2026-11-18T15:50:10.648Z",
+        "ended": "2026-11-18T15:50:13.578Z",
+        "ok": true,
+        "exitCode": null,
+        "diagnostics": null
+      }
+    ],
+    "lifecycle": [
+      {
+        "label": "direct",
+        "turn": {
+          "kind": "ended",
+          "outcome": {
+            "kind": "completed"
+          },
+          "text": "READINESS_OK"
+        },
+        "disposeMs": 58.63927100000001,
+        "survivorsAtDispose": [],
+        "survivorsAfterGrace": []
+      },
+      {
+        "label": "junction",
+        "turn": {
+          "kind": "ended",
+          "outcome": {
+            "kind": "completed"
+          },
+          "text": "READINESS_OK"
+        },
+        "disposeMs": 52.461073999999826,
+        "survivorsAtDispose": [],
+        "survivorsAfterGrace": []
+      }
+    ]
+  },
+  {
+    "lane": "macos-1.5.10",
+    "version": "1.5.10",
+    "node": "v24.22.3",
+    "platform": "darwin",
+    "arch": "arm64",
+    "behavior": {
+      "pass": 18,
+      "skip": 2
+    },
+    "vendor": {
+      "pass": 16,
+      "fail": 1
+    },
+    "extraMcp": [
+      {
+        "round": 1,
+        "started": "2026-11-18T15:51:12.364Z",
+        "ended": "2026-11-18T15:51:15.092Z",
+        "ok": true,
+        "exitCode": null,
+        "diagnostics": null
+      },
+      {
+        "round": 2,
+        "started": "2026-11-18T15:51:15.093Z",
+        "ended": "2026-11-18T15:51:17.502Z",
+        "ok": true,
+        "exitCode": null,
+        "diagnostics": null
+      },
+      {
+        "round": 3,
+        "started": "2026-11-18T15:51:17.502Z",
+        "ended": "2026-11-18T15:51:19.979Z",
+        "ok": true,
+        "exitCode": null,
+        "diagnostics": null
+      }
+    ],
+    "lifecycle": [
+      {
+        "label": "direct",
+        "turn": {
+          "kind": "ended",
+          "outcome": {
+            "kind": "completed"
+          },
+          "text": "READINESS_OK"
+        },
+        "disposeMs": 54.27574999999979,
+        "survivorsAtDispose": [],
+        "survivorsAfterGrace": []
+      },
+      {
+        "label": "junction",
+        "turn": {
+          "kind": "ended",
+          "outcome": {
+            "kind": "completed"
+          },
+          "text": "READINESS_OK"
+        },
+        "disposeMs": 49.66858299999967,
+        "survivorsAtDispose": [],
+        "survivorsAfterGrace": []
+      }
+    ]
+  },
+  {
+    "lane": "macos-1.5.11",
+    "version": "1.5.11",
+    "node": "v24.22.2",
+    "platform": "darwin",
+    "arch": "arm64",
+    "behavior": {
+      "pass": 18,
+      "skip": 2
+    },
+    "vendor": {
+      "pass": 16,
+      "fail": 1
+    },
+    "extraMcp": [
+      {
+        "round": 1,
+        "started": "2026-11-18T15:52:02.531Z",
+        "ended": "2026-11-18T15:52:05.515Z",
+        "ok": true,
+        "exitCode": null,
+        "diagnostics": null
+      },
+      {
+        "round": 2,
+        "started": "2026-11-18T15:52:05.515Z",
+        "ended": "2026-11-18T15:52:09.001Z",
+        "ok": true,
+        "exitCode": null,
+        "diagnostics": null
+      },
+      {
+        "round": 3,
+        "started": "2026-11-18T15:52:09.002Z",
+        "ended": "2026-11-18T15:52:12.555Z",
+        "ok": true,
+        "exitCode": null,
+        "diagnostics": null
+      }
+    ],
+    "lifecycle": [
+      {
+        "label": "direct",
+        "turn": {
+          "kind": "ended",
+          "outcome": {
+            "kind": "completed"
+          },
+          "text": "READINESS_OK"
+        },
+        "disposeMs": 54.00087500000018,
+        "survivorsAtDispose": [],
+        "survivorsAfterGrace": []
+      },
+      {
+        "label": "junction",
+        "turn": {
+          "kind": "ended",
+          "outcome": {
+            "kind": "completed"
+          },
+          "text": "READINESS_OK"
+        },
+        "disposeMs": 40.92325000000028,
+        "survivorsAtDispose": [],
+        "survivorsAfterGrace": []
+      }
+    ]
+  },
+  {
+    "lane": "windows-1.5.10",
+    "version": "1.5.10",
+    "node": "v24.22.2",
+    "platform": "win32",
+    "arch": "x64",
+    "behavior": {
+      "pass": 18,
+      "skip": 2
+    },
+    "vendor": {
+      "pass": 15,
+      "fail": 0
+    },
+    "extraMcp": [
+      {
+        "round": 1,
+        "started": "2026-11-18T15:51:38.587Z",
+        "ended": "2026-11-18T15:51:44.811Z",
+        "ok": true,
+        "exitCode": null,
+        "diagnostics": null
+      },
+      {
+        "round": 2,
+        "started": "2026-11-18T15:51:44.812Z",
+        "ended": "2026-11-18T15:51:50.829Z",
+        "ok": true,
+        "exitCode": null,
+        "diagnostics": null
+      },
+      {
+        "round": 3,
+        "started": "2026-11-18T15:51:50.830Z",
+        "ended": "2026-11-18T15:51:56.868Z",
+        "ok": true,
+        "exitCode": null,
+        "diagnostics": null
+      }
+    ],
+    "lifecycle": [
+      {
+        "label": "direct",
+        "turn": {
+          "kind": "ended",
+          "outcome": {
+            "kind": "completed"
+          },
+          "text": "READINESS_OK"
+        },
+        "disposeMs": 851.2142999999996,
+        "survivorsAtDispose": [],
+        "survivorsAfterGrace": []
+      },
+      {
+        "label": "junction",
+        "turn": {
+          "kind": "ended",
+          "outcome": {
+            "kind": "completed"
+          },
+          "text": "READINESS_OK"
+        },
+        "disposeMs": 808.2266,
+        "survivorsAtDispose": [],
+        "survivorsAfterGrace": []
+      },
+      {
+        "label": "cmd-shim",
+        "failure": "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:\n\n  assert.ok(version.ok)\n",
+        "disposeMs": 0.006000000001222361,
+        "survivorsAtDispose": [],
+        "survivorsAfterGrace": []
+      }
+    ]
+  },
+  {
+    "lane": "windows-1.5.11",
+    "version": "1.5.11",
+    "node": "v24.22.2",
+    "platform": "win32",
+    "arch": "x64",
+    "behavior": {
+      "pass": 18,
+      "skip": 2
+    },
+    "vendor": {
+      "pass": 15,
+      "fail": 0
+    },
+    "extraMcp": [
+      {
+        "round": 1,
+        "started": "2026-11-18T15:51:34.725Z",
+        "ended": "2026-11-18T15:51:40.602Z",
+        "ok": true,
+        "exitCode": null,
+        "diagnostics": null
+      },
+      {
+        "round": 2,
+        "started": "2026-11-18T15:51:40.603Z",
+        "ended": "2026-11-18T15:51:46.468Z",
+        "ok": true,
+        "exitCode": null,
+        "diagnostics": null
+      },
+      {
+        "round": 3,
+        "started": "2026-11-18T15:51:46.469Z",
+        "ended": "2026-11-18T15:51:52.261Z",
+        "ok": true,
+        "exitCode": null,
+        "diagnostics": null
+      }
+    ],
+    "lifecycle": [
+      {
+        "label": "direct",
+        "turn": {
+          "kind": "ended",
+          "outcome": {
+            "kind": "completed"
+          },
+          "text": "READINESS_OK"
+        },
+        "disposeMs": 835.8768,
+        "survivorsAtDispose": [],
+        "survivorsAfterGrace": []
+      },
+      {
+        "label": "junction",
+        "turn": {
+          "kind": "ended",
+          "outcome": {
+            "kind": "completed"
+          },
+          "text": "READINESS_OK"
+        },
+        "disposeMs": 840.6166000000012,
+        "survivorsAtDispose": [],
+        "survivorsAfterGrace": []
+      },
+      {
+        "label": "cmd-shim",
+        "failure": "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:\n\n  assert.ok(version.ok)\n",
+        "disposeMs": 0.0031999999991967343,
+        "survivorsAtDispose": [],
+        "survivorsAfterGrace": []
+      }
+    ]
+  }
+]
