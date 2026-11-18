@@ -6,6 +6,7 @@ import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { checkMcpServerNames, isHttpMcpServer } from "../../shared/mcp-servers.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { streamJsonSession } from "../../shared/stream-json/session.js";
+import { qwenContextReadback } from "./context-usage.js";
 import { closeQwen } from "./close.js";
 import { launchQwen } from "./launch.js";
 import { qwenControl, qwenPermissionResponse } from "./control.js";
@@ -35,6 +36,8 @@ export const qwenSession: StartSession = withSessionCredentials(async (installat
   const mcpServers = qwenMcpConfig(options.mcpServers ?? []);
   const child = await launchQwen(installation.command, sessionId, options);
   const control = qwenControl(child);
+  const context = qwenContextReadback(child);
+  let canReadContext = false;
   try {
     return await streamJsonSession(child, sessionId, credentials, {
       projection: qwenProjectionProfile, initial: initialQwenProjection(options.resume !== undefined),
@@ -42,7 +45,8 @@ export const qwenSession: StartSession = withSessionCredentials(async (installat
       steer: false,
       userMessage: (text, inputId) => `${JSON.stringify({ type: "user", uuid: inputId ?? randomUUID(), session_id: sessionId, parent_tool_use_id: null,
         message: { role: "user", content: [{ type: "text", text }] } })}\n`,
-      consume: (message) => control.consume(message),
+      consume: (message) => control.consume(message) || context.consume(message),
+      beforeRootResult: (kernel, state): Promise<void> | void => canReadContext && !state.abortRequested ? context.query(kernel) : undefined,
       open: async (projection) => {
         // FIRST stdin frame must be initialize; a user frame first disables the control dispatcher.
         const answer = await control.request({ subtype: "initialize", mcpServers, ...(options.effort === undefined ? {} : { effort: options.effort }) }).catch((error: unknown) => {
@@ -51,10 +55,11 @@ export const qwenSession: StartSession = withSessionCredentials(async (installat
         });
         const native = asRecord(asRecord(answer.response)?.response);
         if (native?.session_id !== sessionId) { throw new Error(`Qwen initialized a different session: ${String(native?.session_id)}`); }
+        canReadContext = asRecord(native.capabilities)?.can_get_context_usage === true;
         const events = qwenEffort(answer, options.effort);
         projection.report({ type: "control_response", native: answer, events });
       },
-      exited: () => { control.end(); }, disposing: () => { control.end(); },
+      exited: () => { control.end(); context.end(); }, disposing: () => { control.end(); context.end("disposed"); },
       permissionResponse: qwenPermissionResponse,
       close: async (active) => { if (active) { child.kill(); await child.exited; } else { await closeQwen(child); } },
     });

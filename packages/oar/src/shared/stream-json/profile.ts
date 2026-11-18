@@ -1,3 +1,4 @@
+import type { SessionKernel } from "../session-kernel.js";
 import type { CompactionOperation } from "../manual-compaction.js";
 import type { RuntimeEventBody, TurnOutcome, SessionCapabilities, Session, FrameBody, RequestRecord, ResponseBody } from "../../contracts/session.js";
 import type { LoadedImage } from "../input-images.js";
@@ -50,6 +51,8 @@ export interface StreamJsonSessionProfile<S extends StreamJsonProjectionState> {
   /** Private configuration/account responses must be consumed before public projection. */
   readonly consume: (message: JsonRecord) => boolean;
   readonly open: (projection: { current(): S; replace(state: S): void; report(body: FrameBody): void }) => Promise<void>;
+  /** Read native settlement facts before publishing root turn end and draining queued input. Must settle on exit/disposal. */
+  readonly beforeRootResult?: (kernel: SessionKernel, state: S) => Promise<void> | void;
   readonly exited: (code: number | null) => void;
   /** Why OAR terminated its owned process; absent for an independent native exit. */
   readonly exitReason?: () => string | undefined;

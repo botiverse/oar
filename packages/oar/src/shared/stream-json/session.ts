@@ -1,3 +1,5 @@
+import { streamJsonAppRequest } from "./permission.js";
+import { streamJsonResultReadback } from "./result-readback.js";
 import { writeHeldInput, type HeldStreamJsonInput } from "./held-input.js";
 import { streamJsonTaskControl } from "./task-control.js";
 import { streamJsonCompaction } from "./compaction.js";
@@ -6,7 +8,7 @@ import type { ControlResult, InputOptions, RequestRecord, Session } from "../../
 import { createAbortFallback } from "../abort-fallback.js";
 import { withInputImages } from "../input-images.js";
 import { withdrawControl } from "../held-input.js";
-import { asRecord, parseJson } from "../json.js";
+import type { JsonRecord } from "../json.js";
 import type { SessionCredentials } from "../session-credentials.js";
 import { appendCleanupFailure, cleanupFailureReason } from "../executable/process-cleanup.js";
 import type { LineProcess } from "../executable/index.js";
@@ -32,9 +34,9 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   const writtenQueues = new Map<string, RequestRecord>();
   const heldQueue: HeldStreamJsonInput[] = [];
   let dispatching = false;
-  const nativeBusy = (): boolean => state.active !== null || state.spontaneous;
+  const nativeBusy = (): boolean => !messages.settling() && (state.active !== null || state.spontaneous);
   const compaction = streamJsonCompaction(kernel, profile, state, drainHeld, () => heldQueue.length > 0);
-  const busy = (): boolean => dispatching || nativeBusy() || compaction?.busy() === true;
+  const busy = (): boolean => dispatching || messages.settling() || nativeBusy() || compaction?.busy() === true;
   let canCancelQueued = false;
   const abortFallback = createAbortFallback(() => { child.kill(); });
   const pendingInterrupts = new Map<string, () => void>();
@@ -43,8 +45,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   let observingCancellation: { readonly revision: number; readonly result: Promise<CancellationObservation> } | null = null;
   let cancellation: CancellationObservation | null = null;
   const waitForCancellation = async (): Promise<void> => {
-    try { await observingCancellation?.result; }
-    catch { /* The abort reports its observation failure; later input still proceeds. */ }
+    try { await observingCancellation?.result; } catch { /* The abort reports observation failure; later input still proceeds. */ }
   };
   const sentInterrupts = new Set<string>();
   const completeCancellation = (): void => {
@@ -55,7 +56,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     if (sentInterrupts.size === 0) { completeCancellation(); }
   };
   function drainHeld(): void {
-    if (state.disposed || kernel.unreachable() !== null || busy() || observingCancellation !== null || heldQueue[0]?.accepted !== true) { return; }
+    if (state.disposed || messages.hasExited() || kernel.unreachable() !== null || busy() || observingCancellation !== null || heldQueue[0]?.accepted !== true) { return; }
     const next = heldQueue.shift();
     if (next === undefined) { return; }
     dispatching = true;
@@ -66,14 +67,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     kernel.respond(request.id, response);
     if (response.kind === "accepted") { drainHeld(); }
   }
-  // The fold translates and attributes facts; this driver owns transport, busy and queue drain.
-  child.onLine((line) => {
-    const message = asRecord(parseJson(line));
-    if (message === null) { return; }
-    if (message.type === "system" && message.subtype === "init" && typeof message.parent_tool_use_id !== "string" && Array.isArray(message.capabilities)) {
-      canCancelQueued = profile.cancelQueuedCapability !== undefined && message.capabilities.includes(profile.cancelQueuedCapability);
-    }
-    if (tasks?.consume(message) === true || profile.consume(message)) { return; }
+  const processMessage = (message: JsonRecord, receivedAt: number): void => {
     const { state: nextProjection, commands } = foldStreamJsonStdout(profile.projection, state.projection, message);
     state.projection = nextProjection;
     if (message.type === "command_lifecycle" && message.state === "queued" && typeof message.command_uuid === "string") {
@@ -110,7 +104,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
             writtenQueues.delete(cancelled.inputId);
             if (state.active !== null && cancelled.inputId === (state.active.body.kind === "compact" ? state.active.id : ("inputId" in state.active.body ? state.active.body.inputId : undefined))) { state.active = null; }
           }
-          const record = kernel.frame(correlated ? { ...command.body, responseTo: nativeResponse } : command.body, { agentPath: command.agentPath });
+          const record = kernel.frame(correlated ? { ...command.body, responseTo: nativeResponse } : command.body, { agentPath: command.agentPath, receivedAt });
           if (record.agentPath.length > 0) { break; }
           ended ||= closes;
           dropped ||= cancelled !== undefined;
@@ -130,16 +124,9 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
           }
           break;
         }
-        case "toApp": {
-          kernel.request("toApp", { kind: "native", type: command.type, native: command.native }, { id: command.id });
-          const request = asRecord(message.request);
-          const reply = command.type === "can_use_tool" && request !== null ? profile.permissionResponse?.(command.id, request) : undefined;
-          if (reply !== undefined && reply !== null) {
-            child.write(`${JSON.stringify(reply)}\n`);
-            kernel.respond(command.id, { kind: "accepted", native: reply });
-          }
+        case "toApp":
+          streamJsonAppRequest(kernel, child, command.id, command.type, message, profile.permissionResponse);
           break;
-        }
         default:
           break;
       }
@@ -150,8 +137,25 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       state.spontaneous = false;
     }
     if (ended || (dropped && !busy())) { drainHeld(); }
+  };
+  const messages = streamJsonResultReadback(child, {
+    before: (): Promise<void> | void => {
+      if (profile.beforeRootResult === undefined || state.disposed) { return; }
+      // Native work has ended; hold input without interrupting a completed turn during readback.
+      abortFallback.clear(); completeCancellation(); turnRevision += 1;
+      return profile.beforeRootResult(kernel, state.projection);
+    },
+    process: processMessage,
+    consume: (message) => {
+      if (message.type === "system" && message.subtype === "init" && typeof message.parent_tool_use_id !== "string" && Array.isArray(message.capabilities)) {
+        canCancelQueued = profile.cancelQueuedCapability !== undefined && message.capabilities.includes(profile.cancelQueuedCapability);
+      }
+      return tasks?.consume(message) === true || profile.consume(message);
+    },
+    exiting: profile.exited,
+    exited: (code, reason) => { finishExit(code, reason); },
   });
-  child.onExit((code, cleanupReason) => {
+  const finishExit = (code: number | null, cleanupReason?: string): void => {
     abortFallback.clear(); completeCancellation(); turnRevision += 1;
     // An exit before fallback still precedes the rejected pending controls.
     const reasons = [profile.exitReason?.(), cleanupReason].filter((value) => value !== undefined);
@@ -164,8 +168,8 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       kernel.respond(requestId, { kind: "rejected", code: "runtime_exited", reason: "runtime exited" });
     }
     tasks?.end();
-    profile.exited(code);
-  });
+  };
+  messages.listen();
   try {
     await profile.open({ current: () => state.projection, replace: (projection) => { state.projection = projection; }, report: (body) => { kernel.frame(body); } });
   } catch (error) { throw appendCleanupFailure(error, cleanupFailureReason(child.diagnostics().cleanup)); }
@@ -180,6 +184,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       if (observingCancellation !== null) { await waitForCancellation(); }
       const body = { kind: "prompt" as const, input, ...inputOptions };
       return kernel.control(body, (request) => {
+        if (messages.hasExited()) { return { kind: "rejected", code: "runtime_exited" as const, reason: "runtime exited" }; }
         if (busy() || heldQueue.length > 0) { return { kind: "rejected", code: "busy", reason: "busy" }; }
         return withInputImages(capabilities, inputOptions?.images, (images) => {
           turnRevision += 1;
@@ -206,6 +211,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     queue: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
       const result = await kernel.control({ kind: "queue", input, ...inputOptions }, (request) =>
         withInputImages(capabilities, inputOptions?.images, (images) => {
+          if (messages.hasExited()) { return { kind: "rejected", code: "runtime_exited" as const, reason: "runtime exited" }; }
           heldQueue.push({ request, input, ...(inputOptions?.inputId === undefined ? {} : { inputId: inputOptions.inputId }), options: { ...inputOptions }, images });
           heldQueue.sort((left, right) => left.request.seq - right.request.seq);
           return { kind: "accepted", queued: "adapter" };
@@ -261,11 +267,8 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       });
       if (pendingInterrupts.has(requestId)) { pendingInterrupts.set(requestId, refuse); }
       observation.commit(); sentInterrupts.add(requestId);
-      child.write(`${JSON.stringify({
-        type: "control_request",
-        request_id: requestId,
-        request: { subtype: "interrupt", ...(canCancelQueued && state.projection.unstartedInputs.size > 0 ? { cancel_queued: true } : {}) },
-      })}\n`);
+      const interrupt = { subtype: "interrupt", ...(canCancelQueued && state.projection.unstartedInputs.size > 0 ? { cancel_queued: true } : {}) };
+      child.write(`${JSON.stringify({ type: "control_request", request_id: requestId, request: interrupt })}\n`);
       const result = await promise;
       unsubscribe();
       return result;

@@ -1527,6 +1527,9 @@ initialization, permission reply, effort confirmation and usage policy
 (refusals in [the table above](#refused-session-options)). Its native initialize response
 precedes full startup; extension-store failure can surface at the first prompt.
 On resume, session usage stays unknown because native cumulative totals include
-old turns and there is no trustworthy pre-turn session baseline. Context, quota,
-inventory and live configuration are not mapped; errors without a native typed
-cause remain unknown. Images are refused before write.
+old turns and there is no trustworthy pre-turn session baseline. Context occupancy
+is independent: a supported `get_context_usage` readback after each non-aborted
+root result records the native last-prompt count and window before `turn_ended`.
+Missing or estimated counts stay unknown; failed queries leave the latest known
+reading unchanged ([mapping and cost](../runtimes/qwen.md#current-context)). Errors
+without a native typed cause remain unknown. Images are refused before write.

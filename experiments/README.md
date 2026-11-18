@@ -1,5 +1,7 @@
 # experiments
 
+- [Qwen current context](qwen-native/context-usage-2026-11-18.md): native post-turn and resumed counts, local readback cost and unknown pre-turn zero.
+
 - [Cursor per-call context](cursor-context-1.4.1/README.md): SDK 1.4.1 native model-call input, inclusive cache counts and unchanged turn spend.
 
 - [Kimi empty quota response](kimi-empty-quota/README.md): native no-data display and `quota_unavailable`, without inferring account plan or zero usage.

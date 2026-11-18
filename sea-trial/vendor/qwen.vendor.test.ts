@@ -30,6 +30,25 @@ function totals(session: Session) {
   return asRecord(results.at(-1)?.usage);
 }
 
+function contextReadbacks(session: Session) {
+  return session.records().flatMap(record => {
+    if (record.kind !== "frame" || record.body.responseTo === undefined) { return []; }
+    const response = asRecord(asRecord(record.body.native)?.response);
+    const data = asRecord(response?.response);
+    return data?.subtype === "get_context_usage" ? [{ record, data }] : [];
+  });
+}
+function checkContext(session: Session, expectedQueries: number): void {
+  const readings = contextReadbacks(session);
+  expect(readings).toHaveLength(expectedQueries);
+  const latest = readings.at(-1);
+  expect(latest?.data.isEstimated).toBe(false);
+  expect(latest?.data.totalTokens).toBeGreaterThan(0);
+  expect(session.contextUsage().value).toMatchObject({ tokens: latest?.data.totalTokens, contextWindow: latest?.data.contextWindowSize });
+  const end = session.records().findLast(record => record.kind === "frame" && record.agentPath.length === 0 && record.body.events.some(event => event.kind === "turn_ended"));
+  expect(latest?.record.seq).toBeLessThan(end?.seq ?? 0);
+}
+
 describe.skipIf(process.env.OAR_TEST !== "qwen-aimock")("Qwen stream-json 0.26.0", () => {
   test.each([undefined, "Synthetic reasoning in a separate channel."])("text is emitted once with reasoning=%s, including repeated paragraphs and consecutive identical turns", async (reasoning) => {
     const answer = "A repeated paragraph.\nA repeated paragraph.\n";
@@ -52,18 +71,34 @@ describe.skipIf(process.env.OAR_TEST !== "qwen-aimock")("Qwen stream-json 0.26.0
     } finally { await env.stop(); }
   }, 90_000);
 
-  test("fresh totals accumulate; restored totals are unknown instead of charging historical work", async () => {
+  test("fresh and resumed context is native last-prompt usage, independent of cumulative totals", async () => {
     const env = await startQwenAimock();
     try {
       const first = await open(env);
       const id = first.id;
       let oldInput = 0;
+      const queryCounts = new Map<string, number>();
+      const costs: { elapsedMs: number; providerRequests: number }[] = [];
+      const observe = (session: Session) => session.rawEvents(record => {
+        if (record.kind === "request" && record.body.kind === "native" && record.body.type === "get_context_usage") { queryCounts.set(record.id, env.raw.length); }
+        if (record.kind !== "frame" || record.body.responseTo === undefined || !queryCounts.has(record.body.responseTo)) { return; }
+        const request = session.records().find(candidate => candidate.kind === "request" && candidate.id === record.body.responseTo);
+        costs.push({ elapsedMs: record.receivedAt - (request?.receivedAt ?? record.receivedAt), providerRequests: env.raw.length - (queryCounts.get(record.body.responseTo) ?? 0) });
+      });
+      observe(first);
+      onTestFailed(async () => {
+        await mkdir("oar-trial-run/qwen-vendor", { recursive: true });
+        await writeFile("oar-trial-run/qwen-vendor/context.json", JSON.stringify({ records: first.records(), costs }, null, 2));
+      });
       try {
         expect(first.effort().value).toBeNull();
         expect(await turn(first, "historical_marker")).toEqual({ kind: "completed" });
+        checkContext(first, 1);
         oldInput = first.usage().value.total?.input ?? 0;
         expect(oldInput).toBeGreaterThan(0);
         expect(await turn(first, "second marker")).toEqual({ kind: "completed" });
+        checkContext(first, 2);
+        expect(first.contextUsage().value?.tokens).toBeLessThan(first.usage().value.total?.input ?? 0);
         const raw = totals(first);
         expect(first.usage().value.total).toMatchObject({ input: raw?.input_tokens, output: raw?.output_tokens });
         expect(first.usage().value.total?.input).toBeGreaterThan(oldInput);
@@ -71,11 +106,15 @@ describe.skipIf(process.env.OAR_TEST !== "qwen-aimock")("Qwen stream-json 0.26.0
         expect(first.records().filter((row) => row.kind === "frame" && row.body.type === "command_lifecycle")).toEqual([]);
       } finally { await first.dispose(); }
       const resumed = await open(env, { resume: id });
+      observe(resumed);
       try {
         expect(resumed.id).toBe(id);
         expect(await turn(resumed, "after resume")).toEqual({ kind: "completed" });
         expect(totals(resumed)?.input_tokens).toBeGreaterThan(oldInput);
         expect(resumed.usage().value.total).toBeNull();
+        checkContext(resumed, 1);
+        expect(costs).toHaveLength(3);
+        expect(costs.every(cost => cost.providerRequests === 0)).toBe(true);
         expect(JSON.stringify(env.raw.at(-1)?.body)).toContain("historical_marker");
       } finally { await resumed.dispose(); }
     } finally { await env.stop(); }

@@ -1,0 +1,207 @@
+{
+  "runtime": "Qwen Code 0.28.0",
+  "platform": "Linux x64",
+  "provider": "isolated scripted OpenAI-compatible provider",
+  "turns": [
+    {
+      "resume": false,
+      "index": 0,
+      "elapsedMs": 14.805280999999923,
+      "providerRequestsDuringQuery": 0,
+      "nativeResultUsage": {
+        "input_tokens": 8762,
+        "output_tokens": 6,
+        "cache_read_input_tokens": 0,
+        "total_tokens": 8768
+      },
+      "nativeContextResponse": {
+        "type": "control_response",
+        "response": {
+          "subtype": "success",
+          "request_id": "oar-9c122e28-8e20-4113-b439-0882a2e54be8",
+          "response": {
+            "subtype": "get_context_usage",
+            "modelName": "gpt-5.1",
+            "totalTokens": 8762,
+            "contextWindowSize": 272000,
+            "breakdown": {
+              "systemPrompt": 4621,
+              "builtinTools": 5118,
+              "mcpTools": 0,
+              "instructionFiles": 211,
+              "memoryFiles": 1250,
+              "skills": 2331,
+              "startupContext": 930,
+              "messages": 12,
+              "cachedTokens": 0,
+              "freeSpace": 222438,
+              "autocompactBuffer": 40800,
+              "thresholds": {
+                "warn": 211200,
+                "auto": 231200,
+                "hard": 249000,
+                "effectiveWindow": 252000
+              },
+              "currentTier": "safe"
+            },
+            "builtinTools": [],
+            "mcpTools": [],
+            "instructionFiles": [],
+            "memoryFiles": [],
+            "skills": [],
+            "isEstimated": false,
+            "showDetails": false
+          }
+        }
+      }
+    },
+    {
+      "resume": false,
+      "index": 1,
+      "elapsedMs": 2.3447619999997187,
+      "providerRequestsDuringQuery": 0,
+      "nativeResultUsage": {
+        "input_tokens": 21652,
+        "output_tokens": 18,
+        "cache_read_input_tokens": 0,
+        "total_tokens": 21670
+      },
+      "nativeContextResponse": {
+        "type": "control_response",
+        "response": {
+          "subtype": "success",
+          "request_id": "oar-16ee5a13-d0e7-49fc-a25d-d01d9fe56daf",
+          "response": {
+            "subtype": "get_context_usage",
+            "modelName": "gpt-5.1",
+            "totalTokens": 8773,
+            "contextWindowSize": 272000,
+            "breakdown": {
+              "systemPrompt": 4621,
+              "builtinTools": 5118,
+              "mcpTools": 0,
+              "instructionFiles": 211,
+              "memoryFiles": 1250,
+              "skills": 2331,
+              "startupContext": 930,
+              "messages": 24,
+              "cachedTokens": 0,
+              "freeSpace": 222427,
+              "autocompactBuffer": 40800,
+              "thresholds": {
+                "warn": 211200,
+                "auto": 231200,
+                "hard": 249000,
+                "effectiveWindow": 252000
+              },
+              "currentTier": "safe"
+            },
+            "builtinTools": [],
+            "mcpTools": [],
+            "instructionFiles": [],
+            "memoryFiles": [],
+            "skills": [],
+            "isEstimated": false,
+            "showDetails": false
+          }
+        }
+      }
+    },
+    {
+      "resume": true,
+      "index": 0,
+      "elapsedMs": 14.833864999999605,
+      "providerRequestsDuringQuery": 0,
+      "nativeResultUsage": {
+        "input_tokens": 34606,
+        "output_tokens": 30,
+        "cache_read_input_tokens": 0,
+        "total_tokens": 34636
+      },
+      "nativeContextResponse": {
+        "type": "control_response",
+        "response": {
+          "subtype": "success",
+          "request_id": "oar-77e1d377-656c-411d-8538-06e0b736f0d1",
+          "response": {
+            "subtype": "get_context_usage",
+            "modelName": "gpt-5.1",
+            "totalTokens": 8827,
+            "contextWindowSize": 272000,
+            "breakdown": {
+              "systemPrompt": 4621,
+              "builtinTools": 5118,
+              "mcpTools": 0,
+              "instructionFiles": 211,
+              "memoryFiles": 1250,
+              "skills": 2331,
+              "startupContext": 930,
+              "messages": 80,
+              "cachedTokens": 0,
+              "freeSpace": 222373,
+              "autocompactBuffer": 40800,
+              "thresholds": {
+                "warn": 211200,
+                "auto": 231200,
+                "hard": 249000,
+                "effectiveWindow": 252000
+              },
+              "currentTier": "safe"
+            },
+            "builtinTools": [],
+            "mcpTools": [],
+            "instructionFiles": [],
+            "memoryFiles": [],
+            "skills": [],
+            "isEstimated": false,
+            "showDetails": false
+          }
+        }
+      }
+    }
+  ],
+  "beforeFirstTurn": {
+    "context": {
+      "type": "control_response",
+      "response": {
+        "subtype": "success",
+        "request_id": "oar-b03c758a-f77e-4016-be16-14541e65144b",
+        "response": {
+          "subtype": "get_context_usage",
+          "modelName": "gpt-5.1",
+          "totalTokens": 0,
+          "contextWindowSize": 272000,
+          "breakdown": {
+            "systemPrompt": 4700,
+            "builtinTools": 1,
+            "mcpTools": 0,
+            "instructionFiles": 0,
+            "memoryFiles": 0,
+            "skills": 0,
+            "startupContext": 0,
+            "messages": 0,
+            "cachedTokens": 0,
+            "freeSpace": 226499,
+            "autocompactBuffer": 40800,
+            "thresholds": {
+              "warn": 211200,
+              "auto": 231200,
+              "hard": 249000,
+              "effectiveWindow": 252000
+            },
+            "currentTier": "safe"
+          },
+          "builtinTools": [],
+          "mcpTools": [],
+          "instructionFiles": [],
+          "memoryFiles": [],
+          "skills": [],
+          "isEstimated": true,
+          "showDetails": false
+        }
+      }
+    },
+    "elapsedMs": 40.3006690000002,
+    "providerRequests": 0
+  }
+}
