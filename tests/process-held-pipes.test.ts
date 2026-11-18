@@ -151,7 +151,8 @@ test.skipIf(!posix)("kill() when the holder is out of reach (EPERM): nothing han
 
 test.skipIf(!posix)("OAR closes only the pipe a process holds: a paused pipe nobody holds keeps its unread data", async () => {
   // The holder keeps stderr only; the root wrote to its private pipe, which its consumer has not read yet.
-  const { child, holder } = await lineProcessWithHolder("sh", ["-c", `printf unread >&3; exec 3>&-; sleep 60 >/dev/null & echo "$!"; exit 0`], { extraPipe: true });
+  // `(exec sleep)`, as in process-held-pipes-readers.test.ts: a shell running `sleep` itself keeps a saved copy of stdout.
+  const { child, holder } = await lineProcessWithHolder("sh", ["-c", `printf unread >&3; exec 3>&-; (exec sleep 60) >/dev/null & echo "$!"; exit 0`], { extraPipe: true });
   const extra = child.extraPipe;
   extra?.on("readable", () => {});
   expect(await within(child.exited)).toBe(0);
