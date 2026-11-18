@@ -93,13 +93,23 @@ async function lifecycle(label: string): Promise<void> {
     if (label === "cmd-shim") {
       const bin = path.join(home, "binary space 中文"); await mkdir(bin);
       const native = path.join(bin, "agy.exe"); await copyFile(command, native);
+      const copiedVersion = await nativeVersion(native, env, home);
+      row.copiedNativeVersion = copiedVersion;
+      assert.ok(copiedVersion.ok, "Copied native executable must run directly from the Unicode path");
+      const literal = path.join(bin, "agy-literal.CMD");
+      await writeFile(literal, `@echo off\r\n"${native}" %*\r\n`);
+      // Diagnostic only: cmd.exe may decode a UTF-8 batch literal through its active legacy code page.
+      row.literalUtf8BatchVersion = await nativeVersion(literal, env, home);
+      const codePage = await runExecutable("chcp.com", [], { env, timeoutMs: 5000 });
+      row.codePage = { ok: codePage.ok, stdout: codePage.stdout.trim(), stderr: codePage.stderr.trim() };
       command = path.join(bin, "agy.CMD");
-      await writeFile(command, `@echo off\r\n"${native}" %*\r\n`);
+      // This ASCII batch body preserves the Unicode directory through cmd's own path expansion.
+      await writeFile(command, '@echo off\r\n"%~dp0agy.exe" %*\r\n');
     }
     row.cwd = selectedCwd.replace(home, "<home>");
     const selected: ExecutableInstallation = { ...installation, command };
-    const version = await runExecutable(command, ["--version"], { env, timeoutMs: 30_000 });
-    row.version = { ok: version.ok, stdout: version.stdout.trim(), exitCode: version.exitCode };
+    const version = await nativeVersion(command, env, home);
+    row.version = version;
     assert.ok(version.ok); assert.equal(/\b\d+\.\d+\.\d+\b/u.exec(version.stdout)?.[0], installation.version);
     const before = checkedProcessTable(`${label}-before`, process.platform, true);
     session = await antigravityRuntime.session(selected, { cwd: selectedCwd, env: overlay(env), mcpServers: [{ name: "echo", command: process.execPath, args: [ECHO_SERVER, "--evidence", path.join(out, `${label}-mcp.jsonl`)] }] });
@@ -145,6 +155,11 @@ async function lifecycle(label: string): Promise<void> {
   }
 }
 
+async function nativeVersion(command: string, env: NodeJS.ProcessEnv, home: string): Promise<{ ok: boolean; stdout: string; stderr: string; exitCode: number | null }> {
+  const version = await runExecutable(command, ["--version"], { env, timeoutMs: 30_000 });
+  return { ok: version.ok, stdout: sanitizeAntigravityLog(version.stdout.trim(), [home], ["aimock"]),
+    stderr: sanitizeAntigravityLog(version.stderr.trim(), [home], ["aimock"]), exitCode: version.exitCode };
+}
 function parseJson(line: string): unknown { return JSON.parse(line); }
 function cleanSurvivors(label: string, owned: readonly ProcessEntry[], remaining: readonly number[]): void {
   const table = checkedProcessTable(`${label}-cleanup-identities`, process.platform, true);

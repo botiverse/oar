@@ -18,7 +18,9 @@ artifact; repeats are separate observations, never replacements for failures.
   two disposals with process PID/start identities recorded before and after;
   spaces and Unicode in cwd; a directory junction on Windows (symlink on POSIX);
   and an uppercase `.CMD` launcher plus a native executable under a spaced
-  Unicode path on Windows. Session records and MCP process metadata are retained.
+  Unicode path on Windows. The copied native binary and an ASCII `%~dp0` batch
+  body must both run. A separate literal UTF-8 batch and active code page are
+  recorded diagnostically. Session records and MCP process metadata are retained.
 - `repeat-mcp.ts`: three fresh repetitions of the existing MCP name-clash test,
   relevant to [#871](https://github.com/botiverse/oar/issues/871). The full vendor
   suite also runs this test. Passing samples cannot prove an intermittent
@@ -49,6 +51,29 @@ Under that provider, 1.5.10 native `/usage` answers SUCCESS with empty groups;
 1.5.11 exits 2 and explicitly says usage is unavailable with a Gemini API key.
 OAR rejects both unusable quota answers. Neither result establishes real
 Google account usage, and neither is counted as a quota pass.
+
+## First six-lane run
+
+[Run 44339897539](https://github.com/botiverse/oar/actions/runs/44339897539)
+on `d6e9cf2b` ([selected results](first-run-summary.json)) passes all 18 applicable behavior cases and all extra MCP controls
+on each lane. Both Windows vendor suites pass (15 cases each), plus the explicit
+1.5.11 native skill fallback. Direct and junction/symlink turns and observed
+process cleanup pass on every platform. The scripted backend skips the account
+usage snapshot and listed effort levels across resume; it exposes neither
+`accountUsage` nor `listModels`. Native query probes are recorded separately.
+
+The original Linux/macOS vendor failure compares the partial file reader to a
+complete native catalog. The control now follows the already documented #937
+boundary: omit only the exact builtin `native_swarm` path, require `partial:
+true`, and compare every other native row exactly. Windows keeps the complete
+native comparison. The original failures are retained in that run.
+
+Both Windows literal UTF-8 CMD fixtures exit 1 at `--version`, before opening a
+session. That first probe did not retain stderr, so it cannot establish a cause.
+The updated probe preserves the same literal batch as a diagnostic, adds stderr
+and code-page capture, and tests an ASCII `%~dp0` batch under the same Unicode
+path. This distinguishes native executable/path support from a batch literal's
+encoding. Corrected cross-platform results are pending.
 
 ## Limits
 
