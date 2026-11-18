@@ -32,10 +32,13 @@ under [Effort](#models-instructions-and-context)). The November 13 check is
 local OAuth/login regressions pass; one of fourteen native vendor cases fails:
 a fresh-process resume without MCP configuration still advertises the
 initial stdio and HTTP tool declarations
-([session MCP servers](#session-mcp-servers)). That case passes on 2.4.1,
-which stays the CI pin until a release addressing
-[upstream #5036](https://github.com/MoonshotAI/kimi-code/issues/5036) passes the same controls
-([results and limits](../../experiments/runtime-version-checks/2026-11-13.md#kimi-262)).
+([session MCP servers](#session-mcp-servers)). That case passes on 2.4.1.
+See the [results and limits](../../experiments/runtime-version-checks/2026-11-13.md#kimi-262).
+CI now pins `kimi-aimock` and `kimi-login` to 2.6.3, while the separate
+`kimi-skills` control stays on 2.6.2
+([accepted versions](../../.github/runtime-versions.json)). The
+[upstream #5036](https://github.com/MoonshotAI/kimi-code/issues/5036)
+declaration defect remains tracked by versioned observations.
 A November 17 direct native comparison confirms the same declaration/execution
 mismatch on **2.6.2 and 2.6.3**, with current connections and stale advertised
 tools. Workspace registration returns a fresh ID on both; OAR preserves the
@@ -103,7 +106,7 @@ Node SDK's session method requires a session; `visibleBuiltinSkills` is an
 internal built-in filter, not a public full-catalog SDK query. Web already
 resolves built-ins and file/plugin catalogs together, so OAR uses that native
 interface instead of reproducing its resolver. Native cleanup tests pass on
-2.6.2 and the existing CI pin 2.4.1, including a user registration at the same
+2.6.2 and the former CI pin 2.4.1, including a user registration at the same
 root: 2.4.1 reuses and preserves that ID; 2.6.2 creates a fresh ID that OAR
 removes while preserving the user's registration. This is decided by the
 native ID, without a version threshold. An invalid workspace list fails
@@ -180,9 +183,9 @@ answer advertises it (in `modes` or the `mode` config option). `session/new`
 and `session/resume` each have a 630-second deadline to allow SessionStart
 hooks. Initialize has its own 60-second deadline
 ([shared deadlines](../spec/runtime-matrix.md#acp-opening-deadlines)). Other
-bounded ACP requests retain 30 seconds, including authentication,
-session/list, session/load, model and mode
-configuration; spawn, auth, and creation failures reject
+opening and configuration requests retain 30 seconds, including authentication,
+session/list, session/load, model and mode configuration. `session/close`
+has a separate two-second deadline; spawn, auth, and creation failures reject
 session construction with the process killed. The opening stream is six
 records: `initialize`, `authenticate` (`{}`), `session/new` (model event),
 then three pushes: `available_commands_update` (the slash commands, `compact`
@@ -257,8 +260,10 @@ rejects; it does not retry a failed resume as load. The resume answer carries
 the resumed stream restarts at seq 0 with the same six-record opening,
 `session/resume` in place of `session/new`, and `Session.id` is the supplied
 earlier id. The next prompt recalls what was taught before disposal (`resume`
-scenario: a codeword). No Turn handle or transcript is restored; history
-pushed during a `session/load` opening is not retained. Concurrent same-ID
+scenario: a codeword). No Turn handle or transcript is restored. Native
+history frames pushed during a `session/load` opening are buffered and then
+retained in arrival order in the new session's record stream when it binds
+([recorder](../../packages/oar/src/shared/acp/records.ts)). Concurrent same-ID
 controllers and continuing in-flight work across OAR subprocesses are
 **unverified**.
 
@@ -301,16 +306,22 @@ event; an RPC error answer as `session/prompt/error` with a failed end
 **Steer (not available on this transport):** the native SDK and agent
 services support steering, but the ACP method set has no steer operation, so
 the session has no `steer`: a host reads the absent member, not a runtime
-name. `steerOrQueue()` and `deliver()` therefore queue: the queue request is
-accepted and the input runs after the current turn; no steer request is
-recorded (`kimi-steer-or-queue.ts` on kimi 0.42.0 and 2.0.0, run while OAR
-still rejected a `steer()` before queueing).
+name. During a running turn, `steerOrQueue()` and default `deliver()`
+therefore queue: the queue request is accepted and the input runs after the
+current turn; no steer request is recorded (`kimi-steer-or-queue.ts` on kimi
+0.42.0 and 2.0.0, run while OAR still rejected a `steer()` before queueing).
+Idle delivery prompts immediately. `deliver(input, { when: "interrupt", ... })`
+uses the shared interruption path: it withdraws held inputs, aborts the active
+turn if needed, and merges the inputs into a new prompt after the native turn
+ends ([delivery contract](../spec/conversation.md)).
 
 **Queue (mapped):** `queue()` is a host-memory FIFO
 (`capabilities.queue.durable: false`, no claim about native queue
-durability), drained one input per turn end; the drained input runs as a
-spontaneous turn with its own `session/prompt` answer and no prompt request
-of its own (`queue`). Held input is dropped once the runtime is unreachable.
+durability), drained one input per turn end. Each dispatch records an adapter
+`prompt` request whose `carries` preserves the queued input identity, followed
+by its response and native `session/prompt` answer
+([queue control](../../tests/acp/acp-session.test.ts)). Held input is dropped
+once the runtime is unreachable.
 `withdraw(inputId)` takes an input out of the FIFO before it is prompted
 (`accepted`) and answers `not_queued` after; kimi's `session/cancel` targets
 the running turn, not held input ([input cancellation](input-cancellation.md),
@@ -728,8 +739,10 @@ matching native Kimi's normal "No usage data available." display in
 This means no quota configuration was exposed, not zero usage or a particular
 account plan. A missing or non-object `quota` value rejects as malformed;
 other `usages` values with no usable rows also reject.
-The direct reader preserves its existing `usage`/`limits` format;
-malformed present legacy rows also reject. The
+The direct reader preserves its existing `usage`/`limits` format. It skips
+unusable legacy rows and keeps usable quota windows; malformed present data
+rejects only when no usable window remains. An absent quota or empty `limits`
+without other quota data returns `unsupported/quota_unavailable`. The
 [native empty-response observation](../../experiments/kimi-empty-quota/README.md)
 records the same account's successful response and TUI display without
 account identifiers or response values.
@@ -890,7 +903,7 @@ its exit is checked from the surviving test process because native Kimi can
 exit before its own browser callback runs
 ([controlled evidence](../../experiments/kimi-login-exit/README.md)). Run locally with
 `OAR_TEST=kimi-login pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts`
-and an installed Kimi 2.3.3 or later (CI pins 2.4.1; `OAR_KIMI_LOGIN_COMMAND`
+and an installed Kimi 2.3.3 or later (CI pins 2.6.3; `OAR_KIMI_LOGIN_COMMAND`
 selects its executable).
 
 [env] Real account validation on 2026-10-29 used Kimi 2.3.3 on xxwork
@@ -937,7 +950,7 @@ held before the turn end).
 completion, the Agent report) and the dispose-after-death answer.
 [Snapshot tests](../../tests/acp/acp-vendor-snapshot.test.ts) bind login and
 yolo selection to the recorded 0.38.0 schema. The
-[session behavior CI matrix](../../.github/workflows/ci.yml) pins Kimi 2.4.1
+[session behavior CI matrix](../../.github/workflows/ci.yml) pins Kimi 2.6.3
 on Linux and macOS, using a local scripted provider. Windows runs the same
 suites after main pushes in the separate
 [ACP observation workflow](../../.github/workflows/acp-windows.yml), because
