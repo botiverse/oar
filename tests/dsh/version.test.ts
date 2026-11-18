@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, expect, test } from "vitest";
 import { dshInstallation } from "../../packages/oar/src/runtimes/dsh/installation.js";
+import { clearInstallationCache } from "../../packages/oar/src/shared/installation.js";
 import { DSH_MINIMUM_VERSION, compareSemver, dshVersionRefusal } from "../../packages/oar/src/runtimes/dsh/version.js";
 import { fakeAgentBinary } from "../fixtures/process-tree.js";
 
@@ -36,9 +37,16 @@ test("a refusal names the real version; an unreadable one is never assumed suppo
   expect(dshVersionRefusal(undefined)).toBe("DSH did not report a version; OAR requires 0.2.1-rc.5 or later");
 });
 
+// The fake prints whatever FAKE_DSH_VERSION says from one unchanged file, which a real binary cannot;
+// forget each answer so every probe runs it.
+async function probe(env: Record<string, string>): ReturnType<typeof dshInstallation> {
+  clearInstallationCache();
+  return dshInstallation({ env });
+}
+
 test("installation is unsupported below the floor, available at it, and pins exclusively through OAR_DSH_BIN", async () => {
-  expect(await dshInstallation({ env: { OAR_DSH_BIN: fake, FAKE_DSH_VERSION: "0.2.1-rc.4" } })).toEqual({ kind: "unsupported", code: "version_unsupported", via: "executable", command: fake, installedVersion: "0.2.1-rc.4", requiredVersion: "0.2.1-rc.5", reason: "DSH 0.2.1-rc.4 is below the supported floor; OAR requires 0.2.1-rc.5 or later" });
-  expect(await dshInstallation({ env: { OAR_DSH_BIN: fake, FAKE_DSH_VERSION: "0.2.1-rc.5" } })).toEqual({ kind: "available", via: "executable", command: fake, version: "0.2.1-rc.5" });
-  expect(await dshInstallation({ env: { OAR_DSH_BIN: fake, FAKE_DSH_VERSION: "0.2.2-alpha.2" } })).toMatchObject({ kind: "available", version: "0.2.2-alpha.2" });
+  expect(await probe({ OAR_DSH_BIN: fake, FAKE_DSH_VERSION: "0.2.1-rc.4" })).toEqual({ kind: "unsupported", code: "version_unsupported", via: "executable", command: fake, installedVersion: "0.2.1-rc.4", requiredVersion: "0.2.1-rc.5", reason: "DSH 0.2.1-rc.4 is below the supported floor; OAR requires 0.2.1-rc.5 or later" });
+  expect(await probe({ OAR_DSH_BIN: fake, FAKE_DSH_VERSION: "0.2.1-rc.5" })).toEqual({ kind: "available", via: "executable", command: fake, version: "0.2.1-rc.5" });
+  expect(await probe({ OAR_DSH_BIN: fake, FAKE_DSH_VERSION: "0.2.2-alpha.2" })).toMatchObject({ kind: "available", version: "0.2.2-alpha.2" });
   expect(await dshInstallation({ env: { OAR_DSH_BIN: path.join(dir, "missing") } })).toEqual({ kind: "not_found" });
 });

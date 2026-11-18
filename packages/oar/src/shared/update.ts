@@ -2,6 +2,7 @@ import { realpathSync } from "node:fs";
 import type { AvailableInstallation, ExecutableInstallation, VersionUnsupportedInstallation } from "../contracts/installation.js";
 import type { UpdateCheck, UpdateChecker, UpgradeOptions, UpgradeResult } from "../contracts/update.js";
 import { isolatedOutput, readExecutableVersion, runIsolated, type IsolatedResult } from "./executable/index.js";
+import { clearInstallationCache } from "./installation.js";
 import { parseJson } from "./json.js";
 
 export const CHECK_TIMEOUT_MS = 20_000;
@@ -164,6 +165,7 @@ export async function upgradeExecutable(
   const before = now ?? (check.kind === "ok" ? check.installed : undefined);
   const timeoutMs = options.timeoutMs ?? UPGRADE_TIMEOUT_MS;
   const run = await runIsolated(installation.command, updater.args, { env: updaterEnv(updater.env?.() ?? process.env), timeoutMs });
+  clearInstallationCache();
   const output = isolatedOutput(run, timeoutMs, "updater");
   const after = await versionNow(installation.command);
   if (before !== undefined && after !== undefined && after !== before) {
