@@ -51,6 +51,24 @@ test("codex lister streams multi-chunk RPC replies and projects the model picker
   expect(spawnLineProcess).toHaveBeenCalledWith("codex", ["app-server", "--listen", "stdio://"], expect.anything());
 });
 
+test("codex lister preserves native tier labels and omitted descriptions", async () => {
+  spawnLineProcess.mockReturnValue(splitReplies({
+    data: [{ model: "synthetic-model", serviceTiers: [
+      { id: "priority", name: "Fast", description: "2x speed, increased usage" },
+      { id: "ultrafast", name: "Ultra fast" },
+    ] }], nextCursor: null,
+  }));
+  await expect(codexListModels(installation)).resolves.toStrictEqual({
+    kind: "ok",
+    models: [{ id: "synthetic-model",
+      serviceTiers: ["priority", "ultrafast"],
+      serviceTierDetails: [
+        { id: "priority", displayName: "Fast", description: "2x speed, increased usage" },
+        { id: "ultrafast", displayName: "Ultra fast" },
+      ] }],
+  });
+});
+
 // #347 (Lookout, codex 0.162.1): a session with no model runs on the configured one, not the catalog's isDefault.
 test("codex lister marks the model codex's configuration sets, read for the host's cwd", async () => {
   const requests: { method: unknown; params: unknown }[] = [];

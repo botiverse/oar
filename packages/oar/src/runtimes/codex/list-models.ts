@@ -8,6 +8,23 @@ function text(value: unknown): string | undefined {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
 }
 
+function projectServiceTierDetails(payload: unknown): ModelEntry["serviceTierDetails"] {
+  if (!Array.isArray(payload)) { return undefined; }
+  const seen = new Set<string>();
+  return asRecordList(payload).flatMap((tier) => {
+    const id = text(tier.id);
+    if (id === undefined || seen.has(id)) { return []; }
+    seen.add(id);
+    const displayName = text(tier.name);
+    const description = text(tier.description);
+    return [{
+      id,
+      ...(displayName === undefined ? {} : { displayName }),
+      ...(description === undefined ? {} : { description }),
+    }];
+  });
+}
+
 /** `model/list` is the native picker, including service tiers; `debug models` is not. */
 export function projectCodexModels(payload: unknown): ModelEntry[] {
   const entries: ModelEntry[] = [];
@@ -18,9 +35,8 @@ export function projectCodexModels(payload: unknown): ModelEntry[] {
     const effortLevels = effortLevelsOf(Array.isArray(model.supportedReasoningEfforts) ? asRecordList(model.supportedReasoningEfforts).map((level) => level.reasoningEffort) : undefined);
     const defaultEffort = text(model.defaultReasoningEffort);
     // Keep native ids verbatim, never rename priority to the CLI's fast alias.
-    const serviceTiers = Array.isArray(model.serviceTiers)
-      ? [...new Set(asRecordList(model.serviceTiers).flatMap((tier) => text(tier.id) ?? []))]
-      : undefined;
+    const serviceTierDetails = projectServiceTierDetails(model.serviceTiers);
+    const serviceTiers = serviceTierDetails?.map((tier) => tier.id);
     const defaultServiceTier = text(model.defaultServiceTier);
     entries.push({
       id,
@@ -28,6 +44,7 @@ export function projectCodexModels(payload: unknown): ModelEntry[] {
       ...(effortLevels === undefined ? {} : { effortLevels }),
       ...(defaultEffort === undefined ? {} : { defaultEffort }),
       ...(serviceTiers === undefined ? {} : { serviceTiers }),
+      ...(serviceTierDetails === undefined ? {} : { serviceTierDetails }),
       ...(defaultServiceTier === undefined ? {} : { defaultServiceTier }),
       ...(model.isDefault === true ? { default: true as const } : {}),
     });

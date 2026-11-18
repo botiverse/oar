@@ -25,6 +25,12 @@ export interface ModelEntry {
   readonly effortUnavailableReason?: string;
   /** Native service-tier menu; the explicit opt-out `default` is not a tier. */
   readonly serviceTiers?: readonly string[];
+  /** Native tier labels and descriptions, in the same order as `serviceTiers`. */
+  readonly serviceTierDetails?: readonly {
+    readonly id: string;
+    readonly displayName?: string;
+    readonly description?: string;
+  }[];
   /** Native catalog default, when the runtime reports one. */
   readonly defaultServiceTier?: string;
   /** Present when the runtime lists the model but refuses to run it as-is. */

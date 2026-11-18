@@ -81,7 +81,8 @@ test("model listing uses app-server pagination and stops its process", async () 
     { data: [{ model: "b", serviceTiers: [{ id: "flex" }], defaultServiceTier: "flex" }], nextCursor: null },
   ]);
   expect(await codexListModels(installation)).toEqual({ kind: "ok", models: [
-    { id: "a", serviceTiers: ["priority"] }, { id: "b", serviceTiers: ["flex"], defaultServiceTier: "flex" },
+    { id: "a", serviceTiers: ["priority"], serviceTierDetails: [{ id: "priority" }] },
+    { id: "b", serviceTiers: ["flex"], serviceTierDetails: [{ id: "flex" }], defaultServiceTier: "flex" },
   ] });
   expect(requests.filter((request) => request.method === "model/list").map((request) => request.params)).toEqual([{}, { cursor: "next" }]);
   expect(child.killed()).toBe(true);
