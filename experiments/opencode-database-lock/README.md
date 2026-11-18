@@ -1,5 +1,9 @@
 # OpenCode warm database lock
 
+The [November 18 v2 comparison](v2-2026-11-18.md) separates the v1 warm-WAL
+failure from v2's fresh-database race. OpenCode 2.3.0 protects its first WAL
+pragma, but still needs the startup gate for concurrent schema creation.
+
 Measured on Linux x64, 2026-11-17, unmodified OpenCode 1.19.5 and Node
 24.19.0. No login, model prompt or provider request. This investigates
 [OAR issue 876](https://github.com/botiverse/oar/issues/876).
@@ -127,7 +131,11 @@ The report is filed as
 [upstream #64590](https://github.com/anomalyco/opencode/issues/64590). Upstream
 closed it as not planned for v1 and requested the same reproduction on v2
 ([reply](https://github.com/anomalyco/opencode/issues/64590#issuecomment-6969503802));
-that closure supplies no verified fix. Once a release addresses the early
-busy-timeout ordering and passes the same recovery controls, limit the gate to
-versions below that fixed release. The separate fresh-database bootstrap failure
-is tracked in [#53879](https://github.com/anomalyco/opencode/issues/53879).
+that closure supplies no verified fix for v1. Once a v1 release addresses the
+early busy-timeout ordering and passes the same recovery controls, limit the
+v1 gate to versions below that fixed release. Unmodified v2.3.0 already installs
+the timeout before its first WAL pragma and passes the warm-WAL comparison.
+Its gate remains for the separate fresh-database bootstrap failure tracked in
+[#53879](https://github.com/anomalyco/opencode/issues/53879): remove it only
+after a fixed release passes the same fresh-database concurrent starts without
+serialization. See the [v2 measurements and reproduction](v2-2026-11-18.md).

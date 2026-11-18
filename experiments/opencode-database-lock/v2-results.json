@@ -1,0 +1,425 @@
+{
+  "date": "2026-11-18",
+  "scope": "Linux x64, synthetic isolated HOME/XDG, no prompts or credentials",
+  "source": {
+    "tag": "v2.3.0",
+    "sourceCommit": "a6b15d33daf6ab7d35569f6d711fdb630b9f04e7",
+    "files": [
+      {
+        "path": "packages/core/src/database/database.ts",
+        "url": "https://raw.githubusercontent.com/anomalyco/opencode/a6b15d33daf6ab7d35569f6d711fdb630b9f04e7/packages/core/src/database/database.ts",
+        "sha256": "2f4fdbededbe67b5c1cc847a08434ac7076e299c1c374cb09cb0f86bda9ee501",
+        "cachedMatch": true
+      },
+      {
+        "path": "packages/core/src/database/sqlite.bun.ts",
+        "url": "https://raw.githubusercontent.com/anomalyco/opencode/a6b15d33daf6ab7d35569f6d711fdb630b9f04e7/packages/core/src/database/sqlite.bun.ts",
+        "sha256": "e42cf7972a45e0e130938d32c08d67bd5e0563a281be4210ff858d480840d9b0",
+        "cachedMatch": true
+      },
+      {
+        "path": "packages/cli/src/commands/handlers/acp.ts",
+        "url": "https://raw.githubusercontent.com/anomalyco/opencode/a6b15d33daf6ab7d35569f6d711fdb630b9f04e7/packages/cli/src/commands/handlers/acp.ts",
+        "sha256": "f9eac6c0a4e1e1be57c1a4c0cd693ce8c2ec57a716dfa26d099e3826569f3535",
+        "cachedMatch": true
+      },
+      {
+        "path": "packages/cli/src/database-path.ts",
+        "url": "https://raw.githubusercontent.com/anomalyco/opencode/a6b15d33daf6ab7d35569f6d711fdb630b9f04e7/packages/cli/src/database-path.ts",
+        "sha256": "921368eee69db647d2973d7dc529e86a8942027ee0032d3acb112d6a55e6b9d7",
+        "cachedMatch": true
+      }
+    ],
+    "effectDriver": {
+      "name": "@effect/sql-sqlite-bun",
+      "version": "4.1.0",
+      "gitHead": null,
+      "tarball": "https://registry.npmjs.org/@effect/sql-sqlite-bun/-/sql-sqlite-bun-4.1.0.tgz",
+      "integrity": "sha512-V05HFjGmSnzIvXuxiHABw67SNf70dNbIvhUfyM7woDrgOu0JlqA8BTIhrwEPy0+GPwyvS5ALolcyNOMRgPVxyA=="
+    }
+  },
+  "nativeExecutable": {
+    "version": "2.3.0",
+    "sha256": "2e0e4656521ca56e5ba16a00d48429958b8105b3fa6466710a4350e68759381f",
+    "bytes": 250685616,
+    "matchesInstalledPlatformPackage": true,
+    "registryUrl": "https://registry.npmjs.org/@opencode/cli-linux-x64/2.3.0",
+    "tarball": "https://registry.npmjs.org/@opencode/cli-linux-x64/-/cli-linux-x64-2.3.0.tgz",
+    "tarballIntegrity": "sha512-8T3K8L6Nd4fSG5BSgofqhmIDQ1ZvzDZZ2J7bFVB9RK1d5Hjqh24IcxgbcwpgGKkdvItrayi4Rl+wrSmhl17FFg==",
+    "matchesRegistryArchive": true
+  },
+  "runs": [
+    {
+      "name": "v2-comparison",
+      "rawReportSha256": "f91d292d0c0574eeb2e674ea01ba8c353f3a4a8b5aa0453d28d7918ea3922119",
+      "node": "v24.19.0",
+      "nativeArgs": [
+        "acp",
+        "--print-logs",
+        "--log-level",
+        "DEBUG"
+      ],
+      "providerRequests": [],
+      "groups": {
+        "preparation": {
+          "opens": 3,
+          "initialized": 0,
+          "opened": 0,
+          "failed": 3,
+          "cleanExit": 0,
+          "failedSamples": [
+            {
+              "name": "warmup-shared",
+              "initialize": false,
+              "exitCode": 1,
+              "nativeError": "Invalid value for flag --log-level: \"DEBUG\".",
+              "stderrSha256": "ec1686c3ec802aeeb29f5d30328f7a6d7e4d8c2c2859b77efc30e2e55e5f4712"
+            },
+            {
+              "name": "warmup-separate-0",
+              "initialize": false,
+              "exitCode": 1,
+              "nativeError": "Invalid value for flag --log-level: \"DEBUG\".",
+              "stderrSha256": "ec1686c3ec802aeeb29f5d30328f7a6d7e4d8c2c2859b77efc30e2e55e5f4712"
+            },
+            {
+              "name": "warmup-separate-1",
+              "initialize": false,
+              "exitCode": 1,
+              "nativeError": "Invalid value for flag --log-level: \"DEBUG\".",
+              "stderrSha256": "ec1686c3ec802aeeb29f5d30328f7a6d7e4d8c2c2859b77efc30e2e55e5f4712"
+            }
+          ]
+        }
+      },
+      "excluded": "Uppercase DEBUG rejected by v2 CLI; all three preparations failed before any WAL controls."
+    },
+    {
+      "name": "v1-control",
+      "rawReportSha256": "e55aaece40d9cb5840ba4d9a104aea8ebfc13a5ab2061c02a8baaebbc6ac1ec8",
+      "node": "v24.19.0",
+      "nativeArgs": [
+        "acp",
+        "--print-logs",
+        "--log-level",
+        "DEBUG"
+      ],
+      "providerRequests": [],
+      "groups": {
+        "preparation": {
+          "opens": 3,
+          "initialized": 3,
+          "opened": 3,
+          "failed": 0,
+          "cleanExit": 3,
+          "failedSamples": []
+        },
+        "recovery": {
+          "opens": 12,
+          "initialized": 10,
+          "opened": 10,
+          "failed": 2,
+          "cleanExit": 10,
+          "failedSamples": [
+            {
+              "name": "recovery-1-0",
+              "initialize": false,
+              "exitCode": 1,
+              "nativeError": "database is locked",
+              "stderrSha256": "b87536f90822e4ad7756c96ea345835a34ce7864070dfad2d0bca776b734024e"
+            },
+            {
+              "name": "recovery-5-0",
+              "initialize": false,
+              "exitCode": 1,
+              "nativeError": "database is locked",
+              "stderrSha256": "b87536f90822e4ad7756c96ea345835a34ce7864070dfad2d0bca776b734024e"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "v2-comparison-debug",
+      "rawReportSha256": "6cc7575afeb1f98b0f7ffe048aa70e07d1e466ef6c476f86c3df2507c515b209",
+      "node": "v24.19.0",
+      "nativeArgs": [
+        "acp",
+        "--print-logs",
+        "--log-level",
+        "debug"
+      ],
+      "providerRequests": [],
+      "groups": {
+        "preparation": {
+          "opens": 3,
+          "initialized": 3,
+          "opened": 3,
+          "failed": 0,
+          "cleanExit": 3,
+          "failedSamples": []
+        },
+        "recovery": {
+          "opens": 12,
+          "initialized": 12,
+          "opened": 12,
+          "failed": 0,
+          "cleanExit": 12,
+          "failedSamples": []
+        },
+        "guarded": {
+          "opens": 12,
+          "initialized": 12,
+          "opened": 12,
+          "failed": 0,
+          "cleanExit": 12,
+          "failedSamples": [],
+          "gate": "Probe-only gate through initialize"
+        }
+      }
+    },
+    {
+      "name": "v2-traced",
+      "rawReportSha256": "f64d131472f88fe806fe815339d99e482f071b556417993103ec83e72d10e71b",
+      "node": "v24.19.0",
+      "nativeArgs": [
+        "acp",
+        "--print-logs",
+        "--log-level",
+        "debug"
+      ],
+      "providerRequests": [],
+      "groups": {
+        "preparation": {
+          "opens": 3,
+          "initialized": 3,
+          "opened": 3,
+          "failed": 0,
+          "cleanExit": 3,
+          "failedSamples": []
+        },
+        "recovery": {
+          "opens": 12,
+          "initialized": 12,
+          "opened": 12,
+          "failed": 0,
+          "cleanExit": 12,
+          "failedSamples": []
+        }
+      }
+    },
+    {
+      "name": "v2-cold",
+      "rawReportSha256": "b82c439dda5d6b75856ef733a7e4c56e9bc3f9d0dc8d396ccedf41afcf28f333",
+      "node": "v24.19.0",
+      "nativeArgs": [
+        "acp",
+        "--print-logs",
+        "--log-level",
+        "debug"
+      ],
+      "providerRequests": [],
+      "groups": {
+        "preparation": {
+          "opens": 3,
+          "initialized": 3,
+          "opened": 3,
+          "failed": 0,
+          "cleanExit": 3,
+          "failedSamples": []
+        },
+        "cold": {
+          "opens": 24,
+          "initialized": 15,
+          "opened": 15,
+          "failed": 9,
+          "cleanExit": 15,
+          "failedSamples": [
+            {
+              "name": "cold-0-0",
+              "initialize": false,
+              "exitCode": 1,
+              "nativeError": "table `account_state` already exists",
+              "stderrSha256": "9139977ec00ef74936571de7d020412fa604988dc56c4a76fcfc521986468844"
+            },
+            {
+              "name": "cold-0-3",
+              "initialize": false,
+              "exitCode": 1,
+              "nativeError": "table `account_state` already exists",
+              "stderrSha256": "3f9cb9c3f90a38d5a3934b2c65ca0b764f552a5e23d8d9bb5c4a27e85aff3df6"
+            },
+            {
+              "name": "cold-1-0",
+              "initialize": false,
+              "exitCode": 1,
+              "nativeError": "table `account_state` already exists",
+              "stderrSha256": "eeadd3d636a8eb2313e7fdb1adce6caf4e20b7ca0cedf3720f703c5e0866ef4a"
+            },
+            {
+              "name": "cold-1-1",
+              "initialize": false,
+              "exitCode": 1,
+              "nativeError": "table `account_state` already exists",
+              "stderrSha256": "547b429f190239e9ff86d38532962c4e41ddacb4f596bc3978c4506547414905"
+            },
+            {
+              "name": "cold-1-2",
+              "initialize": false,
+              "exitCode": 1,
+              "nativeError": "table `account_state` already exists",
+              "stderrSha256": "c46a8437c1215061229581470f0ad3af2d240146b1ebadb0126add11a561ea44"
+            },
+            {
+              "name": "cold-2-1",
+              "initialize": false,
+              "exitCode": 1,
+              "nativeError": "table `account_state` already exists",
+              "stderrSha256": "08ba13b7df89c3563bf76edcf9eec58f19dbb6fcdc6c7efaba1aa18a1190a12e"
+            },
+            {
+              "name": "cold-3-0",
+              "initialize": false,
+              "exitCode": 1,
+              "nativeError": "table `account_state` already exists",
+              "stderrSha256": "d9779d21e910277996dddb5c2d327889faa0e30c8d44f8cf80a7627db5381b6f"
+            },
+            {
+              "name": "cold-4-3",
+              "initialize": false,
+              "exitCode": 1,
+              "nativeError": "table `account_state` already exists",
+              "stderrSha256": "38c6f0bf688780fc86ce3c49aaeb851a04d72f4236c5c20b890ba2ddb5b412fd"
+            },
+            {
+              "name": "cold-5-1",
+              "initialize": false,
+              "exitCode": 1,
+              "nativeError": "table `account_state` already exists",
+              "stderrSha256": "a6cb606ddff4d3bf192c8bd50d51b18d00890846ae88577c5f6fed4b52c185b8"
+            }
+          ]
+        },
+        "cold-gated": {
+          "opens": 24,
+          "initialized": 24,
+          "opened": 24,
+          "failed": 0,
+          "cleanExit": 24,
+          "failedSamples": [],
+          "gate": "Actual acquireOpenCodeStartup from OAR main 334396fb"
+        }
+      }
+    },
+    {
+      "name": "v2-cold-adapter",
+      "rawReportSha256": "5a8a902e5144680c70cc9211c5aa4baf77c9492250f89c797450c05046b731b1",
+      "node": "v24.19.0",
+      "nativeArgs": [
+        "acp",
+        "--print-logs",
+        "--log-level",
+        "debug"
+      ],
+      "providerRequests": [],
+      "groups": {
+        "preparation": {
+          "opens": 3,
+          "initialized": 3,
+          "opened": 3,
+          "failed": 0,
+          "cleanExit": 3,
+          "failedSamples": []
+        },
+        "cold-adapter": {
+          "opens": 24,
+          "initialized": 24,
+          "opened": 24,
+          "failed": 0,
+          "cleanExit": 4,
+          "failedSamples": [],
+          "disposed": 24,
+          "disposeExitCodes": {
+            "0": 4,
+            "143": 20
+          }
+        }
+      }
+    }
+  ],
+  "selectedRecoveryTrace": {
+    "run": "v2-traced",
+    "sample": "recovery-0-1",
+    "file": "same opencode.db-shm",
+    "rawSha256": "60db823f77da4a82e9ecae7e0b7b034c548603fe3cd7406192b676c1e552c391",
+    "frames": [
+      {
+        "relativeSeconds": 0.0,
+        "operation": "F_WRLCK",
+        "offset": 120,
+        "length": 1,
+        "result": "-1 EAGAIN (Resource temporarily unavailable)"
+      },
+      {
+        "relativeSeconds": 3.3e-05,
+        "operation": "F_RDLCK",
+        "offset": 122,
+        "length": 1,
+        "result": "-1 EAGAIN (Resource temporarily unavailable)"
+      },
+      {
+        "relativeSeconds": 0.001158,
+        "operation": "F_WRLCK",
+        "offset": 120,
+        "length": 1,
+        "result": "-1 EAGAIN (Resource temporarily unavailable)"
+      },
+      {
+        "relativeSeconds": 0.001195,
+        "operation": "F_RDLCK",
+        "offset": 122,
+        "length": 1,
+        "result": "-1 EAGAIN (Resource temporarily unavailable)"
+      },
+      {
+        "relativeSeconds": 0.331746,
+        "operation": "F_WRLCK",
+        "offset": 120,
+        "length": 1,
+        "result": "-1 EAGAIN (Resource temporarily unavailable)"
+      },
+      {
+        "relativeSeconds": 0.331954,
+        "operation": "F_RDLCK",
+        "offset": 122,
+        "length": 1,
+        "result": "-1 EAGAIN (Resource temporarily unavailable)"
+      },
+      {
+        "relativeSeconds": 0.527007,
+        "operation": "F_WRLCK",
+        "offset": 120,
+        "length": 1,
+        "result": "0"
+      }
+    ]
+  },
+  "tracedPairsWithRecoveryContention": 6,
+  "finalProbeSmoke": {
+    "scope": "One additional round after type/lint cleanup; not pooled with the six-round measurement",
+    "rawReportSha256": "1f22a65d3f5d555f31052feec8951d6f757700f478c2a5e80a4d12738cdc8399",
+    "providerRequests": [],
+    "groups": {
+      "cold": {
+        "opens": 4,
+        "opened": 2,
+        "failed": 2
+      },
+      "cold-gated": {
+        "opens": 4,
+        "opened": 4,
+        "failed": 0
+      }
+    }
+  }
+}
