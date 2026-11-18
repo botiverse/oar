@@ -198,6 +198,10 @@ export function refusalOf(error: unknown): ResponseBody {
   if (error.status >= 500) {
     return { kind: "rejected", code: "error", reason: error.message, failure: "provider", native: error.native };
   }
+  if (error.status === 404) {
+    // The Thread the session was opened on is gone: no later control can succeed.
+    return { kind: "rejected", code: "session_not_found", reason: error.message, native: error.native };
+  }
   const failure = failureOf(error.status);
   return {
     kind: "rejected",

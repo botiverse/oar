@@ -64,7 +64,9 @@ Thread; a value that differs from the stored one on resume is refused with an
 ### Prompt, steer, queue and cancel
 
 One turn at a time: `prompt` is rejected `busy` while the status fold says
-running, matching the contract's invariant by construction. `steer` is absent —
+running, while a turn is followed, while input is held for a later turn, and
+while a held input's dispatch is in flight — the tracker alone would be too
+late, because it learns of a turn only once `/inputs` answers. `steer` is absent —
 Cybion's Agent API takes no mid-turn input, and its own queue belongs to the
 browser's Thread, so a queued input would become a second turn the status
 cannot tell from this one. `queue` is therefore held by the adapter and sent
@@ -132,6 +134,13 @@ of its own.
 - **No model list, account usage or inventories.** The Agent API exposes none of
   them, so `listModels`, `accountUsage` and the four inventories answer
   `unsupported`.
+- **A create that runs a different model or effort leaves a Thread behind.** The
+  open fails, as it should, but the Thread already exists and the Agent API has
+  no delete route, so it stays in its owner's list.
+- **A turn that dies without writing a record is reported after about 111 s.**
+  The started-guard waits 60 polls, and the backoff is capped at 2 s. Until it
+  gives up, the status fold says running, so `abort` answers `unsupported` and a
+  prompt answers `busy`.
 - **Images travel inline.** `InputOptions.images` are read from this machine and
   sent as png/jpeg/webp/gif data URLs, within Cybion's count and size limits.
 

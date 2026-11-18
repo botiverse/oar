@@ -77,7 +77,7 @@ export function cybionSessionWith(client: Parameters<typeof openThread>[0]): Sta
     let draining = false;
     const capabilities = { queue: { durable: false }, attribution: "none", images: true } as const;
 
-    /** Whether the Thread has work of this session's: a running turn, or an input waiting to be sent. */
+    /** Whether the Thread has work of this session's: a running turn, or input waiting to be sent. */
     const occupied = (): boolean => tracker.busy() || held.length > 0;
 
     const attempt = async (input: string, images: InputOptions["images"]): Promise<ResponseBody> => {
@@ -110,7 +110,10 @@ export function cybionSessionWith(client: Parameters<typeof openThread>[0]): Sta
         { kind: "prompt", input: entry.input, carries: [entry.inputId], ...(entry.images === undefined ? {} : { images: entry.images }) },
         async (request): Promise<ResponseBody> => {
           const outcome = await attempt(entry.input, entry.images);
-          if (outcome.kind === "rejected") {
+          // Only an answer from Cybion hands a held input back: a write that never
+          // reached it, or an image refused before sending, is not the runtime
+          // dropping an input it accepted.
+          if (outcome.kind === "rejected" && outcome.native !== undefined) {
             const dropped: RuntimeEventBody = {
               kind: "input_dropped",
               reason: "runtime_refused",
@@ -159,17 +162,25 @@ export function cybionSessionWith(client: Parameters<typeof openThread>[0]): Sta
       onIdle: () => {
         void drain();
       },
+      onGivenUp: () => {
+        // No poll follows a given-up turn, so a held input would wait behind a
+        // turn that ended: hand each one back to the host instead.
+        for (const entry of held.splice(0)) {
+          kernel.frame({ type: "cybion/held_dropped", native: null, events: [{ kind: "input_dropped", reason: "turn_interrupted", inputId: entry.inputId }] });
+        }
+      },
     });
 
     const session: Session = sealSession({
       id: kernel.sessionId,
       capabilities,
       prompt: async (input: string, inputOptions?: PromptOptions): Promise<ControlResult> => {
-        // Busy is the status fold's word as the request is recorded (`control()`
-        // records it synchronously), so the contract's invariant holds by
-        // construction. A held input also counts: the spec forbids a prompt
-        // overtaking input OAR already accepted.
-        const busy = occupied();
+        // Busy is read before the request is recorded, and every source of work
+        // counts: the status fold (a prompt already accepted), a turn the tracker
+        // follows, input held for a later turn, and a dispatch whose POST is in
+        // flight. The tracker alone is not enough — it only knows a turn after
+        // `/inputs` answers — so two prompts in one tick would both be accepted.
+        const busy = session.status().value.kind === "running" || occupied() || draining;
         const result = await kernel.control({ kind: "prompt", input, ...inputOptions }, async (): Promise<ResponseBody> => {
           if (busy) {
             return { kind: "rejected", code: "busy", reason: "busy" };

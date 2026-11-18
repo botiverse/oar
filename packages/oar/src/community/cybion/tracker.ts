@@ -55,6 +55,12 @@ export interface TrackerOptions {
   /** Called after a turn ended with the Thread idle and nothing given up. */
   readonly onIdle: () => void;
   /**
+   * Called when a turn was given up as unreachable. Nothing will poll again on
+   * its own, so input held for a later turn has to be handed back rather than
+   * left waiting behind a turn that ended.
+   */
+  readonly onGivenUp?: () => void;
+  /**
    * How the next poll is spaced. The default is a real timer that does not hold
    * the host process open; a test passes its own so a poll happens when the
    * test says so.
@@ -201,10 +207,12 @@ export function createThreadTracker(options: TrackerOptions): ThreadTracker {
     if (abandoned(current)) {
       return;
     }
-    record(current, await readHistory(client, thread.id));
+    const history = await readHistory(client, thread.id);
     if (abandoned(current)) {
+      // A release that landed while the read was in flight frames nothing.
       return;
     }
+    record(current, history);
     emitUsage(now);
     observe(current, now);
     if (!current.worked && current.startPolls >= START_POLLS) {
@@ -241,6 +249,7 @@ export function createThreadTracker(options: TrackerOptions): ThreadTracker {
             // usable, and a held input waits rather than starting a turn nobody
             // is watching.
             finish(current, null, { kind: "failed", failure: "unknown", reason: "Cybion stopped answering; the Thread may still be running there" }, false);
+            options.onGivenUp?.();
           }
         }
       }
