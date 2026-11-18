@@ -621,8 +621,8 @@ configuration. Omitting `mcpServers` or passing an empty list leaves the old
 names advertised, but calls to them fail with `Tool ... not found`. New
 server names are executable without being listed to the model; the same
 names with new configuration execute against the new configuration (and
-receive the new credentials). Hosts changing MCP configuration on resume must
-expect this mismatch. OAR does not filter the native declarations or refuse
+receive the new credentials). To change the MCP server set on Kimi 2.5 or
+later, a host should start a fresh session. OAR does not filter the native declarations or refuse
 the entire resumed MCP configuration. On 2.4.1 the same controls keep
 declarations and execution aligned. Evidence: fresh processes and local
 providers on Linux, not real models or other platforms
@@ -640,9 +640,13 @@ catalog. Same-name replacements use the new configuration. This can send
 the model toward removed tools while hiding newly supplied tools
 ([November 17 evidence and source](../../experiments/kimi-mcp-resume/2026-11-17.md)).
 Tracked in [upstream #5036](https://github.com/MoonshotAI/kimi-code/issues/5036)
-and [OAR #899](https://github.com/botiverse/oar/issues/899). Keep the MCP assertion
-and accepted pin unchanged until a fixed native release passes the omitted,
-empty, same-name and renamed controls with declarations matching execution.
+and [OAR #899](https://github.com/botiverse/oar/issues/899), which remains open.
+CI tests 2.6.3 for both scripted-provider behavior and login. Its MCP controls
+assert the observed version boundary: from 2.5.0 removed names stay advertised
+and fail when called; same-name replacements execute against their new
+configuration. Restore aligned declaration assertions after a fixed native
+release passes the omitted, empty, same-name and renamed controls. This
+baseline update does not declare the upstream limitation fixed.
 
 The credentials reach kimi only in the open request's params, which OAR does
 not record (it records the answers, every `session/update` and vendor
