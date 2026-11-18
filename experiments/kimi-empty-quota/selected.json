@@ -1,0 +1,82 @@
+{
+  "runtimeVersion": "2.6.3",
+  "platform": "linux x64",
+  "adapterVersion": "0.116.0",
+  "observation": "allowlisted metadata only, not full native response bodies",
+  "nativeTui": {
+    "startedAt": "2026-11-18T06:52:16.846377+00:00",
+    "finishedAt": "2026-11-18T06:52:21.434886+00:00",
+    "usageSubmitted": true,
+    "showsNoUsageData": true,
+    "showsUsageError": false,
+    "planUsageSectionObserved": true,
+    "freePlanLabelObserved": false,
+    "nativeExitCode": 0,
+    "accessPresent": true,
+    "refreshPresent": true,
+    "accessChanged": false,
+    "refreshChanged": false,
+    "refreshRequests": 0,
+    "usageResponses": 1,
+    "rawTerminalPersisted": false
+  },
+  "nativeTuiResponse": [
+    {
+      "at": "2026-11-18T06:52:20.848Z",
+      "event": "usage_response_received",
+      "elapsedMs": 700.0942279999999,
+      "succeeded": true,
+      "unauthorized": false,
+      "forbidden": false,
+      "notFound": false
+    },
+    {
+      "at": "2026-11-18T06:52:20.849Z",
+      "event": "usage_body_shape",
+      "topLevelFields": [],
+      "nonIdentifierFieldCount": 0,
+      "hasUsages": false,
+      "hasLegacyUsage": false,
+      "anyNativeWindow": false,
+      "anyNativeRatio": false,
+      "anyLegacyLimit": false,
+      "hasError": false
+    }
+  ],
+  "adapterUsage": {
+    "startedAt": "2026-11-18T07:04:56.021Z",
+    "finishedAt": "2026-11-18T07:05:00.464Z",
+    "refreshRequests": 1,
+    "successfulRefreshes": 1,
+    "observedRefreshRotation": true,
+    "quotaShapeUnusable": true,
+    "accessPresent": true,
+    "refreshPresent": true
+  },
+  "adapterResponse": [
+    {
+      "at": "2026-11-18T07:05:00.372Z",
+      "event": "usage_response_received",
+      "elapsedMs": 900.6771009999998,
+      "succeeded": true,
+      "unauthorized": false,
+      "forbidden": false,
+      "notFound": false
+    },
+    {
+      "at": "2026-11-18T07:05:00.373Z",
+      "event": "usage_body_shape",
+      "topLevelFields": [],
+      "nonIdentifierFieldCount": 0,
+      "payloadIsNull": false,
+      "payloadIsArray": false,
+      "payloadIsRecord": true,
+      "hasUsages": false,
+      "hasLegacyUsage": false,
+      "anyNativeWindow": false,
+      "anyNativeRatio": false,
+      "anyLegacyLimit": false,
+      "hasError": false
+    }
+  ]
+}

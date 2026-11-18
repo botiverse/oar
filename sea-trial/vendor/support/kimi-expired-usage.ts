@@ -21,7 +21,7 @@ function refreshValue(value: number): string {
   return value === 1 ? "synthetic-rotated" : `synthetic-rotated-${String(value)}`;
 }
 
-export async function kimiExpiredUsageFixture(mode: "success" | "rejected" | "network" | "hang", refreshDelayMs = 200): Promise<ExpiredUsageFixture> {
+export async function kimiExpiredUsageFixture(mode: "success" | "empty" | "rejected" | "network" | "hang", refreshDelayMs = 200): Promise<ExpiredUsageFixture> {
   const dir = await mkdtemp(path.join(tmpdir(), "kimi-usage-native-"));
   const home = path.join(dir, "home"); await mkdir(path.join(home, "credentials"), { recursive: true });
   const calls: RefreshCall[] = [];
@@ -47,7 +47,7 @@ export async function kimiExpiredUsageFixture(mode: "success" | "rejected" | "ne
           generation += 1; const refreshedValue = refreshValue(generation);
           setTimeout(() => { reply(200, { access_token: "synthetic-fresh", refresh_token: refreshedValue, expires_in: 900, token_type: "Bearer" }); }, refreshDelayMs);
         }
-      } else if (route === "/usages") { reply(200, { usages: { limit_7d: { used_ratio: 0.25, reset_time: "2030-01-01T00:00:00Z" } } }); }
+      } else if (route === "/usages") { reply(200, mode === "empty" ? {} : { usages: { limit_7d: { used_ratio: 0.25, reset_time: "2030-01-01T00:00:00Z" } } }); }
       else if (route === "/me") { reply(200, { user_id: "fixture", nickname: "Fixture", user_level_name: "Fixture plan" }); }
       else if (route === "/models") { reply(200, { data: [] }); }
       else { reply(404, {}); }

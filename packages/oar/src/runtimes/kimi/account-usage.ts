@@ -198,7 +198,13 @@ export function projectKimiUsage(
       scope: { kind: "account" },
     });
   }
-  if (windows.length === 0) { throw new Error("Kimi usage response contains no usable quota windows"); }
+  if (windows.length === 0) {
+    const usages = asRecord(root.usages);
+    const noNativeQuota = root.usages === undefined || (usages !== null && Object.keys(usages).length === 0);
+    const noLegacyQuota = root.usage === undefined && (limits === undefined || (Array.isArray(limits) && limits.length === 0));
+    if (noNativeQuota && noLegacyQuota) { return { kind: "unsupported", reason: "quota_unavailable" }; }
+    throw new Error("Kimi usage response contains no usable quota windows");
+  }
   // Kimi's Extra Usage balance bypasses exhausted weekly/hourly subscription
   // quotas. A configured monthly spending cap is the only additional blocker.
   const extraUsageHeadroom = extraUsage !== null

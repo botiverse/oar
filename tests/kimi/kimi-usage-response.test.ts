@@ -25,6 +25,10 @@ async function readWith(response: () => Promise<Response>) {
   } finally { await rm(home, { recursive: true, force: true }); }
 }
 
+test.each([{}, { usages: {} }])("a successful no-data response returns quota_unavailable (%#)", async payload => {
+  await expect(readWith(async () => Response.json(payload))).resolves.toEqual({ kind: "unsupported", reason: "quota_unavailable" });
+});
+
 test.each([
   ["<html>synthetic response</html>", "Kimi usage response is not valid JSON"],
   ["null", "Kimi usage response is not an object"],

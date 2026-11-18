@@ -17,8 +17,11 @@ test.each([
 ])("native Extra Usage headroom controls refusal: %j", (extraUsage, rateLimited) => {
   expect(projectKimiNativeUsage({ usages, extraUsage })).toMatchObject({ rateLimited });
 });
-test("an empty or malformed native quota is not a zero-usage answer", () => {
-  expect(() => projectKimiNativeUsage({ usages: { limit7d: { usedRatio: "broken" } } })).toThrow("no usable quota windows");
+test.each([{}, { usages: {} }, { usages: {}, extraUsage: null }])("native no-data quota is unsupported, not zero usage (%#)", quota => {
+  expect(projectKimiNativeUsage(quota)).toEqual({ kind: "unsupported", reason: "quota_unavailable" });
+});
+test.each([null, [], "broken", { limit7d: { usedRatio: "broken" } }, { unknown: {} }])("present malformed native quota still rejects (%#)", value => {
+  expect(() => projectKimiNativeUsage({ usages: value })).toThrow("no usable quota windows");
 });
 
 test("an exhausted extra spending cap does not exhaust the subscription", () => {
