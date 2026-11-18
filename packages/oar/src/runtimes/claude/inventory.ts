@@ -7,12 +7,89 @@ import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
 import { inventoryOk, inventoryRead, named, nativeRows, skillScope, textField, unsupportedInventory, workspaceScope, type NativeInventoryRequest } from "../../shared/inventory.js";
 import { claudeEnv } from "./environment.js";
 
+const CLAUDE_SKILL_SOURCES = { "built-in": "builtin", userSettings: "user", projectSettings: "project", localSettings: "project", policySettings: "managed", plugin: "other", flagSettings: "other", memoryStore: "other", syncedSkills: "other" } as const;
+
 export function projectClaudeSkills(payload: JsonRecord): SkillEntry[] {
   return nativeRows(asRecord(payload.skills)?.skillFrontmatter).map((skill) => ({
     name: named(skill), ...textField("source", skill.source),
-    ...skillScope(skill.source, { "built-in": "builtin", userSettings: "user", projectSettings: "project", localSettings: "project", policySettings: "managed", plugin: "other", flagSettings: "other", memoryStore: "other", syncedSkills: "other" }),
+    ...skillScope(skill.source, CLAUDE_SKILL_SOURCES),
     ...textField("plugin", skill.pluginName),
+    ...textField("path", skill.path),
   }));
+}
+
+/**
+ * The label Claude appends to a file-backed command's description in
+ * `initialize.commands` (2.1.322: "Deploy it (project)", "User cmd (user)"),
+ * by the scope it names. Only these two are verified.
+ */
+const CLAUDE_COMMAND_LABELS = { project: " (project)", user: " (user)" } as const;
+/** Sources whose skills were verified to be listed as commands exactly when a user can run them. */
+const INVOCABILITY_VERIFIED = new Set(["userSettings", "projectSettings", "localSettings"]);
+
+function unlabeled(description: string, scope: SkillEntry["scope"]): string {
+  const label = scope === "project" || scope === "user" ? CLAUDE_COMMAND_LABELS[scope] : undefined;
+  return label !== undefined && description.endsWith(label) ? description.slice(0, -label.length) : description;
+}
+
+/** Well-formed command rows by name; a name listed twice is ambiguous and joins nothing. */
+function commandsByName(value: unknown): Map<string, JsonRecord | null> | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  const byName = new Map<string, JsonRecord | null>();
+  for (const item of value) {
+    const row = asRecord(item);
+    if (row !== null && typeof row.name === "string") {
+      byName.set(row.name, byName.has(row.name) ? null : row);
+    }
+  }
+  return byName;
+}
+
+/**
+ * Claude's skills as one catalog from one process: the skill list from
+ * `get_context_usage` (name, source, path, plugin; it includes legacy
+ * `.claude/commands` files, which Claude loads as skills) joined by name with
+ * `initialize.commands` (description, and whether a person can run it).
+ * A builtin command never describes a non-builtin skill of the same name.
+ * `userInvocable: false` is claimed only for sources where absence from the
+ * command list was verified to mean that (user, project, local settings).
+ * A skill hidden from the model (`disable-model-invocation`) appears only as
+ * a command; it is added when Claude's own description label names its scope,
+ * with no `source` (the native string is not reported) and no model claim.
+ * The result is partial when the context list says it left skills out.
+ */
+export function projectClaudeSkillCatalog(context: JsonRecord, initialized: JsonRecord): { readonly items: SkillEntry[]; readonly partial: boolean } {
+  const skills = projectClaudeSkills(context);
+  const counts = asRecord(context.skills);
+  const omitted = typeof counts?.totalSkills === "number" && typeof counts.includedSkills === "number" && counts.includedSkills < counts.totalSkills;
+  const commands = commandsByName(initialized.commands);
+  if (commands === null) {
+    return { items: skills, partial: omitted };
+  }
+  const known = new Set(skills.map((skill) => skill.name));
+  const joined = skills.map((skill): SkillEntry => {
+    const listed = commands.has(skill.name);
+    const command = commands.get(skill.name);
+    const usable = command !== undefined && command !== null && (command.builtin !== true || skill.scope === "builtin") ? command : undefined;
+    const description = typeof usable?.description === "string" ? unlabeled(usable.description, skill.scope) : "";
+    const invocable = listed ? { userInvocable: true } : (skill.source !== undefined && INVOCABILITY_VERIFIED.has(skill.source) ? { userInvocable: false } : {});
+    return { ...skill, ...(description === "" ? {} : { description }), ...invocable };
+  });
+  const hidden = [...commands].flatMap(([name, command]): SkillEntry[] => {
+    const text = command?.description;
+    if (command === null || command.builtin === true || typeof text !== "string" || known.has(name)) {
+      return [];
+    }
+    const scope = text.endsWith(CLAUDE_COMMAND_LABELS.project) ? "project" : (text.endsWith(CLAUDE_COMMAND_LABELS.user) ? "user" : undefined);
+    if (scope === undefined) {
+      return [];
+    }
+    const description = unlabeled(text, scope);
+    return [{ name, ...(description === "" ? {} : { description }), scope, userInvocable: true }];
+  });
+  return { items: [...joined, ...hidden], partial: omitted };
 }
 export function projectClaudeCommands(payload: JsonRecord): CommandEntry[] {
   return nativeRows(payload.commands).map((command) => {
@@ -121,9 +198,10 @@ async function readServers(request: NativeInventoryRequest): Promise<JsonRecord[
 function partial(servers: readonly JsonRecord[]): boolean {
   return servers.some((server) => server.status === "pending" || server.status === "failed");
 }
-export const claudeSkills = reader(async (request, scope) => {
+export const claudeSkills = reader(async (request, scope, initialized) => {
   const payload = await request("get_context_usage", { detail: "summary" });
-  return inventoryOk(scope, "context", projectClaudeSkills(payload));
+  const catalog = projectClaudeSkillCatalog(payload, initialized);
+  return inventoryOk(scope, "discovered", catalog.items, catalog.partial);
 });
 export const claudeCommands = reader((_request, scope, initialized) =>
   inventoryOk(scope, "discovered", projectClaudeCommands(initialized)));

@@ -109,13 +109,14 @@ test("unknown MCP status remains absent, not connected", async () => {
   if (result.kind === "ok") { expect(result.items[0]).not.toHaveProperty("status"); }
 });
 
-test("Claude skills are context entries, never initialize command aliases", async () => {
+test("Claude skills come from the context list; commands add descriptions and invocability, never extra skills", async () => {
   const fake = control((method) => method === "initialize"
-    ? { commands: [{ name: "not-a-skill" }] }
-    : { skills: { skillFrontmatter: [{ name: "actual-skill", source: "plugin", tokens: 30 }] } });
+    ? { commands: [{ name: "not-a-skill" }, { name: "actual-skill", description: "Does it (project)" }] }
+    : { skills: { skillFrontmatter: [{ name: "actual-skill", source: "projectSettings", path: "/w/.claude/skills/actual-skill/SKILL.md", tokens: 30 }] } });
   spawnLineProcess.mockReturnValue(fake);
   await expect(claudeSkills(executable, { cwd: "project-a" })).resolves.toMatchObject({
-    kind: "ok", view: "context", items: [{ name: "actual-skill", source: "plugin" }],
+    kind: "ok", view: "discovered",
+    items: [{ name: "actual-skill", source: "projectSettings", scope: "project", path: "/w/.claude/skills/actual-skill/SKILL.md", description: "Does it", userInvocable: true }],
   });
   expect(spawnLineProcess.mock.calls[0]?.[2]?.cwd).toBe(resolve("project-a"));
   expect(fake.written.map((text) => asRecord(parseJson(text))?.type)).toEqual(["control_request", "control_request"]);

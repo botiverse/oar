@@ -72,7 +72,7 @@ See [adapter version requirements](orientation.md#adapter-version-requirements).
 
 | View | Meaning |
 |---|---|
-| `discovered` | Directory/config discovery, not proof of a running agent's state |
+| `discovered` | The runtime's catalog of what it would load (from directory/config discovery or its own listing), not proof of a running agent's state |
 | `context` | Native context's skill list, not every installed command |
 | `registered` | Registered tools, including tools that are not active |
 | `mcp-only` | MCP tools only; built-in and other extension tools are not included |
@@ -103,7 +103,9 @@ one shared category: `builtin`, `user`, `project`, `managed` or `other`.
 **An absent scope means unknown.** A recognized source that does not fit the
 first four categories is `other`; an unrecognized or missing source is omitted.
 Optional `plugin` preserves a native plugin or package identifier independently
-of scope. A plugin skill can still be user-, project- or managed-scoped when
+of scope. Optional `userInvocable` says whether a person can run the skill
+directly (a slash command), from the runtime's own command catalog; absent
+means not reported (Claude only, see its runtime page). A plugin skill can still be user-, project- or managed-scoped when
 the native catalog says so. A plugin identity alone does not establish scope.
 
 | Runtime | Native provenance → shared `scope` | `plugin` |
@@ -151,7 +153,8 @@ absent; their absence does not make the returned catalog partial.
 Neither path executes a command or observes an existing session's later changes.
 
 Claude lists `initialize.commands`, including native aliases and argument
-hints. An explicit native `builtin: true` becomes `source: "builtin"`;
+hints. Claude's `skills()` reads the same array in the same process to add each
+skill's `description` and `userInvocable` (see the Claude runtime page). An explicit native `builtin: true` becomes `source: "builtin"`;
 other provenance stays absent. The native catalog can contain skill-backed
 commands also represented by `skills()`, so hosts merging the catalogs
 should avoid duplicate picker entries. Account data from initialize is
@@ -167,7 +170,7 @@ ACP session's `available_commands_update` is not an independent query.
 | Runtime | skills | commands | mcpServers | tools |
 |---|---|---|---|---|
 | Codex | `skills/list` | Unsupported on app-server | Paginated `mcpServerStatus/list` | Same native MCP catalog, including input schemas |
-| Claude | `get_context_usage` skill frontmatter | `initialize.commands` | `mcp_status`, bounded startup polling | MCP names/descriptions when supplied; no invented schemas |
+| Claude | `get_context_usage` skill frontmatter joined with `initialize.commands` in one process | `initialize.commands` | `mcp_status`, bounded startup polling | MCP names/descriptions when supplied; no invented schemas |
 | Grok | `inspect --json` skills | Unsupported for independent queries | `inspect --json` configured/compatibility entries | Unsupported for independent queries |
 | Pi | SDK resource loader | SDK extension runner and prompt templates | Unsupported | SDK registered tools, parameter schemas and active membership |
 | Kimi | Native Web workspace skills; temporary loopback service, native state writes | Unsupported | Unsupported | Unsupported |

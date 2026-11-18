@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { projectClaudeSkills } from "../packages/oar/src/runtimes/claude/inventory.js";
+import { projectClaudeSkillCatalog, projectClaudeSkills } from "../packages/oar/src/runtimes/claude/inventory.js";
 import { projectCodexSkills } from "../packages/oar/src/runtimes/codex/inventory.js";
 import { projectGrokSkills } from "../packages/oar/src/runtimes/grok/inventory.js";
 import { piRpcSkills } from "../packages/oar/src/runtimes/pi/rpc/readers.js";
@@ -61,4 +61,44 @@ test("Pi RPC retains package identity independently of user, project and tempora
     { name: "project", source: "git:example.test/fixture", path: "/b", scope: "project", plugin: "git:example.test/fixture" },
     { name: "temporary", source: "cli", path: "/c", scope: "other" },
   ]);
+});
+
+test("Claude catalog joins native descriptions and invocability and keeps model-hidden labeled commands", () => {
+  const context = { skills: { totalSkills: 4, includedSkills: 4, skillFrontmatter: [
+    { name: "deploy", source: "projectSettings", path: "/w/.claude/commands/deploy.md" },
+    { name: "user-skill", source: "userSettings", path: "/h/.claude/skills/user-skill/SKILL.md" },
+    { name: "dataviz", source: "syncedSkills" },
+    { name: "review", source: "projectSettings" },
+  ] } };
+  const initialized = { commands: [
+    { name: "deploy", description: "Deploy it (project)", argumentHint: "env" },
+    { name: "dataviz", description: "Charts (project)" },
+    { name: "review", description: "Built-in review", builtin: true },
+    { name: "hidden-skill", description: "Hidden one (project)" },
+    { name: "ucmd", description: "User cmd (user)" },
+    { name: "twice", description: "A (user)" },
+    { name: "twice", description: "B (user)" },
+    { name: "mcp-prompt", description: "From a server" },
+    { name: "init", description: "Initialize", builtin: true },
+    "not a row",
+  ] };
+  expect(projectClaudeSkillCatalog(context, initialized)).toEqual({ partial: false, items: [
+    { name: "deploy", source: "projectSettings", scope: "project", path: "/w/.claude/commands/deploy.md", description: "Deploy it", userInvocable: true },
+    // user-invocable: false in its frontmatter, so Claude does not list it as a command.
+    { name: "user-skill", source: "userSettings", scope: "user", path: "/h/.claude/skills/user-skill/SKILL.md", userInvocable: false },
+    // The label is stripped only when it names the entry's own scope.
+    { name: "dataviz", source: "syncedSkills", scope: "other", description: "Charts (project)", userInvocable: true },
+    // A builtin command of the same name never describes a project skill.
+    { name: "review", source: "projectSettings", scope: "project", userInvocable: true },
+    { name: "hidden-skill", description: "Hidden one", scope: "project", userInvocable: true },
+    { name: "ucmd", description: "User cmd", scope: "user", userInvocable: true },
+  ] });
+});
+
+test("Claude catalog claims nothing it cannot read", () => {
+  const context = { skills: { totalSkills: 3, includedSkills: 2, skillFrontmatter: [{ name: "plugin-skill", source: "plugin", pluginName: "p" }] } };
+  // No command catalog: no descriptions, no invocability; the context list said it left a skill out.
+  expect(projectClaudeSkillCatalog(context, {})).toEqual({ partial: true, items: projectClaudeSkills(context) });
+  // An unverified source absent from the commands gets no userInvocable claim.
+  expect(projectClaudeSkillCatalog(context, { commands: [] }).items).toEqual([{ name: "plugin-skill", source: "plugin", scope: "other", plugin: "p" }]);
 });
