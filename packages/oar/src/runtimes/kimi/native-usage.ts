@@ -1,12 +1,12 @@
 import type { AccountUsageSnapshot, AccountUsageWindow } from "../../contracts/account-usage.js";
 import { withQueryDeadline } from "../../shared/executable/query.js";
-import { spawnLineProcess } from "../../shared/executable/index.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { remainingMs } from "../../shared/deadline.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { KIMI_USAGE, type KimiAuthContext } from "./auth-config.js";
 import { readKimiToken } from "./oauth-token.js";
-import { kimiWebEndpoint, kimiWebRequest } from "./web-query.js";
+import { kimiWebRequest } from "./web-query.js";
+import { startKimiWeb } from "./web-startup.js";
 
 const buckets = { limit5h: "5h limit", limit7d: "Weekly limit", monthTotal: "Monthly limit", monthCode: "Monthly code limit" } as const;
 
@@ -44,14 +44,8 @@ async function failure(payload: JsonRecord, auth: KimiAuthContext): Promise<Acco
 
 export async function kimiNativeUsage(command: string, auth: KimiAuthContext, env: NodeJS.ProcessEnv, deadline: number): Promise<AccountUsageSnapshot> {
   const snapshot = await withQueryDeadline(KIMI_USAGE, remainingMs(deadline, KIMI_USAGE), async signal => {
-    const child = spawnLineProcess(command, ["web", "--no-open", "--host", "127.0.0.1", "--port", "0"], { env, killTree: true, inheritStderr: false });
-    const ready = kimiWebEndpoint(child, signal);
-    // oxlint-disable-next-line promise/prefer-await-to-then -- Observe spawn failure before readiness is awaited.
-    void ready.catch(() => {});
-    signal.addEventListener("abort", () => { child.kill(); }, { once: true });
+    const { child, web } = await startKimiWeb(command, env, signal);
     try {
-      await child.spawned;
-      const web = await ready;
       const payload = await kimiWebRequest(web, signal, "/oauth/usage");
       if (payload.kind === "error") { return await failure(payload, auth); }
       const quota = asRecord(payload.quota);
@@ -64,7 +58,7 @@ export async function kimiNativeUsage(command: string, auth: KimiAuthContext, en
       return { ...result, ...(typeof user.email === "string" && user.email.length > 0 ? { email: user.email } : {}),
         ...(typeof user.nickname === "string" && user.nickname.length > 0 ? { displayName: user.nickname } : {}),
         ...(typeof user.userLevelName === "string" && user.userLevelName.length > 0 ? { plan: user.userLevelName } : {}) };
-    } finally { child.kill(); await child.exited; }
+    } finally { if (!child.stopping()) { child.kill(); } await child.exited; }
   });
   return snapshot;
 }

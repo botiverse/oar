@@ -1,0 +1,2363 @@
+{
+  "version": "2.6.3",
+  "rows": [
+    {
+      "mode": "unguarded",
+      "scheduled": true,
+      "seeded": false,
+      "fresh": false,
+      "round": 0,
+      "starts": [
+        43,
+        52
+      ],
+      "readiness": [
+        {
+          "reader": 1,
+          "readyMs": 2139
+        },
+        {
+          "reader": 0,
+          "readyMs": 2607
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        },
+        {
+          "status": "rejected",
+          "error": "Error"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 401
+          },
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "unguarded",
+      "scheduled": true,
+      "seeded": false,
+      "fresh": false,
+      "round": 1,
+      "starts": [
+        42,
+        42
+      ],
+      "readiness": [
+        {
+          "reader": 1,
+          "readyMs": 1949
+        },
+        {
+          "reader": 0,
+          "readyMs": 2494
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        },
+        {
+          "status": "rejected",
+          "error": "Error"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 401
+          },
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "unguarded",
+      "scheduled": true,
+      "seeded": false,
+      "fresh": false,
+      "round": 2,
+      "starts": [
+        51,
+        54
+      ],
+      "readiness": [
+        {
+          "reader": 0,
+          "readyMs": 2051
+        },
+        {
+          "reader": 1,
+          "readyMs": 2615
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "rejected",
+          "error": "Error"
+        },
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 401
+          },
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "gated",
+      "scheduled": true,
+      "seeded": false,
+      "fresh": false,
+      "round": 0,
+      "starts": [
+        43,
+        3437
+      ],
+      "readiness": [
+        {
+          "reader": 0,
+          "readyMs": 3399
+        },
+        {
+          "reader": 1,
+          "readyMs": 4967
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        },
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "gated",
+      "scheduled": true,
+      "seeded": false,
+      "fresh": false,
+      "round": 1,
+      "starts": [
+        38,
+        3473
+      ],
+      "readiness": [
+        {
+          "reader": 0,
+          "readyMs": 3428
+        },
+        {
+          "reader": 1,
+          "readyMs": 5250
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        },
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "gated",
+      "scheduled": true,
+      "seeded": false,
+      "fresh": false,
+      "round": 2,
+      "starts": [
+        49,
+        3528
+      ],
+      "readiness": [
+        {
+          "reader": 0,
+          "readyMs": 3485
+        },
+        {
+          "reader": 1,
+          "readyMs": 5227
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        },
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "gated",
+      "scheduled": false,
+      "seeded": false,
+      "fresh": false,
+      "round": 0,
+      "starts": [
+        40,
+        1908
+      ],
+      "readiness": [
+        {
+          "reader": 0,
+          "readyMs": 1869
+        },
+        {
+          "reader": 1,
+          "readyMs": 3572
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        },
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "gated",
+      "scheduled": false,
+      "seeded": false,
+      "fresh": false,
+      "round": 1,
+      "starts": [
+        53,
+        1938
+      ],
+      "readiness": [
+        {
+          "reader": 0,
+          "readyMs": 1868
+        },
+        {
+          "reader": 1,
+          "readyMs": 3629
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        },
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "gated",
+      "scheduled": false,
+      "seeded": false,
+      "fresh": false,
+      "round": 2,
+      "starts": [
+        39,
+        1868
+      ],
+      "readiness": [
+        {
+          "reader": 0,
+          "readyMs": 1825
+        },
+        {
+          "reader": 1,
+          "readyMs": 3495
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        },
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "gated",
+      "scheduled": false,
+      "seeded": false,
+      "fresh": false,
+      "round": 3,
+      "starts": [
+        37,
+        2049
+      ],
+      "readiness": [
+        {
+          "reader": 0,
+          "readyMs": 2003
+        },
+        {
+          "reader": 1,
+          "readyMs": 3870
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        },
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "gated",
+      "scheduled": false,
+      "seeded": false,
+      "fresh": false,
+      "round": 4,
+      "starts": [
+        41,
+        2077
+      ],
+      "readiness": [
+        {
+          "reader": 0,
+          "readyMs": 2037
+        },
+        {
+          "reader": 1,
+          "readyMs": 3746
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        },
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "gated",
+      "scheduled": false,
+      "seeded": false,
+      "fresh": false,
+      "round": 5,
+      "starts": [
+        37,
+        1871
+      ],
+      "readiness": [
+        {
+          "reader": 0,
+          "readyMs": 1830
+        },
+        {
+          "reader": 1,
+          "readyMs": 3535
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        },
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "gated",
+      "scheduled": false,
+      "seeded": true,
+      "fresh": false,
+      "round": 0,
+      "starts": [
+        39,
+        43
+      ],
+      "readiness": [
+        {
+          "reader": 0,
+          "readyMs": 1961
+        },
+        {
+          "reader": 1,
+          "readyMs": 2767
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        },
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "gated",
+      "scheduled": false,
+      "seeded": true,
+      "fresh": false,
+      "round": 1,
+      "starts": [
+        46,
+        51
+      ],
+      "readiness": [
+        {
+          "reader": 0,
+          "readyMs": 2036
+        },
+        {
+          "reader": 1,
+          "readyMs": 2565
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        },
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "gated",
+      "scheduled": false,
+      "seeded": true,
+      "fresh": false,
+      "round": 2,
+      "starts": [
+        41,
+        50
+      ],
+      "readiness": [
+        {
+          "reader": 1,
+          "readyMs": 1892
+        },
+        {
+          "reader": 0,
+          "readyMs": 2488
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        },
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "gated",
+      "scheduled": false,
+      "seeded": true,
+      "fresh": false,
+      "round": 3,
+      "starts": [
+        47,
+        47
+      ],
+      "readiness": [
+        {
+          "reader": 0,
+          "readyMs": 1916
+        },
+        {
+          "reader": 1,
+          "readyMs": 2817
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        },
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "gated",
+      "scheduled": false,
+      "seeded": true,
+      "fresh": false,
+      "round": 4,
+      "starts": [
+        47,
+        53
+      ],
+      "readiness": [
+        {
+          "reader": 0,
+          "readyMs": 1997
+        },
+        {
+          "reader": 1,
+          "readyMs": 2542
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        },
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "gated",
+      "scheduled": false,
+      "seeded": true,
+      "fresh": false,
+      "round": 5,
+      "starts": [
+        43,
+        43
+      ],
+      "readiness": [
+        {
+          "reader": 1,
+          "readyMs": 1888
+        },
+        {
+          "reader": 0,
+          "readyMs": 2323
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        },
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "adapter",
+      "scheduled": true,
+      "seeded": false,
+      "fresh": false,
+      "round": 0,
+      "starts": [
+        44,
+        45,
+        1480,
+        4957
+      ],
+      "readiness": [],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "available"
+        },
+        {
+          "status": "fulfilled",
+          "kind": "available"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/me",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/me",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 4,
+        "web": [
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/userinfo",
+            "status": 200
+          },
+          {
+            "process": 4,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 4,
+            "route": "/api/v1/oauth/userinfo",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "adapter",
+      "scheduled": true,
+      "seeded": false,
+      "fresh": false,
+      "round": 1,
+      "starts": [
+        46,
+        47,
+        1396,
+        4790
+      ],
+      "readiness": [],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "available"
+        },
+        {
+          "status": "fulfilled",
+          "kind": "available"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/me",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/me",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 4,
+        "web": [
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/userinfo",
+            "status": 200
+          },
+          {
+            "process": 4,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 4,
+            "route": "/api/v1/oauth/userinfo",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "adapter",
+      "scheduled": true,
+      "seeded": false,
+      "fresh": false,
+      "round": 2,
+      "starts": [
+        38,
+        42,
+        1411,
+        4784
+      ],
+      "readiness": [],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "available"
+        },
+        {
+          "status": "fulfilled",
+          "kind": "available"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/me",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/me",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 4,
+        "web": [
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/userinfo",
+            "status": 200
+          },
+          {
+            "process": 4,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 4,
+            "route": "/api/v1/oauth/userinfo",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "usage-and-skills",
+      "scheduled": true,
+      "seeded": false,
+      "fresh": true,
+      "round": 0,
+      "starts": [
+        40,
+        46,
+        3407
+      ],
+      "readiness": [],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "available"
+        },
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/me",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 3,
+        "web": [
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/userinfo",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "usage-and-skills",
+      "scheduled": true,
+      "seeded": false,
+      "fresh": true,
+      "round": 1,
+      "starts": [
+        35,
+        57,
+        3411
+      ],
+      "readiness": [],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "available"
+        },
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/me",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 3,
+        "web": [
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/userinfo",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "mode": "usage-and-skills",
+      "scheduled": true,
+      "seeded": false,
+      "fresh": true,
+      "round": 2,
+      "starts": [
+        43,
+        43,
+        3448
+      ],
+      "readiness": [],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "kind": "available"
+        },
+        {
+          "status": "fulfilled",
+          "kind": "ok"
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/me",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 3,
+        "web": [
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/userinfo",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    }
+  ],
+  "nativeTokenStates": [
+    {
+      "mode": "missing",
+      "unchanged": false,
+      "kind": "ok"
+    },
+    {
+      "mode": "empty",
+      "unchanged": false,
+      "kind": "ok"
+    },
+    {
+      "mode": "partial",
+      "unchanged": true,
+      "kind": "ok"
+    },
+    {
+      "mode": "whitespace",
+      "unchanged": false,
+      "kind": "ok"
+    },
+    {
+      "mode": "temporary-only",
+      "unchanged": false,
+      "kind": "ok"
+    }
+  ],
+  "baseline241Scheduled": [
+    {
+      "scheduled": true,
+      "gated": false,
+      "round": 0,
+      "timing": [
+        {
+          "index": 0,
+          "spawnMs": 0.015425999998115003,
+          "readyMs": 2493.3821000000025
+        },
+        {
+          "index": 1,
+          "spawnMs": 4.3395240000027115,
+          "readyMs": 3006.5618600000016
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "rejected",
+          "message": "Kimi discovery HTTP failure"
+        },
+        {
+          "status": "fulfilled",
+          "value": {
+            "kind": "ok"
+          }
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 401
+          },
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "scheduled": true,
+      "gated": false,
+      "round": 1,
+      "timing": [
+        {
+          "index": 0,
+          "spawnMs": 0.011895999996340834,
+          "readyMs": 2725.129638999999
+        },
+        {
+          "index": 1,
+          "spawnMs": 3.672538999999233,
+          "readyMs": 3273.932861999994
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "rejected",
+          "message": "Kimi discovery HTTP failure"
+        },
+        {
+          "status": "fulfilled",
+          "value": {
+            "kind": "ok"
+          }
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 401
+          },
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "scheduled": true,
+      "gated": false,
+      "round": 2,
+      "timing": [
+        {
+          "index": 0,
+          "spawnMs": 0.009282999999413732,
+          "readyMs": 2391.454632000001
+        },
+        {
+          "index": 1,
+          "spawnMs": 4.504551999998512,
+          "readyMs": 2950.0300659999994
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "rejected",
+          "message": "Kimi discovery HTTP failure"
+        },
+        {
+          "status": "fulfilled",
+          "value": {
+            "kind": "ok"
+          }
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 401
+          },
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "scheduled": true,
+      "gated": true,
+      "round": 0,
+      "timing": [
+        {
+          "index": 0,
+          "spawnMs": 0.010303999995812774,
+          "readyMs": 3628.5167669999937
+        },
+        {
+          "index": 1,
+          "spawnMs": 3628.522990999998,
+          "readyMs": 5531.305430999993
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "value": {
+            "kind": "ok"
+          }
+        },
+        {
+          "status": "fulfilled",
+          "value": {
+            "kind": "ok"
+          }
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "scheduled": true,
+      "gated": true,
+      "round": 1,
+      "timing": [
+        {
+          "index": 0,
+          "spawnMs": 0.00966599999810569,
+          "readyMs": 3619.47916599999
+        },
+        {
+          "index": 1,
+          "spawnMs": 3619.4847369999916,
+          "readyMs": 5555.426846999995
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "value": {
+            "kind": "ok"
+          }
+        },
+        {
+          "status": "fulfilled",
+          "value": {
+            "kind": "ok"
+          }
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    },
+    {
+      "scheduled": true,
+      "gated": true,
+      "round": 2,
+      "timing": [
+        {
+          "index": 0,
+          "spawnMs": 0.00986900000134483,
+          "readyMs": 3545.1719890000095
+        },
+        {
+          "index": 1,
+          "spawnMs": 3545.177435000005,
+          "readyMs": 5416.62210600001
+        }
+      ],
+      "outcomes": [
+        {
+          "status": "fulfilled",
+          "value": {
+            "kind": "ok"
+          }
+        },
+        {
+          "status": "fulfilled",
+          "value": {
+            "kind": "ok"
+          }
+        }
+      ],
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "status": 200
+          },
+          {
+            "path": "/models",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 2,
+        "web": [
+          {
+            "process": 1,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 2,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false
+        }
+      }
+    }
+  ]
+}

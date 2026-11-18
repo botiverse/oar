@@ -84,7 +84,8 @@ queries become `unavailable`, not empty success.
 
 This read starts a Web service and writes native state. Kimi can create
 `projects.json`, locks, logs, query/session indexes, a device ID and a persistent
-`server.token` (0600 on first creation, reused thereafter). OAR removes only
+`server.token` (0600 on first creation, reused thereafter). First creation is
+coordinated with account-usage startup as described below. OAR removes only
 its own workspace registration, not these native files; an interrupted read
 can leave its registration behind. It does not change trust settings or
 observe an existing agent's context. On Linux Kimi 2.6.2, startup took about
@@ -723,6 +724,21 @@ reimplemented by OAR. Two native processes with the lock refreshed once;
 with the native lock disabled they both sent refresh requests. This is not
 Windows platform evidence. The same source enables locking on macOS, whose
 native CI exercises this reader. [Reproduction and measured versions](../../experiments/kimi-expired-usage/README.md).
+
+OAR gates first Web startup in-process per resolved Kimi home, shared by
+account usage and skill discovery. Missing or whitespace-only `server.token`
+content enters the gate; native-accepted nonempty content bypasses it. The
+check discards token content immediately and never writes it. Readiness, exit
+or failed startup releases ownership, while queries can continue concurrently.
+Queueing consumes the original reader deadline; cancellation cannot release
+another owner and failed starts are never retried. Symlink aliases share the
+gate, but other host processes are outside its scope. Native 2.4.1 and 2.6.3
+controlled first-creation races produced 3/6 HTTP 401 failures without a
+gate and 0/6 with startup coordination. The current actual usage adapter
+also passed 6/6 reads. This does not identify the original macOS CI failure
+or solve background OAuth refresh shutdown. Once an upstream release fixes
+first-token creation, remeasure and restrict or remove this gate.
+[Reproduction, warm controls and timing](../../experiments/kimi-web-startup/README.md).
 
 Profile identity remains best effort: plan, email and nickname are projected
 without phone/account IDs. Phone sign-ins may expose a display name without
