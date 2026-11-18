@@ -32,8 +32,8 @@ under [Effort](#models-instructions-and-context)). The November 13 check is
 local OAuth/login regressions pass; one of fourteen native vendor cases fails:
 a fresh-process resume without MCP configuration still advertises the
 initial stdio and HTTP tool declarations
-([session MCP servers](#session-mcp-servers)). That case passes on 2.4.1
-([results and limits](../../experiments/runtime-version-checks/2026-11-13.md#kimi-262)).
+([session MCP servers](#session-mcp-servers)). That case passes on 2.4.1.
+See the [results and limits](../../experiments/runtime-version-checks/2026-11-13.md#kimi-262).
 CI now pins `kimi-aimock` and `kimi-login` to 2.6.3, while the separate
 `kimi-skills` control stays on 2.6.2
 ([accepted versions](../../.github/runtime-versions.json)). The
