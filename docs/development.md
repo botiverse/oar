@@ -163,6 +163,17 @@ runtimes may legitimately differ.
   `factory`, `grok`, `kimi`, `opencode`, `pi`, `qoder`, `qwen`): your local installation and login. The final word when
   vendor reality is in doubt; it costs quota, so never run it by default.
 
+### Long runs: does it hold up under real use?
+
+`pnpm harbor` ([apps/harbor](../apps/harbor/README.md)) runs several real
+runtimes as long-lived sessions on a shared channel, the way a Raft Computer
+hosts agents: work arrives as messages, lands as a prompt, steer or queue, and
+sessions are restarted and resumed. A QA agent outside sends real tasks and
+watches. Every session keeps a voyage log, and harbor journals deliveries,
+turns, exits and findings (stalled turns, failed turns, unexpected exits,
+failed resumes, leftover processes) with the record seq that shows each one.
+It uses real logins and spends quota; run it on purpose, for hours, not in CI.
+
 ### Vendor: is the runtime-specific integration right?
 
 `sea-trial/vendor/*.vendor.test.ts`, run by
