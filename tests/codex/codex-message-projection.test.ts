@@ -94,5 +94,5 @@ test("the declared unauthorized turn error is auth without inferred status or cr
   // Provider HTTP 401 tests exercise a different native transport variant.
   const params = asRecord(parseJson('{"threadId":"root","turn":{"id":"turn","status":"failed","error":{"message":"not authorized","codexErrorInfo":"unauthorized","additionalDetails":null,"misalignment":null}}}')) ?? {};
   const result = apply(initialCodexProjection(ROOT), "turn/completed", params);
-  expect(result.events).toEqual([{ kind: "turn_ended", outcome: { kind: "failed", failure: "auth", reason: "failed" } }]);
+  expect(result.events).toEqual([{ kind: "turn_ended", outcome: { kind: "failed", failure: "auth", reason: "failed" }, forkAnchor: "turn" }]);
 });

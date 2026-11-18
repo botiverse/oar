@@ -261,6 +261,48 @@ the resume runs again is unobserved. [Baseline][oar-token-usage],
 [tests](../../tests/codex/codex-token-usage.test.ts),
 [recorded resume](../../tests/replay/codex-resume.test.ts).
 
+**Fork (mapped).** `SessionOptions.fork` with `resume: <source>` sends
+`thread/fork { threadId: <source>, lastTurnId?, excludeTurns: true, cwd,
+runtimeWorkspaceRoots?, model?, serviceTier?, approvalPolicy: "never",
+…instructions, config?: { mcp_servers } }` instead of `thread/resume`; the
+reply's `thread.id` is the new thread and becomes `Session.id` (a reply
+naming the source is refused). `lastTurnId` is `fork.through`, the turn id
+carried as the root `turn_ended.forkAnchor` (and as the records' `spanId`):
+turns after it are not in the copy, and the source is untouched ([env] 0.169.0
+and 0.169.1, scripted provider). It arrived in 0.143.0 (the 0.142.5 schema
+has no such field); an older release is expected to ignore it and copy the
+whole thread (reasoned from serde's handling of unknown fields, not run), so
+`through` on an older or unreported version is `runtime_outdated` before
+anything is sent. A fork without `through` is sent the same way on every
+release from the login floor (`thread/fork` is in the 0.118.0 schema), but
+forks were run on 0.169.0 and 0.169.1 only. A missing source reads
+`no rollout found for thread id …` and is `SessionNotFoundError`; an unknown
+turn is `turn not found: <id>` (-32600), kept as codex's words. Unlike a cold
+resume, a fork does not keep the source's model and effort: without `model`
+and `effort` it runs the configured default, with a `config` override
+(`mcpServers`) and without one (0.169.0 and 0.169.1: a `gpt-5.2`/`high`
+source forked onto `gpt-5.1` with no effort). A given effort is set afterwards with `thread/settings/update`; no
+`experimentalRawEvents`; `name` is set as on a new thread; when
+`baseInstructions` and `developerInstructions` take effect on a fork is
+untested. Failed and aborted turns, manual compaction turns and goal
+continuation turns (codex's own, with no client prompt) carry anchors, and a
+fork through one carries what the source's next prompt carried (compaction
+and goal turns: 0.169.1); copied turns keep their ids, so a source anchor
+also forks the fork. Forking a source still open in another live Session
+copies its saved turns and leaves the source running (0.169.1; a source
+mid-turn is untested). `deferGoalContinuation` is not sent, so with
+`goals: true` an active source goal may start its continuation turn as the
+fork opens (untested). The fork's `tokenUsage.total` includes the source's
+turns and is never re-reported (a fork of 1,000 + 1,100 input tokens
+reported 3,400 after its own 1,300), so its baseline stays unknown and its
+`tokens` are unreported for the whole Session, not only before its first
+turn (two fork turns, 0.169.1). `beforeTurnId`, `ephemeral`, `attachToSource` and
+`path` are not sent
+([forking a session](../spec/runtime-matrix.md#forking-a-session),
+[unit](../../tests/codex/codex-session-fork.test.ts),
+[vendor](../../sea-trial/vendor/session-fork.vendor.test.ts),
+[vendor cases](../../sea-trial/vendor/session-fork-cases.vendor.test.ts)).
+
 A thread whose rollout was never written (no turn yet) cannot be resumed
 ([session identity](#matrix-columns), [floors](#resumability-floors)).
 A refused resume, typed or not, reads `codex thread/resume failed:
@@ -650,9 +692,10 @@ or translate these controls into text commands for other runtimes.
 
 ### Observation, children, and history
 
-**Mapped:** native thread read/list/fork operations expose stored state, and
+**Mapped:** native thread read/list operations expose stored state, and
 resume can return history; OAR exposes none of those and does not hydrate the
-stream from the resume result. Every notification enters the stream verbatim
+stream from the resume or fork result (`thread/fork` is mapped as
+[`SessionOptions.fork`](#connection-session-creation-and-resume)). Every notification enters the stream verbatim
 (`native` is the params object) with a session-local `seq`, ingress
 `receivedAt`, and the native turn id as `spanId`; `rawEvents(observer,
 { sessionId, afterSeq })` replays the retained records of this process, then
@@ -1460,7 +1503,7 @@ material" row describes the former only.
 1. **Entry.** See [connection](#connection-session-creation-and-resume).
    Present upstream but not on OAR's path: `--listen ws://`,
    `--listen unix://`, `codex app-server daemon`, `codex app-server proxy`,
-   `thread/fork`, `ephemeral`, `thread/resume { path }` and `{ history }`
+   `ephemeral`, `thread/resume { path }` and `{ history }`
    (vendor README).
 2. **Session and state storage.** Thread identity, rollout, and the sqlite
    index are codex's, under `CODEX_HOME`. OAR owns no storage: its record

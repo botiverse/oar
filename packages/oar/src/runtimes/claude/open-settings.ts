@@ -10,9 +10,10 @@ import type { ClaudeProcess } from "./launch.js";
 import { CLAUDE_EFFORT_READBACK_MS, claudeControlResponseId, claudeEffortRefusal, claudeSettingsRequest } from "./effort.js";
 import { claudeServiceTierRefusal } from "./service-tier.js";
 import { claudeUsageBaseline, type ClaudeUsageBaseline } from "./token-usage.js";
+import { claudeForkIdRefusal, claudeStatusRequest } from "./fork-identity.js";
 import { ClaudeOpenDeadline, claudeOpenLimits, type ClaudeOpenLimits } from "./open-deadline.js";
 
-type Method = "get_settings" | "initialize" | "get_usage";
+type Method = "get_settings" | "initialize" | "get_usage" | "get_status";
 type Option = "effort" | "serviceTier" | "resume";
 
 function failedInitialization(message: JsonRecord): boolean {
@@ -61,6 +62,8 @@ interface OpenSettings {
    * like the others.
    */
   usageBaseline(): Promise<ClaudeUsageBaseline>;
+  /** A fork's id as claude reports it (`get_status`, fork-identity.ts); rejects and stops the process unless it is `expected`. */
+  confirmSessionId(expected: string): Promise<void>;
 }
 
 /** Bounded native readbacks at open, consumed before the ordinary projection stream. */
@@ -122,6 +125,24 @@ export function claudeOpenSettings(child: ClaudeProcess, limits: ClaudeOpenLimit
       lifetime.exited = true;
       lifetime.code = code;
       if (pending !== null) { pending.settle(exitError(pending.method)); }
+    },
+    async confirmSessionId(expected) {
+      const { promise, resolve } = Promise.withResolvers<JsonRecord | Error>();
+      const id = `oar-status-${randomUUID()}`;
+      pending = { id, method: "get_status", settle: resolve };
+      privateIds.add(id);
+      const timer = setTimeout(() => { resolve(new Error(`claude did not answer get_status within ${String(CLAUDE_EFFORT_READBACK_MS)} ms`)); }, CLAUDE_EFFORT_READBACK_MS);
+      try {
+        if (lifetime.exited) { resolve(exitError("get_status")); } else {
+          // A closed stdin (EPIPE) throws here: it is a refusal too, so the process is still stopped.
+          try { child.write(claudeStatusRequest(id)); } catch (error) { resolve(error instanceof Error ? error : new Error(String(error))); }
+        }
+        const refusal = claudeForkIdRefusal(expected, await promise);
+        if (refusal !== null) { child.kill(); await child.exited; throw new Error(refusal); }
+      } finally {
+        clearTimeout(timer);
+        pending = null;
+      }
     },
     async usageBaseline() {
       if (lifetime.exited) { return { kind: "unknown" }; }

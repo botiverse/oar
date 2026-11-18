@@ -35,7 +35,7 @@ import { upgradeLegacyEvent } from "./legacy.js";
  *   verified native turn_active. Content alone never opens a turn. A
  *   conflicting native start after queue evidence, a dropped input or a rejected prompt
  *   removes its empty provisional turn. Queue evidence alone changes no layout.
- *   `turn_ended` of the ROOT session stamps the open segment; an input
+ *   `turn_ended` of the ROOT session stamps the open segment (outcome, forkAnchor); an input
  *   entering mid-turn seals the current segment so seq order stays the
  *   render order, and later content opens a new segment.
  * - ACTIVITY holds content outside a tracked turn, including sliced logs
@@ -139,6 +139,8 @@ export interface ViewTurn {
   readonly sections: readonly ViewSection[];
   /** The native turn end or record-derived exit outcome. Absent on intermediate sealed segments. */
   readonly outcome?: TurnOutcome;
+  /** The root `turn_ended`'s `forkAnchor`, stamped like `outcome`: `SessionOptions.fork.through` (with `resume` naming this session) opens a new session holding the conversation through this turn. Absent where the runtime names none (docs/spec/runtime-matrix.md#forking-a-session). */
+  readonly forkAnchor?: string;
 }
 /** Native content outside a tracked turn. It has no turn outcome and never occupies openTurn. */
 export interface ViewActivity {
@@ -204,9 +206,7 @@ export function initialSessionView(): SessionView {
     pendingInputs: [],
     openTurn: -1,
     status: initialStatus,
-    model: null,
-    effort: null,
-    serviceTier: null,
+    model: null, effort: null, serviceTier: null,
     context: null,
     usage: { total: null },
     pendingRequests: [],

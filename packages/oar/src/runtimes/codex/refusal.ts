@@ -1,6 +1,7 @@
 import { RuntimeFailureError } from "../../contracts/runtime-failure-error.js";
 import type { FailureClass, ResponseBody } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
+import { versionAtLeast } from "../../shared/update.js";
 
 /*
  * Codex's refusals in its own words and codes, read into OAR's types
@@ -21,6 +22,22 @@ export function codexVersion(reply: JsonRecord): string | null {
 const NEEDS: Readonly<Record<string, { readonly since: string; readonly purpose: string }>> = {
   "thread/settings/update": { since: "0.133.0", purpose: "to set the effort of a resumed thread" },
 };
+
+/**
+ * `thread/fork { lastTurnId }` arrived in codex 0.143.0 (the generated
+ * app-server schema of 0.142.5 has no such field, 0.143.0's has). An earlier
+ * release is expected to ignore the unknown field and copy the whole thread
+ * (reasoned, not run), so a
+ * SessionOptions.fork.through is refused there before the fork is sent: a
+ * `runtime_outdated` failure, as is a version codex did not report.
+ */
+export const CODEX_FORK_THROUGH_SINCE = "0.143.0";
+
+/** Why this codex cannot fork through a turn, or null when it can (see CODEX_FORK_THROUGH_SINCE). */
+export function codexForkThroughRefusal(version: string | null, through: string | undefined): RuntimeFailureError | null {
+  if (through === undefined || (version !== null && versionAtLeast(version, CODEX_FORK_THROUGH_SINCE))) { return null; }
+  return outdated(version, "has no thread/fork lastTurnId, which OAR needs to fork through a turn (SessionOptions.fork.through)", CODEX_FORK_THROUGH_SINCE, { method: "thread/fork" });
+}
 
 /** Service tiers codex accepts from 0.129.0; earlier releases know only `fast` and `flex`. */
 const TIERS_SINCE_0_129 = new Set(["default", "priority"]);

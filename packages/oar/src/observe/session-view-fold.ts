@@ -99,6 +99,7 @@ interface MutableTurn {
   readonly openedBy?: string;
   sections: ViewSection[];
   outcome?: TurnOutcome;
+  forkAnchor?: string;
 }
 
 interface MutableActivity {
@@ -171,10 +172,13 @@ export function beginTurn(draft: Draft, id: string, openedBy?: string): void {
 }
 
 /** A lone end still gets an outcome-only segment when input sealed the last one. */
-export function stampTurnOutcome(draft: Draft, id: string, outcome: TurnOutcome): void {
+export function stampTurnOutcome(draft: Draft, id: string, outcome: TurnOutcome, forkAnchor?: string): void {
   if (draft.openTurn === -1) { beginTurn(draft, id); }
   const turn = turnForWrite(draft);
-  if (turn !== null) { turn.outcome = outcome; }
+  if (turn !== null) {
+    turn.outcome = outcome;
+    if (forkAnchor !== undefined) { turn.forkAnchor = forkAnchor; }
+  }
 }
 
 /** Seal the current segment without an outcome; later content opens a new one. */

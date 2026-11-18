@@ -286,6 +286,15 @@ the user's app, holds it); codex reports both. See
 resume never replaces a name the session has. See
 [session name](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#session-name).
 
+`SessionOptions.fork` with `resume` opens a NEW session that starts as a
+copy of the saved one, leaving the original untouched; `Session.id` is the
+copy's. `fork.through` keeps only the turns through one turn: pass the
+`forkAnchor` of that turn's root `turn_ended` event (`ViewTurn.forkAnchor` in
+the session view); a turn without one cannot be a cut point (claude names
+none for a turn that ends on a tool call or was aborted). Claude and Codex
+(`through` from Codex 0.143.0) support it; other runtimes refuse it. See
+[forking a session](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#forking-a-session).
+
 `SessionOptions.additionalDirectories` adds native workspace paths, resolved
 relative to `cwd`. Claude, Codex, Cursor, Kimi (new sessions only),
 OpenCode v2, Qwen and Qoder support it; other runtimes refuse it. Empty or omitted adds no

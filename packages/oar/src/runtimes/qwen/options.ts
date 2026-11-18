@@ -2,6 +2,7 @@ import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 
 export const qwenRefusedSessionOptions: RefusedSessionOptions = {
+  fork: "OAR has not verified a native Qwen fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted Qwen turn's processes while its session stays usable",
   userConfiguration: "qwen has no verified separation of user configuration from its native login",

@@ -13,7 +13,8 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
   if (installation.via !== "executable") {
     throw new Error("The claude session adapter needs an executable installation");
   }
-  const sessionId = options.resume ?? randomUUID();
+  // A fork (SessionOptions.fork) runs under a new id OAR assigns, like a new session.
+  const sessionId = options.fork === undefined ? options.resume ?? randomUUID() : randomUUID();
   const child = await launchClaude(installation.command, sessionId, options);
   const readback = claudeOpenSettings(child);
   const contextBreakdown = claudeContextBreakdownReader(child);
@@ -29,6 +30,8 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
     consume: (message) => readback.consume(message) || contextBreakdown.consume(message) || compaction.consume(message),
     open: async (projection) => {
       await readback.confirm(options);
+      // A fork is confirmed to run under the id OAR assigned, which Session.id reports.
+      if (options.fork !== undefined) { await readback.confirmSessionId(sessionId); }
       if (options.resume !== undefined) {
         projection.replace(claudeUsageBaselined(projection.current(), await readback.usageBaseline()));
       }

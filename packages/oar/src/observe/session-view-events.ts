@@ -106,7 +106,7 @@ export function foldEvent(draft: Draft, event: Event, streamId: string, openedBy
     case "turn_ended":
       if (event.sessionId === scope && event.agentPath.length === 0) {
         endRootTools(draft, scope);
-        stampTurnOutcome(draft, `turn:${streamId}:${event.sessionId}:${event.seq}`, event.outcome);
+        stampTurnOutcome(draft, `turn:${streamId}:${event.sessionId}:${event.seq}`, event.outcome, event.forkAnchor);
         sealTurn(draft);
       } else {
         noticePart(draft, event, streamId, { cause: "child_turn_ended", outcome: event.outcome });

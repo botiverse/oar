@@ -73,11 +73,11 @@ export function foldStreamJsonStdout<S extends StreamJsonProjectionState>(
       }
       const duplicate = message.isReplay === true && typeof message.uuid === "string"
         ? streamJsonDuplicateInput(state, message.uuid, agentPath.length === 0, profile.duplicateReason) : { state, events: [] };
-      return event({ events: [...views, ...duplicate.events] }, duplicate.state);
+      return event({ events: [...views, ...duplicate.events] }, profile.user?.(duplicate.state, message, agentPath.length === 0) ?? duplicate.state);
     }
     case "result": {
       const result = profile.result(state, message, agentPath);
-      return event({ events: [...result.before, { kind: "turn_ended", outcome: result.outcome, ...(typeof message.user_message_uuid === "string" ? { inputId: message.user_message_uuid } : {}),
+      return event({ events: [...result.before, { kind: "turn_ended", outcome: result.outcome, ...(result.forkAnchor === undefined ? {} : { forkAnchor: result.forkAnchor }), ...(typeof message.user_message_uuid === "string" ? { inputId: message.user_message_uuid } : {}),
         ...(Array.isArray(message.user_message_uuids) && message.user_message_uuids.every((id) => typeof id === "string") ? { inputIds: message.user_message_uuids } : {}) }, ...result.after] }, {
         ...result.state,
         ...(agentPath.length === 0 ? { turnActive: false, nativeTurnActive: false, unclaimedInit: false, ...(state.pendingInputId === null ? { promptInputId: null } : {}) } : {}),

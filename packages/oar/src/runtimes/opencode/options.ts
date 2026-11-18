@@ -8,6 +8,7 @@ import type { RefusedSessionOptions } from "../../contracts/runtime.js";
  * mapping is upstream's.
  */
 export const opencodeRefusedSessionOptions: RefusedSessionOptions = {
+  fork: "OAR has not verified a native OpenCode fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted OpenCode turn's processes while its session stays usable",
   userConfiguration: "opencode has no verified separation of user configuration from its native login",

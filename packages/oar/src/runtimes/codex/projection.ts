@@ -73,9 +73,12 @@ export interface CodexProjectionState {
   readonly tokenBaseline: CodexTokenBaseline;
 }
 
-/** The projection of a Session opened by `opened`: a resume awaits codex's re-reported token total. */
+/**
+ * The projection of a Session opened by `opened`: a resume awaits codex's re-reported token total. So does a fork,
+ * whose total includes the source's turns but is not re-reported ([env] 0.169.0), so its totals stay unreported.
+ */
 export function initialCodexProjection(rootThreadId: string, opened: CodexOpenMethod = "thread/start"): CodexProjectionState {
-  return { inputs: new Map(), messages: new Map(), rootThreadId, quotaReset: emptyCodexQuotaReset, lastErrorDetail: null, retries: new Map(), compacting: false, subagents: new Map(), tokenBaseline: initialTokenBaseline(opened === "thread/resume") };
+  return { inputs: new Map(), messages: new Map(), rootThreadId, quotaReset: emptyCodexQuotaReset, lastErrorDetail: null, retries: new Map(), compacting: false, subagents: new Map(), tokenBaseline: initialTokenBaseline(opened !== "thread/start") };
 }
 
 const COMPACTION_ITEM_TYPE = "contextCompaction";
@@ -234,8 +237,11 @@ function viewsFor(state: CodexProjectionState, reporter: string, method: string,
       }
       return toolViews(method, item);
     }
-    case "turn/completed":
-      return [{ kind: "turn_ended", outcome: outcomeFromTurn(state, reporter, asRecord(params.turn)) }];
+    case "turn/completed": { // The root turn's id is its SessionOptions.fork.through anchor (`thread/fork { lastTurnId }`, open.ts).
+      const turnId = asRecord(params.turn)?.id;
+      const anchor = reporter === state.rootThreadId && typeof turnId === "string" && turnId.length > 0 ? { forkAnchor: turnId } : {};
+      return [{ kind: "turn_ended", outcome: outcomeFromTurn(state, reporter, asRecord(params.turn)), ...anchor }];
+    }
     case "thread/tokenUsage/updated":
       return codexUsageViews(params, reporter === state.rootThreadId ? baselineTokens(state.tokenBaseline) : noTokens);
     case "thread/settings/updated":

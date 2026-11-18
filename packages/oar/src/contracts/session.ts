@@ -15,7 +15,7 @@ import type { SessionOptions } from "./session-options.js";
 export type { GoalControl, AdapterGoalControl, GoalSnapshot, GoalStatus, KnownGoalStatus, GoalSetOptions } from "./goal.js";
 export type { CompactionOptions, CompactionOutcome, ManualCompaction } from "./compaction.js";
 export type { ControlResult, ControlOutcome } from "./control.js";
-export type { McpServer, SessionOptions } from "./session-options.js";
+export type { McpServer, SessionFork, SessionOptions } from "./session-options.js";
 export type { CredentialProblem, FailedTurn, FailureClass } from "./failure.js";
 export type { ContextBreakdown, ContextCategory, ContextItem } from "./context-breakdown.js";
 export type {

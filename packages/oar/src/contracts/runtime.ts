@@ -20,9 +20,10 @@ import type { StartSession } from "./session.js";
  * `mcpServers` entry carrying a credential (a non-empty `env` on a stdio
  * entry, non-empty `headers` on an http one), which every `serveMcpTools`
  * entry does. `userConfiguration` declares refusal of `"exclude"` only;
- * `"include"` and omission keep native behavior.
+ * `"include"` and omission keep native behavior. `fork` is any
+ * `SessionOptions.fork`, with or without `through`.
  */
-export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "env" | "mcpServers" | "mcpServerCredentials" | "disallowedTools" | "launchArgs" | "serviceTier" | "additionalDirectories" | "outputSchema" | "name" | "userConfiguration" | "goals" | "endTurnProcessesOnAbort";
+export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "env" | "mcpServers" | "mcpServerCredentials" | "disallowedTools" | "launchArgs" | "serviceTier" | "additionalDirectories" | "outputSchema" | "name" | "userConfiguration" | "goals" | "endTurnProcessesOnAbort" | "fork";
 
 /**
  * The options a runtime refuses when they are given (`env`, `mcpServers`, `disallowedTools`, `launchArgs`, `additionalDirectories`: a

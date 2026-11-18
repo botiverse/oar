@@ -193,7 +193,7 @@ test("codex error detail folds into the failed turn_ended and usage is the cumul
   const completed = foldCodexNotification(state, "turn/completed", { threadId: ROOT, turn: { id: "t1", status: "failed", error: { message: "boom", codexErrorInfo: "usageLimitExceeded" } } });
   const [end] = completed.commands;
   expect(end?.kind === "frame" ? end.body.events : null).toEqual([
-    { kind: "turn_ended", outcome: { kind: "failed", reason: "failed: boom: quota", failure: "quota" } },
+    { kind: "turn_ended", outcome: { kind: "failed", reason: "failed: boom: quota", failure: "quota" }, forkAnchor: "t1" },
   ]);
   expect(completed.state.lastErrorDetail).toBeNull();
   const usage = foldCodexNotification(state, "thread/tokenUsage/updated", { threadId: ROOT, tokenUsage: { total: { inputTokens: 120, outputTokens: 30 } } });

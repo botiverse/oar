@@ -74,9 +74,9 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
     const started = await openThread(openMethod, async () => {
       const reply = await client.request(openMethod, filteredOpenParams, markOpen);
       return reply;
-    }, { version, serviceTier: options.serviceTier, resumeId: options.resume });
+    }, { version, serviceTier: options.serviceTier, resumeId: options.resume, through: options.fork?.through });
     const threadId = asRecord(started.thread)?.id;
-    if (typeof threadId !== "string") { throw new TypeError("codex thread start/resume returned no thread id"); }
+    if (typeof threadId !== "string") { throw new TypeError("codex thread/start, thread/resume or thread/fork returned no thread id"); }
     // The reply is codex's word on the model and effort the thread runs (the
     // open frame's events); anything but what was requested refuses the open.
     const readback = codexOpenReadback(openMethod, options, started);

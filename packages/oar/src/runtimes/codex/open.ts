@@ -15,7 +15,7 @@ import { checkSessionName, refuseSessionOptions } from "../../shared/session-opt
  * mapping lives in session.ts; this is the open-time policy it wraps.
  */
 
-export type CodexOpenMethod = "thread/start" | "thread/resume";
+export type CodexOpenMethod = "thread/start" | "thread/resume" | "thread/fork";
 
 /** The names codex starts an MCP server under; any other fails that server's startup after the thread opened ([env] 0.160.1). */
 const CODEX_MCP_SERVER_NAME = /^[\w:@/.-]+$/u;
@@ -58,9 +58,10 @@ function workspaceRoots(options: SessionOptions): string[] | null {
 }
 
 /**
- * The open request for these options: a new thread, or a resume of
- * `options.resume`; and the redactor for the MCP credentials its `config`
- * carries, through which every error codex reports for this session goes.
+ * The open request for these options: a new thread, a resume of
+ * `options.resume`, or a fork of it (SessionOptions.fork); and the redactor
+ * for the MCP credentials its `config` carries, through which every error
+ * codex reports for this session goes.
  */
 export function codexThreadOpen(options: SessionOptions): { readonly method: CodexOpenMethod; readonly params: JsonRecord; readonly redact: (text: string) => string } {
   refuseSessionOptions(codexRefusedSessionOptions, options);
@@ -115,6 +116,36 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
       },
     };
   }
+  if (options.fork !== undefined) {
+    // SessionOptions.fork: `thread/fork` loads the source from disk and opens
+    // a new thread holding a copy of it, through `lastTurnId` inclusive
+    // (codex 0.143.0 and later; an older schema has no such field, which
+    // codex is expected to ignore (reasoned, not run), so session.ts refuses
+    // `through` there before sending). The reply's thread is the new one,
+    // so Session.id is the fork's. Unlike a cold resume it does not keep the
+    // source's model and effort: without `model` it runs the configured
+    // default, with or without a `config` override ([env] 0.169.0 and
+    // 0.169.1: a gpt-5.2/high source forked onto gpt-5.1 with no effort).
+    // Effort is set after the reply as on a resume; no `experimentalRawEvents`
+    // (not a fork param); no `deferGoalContinuation`.
+    const through = options.fork.through;
+    return {
+      method: "thread/fork",
+      redact,
+      params: {
+        threadId: options.resume,
+        ...(through === undefined ? {} : { lastTurnId: through }),
+        excludeTurns: true,
+        cwd: options.cwd,
+        ...directoryParams,
+        ...modelParams,
+        ...tierParams,
+        approvalPolicy: "never",
+        ...instructionParams,
+        ...configParams(mcpConfig),
+      },
+    };
+  }
   return {
     method: "thread/resume",
     redact,
@@ -139,8 +170,8 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
 
 /**
  * SessionOptions.name (#368): the name to give the opened thread, or null. A
- * new thread gets it; a resumed one only when the resume reply shows no name,
- * so a name the user gave in their app is kept. The name reads back on the
+ * new thread, a fork included, gets it; a resumed one only when the resume
+ * reply shows no name, so a name the user gave in their app is kept. The name reads back on the
  * thread ([env] codex 0.162.0, experiments/codex-session-name.ts).
  */
 export function codexThreadName(method: CodexOpenMethod, options: SessionOptions, reply: JsonRecord): string | null {
@@ -170,7 +201,7 @@ function effortIn(record: JsonRecord | null): string | null {
  * effort: `reasoningEffort` is the level the thread runs (null: no explicit
  * level, the model's default). A resume answers the level the thread last
  * ran with; when that is not the requested one, it is set next
- * (`resumeEffort`). codex echoes an unknown level as given and forwards it
+ * (`resumeEffort`), and so is a fork's. codex echoes an unknown level as given and forwards it
  * to the provider, whose refusal then fails the first turn.
  */
 export function codexOpenReadback(
@@ -185,6 +216,11 @@ export function codexOpenReadback(
     ...(effort === null ? [] : [{ kind: "effort" as const, effort }]),
     ...codexServiceTierEvents(reply),
   ];
+  // A fork must be a new thread; one answering with its source would be resumed, not forked.
+  const threadId = asRecord(reply.thread)?.id;
+  if (method === "thread/fork" && threadId === options.resume) {
+    return { events, refusal: `codex thread/fork answered with its source thread ${String(threadId)}, not a new one`, resumeEffort: null };
+  }
   const roots = workspaceRoots(options);
   const reportedRoots = reply.runtimeWorkspaceRoots;
   if (roots !== null && (!Array.isArray(reportedRoots) || roots.some((root) => !reportedRoots.includes(root)))) {
@@ -200,7 +236,7 @@ export function codexOpenReadback(
   if (options.effort === undefined || effort === options.effort) {
     return { events, refusal: null, resumeEffort: null };
   }
-  if (method === "thread/resume") {
+  if (method !== "thread/start") {
     return { events, refusal: null, resumeEffort: options.effort };
   }
   const said = "reasoningEffort" in reply ? `kept effort ${effort ?? "none (the model's default)"}` : "reports no reasoningEffort";

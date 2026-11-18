@@ -1,10 +1,11 @@
 import { UnsupportedOptionError } from "../../contracts/errors.js";
+import type { SessionFork } from "../../contracts/session-options.js";
 
 /**
  * claude flags OAR sets itself, which a host's `launchArgs` would contradict
  * (#336): with `--continue` claude exits next to OAR's `--session-id`; after
- * `--fork-session` claude runs under a new id while `Session.id` keeps the
- * old one. Permission targets require an answer API that OAR does not have.
+ * `--fork-session` claude ran under a new id while `Session.id` kept the old
+ * one (SessionOptions.fork passes it with the id OAR assigns). Permission targets require an answer API that OAR does not have.
  * Each maps to the reason the open is refused. A short alias is checked as
  * a whole argument, a long flag also in its `--flag=value` form.
  */
@@ -14,7 +15,7 @@ const MANAGED: ReadonlyMap<string, string> = new Map([
   ["--resume", "use SessionOptions.resume"],
   ["-r", "use SessionOptions.resume"],
   ["--session-id", "OAR assigns the session id"],
-  ["--fork-session", "a fork runs under a new native id that Session.id would not report"],
+  ["--fork-session", "use SessionOptions.fork with resume: OAR assigns the fork's id so Session.id reports it"],
   ["--permission-prompt-tool", "OAR has no interface for answering permission requests"],
   ["--print", "OAR drives claude in print mode over stream-json already"],
   ["-p", "OAR drives claude in print mode over stream-json already"],
@@ -31,6 +32,18 @@ export function refuseManagedLaunchArgs(launchArgs: readonly string[] | undefine
     if (reason !== undefined) {
       throw new UnsupportedOptionError("launchArgs", `claude launchArgs cannot include ${flag}: ${reason}`);
     }
+  }
+}
+
+/**
+ * With SessionOptions.fork, OAR sets `--resume-session-at` itself (launch.ts),
+ * and a host's copy after it would silently replace `fork.through`. Without a
+ * fork the flag stays the host's, as before.
+ */
+export function refuseForkLaunchArgs(launchArgs: readonly string[] | undefined, fork: SessionFork | undefined): void {
+  if (fork === undefined) { return; }
+  if ((launchArgs ?? []).some((arg) => arg.split("=", 1)[0] === "--resume-session-at")) {
+    throw new UnsupportedOptionError("launchArgs", "claude launchArgs cannot include --resume-session-at with SessionOptions.fork: use fork.through");
   }
 }
 

@@ -24,6 +24,7 @@ const given: Readonly<Record<RefusableSessionOption, Partial<SessionOptions>>> =
   mcpServerCredentials: { mcpServers: [{ name: "served", type: "http", url: "http://127.0.0.1:9/mcp", headers: { Authorization: "Bearer probe" } }] },
   launchArgs: { launchArgs: ["--probe"] },
   name: { name: "probe" },
+  fork: { resume: "source", fork: { through: "anchor" } },
 };
 
 // Declared refusals are checked before anything starts, so an installation
@@ -45,7 +46,7 @@ test("every declared refusal is what session() rejects with", async () => {
   const declaring = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions !== undefined);
   assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "claude", "codebuddy", "codex", "cursor", "devin", "dsh", "factory", "grok", "kimi", "opencode", "pi", "qoder", "qwen"]);
   for (const runtime of declaring) {
-    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "goals", "endTurnProcessesOnAbort"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
+    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "goals", "endTurnProcessesOnAbort", "fork"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
     for (const key of keys) {
       const opening = runtime.session(nowhere(runtime.id), { cwd: "/tmp", ...given[key] });
       // oxlint-disable-next-line no-await-in-loop -- one open at a time keeps the failure attributable.
@@ -59,20 +60,20 @@ test("every declared refusal is what session() rejects with", async () => {
 test("the declarations say which options each runtime refuses", () => {
   const refused = Object.fromEntries(allRuntimes.list().map((runtime) => [runtime.id, Object.keys(runtime.refusedSessionOptions ?? {}).toSorted()]));
   assert.deepEqual(refused, {
-    antigravity: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "goals", "mcpServerCredentials", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
+    antigravity: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "mcpServerCredentials", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
     claude: ["endTurnProcessesOnAbort", "goals"],
-    codebuddy: ["additionalDirectories", "appendSystemPrompt", "endTurnProcessesOnAbort", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
+    codebuddy: ["additionalDirectories", "appendSystemPrompt", "endTurnProcessesOnAbort", "fork", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
     codex: ["userConfiguration"],
-    cursor: ["appendSystemPrompt", "endTurnProcessesOnAbort", "env", "goals", "launchArgs", "name", "outputSchema", "serviceTier", "systemPrompt"],
-    devin: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "goals", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
-    dsh: ["additionalDirectories", "endTurnProcessesOnAbort", "launchArgs", "mcpServerCredentials", "outputSchema", "serviceTier", "userConfiguration"],
-    factory: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
-    grok: ["additionalDirectories", "disallowedTools", "goals", "name", "serviceTier", "userConfiguration"],
-    kimi: ["appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "goals", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
-    opencode: ["disallowedTools", "endTurnProcessesOnAbort", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
-    pi: ["additionalDirectories", "endTurnProcessesOnAbort", "goals", "launchArgs", "outputSchema", "serviceTier", "userConfiguration"],
-    qoder: ["endTurnProcessesOnAbort", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
-    qwen: ["endTurnProcessesOnAbort", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
+    cursor: ["appendSystemPrompt", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "name", "outputSchema", "serviceTier", "systemPrompt"],
+    devin: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
+    dsh: ["additionalDirectories", "endTurnProcessesOnAbort", "fork", "launchArgs", "mcpServerCredentials", "outputSchema", "serviceTier", "userConfiguration"],
+    factory: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
+    grok: ["additionalDirectories", "disallowedTools", "fork", "goals", "name", "serviceTier", "userConfiguration"],
+    kimi: ["appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
+    opencode: ["disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
+    pi: ["additionalDirectories", "endTurnProcessesOnAbort", "fork", "goals", "launchArgs", "outputSchema", "serviceTier", "userConfiguration"],
+    qoder: ["endTurnProcessesOnAbort", "fork", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
+    qwen: ["endTurnProcessesOnAbort", "fork", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
   });
 });
 
@@ -161,4 +162,23 @@ test("explicit include and omission preserve existing runtime behavior", () => {
     expect(() => { refuseSessionOptions(runtime.refusedSessionOptions ?? {}, { cwd: "/tmp", userConfiguration: "include" }); }).not.toThrow();
     expect(() => { refuseSessionOptions(runtime.refusedSessionOptions ?? {}, { cwd: "/tmp" }); }).not.toThrow();
   }
+});
+
+test("only claude and codex take fork, and they refuse one without resume or with a blank anchor before anything starts", async () => {
+  const taking = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions?.fork === undefined);
+  expect(taking.map((runtime) => runtime.id).toSorted()).toEqual(["claude", "codex"]);
+  for (const runtime of taking) {
+    // oxlint-disable-next-line no-await-in-loop -- one open at a time keeps the failure attributable.
+    await expect(runtime.session(nowhere(runtime.id), { cwd: "/tmp", fork: {} }), runtime.id).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "fork", message: "fork copies the saved session resume names; give resume with the source session id" });
+    // oxlint-disable-next-line no-await-in-loop -- one open at a time keeps the failure attributable.
+    await expect(runtime.session(nowhere(runtime.id), { cwd: "/tmp", resume: "source", fork: { through: "" } }), runtime.id).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "fork", message: "fork.through must not be blank or contain NUL characters" });
+  }
+  expect(() => { refuseSessionOptions({}, { cwd: "/tmp", resume: "source", fork: {} }); }).not.toThrow();
+  expect(() => { refuseSessionOptions({}, { cwd: "/tmp", resume: "source", fork: { through: "-anchor" } }); }).not.toThrow();
+});
+
+test("the scripted runtime declares and refuses fork: a script keeps no conversation to copy", async () => {
+  const runtime = scriptedRuntime({ turn: () => assert.fail("never opened") });
+  expect(runtime.refusedSessionOptions).toEqual({ fork: "a scripted runtime keeps no saved conversation to fork" });
+  await expect(runtime.session({ kind: "available", via: "bundled" }, { cwd: "/tmp", resume: "source", fork: {} })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "fork", message: "a scripted runtime keeps no saved conversation to fork" });
 });
