@@ -22,6 +22,12 @@ export interface SkillEntry {
   readonly plugin?: string;
   readonly enabled?: boolean;
   readonly disableModelInvocation?: boolean;
+  /**
+   * Whether a person can run it directly (a slash command), from the runtime's
+   * own command catalog. Absent means the runtime did not say; `false` means
+   * its catalog was read and does not offer this skill.
+   */
+  readonly userInvocable?: boolean;
 }
 /** Native slash-command metadata, separate from skill discovery. */
 export interface CommandEntry {

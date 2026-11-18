@@ -925,7 +925,8 @@ removes named tools from the session. [Native permissions][native-permissions],
 
 Inventories (2026-09-16) are control queries in their own
 `--no-session-persistence` process, scoped to a workspace cwd, without a
-prompt: skills from `get_context_usage` skill frontmatter (view `context`),
+prompt: skills from `get_context_usage` skill frontmatter joined with the same
+process's `initialize.commands` (view `discovered`; see below),
 MCP servers from `mcp_status` with bounded startup polling (view
 `discovered`), and tools explicitly MCP-only from the same `mcp_status`.
 [Inventory reader](../../packages/oar/src/runtimes/claude/inventory.ts),
@@ -936,6 +937,24 @@ On Linux 2.1.325, a clean-home query includes 13 built-in skills, including
 `.claude/skills` fixture appears separately as `projectSettings`. These are
 native context entries, not names inferred by OAR.
 [Built-in skill control](../../experiments/runtime-skills-2026-11-16/README.md#claude-built-ins-are-already-returned).
+
+On 2.1.322 the skill list also carries each entry's native `path`, and Claude
+loads legacy `.claude/commands/*.md` files as skills there (`deploy` from
+`.claude/commands/deploy.md` with `projectSettings`). `initialize.commands`
+supplies what the context list lacks: a skill's `description` (Claude appends
+" (project)" or " (user)" to file-backed entries; OAR removes only the label
+naming the entry's own scope) and `userInvocable: true` when Claude lists it as
+a command. A builtin command never describes a non-builtin skill of the same
+name, and a name listed twice joins nothing. `userInvocable: false` is claimed
+only for user, project and local settings skills, where a skill with
+`user-invocable: false` was verified to be absent from the commands; other
+sources not listed stay unknown. A skill with `disable-model-invocation: true`
+is a command but not in the context list; it is added with the `scope` Claude's
+label names, without `source`, `path` or a model-invocation claim. Other
+unlisted commands (MCP prompts, unlabeled sources) are not skills here. The
+result is `partial` when the context list reports fewer `includedSkills` than
+`totalSkills`. One process answers both queries.
+[Probe](../../experiments/claude-skill-catalog-2026-11-18.md).
 
 ### Session MCP servers
 
