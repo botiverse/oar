@@ -10,7 +10,7 @@ import { test } from "node:test";
 import { pathToFileURL } from "node:url";
 import { downloadVerified, exactVersion, nativeVersion, packageDist, readManifest } from "./runtime-common.mjs";
 import { freezeCandidates } from "./runtime-candidates.mjs";
-import { installRuntime, isolatedEnvironment } from "./runtime-install.mjs";
+import { installRuntime } from "./runtime-install.mjs";
 import { rewriteSdkManifests } from "./runtime-sdk-candidate.mjs";
 
 const require = createRequire(new URL("../../packages/oar/package.json", import.meta.url));
@@ -397,15 +397,14 @@ for (const declarations of [0, 2]) test(`Cursor candidate refuses ${declarations
 for (const candidate of [false, true]) for (const mismatch of [false, true]) test(`real offline npm install publishes only a verified native version (candidate=${candidate}, mismatch=${mismatch})`, async () => {
   const directory = mkdtempSync(path.join(tmpdir(), "oar-runtime install-test-"));
   try {
-    const fixture = path.join(directory, "package");
-    mkdirSync(fixture);
-    writeFileSync(path.join(fixture, "package.json"), JSON.stringify({ name: "oar-ci-fixture", version: "1.2.3", bin: { "oar-ci-fixture": "cli.cjs" } }));
-    writeFileSync(path.join(fixture, "cli.cjs"), `#!/usr/bin/env node\nconsole.log(${JSON.stringify(mismatch ? "9.8.7" : "1.2.3")});\n`);
-    const home = path.join(directory, "home");
-    mkdirSync(home);
-    const packed = spawnSync("npm", ["pack", "--ignore-scripts", "--pack-destination", directory, fixture], { env: isolatedEnvironment(home), encoding: "utf8", timeout: 30_000 });
-    assert.equal(packed.status, 0, packed.stderr);
-    const bytes = readFileSync(path.join(directory, "oar-ci-fixture-1.2.3.tgz"));
+    // These are real npm-pack outputs. Preparation is reproducible but outside
+    // the installer controls; each case still owns a fresh actual installation.
+    const fixtureFile = new URL("../fixtures/runtime-install/packages.json", import.meta.url);
+    const fixtures = JSON.parse(readFileSync(fixtureFile, "utf8"));
+    assert.equal(fixtures.schemaVersion, 1);
+    const fixture = fixtures.fixtures[mismatch ? "mismatching" : "matching"];
+    const bytes = Buffer.from(fixture.tarballBase64, "base64");
+    assert.equal(hash(bytes), fixture.integrity, "Prepared fixture integrity changed");
     let downloads = 0;
     await serverFor((_request, response) => { downloads++; response.end(bytes); }, async url => {
       const manifestFile = path.join(directory, "pins.json");
@@ -430,6 +429,11 @@ for (const candidate of [false, true]) for (const mismatch of [false, true]) tes
       }
       const report = JSON.parse(readFileSync(path.join(reportDirectory, readdirSync(reportDirectory)[0])));
       assert.equal(report.status, mismatch ? "failed" : "verified");
+      const installed = path.join(report.directory, "prefix", ...(process.platform === "win32" ? [] : ["lib"]), "node_modules", "oar-ci-fixture");
+      assert.deepEqual(readdirSync(installed).sort(), Object.keys(fixture.source).sort());
+      for (const [file, source] of Object.entries(fixture.source)) {
+        assert.equal(readFileSync(path.join(installed, file), "utf8"), source, `Installed fixture ${file} differs from its recorded source`);
+      }
       assert.equal(downloads, 1, "Native version mismatch must not retry the download");
       assert.equal(report.downloadAttempts.length, 1);
       assert.equal(report.downloadAttempts[0].status, "verified");

@@ -240,6 +240,13 @@ runtime's page and the experiments README.
 `pnpm test` but skip unless `OAR_TEST` names their backend, so run them for
 the backend you touched. Rebase on origin/main before pushing.
 
+The runtime candidate installer controls use two committed, real npm package
+archives with readable sources. They retain four independent installations,
+version-match/mismatch assertions and publication checks without packing a
+fixture during every test. Each installation checks the extracted files against
+the recorded sources. [Fixture preparation](../.github/fixtures/runtime-install/README.md)
+keeps npm-pack timing and failure diagnostics outside the installer deadline.
+
 CI ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) skips a push
 or pull request whose changes are all Markdown files or under `docs/` or
 `assets/`. Otherwise it runs these jobs. The `behavior`, `acp-behavior` and
