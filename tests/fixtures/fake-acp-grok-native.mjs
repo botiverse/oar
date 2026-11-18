@@ -64,6 +64,11 @@ function grokNativePrompt(message, { send, result }) {
   }
   if (text === "hold" || text === "hold-buffer") { return; }
   chunk(send, `echo:${text}`);
+  if (text === "after the wake") {
+    // Reply text and the final end frame need not arrive in the same pipe read.
+    setTimeout(() => { finish(send, result); }, 200);
+    return;
+  }
   if (text === "race-long") {
     const current = running;
     running = { id: null, promptId: "subagent-completed-long", own: true };

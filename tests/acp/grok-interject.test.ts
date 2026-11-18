@@ -68,6 +68,7 @@ test("Grok's own turn is a turn: it starts, takes a steer, ends, bills, and only
     expect(queued.kind).toBe("accepted");
     expect(await session.steer?.("for the wake")).toMatchObject({ kind: "accepted" });
     await until(() => texts(session.records()).includes("echo:after the wake"));
+    await until(() => ends(session.records()).length === 3);
     const records = session.records();
     expect(ends(records)).toHaveLength(3);
     const own = records.findIndex((record) => record.kind === "frame" && record.body.events.some((event) => event.kind === "turn_active" && event.inputId === undefined));
