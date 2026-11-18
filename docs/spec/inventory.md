@@ -73,7 +73,7 @@ See [adapter version requirements](orientation.md#adapter-version-requirements).
 | View | Meaning |
 |---|---|
 | `discovered` | The runtime's catalog of what it would load (from directory/config discovery or its own listing), not proof of a running agent's state |
-| `context` | Native context's skill list, not every installed command |
+| `context` | Native context's skill list, not every installed command (no runtime reports it today; Claude moved to `discovered` on 2026-11-18) |
 | `registered` | Registered tools, including tools that are not active |
 | `mcp-only` | MCP tools only; built-in and other extension tools are not included |
 
