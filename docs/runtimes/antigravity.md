@@ -647,7 +647,11 @@ skill directories are followed. It reads skill and
 plugin manifests, applies native duplicate precedence and invocation flags,
 and includes only the native builtin mounts already materialized on disk.
 `disable-slash-command: true` winners are omitted, while
-`disable-model-invocation: true` entries remain with that flag. Plugin names
+`disable-model-invocation: true` entries remain with that flag. Both readers
+report `userInvocable: true` for every listed entry, including model-hidden
+skills. Slash-command-disabled skills stay absent rather than appearing with
+`userInvocable: false`. The [invocation controls](../../experiments/skill-invocability/README.md)
+compare the pinned native fallback and file-reader catalogs. Plugin names
 come from their manifests; other scope stays unknown. Missing builtin files
 are not initialized or repaired. The file reader always returns `partial: true`
 because it omits the conditional `native_swarm` builtin: native sometimes

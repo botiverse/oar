@@ -54,7 +54,7 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("Antigravity nati
       expect(rows.some(row => row.name === "oar-hidden")).toBe(false);
       const result = await antigravityRuntime.skills(installation, { cwd: f.cwd, env: overlay({ ...f.nativeEnv, AGY_CLI_DISABLE_AUTO_UPDATE: "false" }) });
       assert.equal(result.kind, "ok", JSON.stringify(result));
-      expect(result.items).toEqual(rows.map(row => ({ name: row.name, description: row.description, path: row.path,
+      expect(result.items).toEqual(rows.map(row => ({ name: row.name, userInvocable: true, description: row.description, path: row.path,
         ...(row.plugin === undefined ? {} : { plugin: row.plugin }), ...(row.builtin === true ? { scope: "builtin" } : {}), disableModelInvocation: row.model_invocable === false })));
       expect(result.items.find(row => row.name === "oar-manual")?.disableModelInvocation).toBe(true);
       expect(result.partial).toBe(false); expect(result.view).toBe("discovered");

@@ -20,13 +20,17 @@ test.skipIf(process.env.OAR_TEST !== "antigravity-file-skills" || process.platfo
   try {
     const path = join(cwd, ".agents/skills/manual/SKILL.md"); await mkdir(dirname(path), { recursive: true });
     await writeFile(path, "---\nname: oar-native-windows\ndescription: Native fallback metadata\ndisable-model-invocation: true\n---\nPRIVATE BODY\n");
+    const hidden = join(cwd, ".agents/skills/hidden/SKILL.md"); await mkdir(dirname(hidden), { recursive: true });
+    await writeFile(hidden, "---\nname: oar-hidden-windows\ndescription: Hidden negative control\ndisable-slash-command: true\n---\nPRIVATE BODY\n");
     const builtins = join(home, ".gemini/antigravity-cli/builtin/skills");
     assert.deepEqual(await readdir(builtins).catch(() => []), []);
     const result = await antigravityRuntime.skills(installation, { cwd, env });
     observations.push({ case: "native-fallback", result });
     assert.equal(result.kind, "ok"); assert.equal(result.view, "discovered"); assert.equal(result.partial, false);
-    assert.deepEqual(result.items.find(item => item.name === "oar-native-windows"), { name: "oar-native-windows", description: "Native fallback metadata", path, disableModelInvocation: true });
+    assert.deepEqual(result.items.find(item => item.name === "oar-native-windows"), { name: "oar-native-windows", description: "Native fallback metadata", path, userInvocable: true, disableModelInvocation: true });
     assert.ok(result.items.some(item => item.scope === "builtin"));
+    assert.ok(result.items.every(item => item.userInvocable === true));
+    assert.ok(!result.items.some(item => item.name === "oar-hidden-windows"));
     const initialized = await readdir(builtins);
     assert.ok(initialized.length > 0, "Native startup initializes builtins; the file reader must not run on Windows");
     assert.ok(!JSON.stringify(result).includes("PRIVATE BODY"));

@@ -20,7 +20,8 @@ function optionalBoolean(row: JsonRecord, key: string): boolean | undefined {
 function project(row: JsonRecord): SkillEntry {
   const builtin = optionalBoolean(row, "builtin");
   const modelInvocable = optionalBoolean(row, "model_invocable");
-  return { name: named(row), ...textField("description", row.description), ...textField("path", row.path), ...textField("plugin", row.plugin),
+  // Native /skills omits disable-slash-command winners; every listed entry is directly invocable.
+  return { name: named(row), userInvocable: true, ...textField("description", row.description), ...textField("path", row.path), ...textField("plugin", row.plugin),
     ...(builtin === true ? { scope: "builtin" as const } : {}),
     ...(modelInvocable === undefined ? {} : { disableModelInvocation: !modelInvocable }) };
 }

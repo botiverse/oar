@@ -1,0 +1,204 @@
+{
+  "date": "2026-11-18",
+  "environment": "Isolated homes and synthetic local provider; no real account, model prompt or skill execution. Native fields are selected from actual /skills responses, not the OAR projection.",
+  "runs": [
+    {
+      "version": "1.5.0",
+      "platform": "linux-x64",
+      "reader": "native query",
+      "artifact": {
+        "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.0-5269980577660928/linux-x64/cli_linux_x64.tar.gz",
+        "integrity": "sha512-5gMfhQkpIQcF2MI5OlZluCuMOxloSm08VWyvox8m93rL8WTf7pbKhKWudnCsDMI4qXTJgcUXsmkZS9zP8nHL1Q=="
+      },
+      "partial": false,
+      "modelRequests": 0,
+      "allListedUserInvocable": true,
+      "controls": [
+        {
+          "name": "oar-workspace",
+          "fixtureFrontmatter": {},
+          "nativePresent": true,
+          "nativeFields": {
+            "model_invocable": true,
+            "builtin": false
+          },
+          "oarPresent": true,
+          "oarFields": {
+            "userInvocable": true,
+            "disableModelInvocation": false
+          }
+        },
+        {
+          "name": "oar-manual",
+          "fixtureFrontmatter": {
+            "disable-model-invocation": true
+          },
+          "nativePresent": true,
+          "nativeFields": {
+            "model_invocable": false,
+            "builtin": false
+          },
+          "oarPresent": true,
+          "oarFields": {
+            "userInvocable": true,
+            "disableModelInvocation": true
+          }
+        },
+        {
+          "name": "oar-hidden",
+          "fixtureFrontmatter": {
+            "disable-slash-command": true
+          },
+          "nativePresent": false,
+          "nativeFields": {},
+          "oarPresent": false,
+          "oarFields": {}
+        },
+        {
+          "name": "oar-plugin:child",
+          "fixtureFrontmatter": {},
+          "nativePresent": true,
+          "nativeFields": {
+            "model_invocable": true,
+            "builtin": false,
+            "plugin": "oar-plugin"
+          },
+          "oarPresent": true,
+          "oarFields": {
+            "userInvocable": true,
+            "disableModelInvocation": false,
+            "plugin": "oar-plugin"
+          }
+        }
+      ]
+    },
+    {
+      "version": "1.5.11",
+      "platform": "linux-x64",
+      "reader": "verified file reader",
+      "artifact": {
+        "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.11-6132547114106880/linux-x64/cli_linux_x64.tar.gz",
+        "integrity": "sha512-2tPAFeiWT83BY5sTtxUvTLhMsb3jhXB+K83wldbxgx9PZSEZmuxJnMBS+emZBrf9vFLCc98GTVy3yEsGi6POUA=="
+      },
+      "partial": true,
+      "modelRequests": 0,
+      "allListedUserInvocable": true,
+      "controls": [
+        {
+          "name": "root-0",
+          "fixtureFrontmatter": {},
+          "nativePresent": true,
+          "nativeFields": {
+            "model_invocable": true,
+            "builtin": false
+          },
+          "oarPresent": true,
+          "oarFields": {
+            "userInvocable": true,
+            "disableModelInvocation": false
+          }
+        },
+        {
+          "name": "manual",
+          "fixtureFrontmatter": {
+            "disable-model-invocation": true
+          },
+          "nativePresent": true,
+          "nativeFields": {
+            "model_invocable": false,
+            "builtin": false
+          },
+          "oarPresent": true,
+          "oarFields": {
+            "userInvocable": true,
+            "disableModelInvocation": true
+          }
+        },
+        {
+          "name": "hidden",
+          "fixtureFrontmatter": {
+            "disable-slash-command": true
+          },
+          "nativePresent": false,
+          "nativeFields": {},
+          "oarPresent": false,
+          "oarFields": {}
+        },
+        {
+          "name": "plugin-2:child",
+          "fixtureFrontmatter": {},
+          "nativePresent": true,
+          "nativeFields": {
+            "model_invocable": true,
+            "builtin": false,
+            "plugin": "Display 2"
+          },
+          "oarPresent": true,
+          "oarFields": {
+            "userInvocable": true,
+            "disableModelInvocation": false,
+            "plugin": "Display 2"
+          }
+        }
+      ]
+    }
+  ],
+  "fileReaderStages": [
+    {
+      "case": "builtins",
+      "matchingReads": 3,
+      "allListedUserInvocable": true,
+      "partial": true
+    },
+    {
+      "case": "roots",
+      "matchingReads": 3,
+      "allListedUserInvocable": true,
+      "partial": true
+    },
+    {
+      "case": "flags-plugins",
+      "matchingReads": 3,
+      "allListedUserInvocable": true,
+      "partial": true
+    },
+    {
+      "case": "manifests",
+      "matchingReads": 3,
+      "allListedUserInvocable": true,
+      "partial": true
+    },
+    {
+      "case": "global-manifests",
+      "matchingReads": 3,
+      "allListedUserInvocable": true,
+      "partial": true
+    },
+    {
+      "case": "symlinks",
+      "matchingReads": 3,
+      "allListedUserInvocable": true,
+      "partial": true
+    }
+  ],
+  "fileReaderNativeException": "Only the conditional native_swarm builtin mount is omitted; every other native entry compares strictly.",
+  "mcpControls": [
+    {
+      "case": "mcp-start",
+      "scope": "workspace",
+      "nativeStarted": false,
+      "fileStarted": false
+    },
+    {
+      "case": "mcp-start",
+      "scope": "global",
+      "nativeStarted": true,
+      "fileStarted": false
+    }
+  ],
+  "signedOutFileReader": {
+    "kind": "ok",
+    "partial": true,
+    "allListedUserInvocable": true
+  }
+}
