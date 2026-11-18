@@ -64,6 +64,10 @@ export class Deliveries {
         this.accepted.delete(inputId);
       }
     }
+    if (event.outcome.kind === "failed") {
+      // turn_failed already names this turn; a silent agent after a failure is not a second finding.
+      this.awaitingReply = false;
+    }
     setTimeout(() => {
       this.settle(event.seq);
     }, 2000);

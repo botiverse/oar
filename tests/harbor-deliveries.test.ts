@@ -17,8 +17,11 @@ const endedStandIn = { kind: "turn_ended", seq: 7, inputIds: ["input-1"], outcom
 const session = sessionStandIn as unknown as Session;
 // oxlint-disable-next-line typescript/no-unsafe-type-assertion, typescript/consistent-type-assertions -- Deliveries only journals.
 const store = storeStandIn as unknown as Store;
-// oxlint-disable-next-line typescript/no-unsafe-type-assertion, typescript/consistent-type-assertions -- Only seq and inputIds are read.
+const failedStandIn = { ...endedStandIn, outcome: { kind: "failed", reason: "provider limit" } };
+// oxlint-disable-next-line typescript/no-unsafe-type-assertion, typescript/consistent-type-assertions -- Only seq, inputIds and outcome are read.
 const ended = endedStandIn as unknown as Extract<Event, { kind: "turn_ended" }>;
+// oxlint-disable-next-line typescript/no-unsafe-type-assertion, typescript/consistent-type-assertions -- Only seq, inputIds and outcome are read.
+const failed = failedStandIn as unknown as Extract<Event, { kind: "turn_ended" }>;
 
 function harness(): { deliveries: Deliveries; findings: string[] } {
   const findings: string[] = [];
@@ -52,6 +55,16 @@ test("a note from another agent needs no answer", async () => {
   deliveries.add(message("b"), false);
   await vi.runAllTimersAsync();
   deliveries.turnEnded(ended);
+  await vi.advanceTimersByTimeAsync(2000);
+  expect(findings).toEqual([]);
+});
+
+test("a failed turn is reported once, as turn_failed, not again as no_reply", async () => {
+  vi.useFakeTimers();
+  const { deliveries, findings } = harness();
+  deliveries.add(message("qa"), true);
+  await vi.runAllTimersAsync();
+  deliveries.turnEnded(failed);
   await vi.advanceTimersByTimeAsync(2000);
   expect(findings).toEqual([]);
 });
