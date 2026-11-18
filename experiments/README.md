@@ -318,3 +318,5 @@ time.
 [2026-10-13]: runtime-version-checks/2026-10-13.md
 
 - [Antigravity unsolicited activity](antigravity-active-turns/README.md): 1.5.10/1.5.11 ACP and database boundaries, prompt during own work, and the shared activity fold.
+
+- [Codex structured quota errors](codex-quota-errors/README.md): HTTP and streamed failures, remote-compaction snapshot loss, and fresh account reads on 0.169.0.

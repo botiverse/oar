@@ -1407,12 +1407,12 @@ derived from an account-usage read, a usage snapshot, a retry delay or the
 runtime's prose. It is the runtime's last report, which may predate the
 failure: a time already past means the reset is unknown (oar reads no
 clock for it). It is a fact for the host; oar does not continue the session
-when it passes. Only claude reports one.
+when it passes. Claude and a preserved Codex provider error body report one.
 
 | runtime | what it reports | `resetsAt` |
 |---|---|---|
 | claude | `rate_limit_event` `{status, resetsAt (unix seconds), rateLimitType, overageStatus, …}` whenever its view of a claude.ai subscription's limits changes, a refused request included, before the turn's error frame (`rate_limit`, 429) and `result` `[src]` (Agent SDK 0.3.295 `SDKRateLimitInfo`) `[sym]` (2.1.289); none on an API key | a failure claude categorizes `rate_limit` while its latest event says `rejected`, overage does not take the requests (`overageStatus` absent or `rejected`) and it names `resetsAt`: `quota` with that `resetsAt`; otherwise `rate_limited` with none. From the types and the binary only, never observed ([claude](../runtimes/claude.md#usage-limits)) |
-| codex | `usageLimitExceeded` carries no data; the time is only in the message, in codex's local time to the minute ("Try again at 3:05 PM.") `[src]`, which oar does not parse. Matching an `account/rateLimits/updated` snapshot to the failure would be inference, so oar does not | none |
+| codex | native 0.169.0 HTTP-400 `other` preserves the provider JSON body, also after the exact remote-compaction prefix; `error.type` or `error.code` names the quota and numeric `error.resets_at` is Unix seconds. Named `usageLimitExceeded` carries no reset data; streamed usage-limit failures discard the JSON and remain `unknown`. Snapshots are not matched to the failure ([native controls](../../experiments/codex-quota-errors/README.md)) | the quota body's `resets_at`, otherwise absent |
 | pi, pi-durable | the provider's error text; for a ChatGPT plan pi-ai words it "Try again in ~N min." `[src]` (pi-ai 1.1.0) | none |
 | opencode, kimi, grok, antigravity | nothing in the observed answers (above) | none |
 | cursor | `RateLimitError` has `code`, `status` and `isRetryable`, no time `[src]` (`errors.d.ts`, 1.0.37) | none |

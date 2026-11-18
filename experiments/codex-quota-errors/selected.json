@@ -1,0 +1,1647 @@
+{
+  "platform": "linux",
+  "rows": [
+    {
+      "path": "normal",
+      "mode": "http-body",
+      "account": false,
+      "version": "0.169.0",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {},
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": null,
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+              "codexErrorInfo": "usageLimitExceeded",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa1-20cf-7e50-8f6b-e4e6228f51a6",
+            "turnId": "01a1efa1-20ea-74d1-9bf2-b83fc52e73bc"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-20cf-7e50-8f6b-e4e6228f51a6",
+            "turn": {
+              "id": "01a1efa1-20ea-74d1-9bf2-b83fc52e73bc",
+              "rootTurnId": "01a1efa1-20ea-74d1-9bf2-b83fc52e73bc",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+                "codexErrorInfo": "usageLimitExceeded",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795021676,
+              "completedAt": 1795021676,
+              "durationMs": 97
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "normal",
+      "mode": "http-headers",
+      "account": false,
+      "version": "0.169.0",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {
+        "x-codex-primary-used-percent": "100",
+        "x-codex-primary-window-minutes": "300",
+        "x-codex-primary-reset-at": "1900000000"
+      },
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": {
+                "usedPercent": 100,
+                "windowDurationMins": 300,
+                "resetsAt": 1900000000
+              },
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+              "codexErrorInfo": "usageLimitExceeded",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa1-22d6-7ac2-b5b9-b5c7f8e167e3",
+            "turnId": "01a1efa1-22eb-7b13-bd8f-d02a28ad1115"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-22d6-7ac2-b5b9-b5c7f8e167e3",
+            "turn": {
+              "id": "01a1efa1-22eb-7b13-bd8f-d02a28ad1115",
+              "rootTurnId": "01a1efa1-22eb-7b13-bd8f-d02a28ad1115",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+                "codexErrorInfo": "usageLimitExceeded",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795021677,
+              "completedAt": 1795021677,
+              "durationMs": 100
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "normal",
+      "mode": "sse-body",
+      "account": false,
+      "version": "0.169.0",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {},
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": null,
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+              "codexErrorInfo": "other",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa1-24c9-75b3-9b05-3b4dade3baec",
+            "turnId": "01a1efa1-24dd-7a23-b5dd-32ddb83baecd"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-24c9-75b3-9b05-3b4dade3baec",
+            "turn": {
+              "id": "01a1efa1-24dd-7a23-b5dd-32ddb83baecd",
+              "rootTurnId": "01a1efa1-24dd-7a23-b5dd-32ddb83baecd",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+                "codexErrorInfo": "other",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795021677,
+              "completedAt": 1795021677,
+              "durationMs": 100
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "normal",
+      "mode": "sse-headers",
+      "account": false,
+      "version": "0.169.0",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {
+        "x-codex-primary-used-percent": "100",
+        "x-codex-primary-window-minutes": "300",
+        "x-codex-primary-reset-at": "1900000000"
+      },
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": {
+                "usedPercent": 100,
+                "windowDurationMins": 300,
+                "resetsAt": 1900000000
+              },
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+              "codexErrorInfo": "other",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa1-26d2-7093-aa3b-e60eece1439b",
+            "turnId": "01a1efa1-26ed-70c0-9106-4b6659bcca74"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-26d2-7093-aa3b-e60eece1439b",
+            "turn": {
+              "id": "01a1efa1-26ed-70c0-9106-4b6659bcca74",
+              "rootTurnId": "01a1efa1-26ed-70c0-9106-4b6659bcca74",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+                "codexErrorInfo": "other",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795021678,
+              "completedAt": 1795021678,
+              "durationMs": 132
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "normal",
+      "mode": "http400-body",
+      "account": false,
+      "version": "0.169.0",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {},
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "{\"error\":{\"type\":\"usage_limit_reached\",\"code\":\"usage_limit_reached\",\"message\":\"You've hit your usage limit. Try again at 9:00 PM.\",\"plan_type\":\"pro\",\"resets_at\":1900000000,\"limit_window_minutes\":300}}",
+              "codexErrorInfo": "other",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa1-291d-76d1-835a-2c07b1523ec6",
+            "turnId": "01a1efa1-2931-7cb0-98d3-6e9ac83bcf5d"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-291d-76d1-835a-2c07b1523ec6",
+            "turn": {
+              "id": "01a1efa1-2931-7cb0-98d3-6e9ac83bcf5d",
+              "rootTurnId": "01a1efa1-2931-7cb0-98d3-6e9ac83bcf5d",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "{\"error\":{\"type\":\"usage_limit_reached\",\"code\":\"usage_limit_reached\",\"message\":\"You've hit your usage limit. Try again at 9:00 PM.\",\"plan_type\":\"pro\",\"resets_at\":1900000000,\"limit_window_minutes\":300}}",
+                "codexErrorInfo": "other",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795021678,
+              "completedAt": 1795021679,
+              "durationMs": 119
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "normal",
+      "mode": "http400-headers",
+      "account": false,
+      "version": "0.169.0",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {
+        "x-codex-primary-used-percent": "100",
+        "x-codex-primary-window-minutes": "300",
+        "x-codex-primary-reset-at": "1900000000"
+      },
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "{\"error\":{\"type\":\"usage_limit_reached\",\"code\":\"usage_limit_reached\",\"message\":\"You've hit your usage limit. Try again at 9:00 PM.\",\"plan_type\":\"pro\",\"resets_at\":1900000000,\"limit_window_minutes\":300}}",
+              "codexErrorInfo": "other",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa1-2b21-7f22-9b2f-c2d3616c6481",
+            "turnId": "01a1efa1-2b35-7683-8b65-2e24da46422c"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-2b21-7f22-9b2f-c2d3616c6481",
+            "turn": {
+              "id": "01a1efa1-2b35-7683-8b65-2e24da46422c",
+              "rootTurnId": "01a1efa1-2b35-7683-8b65-2e24da46422c",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "{\"error\":{\"type\":\"usage_limit_reached\",\"code\":\"usage_limit_reached\",\"message\":\"You've hit your usage limit. Try again at 9:00 PM.\",\"plan_type\":\"pro\",\"resets_at\":1900000000,\"limit_window_minutes\":300}}",
+                "codexErrorInfo": "other",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795021679,
+              "completedAt": 1795021679,
+              "durationMs": 95
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "normal",
+      "mode": "http-headers",
+      "account": true,
+      "version": "0.169.0",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {
+        "x-codex-primary-used-percent": "100",
+        "x-codex-primary-window-minutes": "300",
+        "x-codex-primary-reset-at": "1900000000"
+      },
+      "usageBefore": {
+        "ordinaryUsageAllowed": null,
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": {
+            "usedPercent": 25,
+            "windowDurationMins": 300,
+            "resetsAt": 1899996400
+          },
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": "pro",
+          "rateLimitReachedType": null
+        },
+        "rateLimitsByLimitId": {
+          "codex": {
+            "limitId": "codex",
+            "limitName": null,
+            "normalModelSlug": null,
+            "primary": {
+              "usedPercent": 25,
+              "windowDurationMins": 300,
+              "resetsAt": 1899996400
+            },
+            "secondary": null,
+            "credits": null,
+            "individualLimit": null,
+            "spendControlReached": null,
+            "planType": "pro",
+            "rateLimitReachedType": null
+          }
+        },
+        "rateLimitResetCredits": null,
+        "accountId": null,
+        "rateLimitUpsell": null
+      },
+      "usageAfter": {
+        "ordinaryUsageAllowed": null,
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": {
+            "usedPercent": 100,
+            "windowDurationMins": 300,
+            "resetsAt": 1900000000
+          },
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": "pro",
+          "rateLimitReachedType": null
+        },
+        "rateLimitsByLimitId": {
+          "codex": {
+            "limitId": "codex",
+            "limitName": null,
+            "normalModelSlug": null,
+            "primary": {
+              "usedPercent": 100,
+              "windowDurationMins": 300,
+              "resetsAt": 1900000000
+            },
+            "secondary": null,
+            "credits": null,
+            "individualLimit": null,
+            "spendControlReached": null,
+            "planType": "pro",
+            "rateLimitReachedType": null
+          }
+        },
+        "rateLimitResetCredits": null,
+        "accountId": null,
+        "rateLimitUpsell": null
+      },
+      "notifications": [
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": {
+                "usedPercent": 100,
+                "windowDurationMins": 300,
+                "resetsAt": 1900000000
+              },
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+              "codexErrorInfo": "usageLimitExceeded",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa1-2d2f-7040-97a5-203d2a118838",
+            "turnId": "01a1efa1-2d4d-78d1-9abc-c9a228d09197"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-2d2f-7040-97a5-203d2a118838",
+            "turn": {
+              "id": "01a1efa1-2d4d-78d1-9abc-c9a228d09197",
+              "rootTurnId": "01a1efa1-2d4d-78d1-9abc-c9a228d09197",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+                "codexErrorInfo": "usageLimitExceeded",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795021679,
+              "completedAt": 1795021680,
+              "durationMs": 137
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "normal",
+      "mode": "sse-headers",
+      "account": true,
+      "version": "0.169.0",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {
+        "x-codex-primary-used-percent": "100",
+        "x-codex-primary-window-minutes": "300",
+        "x-codex-primary-reset-at": "1900000000"
+      },
+      "usageBefore": {
+        "ordinaryUsageAllowed": null,
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": {
+            "usedPercent": 25,
+            "windowDurationMins": 300,
+            "resetsAt": 1899996400
+          },
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": "pro",
+          "rateLimitReachedType": null
+        },
+        "rateLimitsByLimitId": {
+          "codex": {
+            "limitId": "codex",
+            "limitName": null,
+            "normalModelSlug": null,
+            "primary": {
+              "usedPercent": 25,
+              "windowDurationMins": 300,
+              "resetsAt": 1899996400
+            },
+            "secondary": null,
+            "credits": null,
+            "individualLimit": null,
+            "spendControlReached": null,
+            "planType": "pro",
+            "rateLimitReachedType": null
+          }
+        },
+        "rateLimitResetCredits": null,
+        "accountId": null,
+        "rateLimitUpsell": null
+      },
+      "usageAfter": {
+        "ordinaryUsageAllowed": null,
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": {
+            "usedPercent": 100,
+            "windowDurationMins": 300,
+            "resetsAt": 1900000000
+          },
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": "pro",
+          "rateLimitReachedType": null
+        },
+        "rateLimitsByLimitId": {
+          "codex": {
+            "limitId": "codex",
+            "limitName": null,
+            "normalModelSlug": null,
+            "primary": {
+              "usedPercent": 100,
+              "windowDurationMins": 300,
+              "resetsAt": 1900000000
+            },
+            "secondary": null,
+            "credits": null,
+            "individualLimit": null,
+            "spendControlReached": null,
+            "planType": "pro",
+            "rateLimitReachedType": null
+          }
+        },
+        "rateLimitResetCredits": null,
+        "accountId": null,
+        "rateLimitUpsell": null
+      },
+      "notifications": [
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": {
+                "usedPercent": 100,
+                "windowDurationMins": 300,
+                "resetsAt": 1900000000
+              },
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+              "codexErrorInfo": "other",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa1-2f8a-7961-9710-9aaddeb09bcd",
+            "turnId": "01a1efa1-2fa4-7b51-9ed5-169e5a7448c6"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-2f8a-7961-9710-9aaddeb09bcd",
+            "turn": {
+              "id": "01a1efa1-2fa4-7b51-9ed5-169e5a7448c6",
+              "rootTurnId": "01a1efa1-2fa4-7b51-9ed5-169e5a7448c6",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+                "codexErrorInfo": "other",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795021680,
+              "completedAt": 1795021680,
+              "durationMs": 121
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "compact",
+      "mode": "http-body",
+      "account": false,
+      "version": "0.169.0",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {},
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": null,
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-31a9-7330-8321-2ff1e88d8de0",
+            "turn": {
+              "id": "01a1efa1-31bc-75d0-9a46-44b6dd41c09a",
+              "rootTurnId": "01a1efa1-31bc-75d0-9a46-44b6dd41c09a",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "completed",
+              "error": null,
+              "startedAt": 1795021681,
+              "completedAt": 1795021681,
+              "durationMs": 99
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "Error running remote compact task: You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+              "codexErrorInfo": "usageLimitExceeded",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa1-31a9-7330-8321-2ff1e88d8de0",
+            "turnId": "01a1efa1-3229-7f10-8355-0d8fbfea78ff"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-31a9-7330-8321-2ff1e88d8de0",
+            "turn": {
+              "id": "01a1efa1-3229-7f10-8355-0d8fbfea78ff",
+              "rootTurnId": "01a1efa1-3229-7f10-8355-0d8fbfea78ff",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "Error running remote compact task: You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+                "codexErrorInfo": "usageLimitExceeded",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795021681,
+              "completedAt": 1795021681,
+              "durationMs": 21
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "compact",
+      "mode": "http-headers",
+      "account": false,
+      "version": "0.169.0",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {
+        "x-codex-primary-used-percent": "100",
+        "x-codex-primary-window-minutes": "300",
+        "x-codex-primary-reset-at": "1900000000"
+      },
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": {
+                "usedPercent": 25,
+                "windowDurationMins": 300,
+                "resetsAt": 1899996400
+              },
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-33bd-7231-ae2b-90d1aeef4ad0",
+            "turn": {
+              "id": "01a1efa1-33d3-7d43-a94d-3f8d86d9d112",
+              "rootTurnId": "01a1efa1-33d3-7d43-a94d-3f8d86d9d112",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "completed",
+              "error": null,
+              "startedAt": 1795021681,
+              "completedAt": 1795021681,
+              "durationMs": 104
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "Error running remote compact task: You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+              "codexErrorInfo": "usageLimitExceeded",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa1-33bd-7231-ae2b-90d1aeef4ad0",
+            "turnId": "01a1efa1-3444-7bd2-93f3-f8092348c30c"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-33bd-7231-ae2b-90d1aeef4ad0",
+            "turn": {
+              "id": "01a1efa1-3444-7bd2-93f3-f8092348c30c",
+              "rootTurnId": "01a1efa1-3444-7bd2-93f3-f8092348c30c",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "Error running remote compact task: You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+                "codexErrorInfo": "usageLimitExceeded",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795021681,
+              "completedAt": 1795021681,
+              "durationMs": 21
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "compact",
+      "mode": "sse-body",
+      "account": false,
+      "version": "0.169.0",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {},
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": null,
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-35d8-7862-ac45-d21b450c43c0",
+            "turn": {
+              "id": "01a1efa1-35ed-7851-b19c-d4be7ff44c35",
+              "rootTurnId": "01a1efa1-35ed-7851-b19c-d4be7ff44c35",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "completed",
+              "error": null,
+              "startedAt": 1795021682,
+              "completedAt": 1795021682,
+              "durationMs": 110
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "Error running remote compact task: stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+              "codexErrorInfo": "other",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa1-35d8-7862-ac45-d21b450c43c0",
+            "turnId": "01a1efa1-3666-7731-96c2-3a7156617dbf"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-35d8-7862-ac45-d21b450c43c0",
+            "turn": {
+              "id": "01a1efa1-3666-7731-96c2-3a7156617dbf",
+              "rootTurnId": "01a1efa1-3666-7731-96c2-3a7156617dbf",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "Error running remote compact task: stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+                "codexErrorInfo": "other",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795021682,
+              "completedAt": 1795021682,
+              "durationMs": 21
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "compact",
+      "mode": "sse-headers",
+      "account": false,
+      "version": "0.169.0",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {
+        "x-codex-primary-used-percent": "100",
+        "x-codex-primary-window-minutes": "300",
+        "x-codex-primary-reset-at": "1900000000"
+      },
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": {
+                "usedPercent": 25,
+                "windowDurationMins": 300,
+                "resetsAt": 1899996400
+              },
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-37f9-77c3-9087-ee4ae9d7b3a2",
+            "turn": {
+              "id": "01a1efa1-380e-7503-b2ef-fc8802648ebf",
+              "rootTurnId": "01a1efa1-380e-7503-b2ef-fc8802648ebf",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "completed",
+              "error": null,
+              "startedAt": 1795021682,
+              "completedAt": 1795021682,
+              "durationMs": 115
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "Error running remote compact task: stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+              "codexErrorInfo": "other",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa1-37f9-77c3-9087-ee4ae9d7b3a2",
+            "turnId": "01a1efa1-388a-7283-b9f0-f077dd823371"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-37f9-77c3-9087-ee4ae9d7b3a2",
+            "turn": {
+              "id": "01a1efa1-388a-7283-b9f0-f077dd823371",
+              "rootTurnId": "01a1efa1-388a-7283-b9f0-f077dd823371",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "Error running remote compact task: stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+                "codexErrorInfo": "other",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795021682,
+              "completedAt": 1795021682,
+              "durationMs": 21
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "compact",
+      "mode": "http400-body",
+      "account": false,
+      "version": "0.169.0",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {},
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": null,
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-3a19-7c01-bdd1-90a823c329d9",
+            "turn": {
+              "id": "01a1efa1-3a31-7512-8701-6634e72af925",
+              "rootTurnId": "01a1efa1-3a31-7512-8701-6634e72af925",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "completed",
+              "error": null,
+              "startedAt": 1795021683,
+              "completedAt": 1795021683,
+              "durationMs": 98
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "Error running remote compact task: {\"error\":{\"type\":\"usage_limit_reached\",\"code\":\"usage_limit_reached\",\"message\":\"You've hit your usage limit. Try again at 9:00 PM.\",\"plan_type\":\"pro\",\"resets_at\":1900000000,\"limit_window_minutes\":300}}",
+              "codexErrorInfo": "other",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa1-3a19-7c01-bdd1-90a823c329d9",
+            "turnId": "01a1efa1-3a9c-70e1-a44b-eae8f1244342"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-3a19-7c01-bdd1-90a823c329d9",
+            "turn": {
+              "id": "01a1efa1-3a9c-70e1-a44b-eae8f1244342",
+              "rootTurnId": "01a1efa1-3a9c-70e1-a44b-eae8f1244342",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "Error running remote compact task: {\"error\":{\"type\":\"usage_limit_reached\",\"code\":\"usage_limit_reached\",\"message\":\"You've hit your usage limit. Try again at 9:00 PM.\",\"plan_type\":\"pro\",\"resets_at\":1900000000,\"limit_window_minutes\":300}}",
+                "codexErrorInfo": "other",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795021683,
+              "completedAt": 1795021683,
+              "durationMs": 22
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "compact",
+      "mode": "http400-headers",
+      "account": false,
+      "version": "0.169.0",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {
+        "x-codex-primary-used-percent": "100",
+        "x-codex-primary-window-minutes": "300",
+        "x-codex-primary-reset-at": "1900000000"
+      },
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": {
+                "usedPercent": 25,
+                "windowDurationMins": 300,
+                "resetsAt": 1899996400
+              },
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-3c68-7e41-b7dd-2ff6372384f1",
+            "turn": {
+              "id": "01a1efa1-3c7b-7583-98ad-15cb16ab2dc7",
+              "rootTurnId": "01a1efa1-3c7b-7583-98ad-15cb16ab2dc7",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "completed",
+              "error": null,
+              "startedAt": 1795021683,
+              "completedAt": 1795021683,
+              "durationMs": 101
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "Error running remote compact task: {\"error\":{\"type\":\"usage_limit_reached\",\"code\":\"usage_limit_reached\",\"message\":\"You've hit your usage limit. Try again at 9:00 PM.\",\"plan_type\":\"pro\",\"resets_at\":1900000000,\"limit_window_minutes\":300}}",
+              "codexErrorInfo": "other",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa1-3c68-7e41-b7dd-2ff6372384f1",
+            "turnId": "01a1efa1-3ce9-7870-be79-563a36a6202f"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-3c68-7e41-b7dd-2ff6372384f1",
+            "turn": {
+              "id": "01a1efa1-3ce9-7870-be79-563a36a6202f",
+              "rootTurnId": "01a1efa1-3ce9-7870-be79-563a36a6202f",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "Error running remote compact task: {\"error\":{\"type\":\"usage_limit_reached\",\"code\":\"usage_limit_reached\",\"message\":\"You've hit your usage limit. Try again at 9:00 PM.\",\"plan_type\":\"pro\",\"resets_at\":1900000000,\"limit_window_minutes\":300}}",
+                "codexErrorInfo": "other",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795021683,
+              "completedAt": 1795021683,
+              "durationMs": 21
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "compact",
+      "mode": "http-headers",
+      "account": true,
+      "version": "0.169.0",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {
+        "x-codex-primary-used-percent": "100",
+        "x-codex-primary-window-minutes": "300",
+        "x-codex-primary-reset-at": "1900000000"
+      },
+      "usageBefore": {
+        "ordinaryUsageAllowed": null,
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": {
+            "usedPercent": 25,
+            "windowDurationMins": 300,
+            "resetsAt": 1899996400
+          },
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": "pro",
+          "rateLimitReachedType": null
+        },
+        "rateLimitsByLimitId": {
+          "codex": {
+            "limitId": "codex",
+            "limitName": null,
+            "normalModelSlug": null,
+            "primary": {
+              "usedPercent": 25,
+              "windowDurationMins": 300,
+              "resetsAt": 1899996400
+            },
+            "secondary": null,
+            "credits": null,
+            "individualLimit": null,
+            "spendControlReached": null,
+            "planType": "pro",
+            "rateLimitReachedType": null
+          }
+        },
+        "rateLimitResetCredits": null,
+        "accountId": null,
+        "rateLimitUpsell": null
+      },
+      "usageAfter": {
+        "ordinaryUsageAllowed": null,
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": {
+            "usedPercent": 100,
+            "windowDurationMins": 300,
+            "resetsAt": 1900000000
+          },
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": "pro",
+          "rateLimitReachedType": null
+        },
+        "rateLimitsByLimitId": {
+          "codex": {
+            "limitId": "codex",
+            "limitName": null,
+            "normalModelSlug": null,
+            "primary": {
+              "usedPercent": 100,
+              "windowDurationMins": 300,
+              "resetsAt": 1900000000
+            },
+            "secondary": null,
+            "credits": null,
+            "individualLimit": null,
+            "spendControlReached": null,
+            "planType": "pro",
+            "rateLimitReachedType": null
+          }
+        },
+        "rateLimitResetCredits": null,
+        "accountId": null,
+        "rateLimitUpsell": null
+      },
+      "notifications": [
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": {
+                "usedPercent": 25,
+                "windowDurationMins": 300,
+                "resetsAt": 1899996400
+              },
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-3e98-7ac0-869f-80a3a1eac989",
+            "turn": {
+              "id": "01a1efa1-3eb7-7020-9f36-a3dd7383c0b0",
+              "rootTurnId": "01a1efa1-3eb7-7020-9f36-a3dd7383c0b0",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "completed",
+              "error": null,
+              "startedAt": 1795021684,
+              "completedAt": 1795021684,
+              "durationMs": 121
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "Error running remote compact task: You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+              "codexErrorInfo": "usageLimitExceeded",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa1-3e98-7ac0-869f-80a3a1eac989",
+            "turnId": "01a1efa1-3f39-7980-aa1f-efe2f0fbf1f1"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-3e98-7ac0-869f-80a3a1eac989",
+            "turn": {
+              "id": "01a1efa1-3f39-7980-aa1f-efe2f0fbf1f1",
+              "rootTurnId": "01a1efa1-3f39-7980-aa1f-efe2f0fbf1f1",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "Error running remote compact task: You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+                "codexErrorInfo": "usageLimitExceeded",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795021684,
+              "completedAt": 1795021684,
+              "durationMs": 45
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "compact",
+      "mode": "sse-headers",
+      "account": true,
+      "version": "0.169.0",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {
+        "x-codex-primary-used-percent": "100",
+        "x-codex-primary-window-minutes": "300",
+        "x-codex-primary-reset-at": "1900000000"
+      },
+      "usageBefore": {
+        "ordinaryUsageAllowed": null,
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": {
+            "usedPercent": 25,
+            "windowDurationMins": 300,
+            "resetsAt": 1899996400
+          },
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": "pro",
+          "rateLimitReachedType": null
+        },
+        "rateLimitsByLimitId": {
+          "codex": {
+            "limitId": "codex",
+            "limitName": null,
+            "normalModelSlug": null,
+            "primary": {
+              "usedPercent": 25,
+              "windowDurationMins": 300,
+              "resetsAt": 1899996400
+            },
+            "secondary": null,
+            "credits": null,
+            "individualLimit": null,
+            "spendControlReached": null,
+            "planType": "pro",
+            "rateLimitReachedType": null
+          }
+        },
+        "rateLimitResetCredits": null,
+        "accountId": null,
+        "rateLimitUpsell": null
+      },
+      "usageAfter": {
+        "ordinaryUsageAllowed": null,
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": {
+            "usedPercent": 100,
+            "windowDurationMins": 300,
+            "resetsAt": 1900000000
+          },
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": "pro",
+          "rateLimitReachedType": null
+        },
+        "rateLimitsByLimitId": {
+          "codex": {
+            "limitId": "codex",
+            "limitName": null,
+            "normalModelSlug": null,
+            "primary": {
+              "usedPercent": 100,
+              "windowDurationMins": 300,
+              "resetsAt": 1900000000
+            },
+            "secondary": null,
+            "credits": null,
+            "individualLimit": null,
+            "spendControlReached": null,
+            "planType": "pro",
+            "rateLimitReachedType": null
+          }
+        },
+        "rateLimitResetCredits": null,
+        "accountId": null,
+        "rateLimitUpsell": null
+      },
+      "notifications": [
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": {
+                "usedPercent": 25,
+                "windowDurationMins": 300,
+                "resetsAt": 1899996400
+              },
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-4109-7b10-a720-90a300aa8e37",
+            "turn": {
+              "id": "01a1efa1-4122-7a53-9c0b-5ffda961768e",
+              "rootTurnId": "01a1efa1-4122-7a53-9c0b-5ffda961768e",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "completed",
+              "error": null,
+              "startedAt": 1795021685,
+              "completedAt": 1795021685,
+              "durationMs": 122
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "Error running remote compact task: stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+              "codexErrorInfo": "other",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa1-4109-7b10-a720-90a300aa8e37",
+            "turnId": "01a1efa1-41a8-7e43-b068-ee305e27475d"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa1-4109-7b10-a720-90a300aa8e37",
+            "turn": {
+              "id": "01a1efa1-41a8-7e43-b068-ee305e27475d",
+              "rootTurnId": "01a1efa1-41a8-7e43-b068-ee305e27475d",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "Error running remote compact task: stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+                "codexErrorInfo": "other",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795021685,
+              "completedAt": 1795021685,
+              "durationMs": 51
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

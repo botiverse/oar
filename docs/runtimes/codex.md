@@ -968,11 +968,19 @@ arrives per model call, so a tool turn reports twice.
 10080-min windows, reflecting the thread model's own windows: a Spark thread
 reported 0-4 % / 0-2 % while the account's main Codex weekly window stood at
 88 %). [Thread schema][thread-schema], [usage projection][oar-token-usage].
-A usage-limit failure (`codexErrorInfo: "usageLimitExceeded"`) gets no
-`resetsAt`: the value carries no data, and the time is only in the message,
-in codex's local time ("Try again at 3:05 PM."), which oar does not parse.
-Nor does oar match these snapshots to the failure: that would be inference
-([when a limit resets](../spec/runtime-matrix.md#when-a-limit-resets)).
+A named usage-limit failure (`codexErrorInfo: "usageLimitExceeded"`) remains
+`quota` without `resetsAt`: its error carries no reset field, and oar does not
+parse the local time in its sentence. On native 0.169.0, an HTTP-400 error
+preserves the provider's JSON body under `codexErrorInfo: "other"`, including
+a remote-compaction prefix. OAR reads that body's `error.type` or
+`error.code` and numeric `error.resets_at` (Unix seconds): a structured quota
+body yields `quota` with its reported reset. A streamed `response.failed`
+usage-limit error loses its JSON before reaching OAR and stays `unknown`.
+Compaction can also omit the failed response's rate-limit update; OAR does
+not attach a stale snapshot to the failure. A host can request fresh
+`accountUsage()` windows separately. See the
+[native controls](../../experiments/codex-quota-errors/README.md) and
+[reset contract](../spec/runtime-matrix.md#when-a-limit-resets).
 
 **Compaction:** a `contextCompaction` item yields `compaction_started` on
 `item/started` and `compaction_ended` (completed, no trigger) on
