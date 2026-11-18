@@ -434,8 +434,12 @@ Further rules:
   whether or not one can be named. A pipe holding data its reader has not
   taken yet (paused, or a `for await` reader still busy) is left to that
   reader; once it has taken the data, the pipe is closed like the others if
-  still open, and joins `cleanup.heldPipes`. A reader that never takes it
-  keeps the pipe open. `exited.reason` and
+  still open, and joins `cleanup.heldPipes`. Such a pipe is closed after
+  `exited`, which has already been emitted: its `reason` never names it, and
+  only `cleanup.heldPipes` read later does. A reader that has not taken the
+  data within 60 s keeps the pipe open: OAR stops looking at it, and keeps
+  the processes then in the root's group by identity, as below, in place of
+  the root. `exited.reason` and
   `cleanup.heldPipes` name the pipes closed and the processes then still in
   the root's process group, which may hold them; a holder outside the group
   (another user's tree that left it, a tool in a session of its own) is not

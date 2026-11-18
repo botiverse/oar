@@ -2,7 +2,6 @@ import { spawnSync } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 import { afterEach, expect, test, vi } from "vitest";
 import { runExecutable } from "../packages/oar/src/shared/executable/run.js";
-import { PIPE_CLOSE_MS } from "../packages/oar/src/shared/executable/pipe-close.js";
 
 // A stopped command's result comes with `close` (every pipe at EOF) whenever
 // that comes: the bounded wait for pipes held past the stop's SIGKILL
@@ -23,7 +22,7 @@ test.skipIf(!posix)("a command that exits on SIGTERM returns at once when its ti
   const begun = performance.now();
   const result = await within(runExecutable("sleep", ["30"], { timeoutMs: 300 }), 5000);
   const elapsedMs = performance.now() - begun;
-  expect(result === HUNG ? result : { ok: result.ok, timeoutMs: result.diagnostics?.timeoutMs, cleanup: result.diagnostics?.cleanup, prompt: elapsedMs < 300 + PIPE_CLOSE_MS })
+  expect(result === HUNG ? result : { ok: result.ok, timeoutMs: result.diagnostics?.timeoutMs, cleanup: result.diagnostics?.cleanup, prompt: elapsedMs < 1000 })
     .toEqual({ ok: false, timeoutMs: 300, cleanup: undefined, prompt: true });
 });
 
@@ -32,7 +31,7 @@ test.skipIf(!posix)("a command that exits on SIGTERM returns at once when its ca
   const begun = performance.now();
   const result = await within(runExecutable("sleep", ["30"], { signal: AbortSignal.timeout(300) }), 5000);
   const elapsedMs = performance.now() - begun;
-  expect(result === HUNG ? result : { ok: result.ok, error: result.diagnostics?.error?.code, cleanup: result.diagnostics?.cleanup, prompt: elapsedMs < 300 + PIPE_CLOSE_MS })
+  expect(result === HUNG ? result : { ok: result.ok, error: result.diagnostics?.error?.code, cleanup: result.diagnostics?.cleanup, prompt: elapsedMs < 1000 })
     .toEqual({ ok: false, error: "ABORT_ERR", cleanup: undefined, prompt: true });
 });
 

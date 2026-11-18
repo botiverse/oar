@@ -3,7 +3,7 @@ import type { Stream } from "node:stream";
 import type { HeldPipe, HeldPipes } from "./process-cleanup-diagnostics.js";
 import { ownLeftProcesses } from "./ownership.js";
 import { observeProcessTableAsync, processTableSource } from "./process-table-async.js";
-import { processTableFailure, type ProcessTableObservation } from "./process-tree.js";
+import { processTableFailure, type ProcessEntry, type ProcessTableObservation } from "./process-tree.js";
 
 /*
  * A process the root started can keep the root's output pipes open after the
@@ -21,6 +21,9 @@ export const PIPE_CLOSE_MS = 2000;
 
 /** How often a pipe left to its reader (unread data) is looked at again once the limit has passed. */
 const PAUSED_RECHECK_MS = 100;
+
+/** How long past the limit a pipe is left to a reader that does not take its data before OAR stops looking at it. */
+export const UNREAD_LIMIT_MS = 60_000;
 
 type Pipe = Stream & { destroy(): void; readonly destroyed: boolean; readonly closed?: boolean; readonly readableFlowing?: boolean | null; readonly readableLength?: number };
 export interface NamedPipe { readonly name: HeldPipe; readonly stream: Pipe | null | undefined }
@@ -42,16 +45,28 @@ async function observeTable(): Promise<ProcessTableObservation> {
   catch (error) { return processTableFailure(error, processTableSource(), 0); }
 }
 
-/** Close OAR's end of `held`, owning the processes in the root's group as their holders (by pid and start). */
-async function closeHeld(child: ChildProcess, root: number, held: readonly OpenPipe[], started: number): Promise<HeldPipes> {
+/** The processes now in the root's group, by pid and start (none when the table could not be read). */
+async function readGroup(root: number): Promise<{ readonly table: ProcessTableObservation; readonly group: ProcessEntry[] }> {
   const table = await observeTable();
   const group = table.ok ? [...table.table.values()].filter((entry) => entry.pgid === root && entry.pid !== process.pid) : [];
+  return { table, group };
+}
+
+/**
+ * Close OAR's end of each of `held` still open, owning the processes in the
+ * root's group as their holders (by pid and start). Undefined when every one
+ * closed while the table was read: then OAR closed nothing.
+ */
+async function closeHeld(child: ChildProcess, root: number, held: readonly OpenPipe[], started: number): Promise<HeldPipes | undefined> {
+  const { table, group } = await readGroup(root);
+  const open = held.filter((pipe) => !isClosed(pipe.stream));
+  if (open.length === 0) { return undefined; }
   // What the host-exit hook then ends as if the pipes were open: each only while it is the same process.
   ownLeftProcesses(child, group);
-  for (const pipe of held) { pipe.stream.destroy(); }
+  for (const pipe of open) { pipe.stream.destroy(); }
   return {
     waitedMs: Math.round(performance.now() - started),
-    pipes: held.map((pipe) => pipe.name),
+    pipes: open.map((pipe) => pipe.name),
     holders: group.map((entry) => entry.pid).toSorted((a, b) => a - b),
     ...(table.ok ? {} : { observation: { ...table, phase: "pipe_holders" as const } }),
   };
@@ -77,15 +92,16 @@ export function mergeHeldPipes(one: HeldPipes | undefined, other: HeldPipes | un
  * whether or not one can be named; OAR closes its end of each such pipe, and
  * only of those. A pipe with unread data is left to its reader until it has
  * taken that data: if the pipe is still open then, OAR closes it too and
- * passes that report to `onLater` (a reader that never takes it keeps it,
- * as before this limit). The processes still in the root's process group
- * are reported as the holders (which pipe each holds is not known; one
- * outside the group, such as another user's that left it, is not seen), and
- * owned by their identity (pid and start) for the host's exit hook
+ * passes that report to `onLater`. A reader that has not taken it within
+ * `unreadLimitMs` keeps the pipe: OAR stops looking at it, and owns the
+ * processes then in the root's group in place of the root. The processes
+ * still in the root's process group are reported as the holders (which pipe
+ * each holds is not known; one outside the group, such as another user's
+ * that left it, is not seen), and owned by their identity (pid and start) for the host's exit hook
  * (ownership.ts). Never throws: a failed table read still closes the pipes
  * and is reported.
  */
-export async function closePipesAfterExit(child: ChildProcess, pipes: readonly NamedPipe[], limitMs: number = PIPE_CLOSE_MS, onLater?: (held: HeldPipes) => void): Promise<HeldPipes | undefined> {
+export async function closePipesAfterExit(child: ChildProcess, pipes: readonly NamedPipe[], limitMs: number = PIPE_CLOSE_MS, onLater?: (held: HeldPipes) => void, unreadLimitMs: number = UNREAD_LIMIT_MS): Promise<HeldPipes | undefined> {
   const open = pipes.filter((pipe): pipe is OpenPipe => pipe.stream !== null && pipe.stream !== undefined && !isClosed(pipe.stream));
   const root = child.pid;
   // Windows has no process groups to name holders by, and taskkill ends the tree.
@@ -101,7 +117,7 @@ export async function closePipesAfterExit(child: ChildProcess, pipes: readonly N
   clearTimeout(timer);
   if (outcome !== "expired") { return undefined; }
   const waiting = open.filter((pipe) => !isClosed(pipe.stream) && unread(pipe.stream));
-  if (waiting.length > 0) { closeOnceTaken(child, root, waiting, started, onLater); }
+  if (waiting.length > 0) { closeOnceTaken(child, root, waiting, started, onLater, unreadLimitMs); }
   const held = open.filter((pipe) => isHeld(pipe.stream));
   if (held.length === 0) { return undefined; }
   const report = await closeHeld(child, root, held, started);
@@ -113,18 +129,33 @@ export async function closePipesAfterExit(child: ChildProcess, pipes: readonly N
  * changing how the stream flows (a `'data'` listener would make it flow once
  * the reader drops its `'readable'` one), so the pipes are looked at again
  * on a timer. It is unref'd: the open pipes are what keeps the process up.
+ * It stops once no pipe is left waiting (taken, or closed by its reader), or
+ * after `limitMs`: a reader that never takes its data must not keep it
+ * running, nor keep the root owned, whose pid and group id may be reused
+ * once what it left has gone. Then the root's group is owned by identity, as
+ * when OAR closes a pipe, and the pipe is left to the reader.
  */
-function closeOnceTaken(child: ChildProcess, root: number, waiting: readonly OpenPipe[], started: number, onLater: ((held: HeldPipes) => void) | undefined): void {
+function closeOnceTaken(child: ChildProcess, root: number, waiting: readonly OpenPipe[], started: number, onLater: ((held: HeldPipes) => void) | undefined, limitMs: number): void {
   let pending = [...waiting];
+  const stop = (): void => { clearInterval(recheck); clearTimeout(giveUp); };
   const recheck = setInterval(() => {
     const taken = pending.filter((pipe) => isHeld(pipe.stream));
     pending = pending.filter((pipe) => !isClosed(pipe.stream) && unread(pipe.stream));
-    if (pending.length === 0) { clearInterval(recheck); }
+    if (pending.length === 0) { stop(); }
     if (taken.length === 0) { return; }
     void (async (): Promise<void> => {
       const held = await closeHeld(child, root, taken, started);
-      onLater?.(held);
+      if (held !== undefined) { onLater?.(held); }
     })();
   }, PAUSED_RECHECK_MS);
+  const giveUp = setTimeout(() => {
+    stop();
+    if (!pending.some((pipe) => !isClosed(pipe.stream))) { return; }
+    void (async (): Promise<void> => {
+      const { group } = await readGroup(root);
+      ownLeftProcesses(child, group);
+    })();
+  }, limitMs);
   recheck.unref();
+  giveUp.unref();
 }
