@@ -67,8 +67,9 @@ The existing `get_context_usage` reader on Claude 2.1.325 returned 13 built-in
 skills in an empty home, including `update-config` and `claude-api`, each with
 native `source: "built-in"`. Adding a project `.claude/skills/oar-claude`
 fixture returned it with `source: "projectSettings"` and kept those built-ins.
-No adapter change was needed. This remains a `context` view; it is not proof
-that all commands or installed skills are in that context.
+No adapter change was needed. At the time this was a `context` view; since
+2026-11-18 the reader joins `initialize.commands` and reports `discovered`
+([claude.md](../../docs/runtimes/claude.md)).
 [Probe](../skills-builtins.ts).
 
 ## Grok: cached bundled skills were present, provenance was lost

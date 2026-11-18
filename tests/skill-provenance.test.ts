@@ -64,11 +64,13 @@ test("Pi RPC retains package identity independently of user, project and tempora
 });
 
 test("Claude catalog joins native descriptions and invocability and keeps model-hidden labeled commands", () => {
-  const context = { skills: { totalSkills: 4, includedSkills: 4, skillFrontmatter: [
+  const context = { skills: { totalSkills: 6, includedSkills: 6, skillFrontmatter: [
     { name: "deploy", source: "projectSettings", path: "/w/.claude/commands/deploy.md" },
     { name: "user-skill", source: "userSettings", path: "/h/.claude/skills/user-skill/SKILL.md" },
     { name: "dataviz", source: "syncedSkills" },
     { name: "review", source: "projectSettings" },
+    { name: "twice", source: "userSettings" },
+    { name: "local-skill", source: "localSettings" },
   ] } };
   const initialized = { commands: [
     { name: "deploy", description: "Deploy it (project)", argumentHint: "env" },
@@ -88,8 +90,13 @@ test("Claude catalog joins native descriptions and invocability and keeps model-
     { name: "user-skill", source: "userSettings", scope: "user", path: "/h/.claude/skills/user-skill/SKILL.md", userInvocable: false },
     // The label is stripped only when it names the entry's own scope.
     { name: "dataviz", source: "syncedSkills", scope: "other", description: "Charts (project)", userInvocable: true },
-    // A builtin command of the same name never describes a project skill.
-    { name: "review", source: "projectSettings", scope: "project", userInvocable: true },
+    // A builtin command of the same name never describes a project skill, and
+    // `/review` runs the builtin, so whether the skill is runnable is unknown.
+    { name: "review", source: "projectSettings", scope: "project" },
+    // Listed twice: neither description nor invocability is known.
+    { name: "twice", source: "userSettings", scope: "user" },
+    // Local settings were not verified, so absence claims nothing.
+    { name: "local-skill", source: "localSettings", scope: "project" },
     { name: "hidden-skill", description: "Hidden one", scope: "project", userInvocable: true },
     { name: "ucmd", description: "User cmd", scope: "user", userInvocable: true },
   ] });

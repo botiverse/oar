@@ -943,15 +943,20 @@ loads legacy `.claude/commands/*.md` files as skills there (`deploy` from
 `.claude/commands/deploy.md` with `projectSettings`). `initialize.commands`
 supplies what the context list lacks: a skill's `description` (Claude appends
 " (project)" or " (user)" to file-backed entries; OAR removes only the label
-naming the entry's own scope) and `userInvocable: true` when Claude lists it as
-a command. A builtin command never describes a non-builtin skill of the same
-name, and a name listed twice joins nothing. `userInvocable: false` is claimed
-only for user, project and local settings skills, where a skill with
-`user-invocable: false` was verified to be absent from the commands; other
-sources not listed stay unknown. A skill with `disable-model-invocation: true`
-is a command but not in the context list; it is added with the `scope` Claude's
-label names, without `source`, `path` or a model-invocation claim. Other
-unlisted commands (MCP prompts, unlabeled sources) are not skills here. The
+naming the entry's own scope) and `userInvocable: true` when Claude lists the
+skill's own command. A builtin command never describes a non-builtin skill of
+the same name and does not make it invocable: `/name` runs the builtin there.
+A name listed twice joins nothing, so its description and `userInvocable` stay
+unknown. `userInvocable: false` is claimed only for user and project settings
+skills, where a skill with `user-invocable: false` was verified to be absent
+from the commands; local settings and other sources not listed stay unknown.
+A command that is labeled with a user or project scope, is not builtin, and is
+missing from the context list is added with that `scope`, without `source`,
+`path` or a model-invocation claim. That covers skills with
+`disable-model-invocation: true`, which are commands but never in the context
+list, and also skills the context budget left out (then the result is also
+`partial`). Other unlisted commands (MCP prompts, unlabeled sources) are not
+skills here. The
 result is `partial` when the context list reports fewer `includedSkills` than
 `totalSkills`. One process answers both queries.
 [Probe](../../experiments/claude-skill-catalog-2026-11-18.md).

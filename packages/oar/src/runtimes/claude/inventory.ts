@@ -24,8 +24,12 @@ export function projectClaudeSkills(payload: JsonRecord): SkillEntry[] {
  * by the scope it names. Only these two are verified.
  */
 const CLAUDE_COMMAND_LABELS = { project: " (project)", user: " (user)" } as const;
-/** Sources whose skills were verified to be listed as commands exactly when a user can run them. */
-const INVOCABILITY_VERIFIED = new Set(["userSettings", "projectSettings", "localSettings"]);
+/**
+ * Sources whose skills were verified (2.1.322) to be listed as commands exactly
+ * when a user can run them: a `user-invocable: false` skill at user and at
+ * project scope was absent. Local settings were not observed.
+ */
+const INVOCABILITY_VERIFIED = new Set(["userSettings", "projectSettings"]);
 
 function unlabeled(description: string, scope: SkillEntry["scope"]): string {
   const label = scope === "project" || scope === "user" ? CLAUDE_COMMAND_LABELS[scope] : undefined;
@@ -53,8 +57,9 @@ function commandsByName(value: unknown): Map<string, JsonRecord | null> | null {
  * `.claude/commands` files, which Claude loads as skills) joined by name with
  * `initialize.commands` (description, and whether a person can run it).
  * A builtin command never describes a non-builtin skill of the same name.
- * `userInvocable: false` is claimed only for sources where absence from the
- * command list was verified to mean that (user, project, local settings).
+ * `userInvocable: true` needs this skill's own command; a duplicate name or a
+ * builtin of the same name leaves it unknown. `userInvocable: false` is claimed
+ * only for sources where absence was verified to mean that (user, project).
  * A skill hidden from the model (`disable-model-invocation`) appears only as
  * a command; it is added when Claude's own description label names its scope,
  * with no `source` (the native string is not reported) and no model claim.
@@ -70,11 +75,13 @@ export function projectClaudeSkillCatalog(context: JsonRecord, initialized: Json
   }
   const known = new Set(skills.map((skill) => skill.name));
   const joined = skills.map((skill): SkillEntry => {
-    const listed = commands.has(skill.name);
     const command = commands.get(skill.name);
     const usable = command !== undefined && command !== null && (command.builtin !== true || skill.scope === "builtin") ? command : undefined;
     const description = typeof usable?.description === "string" ? unlabeled(usable.description, skill.scope) : "";
-    const invocable = listed ? { userInvocable: true } : (skill.source !== undefined && INVOCABILITY_VERIFIED.has(skill.source) ? { userInvocable: false } : {});
+    // Only this skill's own command makes it runnable. A duplicate name or a
+    // builtin of the same name runs something else, so the answer is unknown.
+    const unlisted = command === undefined && skill.source !== undefined && INVOCABILITY_VERIFIED.has(skill.source);
+    const invocable = usable === undefined ? (unlisted ? { userInvocable: false } : {}) : { userInvocable: true };
     return { ...skill, ...(description === "" ? {} : { description }), ...invocable };
   });
   const hidden = [...commands].flatMap(([name, command]): SkillEntry[] => {
