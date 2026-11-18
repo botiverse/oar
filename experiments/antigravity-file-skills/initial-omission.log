@@ -1,0 +1,65 @@
+
+ RUN  v4.1.11 <checkout>
+
+ ❯ sea-trial/vendor/antigravity-file-skills.vendor.test.ts (1 test | 1 failed) 659ms
+   × file catalog matches the pinned native skills command 657ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  sea-trial/vendor/antigravity-file-skills.vendor.test.ts > file catalog matches the pinned native skills command
+AssertionError: Expected values to be strictly deep-equal:
++ actual - expected
+... Skipped lines
+
+  [
+    {
+      description: 'Comprehensive guide and reference for the Antigravity Customization System. Use to explain how customizations work, their loading priority, discovery mechanisms, and to guide the creation of skills, rules, plugins, hooks, and MCP servers.',
+      disableModelInvocation: false,
+      name: 'agy-customizations',
+...
+    },
++   {
++     description: "(Preview & Quota Heavy) Run a swarm: several agents working in parallel on one task, each in its own conversation, collaborating through a shared message board. Use when the work splits into pieces that can be done at the same time, or when a second pair of eyes should check the first pair's work.",
++     disableModelInvocation: false,
++     name: 'swarm',
++     path: '<home>/.gemini/antigravity-cli/builtin/skills/native_swarm/SKILL.md',
++     scope: 'builtin'
++   }
+  ]
+
+
+- Expected
++ Received
+
+@@ -39,6 +39,13 @@
+      "disableModelInvocation": false,
+      "name": "run-workflow",
+      "path": "<home>/.gemini/antigravity-cli/builtin/skills/run-workflow/SKILL.md",
+      "scope": "builtin",
+    },
++   {
++     "description": "(Preview & Quota Heavy) Run a swarm: several agents working in parallel on one task, each in its own conversation, collaborating through a shared message board. Use when the work splits into pieces that can be done at the same time, or when a second pair of eyes should check the first pair's work.",
++     "disableModelInvocation": false,
++     "name": "swarm",
++     "path": "<home>/.gemini/antigravity-cli/builtin/skills/native_swarm/SKILL.md",
++     "scope": "builtin",
++   },
+  ]
+
+ ❯ compareAntigravityFileSkills sea-trial/vendor/support/antigravity-file-skills.ts:84:127
+     82|         const started = performance.now(); const result = await antigr…
+     83|         observations.push({ case: stage, round, result, native: expect…
+     84|         assert.equal(result.kind, "ok"); assert.equal(result.view, "di…
+       |                                                                                                                               ^
+     85|       }
+     86|       observations.push({ case: stage, timingsMs: timings });
+ ❯ sea-trial/vendor/antigravity-file-skills.vendor.test.ts:6:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  10:31:41
+   Duration  1.40s (transform 368ms, setup 0ms, import 534ms, tests 659ms, environment 0ms)
+

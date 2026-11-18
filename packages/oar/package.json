@@ -91,6 +91,7 @@
     "cross-spawn": "^7.0.6",
     "dotenv": "^17.4.2",
     "gray-matter": "4.0.3",
+    "js-yaml": "3.15.2",
     "strip-json-comments": "^5.0.3",
     "undici": "8.12.3",
     "which": "^2.0.2"
@@ -114,6 +115,7 @@
   "devDependencies": {
     "@cursor/sdk": "1.4.1",
     "@types/cross-spawn": "^6.0.6",
+    "@types/js-yaml": "3.12.10",
     "@types/which": "^2.0.2",
     "@earendil-works/pi-durable": "1.5.2",
     "@earendil-works/chord": "1.5.2"
