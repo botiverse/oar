@@ -7,7 +7,7 @@ import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { boolField, inventoryOk, inventoryRead, named, nativeRows, textField, unsupportedInventory, workspaceScope } from "../../shared/inventory.js";
 import { serveEnvironment } from "./provider-auth-server.js";
 import { legacySkills } from "./skills-v1.js";
-import { opencodeRelease } from "./version.js";
+import { opencodeRelease, type OpencodeRelease } from "./version.js";
 import { opencodeSkillScopes } from "./skill-scope.js";
 
 function projectSkills(value: unknown, major: 1 | 2): SkillEntry[] {
@@ -53,9 +53,9 @@ function pluginFailed(plugin: JsonRecord): boolean {
   return status === "failed";
 }
 
-async function scopedSkills(value: unknown, major: 1 | 2, cwd: string, env: NodeJS.ProcessEnv): Promise<SkillEntry[]> {
-  const classify = await opencodeSkillScopes(cwd, env, major);
-  return Promise.all(projectSkills(value, major).map(async skill => ({ ...skill, ...await classify(skill.source === "builtin" ? "<built-in>" : skill.path ?? "") })));
+async function scopedSkills(value: unknown, release: OpencodeRelease, cwd: string, env: NodeJS.ProcessEnv): Promise<SkillEntry[]> {
+  const classify = await opencodeSkillScopes(cwd, env, release);
+  return Promise.all(projectSkills(value, release.major).map(async skill => ({ ...skill, ...await classify(skill.source === "builtin" ? "<built-in>" : skill.path ?? "") })));
 }
 
 /** Native discovery without creating a session or submitting a model prompt. */
@@ -74,7 +74,7 @@ export const opencodeSkills: InventoryReader<SkillEntry> = async (installation, 
       }
       const env = sessionEnvironment(options.env);
       if (release.major === 1) {
-        owned.legacy = legacySkills(installation.command, scope, env, controller.signal, async value => { const skills = await scopedSkills(value, 1, scope.cwd, env); return skills; });
+        owned.legacy = legacySkills(installation.command, scope, env, controller.signal, async value => { const skills = await scopedSkills(value, release, scope.cwd, env); return skills; });
         return owned.legacy;
       }
       const password = randomBytes(24).toString("base64url");
@@ -95,7 +95,7 @@ export const opencodeSkills: InventoryReader<SkillEntry> = async (installation, 
       const plugins = await read("/api/plugin");
       const partial = plugins.map(plugin => pluginFailed(plugin)).some(Boolean);
       const skills = await read("/api/skill");
-      return inventoryOk(scope, "discovered", await scopedSkills(skills, 2, scope.cwd, env), partial);
+      return inventoryOk(scope, "discovered", await scopedSkills(skills, release, scope.cwd, env), partial);
     }, options.timeoutMs);
   } finally {
     controller.abort();

@@ -1,0 +1,337 @@
+{
+  "date": "2026-11-18",
+  "setup": "Isolated HOME and XDG roots, synthetic skill fixtures, model catalog fetching disabled, no account or model prompt.",
+  "before": {
+    "version": "2.3.2",
+    "projectedNativeIdentities": [
+      {
+        "name": "OpenCode",
+        "path": "skill://opencode/SKILL.md",
+        "scope": "builtin",
+        "pathPresent": true
+      },
+      {
+        "name": "Report",
+        "path": "skill://report/SKILL.md",
+        "scope": "builtin",
+        "pathPresent": true
+      },
+      {
+        "name": "Browser",
+        "path": "skill://browser/SKILL.md",
+        "pathPresent": true
+      }
+    ],
+    "processesExited": true,
+    "portsClosed": true
+  },
+  "after": [
+    {
+      "version": "1.19.5",
+      "nativeVersionOutput": "1.19.5",
+      "package": "opencode-ai@1.19.5",
+      "artifact": {
+        "url": "https://registry.npmjs.org/opencode-ai/-/opencode-ai-1.19.5.tgz",
+        "integrity": "sha512-tEqMvQahfhdDj8vceYpXtoIrvjPXm5XRfetWnPN5YISueU7adNx9JcUA3zZ+2GKuDVgDpGdQe1ZLtCZDjqodvA=="
+      },
+      "platform": "linux-x64",
+      "projectedNativeIdentities": [
+        {
+          "name": "customize-opencode",
+          "source": "builtin",
+          "scope": "builtin",
+          "pathPresent": false
+        }
+      ],
+      "filesystemFixtures": [
+        {
+          "name": "home-claude",
+          "scope": "user"
+        },
+        {
+          "name": "home-agents",
+          "scope": "user"
+        },
+        {
+          "name": "project-opencode",
+          "scope": "project"
+        },
+        {
+          "name": "project-agents",
+          "scope": "project"
+        },
+        {
+          "name": "project-claude",
+          "scope": "project"
+        },
+        {
+          "name": "config-opencode",
+          "scope": "user"
+        }
+      ],
+      "cases": [
+        {
+          "case": "success",
+          "kind": "ok",
+          "partial": false,
+          "processesExited": true,
+          "portsClosed": true
+        }
+      ]
+    },
+    {
+      "version": "2.2.7",
+      "nativeVersionOutput": "opencode v2.2.7",
+      "package": "@opencode/cli@2.2.7",
+      "artifact": {
+        "url": "https://registry.npmjs.org/@opencode/cli/-/cli-2.2.7.tgz",
+        "integrity": "sha512-qsSExDfpUCqhGXBqZ8xhjg2OG9DxnsnfWl1/7vGINRWw7sxZvK9cXeW6MI8j9e+GItaYtg94zH3Eo2ng86VLCg=="
+      },
+      "platform": "linux-x64",
+      "projectedNativeIdentities": [
+        {
+          "name": "OpenCode",
+          "path": "skill://opencode/SKILL.md",
+          "scope": "builtin",
+          "pathPresent": true
+        },
+        {
+          "name": "Report",
+          "path": "skill://report/SKILL.md",
+          "scope": "builtin",
+          "pathPresent": true
+        },
+        {
+          "name": "Browser",
+          "path": "skill://browser/SKILL.md",
+          "pathPresent": true
+        }
+      ],
+      "filesystemFixtures": [
+        {
+          "name": "home-claude",
+          "scope": "user"
+        },
+        {
+          "name": "project-claude",
+          "scope": "project"
+        },
+        {
+          "name": "home-agents",
+          "scope": "user"
+        },
+        {
+          "name": "project-agents",
+          "scope": "project"
+        },
+        {
+          "name": "config-opencode",
+          "scope": "user"
+        },
+        {
+          "name": "project-opencode",
+          "scope": "project"
+        }
+      ],
+      "cases": [
+        {
+          "case": "failure",
+          "kind": "unavailable",
+          "partial": null,
+          "processesExited": true,
+          "portsClosed": true
+        },
+        {
+          "case": "plugin-failure",
+          "kind": "ok",
+          "partial": true,
+          "processesExited": true,
+          "portsClosed": true
+        },
+        {
+          "case": "success",
+          "kind": "ok",
+          "partial": false,
+          "processesExited": true,
+          "portsClosed": true
+        },
+        {
+          "case": "timeout",
+          "kind": "unavailable",
+          "partial": null,
+          "processesExited": true,
+          "portsClosed": true
+        }
+      ]
+    },
+    {
+      "version": "2.3.0",
+      "nativeVersionOutput": "opencode v2.3.0",
+      "package": "@opencode/cli@2.3.0",
+      "artifact": {
+        "url": "https://registry.npmjs.org/@opencode/cli/-/cli-2.3.0.tgz",
+        "integrity": "sha512-Q5RV8jLJ4O8bY2O8X2hkBOkgPf6+nDB9MEkz/Q/Cc4Ojd2SwUFFzEd1LzgNGKiXiS7g/9+/X4eqhrxY60fLMOQ=="
+      },
+      "platform": "linux-x64",
+      "projectedNativeIdentities": [
+        {
+          "name": "OpenCode",
+          "path": "skill://opencode/SKILL.md",
+          "scope": "builtin",
+          "pathPresent": true
+        },
+        {
+          "name": "Report",
+          "path": "skill://report/SKILL.md",
+          "scope": "builtin",
+          "pathPresent": true
+        },
+        {
+          "name": "Browser",
+          "path": "skill://browser/SKILL.md",
+          "pathPresent": true
+        }
+      ],
+      "filesystemFixtures": [
+        {
+          "name": "home-claude",
+          "scope": "user"
+        },
+        {
+          "name": "project-claude",
+          "scope": "project"
+        },
+        {
+          "name": "home-agents",
+          "scope": "user"
+        },
+        {
+          "name": "project-agents",
+          "scope": "project"
+        },
+        {
+          "name": "config-opencode",
+          "scope": "user"
+        },
+        {
+          "name": "project-opencode",
+          "scope": "project"
+        }
+      ],
+      "cases": [
+        {
+          "case": "failure",
+          "kind": "unavailable",
+          "partial": null,
+          "processesExited": true,
+          "portsClosed": true
+        },
+        {
+          "case": "plugin-failure",
+          "kind": "ok",
+          "partial": true,
+          "processesExited": true,
+          "portsClosed": true
+        },
+        {
+          "case": "success",
+          "kind": "ok",
+          "partial": false,
+          "processesExited": true,
+          "portsClosed": true
+        },
+        {
+          "case": "timeout",
+          "kind": "unavailable",
+          "partial": null,
+          "processesExited": true,
+          "portsClosed": true
+        }
+      ]
+    },
+    {
+      "version": "2.3.2",
+      "nativeVersionOutput": "opencode v2.3.2",
+      "package": "@opencode/cli@2.3.2",
+      "artifact": {
+        "url": "https://registry.npmjs.org/@opencode/cli/-/cli-2.3.2.tgz",
+        "integrity": "sha512-U/DD6X8kgnEFM3VYT7+QN/UJotW++qOxTJtPEUiNzKwu9tNHtAC1jOtup1gpk773j0AFNmMBbLNou4YkdvlRKA=="
+      },
+      "platform": "linux-x64",
+      "projectedNativeIdentities": [
+        {
+          "name": "OpenCode",
+          "path": "skill://opencode/SKILL.md",
+          "pathPresent": true
+        },
+        {
+          "name": "Report",
+          "path": "skill://report/SKILL.md",
+          "pathPresent": true
+        },
+        {
+          "name": "Browser",
+          "path": "skill://browser/SKILL.md",
+          "pathPresent": true
+        }
+      ],
+      "filesystemFixtures": [
+        {
+          "name": "home-claude",
+          "scope": "user"
+        },
+        {
+          "name": "project-claude",
+          "scope": "project"
+        },
+        {
+          "name": "home-agents",
+          "scope": "user"
+        },
+        {
+          "name": "project-agents",
+          "scope": "project"
+        },
+        {
+          "name": "config-opencode",
+          "scope": "user"
+        },
+        {
+          "name": "project-opencode",
+          "scope": "project"
+        }
+      ],
+      "cases": [
+        {
+          "case": "failure",
+          "kind": "unavailable",
+          "partial": null,
+          "processesExited": true,
+          "portsClosed": true
+        },
+        {
+          "case": "plugin-failure",
+          "kind": "ok",
+          "partial": true,
+          "processesExited": true,
+          "portsClosed": true
+        },
+        {
+          "case": "success",
+          "kind": "ok",
+          "partial": false,
+          "processesExited": true,
+          "portsClosed": true
+        },
+        {
+          "case": "timeout",
+          "kind": "unavailable",
+          "partial": null,
+          "processesExited": true,
+          "portsClosed": true
+        }
+      ]
+    }
+  ],
+  "interpretation": "The two known URI spellings still occur in 2.3.2. This control does not verify their registration ownership, so it does not expand the exact-version builtin allowlist. The third Browser URI remains unknown on every tested v2 release."
+}

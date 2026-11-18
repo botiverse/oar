@@ -135,7 +135,8 @@ the native catalog says so. A plugin identity alone does not establish scope.
 | Cursor | Measured SDK home loading roots → user; workspace/nested loading roots → project | Not inferred |
 | OpenCode | Native built-in marker or verified built-in URI → builtin; verified user loading root → user; verified cwd/ancestor loading root → project | Not supplied by this catalog |
 
-OpenCode preserves the returned path and compares its canonical filesystem path
+OpenCode preserves native paths except v1's `<built-in>` marker, which becomes
+`source: "builtin"` without a path. It compares canonical filesystem paths
 with the native loading roots, including shared `.claude/skills` and
 `.agents/skills`. It does not classify by a brand name appearing anywhere in a
 path. Missing paths, unmatched custom/remote roots, ambiguous overlapping roots
