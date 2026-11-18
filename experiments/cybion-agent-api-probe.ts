@@ -197,11 +197,12 @@ async function liveProbe(baseUrl: string, apiKey: string): Promise<void> {
   console.log(`tool turn text       ${JSON.stringify(textOf(events).slice(0, 120))}`);
 
   // A steer lands in the turn that runs: the Thread keeps running, and the turn
-  // ends once, so the count of ended turns grows by one and started by none.
-  const endedBefore = events.filter((event) => event.kind === "turn_ended").length;
-  const startedBefore = events.filter((event) => event.kind === "turn_started").length;
+  // ends once, so against the prompt that started it the count of ended turns
+  // grows by one and the count of started ones by none.
   await first.prompt("Use the bash tool to run exactly `sleep 45` on my device, then reply DONE-SLEEP.");
   await waitFor(() => first.status().value.kind === "running", TURN_BUDGET_MS, "the long turn never started");
+  const endedBefore = events.filter((event) => event.kind === "turn_ended").length;
+  const startedBefore = events.filter((event) => event.kind === "turn_started").length;
   const steered = await first.steer("Stop waiting for that command and reply with the single word: pong.");
   console.log(`steer                ${steered.kind} status=${first.status().value.kind}`);
   await waitFor(() => first.status().value.kind === "idle", TURN_BUDGET_MS, "the steered turn never ended");
