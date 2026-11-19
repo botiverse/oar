@@ -36,15 +36,37 @@ function controls() {
   return { session, rejected, withdrawn, respond };
 }
 
-test.each([observeConversation, observeSessionView])("state observers fold history silently when the cursor is omitted", (observe) => {
+test.each([observeConversation, observeSessionView])("state observers deliver the current state once, then each new record", (observe) => {
   const { kernel, session } = fixture();
-  kernel.request("toRuntime", { kind: "prompt", input: "earlier" });
+  const counts: number[] = [];
+  kernel.request("toRuntime", { kind: "prompt", input: "first" });
+  kernel.request("toRuntime", { kind: "prompt", input: "second" });
+  const stop = observe(session, state => { counts.push(("conversation" in state ? state.conversation : state).inputs.size); });
+  expect(counts).toEqual([2]);
+  kernel.request("toRuntime", { kind: "prompt", input: "third" });
+  expect(counts).toEqual([2, 3]);
+  stop();
+});
+
+test.each([observeConversation, observeSessionView])("state observers respect explicit replay boundaries", observe => {
+  const { kernel, session } = fixture();
+  const first = kernel.request("toRuntime", { kind: "prompt", input: "first" });
+  const second = kernel.request("toRuntime", { kind: "prompt", input: "second" });
+  for (const [afterSeq, expected] of [[-1, [1, 2]], [first.seq, [2]], [second.seq, []]] as const) {
+    const replay: number[] = [];
+    observe(session, state => { replay.push(("conversation" in state ? state.conversation : state).inputs.size); }, { sessionId: session.id, afterSeq })();
+    expect(replay).toEqual(expected);
+  }
+  expect(() => observe(session, () => {}, { sessionId: "other", afterSeq: -1 })).toThrow(/cursor/u);
+});
+
+test.each([observeConversation, observeSessionView])("empty state subscriptions wait for the first record", observe => {
+  const { kernel, session } = fixture();
   const counts: number[] = [];
   observe(session, state => { counts.push(("conversation" in state ? state.conversation : state).inputs.size); });
   expect(counts).toEqual([]);
-  kernel.request("toRuntime", { kind: "prompt", input: "later" });
-  expect(counts).toEqual([2]);
-  expect(() => observe(session, () => {}, { sessionId: "other", afterSeq: -1 })).toThrow(/cursor/u);
+  kernel.request("toRuntime", { kind: "prompt", input: "first" });
+  expect(counts).toEqual([1]);
 });
 
 test("cycle and self reports establish nodes without circular ancestry", () => {

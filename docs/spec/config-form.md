@@ -525,7 +525,8 @@ existing code. They are kept out of the migration pull requests:
 - **Migration pull requests run in `legacy` only.** Until the daemon sends
   capability reports, every machine is `legacy`, so the host serves the
   host-owned frozen baseline form, narrowed by the host ([host narrowing](#host-narrowing))
-  to what Raft serves today. The existing client protocol and stored configurations stay valid.
+  to what Raft serves today. The [migration checks](#migration) cover the
+  existing protocol and stored configurations.
 - **Turning the states on is its own pull request** (daemon reporting plus
   the host's use of it), reviewed as a behavior change. It maps each new
   state onto what the v2 protocol and today's clients already show, and adds
@@ -542,6 +543,21 @@ existing code. They are kept out of the migration pull requests:
 If a row turns out to need more than a new value in an existing open set, it
 is split into its own protocol pull request with the client change, not
 folded into the activation pull request.
+
+## Migration
+
+Raft still owns the Codex and Built-in / Pi forms. When moving each form to
+OAR, verify the following against that runtime's current host implementation.
+
+1. The existing `packages/runtime-form/fixtures/<runtime>.form.json` and
+   `.edit.json` stay byte-identical. Review protocol changes separately.
+2. Table-test existing stored configurations against the launch options they
+   produce today. The migrated form must produce the same options and offer
+   only choices the runtime already supports.
+3. Edit, save and launch an existing agent and verify the round trip.
+4. Check an old Computer with the new server and a new Computer with the old server.
+5. Preserve stored values when a probe fails, a list is empty or a capability
+   is unknown.
 
 ## Prior art and what this refuses
 

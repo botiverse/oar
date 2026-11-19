@@ -147,10 +147,16 @@ interface Cursor { sessionId: string; afterSeq: number; }
 // seq > afterSeq synchronously, then continues live;
 // Session.events(observer, { cursor }) does the same for the flat Events;
 // Without a cursor, subscribers receive only new records or events.
-// Stateful readers still use earlier records to interpret new responses.
+// Earlier requests still identify later flat rejection and withdrawal events.
 // Session.records() is the retained log. A cursor for another session id
 // throws. Pinned by sea-trial `session.cursor-replays-without-loss-or-duplication`.
 ```
+
+With no cursor, `observeConversation` and `observeSessionView` fold the
+retained records and immediately deliver the current state once. An empty log
+produces its first state when the first record arrives. Both observers then
+deliver one state per new record. An explicit cursor delivers a state for
+each record after `afterSeq`, with the earlier records already folded.
 
 A cursor has no per-agent filter: for a single-agent view, resume the whole
 stream and filter client-side by `agentPath`

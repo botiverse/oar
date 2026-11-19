@@ -205,7 +205,9 @@ Inputs do not cross native sessions or agent paths even when IDs are equal.
 The internal reference helper `conversationOf(records)` folds one stream.
 The internal `observeConversation(session,
 listener, cursor?)` folds the retained prefix and continues live using the same
-reducer; a cursor suppresses prefix callbacks without losing their state. Save
+reducer. With no cursor it delivers the current state once if there are retained
+records, then once per new record. With an explicit cursor it delivers a state
+only for records after the cursor. Save
 raw records, not maps or Promise results, to reproduce the view after restart;
 persistence belongs to the application
 ([application data ownership boundary](../design/foundations.md#replay-boundary)).

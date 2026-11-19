@@ -1,4 +1,4 @@
-import { observeWithPrefix } from "./cursor.js";
+import { observeState } from "./cursor.js";
 import type {
   ContextUsage,
   ControlAction,
@@ -284,16 +284,8 @@ export function viewOf(records: readonly RawEvent[], streamId = "", rootSessionI
   return inferred;
 }
 
-/**
- * The composed subscriber: folds the retained prefix, pushes the view on
- * every record after `cursor`. Mirrors `observeConversation`.
- */
+/** Observe the current view and live updates, or resume delivering views after an explicit cursor. */
 export function observeSessionView(session: Session, observer: (view: SessionView) => void, cursor?: Cursor): Unsubscribe {
-  let state = initialSessionView(session.id);
-  return observeWithPrefix(session, cursor, afterSeq => record => {
-    state = reduceSessionView(state, record, session.id);
-    if (record.seq > afterSeq) {
-      observer(state);
-    }
-  });
+  return observeState(session, cursor, initialSessionView(session.id),
+    (state, record) => reduceSessionView(state, record, session.id), observer);
 }
