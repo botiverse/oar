@@ -29,8 +29,9 @@ The probe also logged an unrelated background request to xAI's own API
 
 ## What the source adds
 
-- The reply is sent as soon as the command is queued to the session actor;
-  it says nothing about consumption.
+- The handler attempts to send the command to the session actor, discards
+  the send result, and returns `queued`. The reply cannot establish receipt
+  by the actor or consumption by the model.
 - A running turn buffers the interjection and takes it at safe points
   (`drain_interjections_at_safe_point`: after a tool batch, at the top of the
   loop, before the turn returns). Taking it only writes a user message to the

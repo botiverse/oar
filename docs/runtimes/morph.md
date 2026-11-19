@@ -82,7 +82,7 @@ Opening needs a Console whose Runtime API has `POST /topics` (mistermorph
 (An older Console creates a topic only with the first task, which would leave
 `Session.id` unknown at open.)
 
-`resume` reopens the topic with a fresh stream at seq 0; nothing is replayed.
+`resume` reopens the topic. Console replays no history. See the [record-stream spec](../spec/record-stream.md#placement-and-release) for how Morph opens its stream.
 A resume in another `cwd` re-attaches the workspace, so the topic runs where
 the new session says (unlike kimi, nothing is refused). An unknown topic id
 fails the open.
@@ -180,15 +180,10 @@ Context fullness is the topic metadata above.
 
 ### Options
 
-Refused at open (`refusedSessionOptions`): `systemPrompt` and
-`appendSystemPrompt` (no override on the API); `env` and `launchArgs` (tools
-run inside the Console process, which the session neither starts nor owns);
-`mcpServers` (no known per-session channel); `name` (no known session
-name setting); `goals: true` (no structured native goal controls);
-`endTurnProcessesOnAbort: true` (tools run in the Console process, not one this
-session owns); and `userConfiguration: "exclude"` (the Console process is shared, and no
-per-session exclusion of user configuration is verified). Because it
-refuses `env`, morph cannot be an `oar mcp` subagent. Images are not
+[Morph's refusal declaration](../../packages/oar/src/community/morph/session.ts) lists
+each option refused at open and why. Tools run inside the shared Console
+process, so a session cannot set its own environment and Morph cannot run
+as an `oar mcp` subagent. Images are not
 supported (`capabilities.images: false`); the API's `file_references` upload
 path is not used.
 

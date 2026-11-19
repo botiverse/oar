@@ -1,9 +1,7 @@
 # What survives a crash and a resume
 
-OAR resumes a conversation by its native id; it does not resume execution
-([pi](pi.md#session-creation-and-resume) states this for pi, and it holds
-for every adapter). This page measures what that means when the whole process
-tree dies in the middle of a tool call: which inputs and outputs the reopened
+This experiment reopens a conversation by its native ID after the whole process
+tree dies in the middle of a tool call. It measures which inputs and outputs the reopened
 conversation still holds, what the model is told about the interrupted call,
 and what the runtime does by itself when it is reopened. The questions follow
 Pi Durable's recovery contract (an admitted input is not lost or doubled, a
@@ -34,14 +32,16 @@ native transcript is read afterwards.
 In every run the command's process died with the tree: `crash-marker.txt` was
 never written, and no runtime ran the command again.
 
-## Results
+## Results on 2026-10-02
+
+The table reports Claude Code 2.1.284, Codex 0.158.0 and the in-process Pi SDK 0.99.2.
 
 | After the kill and a resume | claude | codex | pi |
 |---|---|---|---|
 | Prompt admitted before the kill | Kept | Kept | Kept |
 | Text written before the tool call | Kept | Kept | Kept (saved with the tool call when the message ended) |
 | Interrupted tool call, as the model sees it | An error result written into the transcript on reopen: `[Tool call interrupted: the session ended before this call's result was recorded, so its outcome is unknown. Check whether it took effect before relying on it or running it again.]`, followed by a synthetic assistant message `No response requested.` | The call has no output in the rollout; the model is shown `aborted`, filled in when the history is rebuilt and never written | The call has no result in the session file; each request adds `No result provided` as an error result, never written |
-| Background shell running at the kill | On reopen claude writes a task notification, `status: stopped`, `Background shell command didn't finish before the previous session ended`, and emits it as `task_notification` | Not exercised (codex ran the command as an exec session it polls; the poll was the interrupted call) | No background tasks |
+| Background shell running at the kill | On reopen claude writes a task notification, `status: stopped`, `Background shell command didn't finish before the previous session ended`, in the native `task_notification` frame. The host event is `task_ended` with `status: "stopped"` | Not exercised (codex ran the command as an exec session it polls; the poll was the interrupted call) | No background tasks |
 | Steer accepted but not yet read by the model | Lost. The native file has a `queue-operation` enqueue marker without the text. A steer the model had already read at a step boundary (the first run) is ordinary transcript and survives | Lost: `turn/steer` was accepted and never reached the rollout | Lost |
 | Queued input | Lost: the queue is adapter held (`capabilities.queue.durable: false`) | **Kept, and run by itself on reopen** as a new turn before any prompt (`capabilities.queue.durable: true`, confirmed) | Lost: adapter held (`durable: false`) |
 | What the runtime does by itself on reopen | With a stopped background task: the notification and a `result` frame with `num_turns: 0` and `origin: {kind: "task-notification"}`, no model call. Without one: nothing | Runs the queued input as a turn | Nothing |
@@ -53,8 +53,7 @@ steer and message rows are unmeasured. What is known (probed 2026-10-03,
 dead process's run as active, so every `send` on the resumed agent is
 refused `already has active run`; OAR passes the SDK's `local.force` on the
 first send after a resume, which expires that run and takes the agent over,
-and the agent then answered normally. The resumed stream starts at seq 0
-with only the `cursor/agent_opened` frame: no history is replayed. Its queue is adapter
+and the agent then answered normally. The SDK replays no history on attachment. The [record-stream spec](../spec/record-stream.md#placement-and-release) describes the new stream. Its queue is adapter
 held (`capabilities.queue.durable: false`).
 
 ## What a host can rely on

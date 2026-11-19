@@ -130,7 +130,7 @@ profile declares `capabilities` `{ queue: { durable: false }, attribution:
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
 | `kimi-code` executable | One `kimi acp` subprocess per OAR Session, spawned in the session `cwd` with the env overlay; its exit is an `exited` response record (answering `dispose` when OAR caused it, `requestId ""` when the process died on its own). |
-| Persistent native session | `Session.id` is the native `sessionId`; `SessionOptions.resume` attaches through ACP `session/resume` in the session's own directory. The new stream starts at seq 0 and retains frames delivered during attachment. |
+| Persistent native session | `Session.id` is the native `sessionId`; `SessionOptions.resume` attaches through ACP `session/resume` in the session's own directory. The [record-stream spec](../spec/record-stream.md#placement-and-release) covers the new stream. It retains frames Kimi delivers during attachment. |
 | Handshake answers and opening pushes | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model`, `session/set_config_option` answers are frame records with `model` and `effort` events where they report one (the `thinking` option's current value is the effort); pushes arriving while opening (`available_commands_update`, `current_mode_update`, `config_option_update`) are recorded in arrival order, so `Session.model()` and `effort()` are folds over the stream. |
 | Native agent and turn | Only ACP's `main` agent reaches this transport; every `session/update` is one frame with `native` verbatim. No `spanId` (ACP updates carry no turn id). |
 | Prompt, steer, queue, and cancel | `prompt()` is a `toRuntime` request whose `session/prompt` answer carries `turn_ended`. The session has no `steer` (no ACP method); `queue()` is a host-memory FIFO; `abort()` is `session/cancel` with a kill fallback. |
@@ -186,8 +186,7 @@ hooks. Initialize has its own 60-second deadline
 opening and configuration requests retain 30 seconds, including authentication,
 session/list, session/load, model and mode configuration. `session/close`
 has a separate two-second deadline; spawn, auth, and creation failures reject
-session construction with the process killed. The opening stream is six
-records: `initialize`, `authenticate` (`{}`), `session/new` (model event),
+session construction with the process killed. The measured Kimi handshake returned `initialize`, `authenticate` (`{}`), `session/new` (model event),
 then three pushes: `available_commands_update` (the slash commands, `compact`
 first) right after the `session/new` answer, and `current_mode_update`
 (`yolo`) plus `config_option_update` (model event again) between the
@@ -257,9 +256,7 @@ OAR selects `session/resume` when `sessionCapabilities.resume` is `true` or
 an object, otherwise `session/load` when `loadSession === true`, otherwise
 rejects; it does not retry a failed resume as load. The resume answer carries
 `configOptions` + `modes` only (no `sessionId`, nothing replayed on the wire);
-the resumed stream restarts at seq 0 with the same six-record opening,
-`session/resume` in place of `session/new`, and `Session.id` is the supplied
-earlier id. The next prompt recalls what was taught before disposal (`resume`
+`Session.id` is the supplied earlier ID. The next prompt recalls what was taught before disposal (`resume`
 scenario: a codeword). No Turn handle or transcript is restored. Native
 history frames pushed during a `session/load` opening are buffered and then
 retained in arrival order in the new session's record stream when it binds

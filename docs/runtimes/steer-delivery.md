@@ -16,7 +16,7 @@ the echo correlates with the input. The implemented API (`inputId`,
 | Codex 0.154.0 | `turn/steer`; `accepted`, `native: {turnId}` | `item/started` and `item/completed`, item type `userMessage`; the provider's next request contains the steer | `clientUserMessageId` round-trips as `item.clientId` (directly verified). OAR sends `inputId` as `clientUserMessageId` ([codex/session.ts](../../packages/oar/src/runtimes/codex/session.ts)) |
 | Claude Code 2.1.273 | User message written to stdin; `accepted` without a native control response | Without replay, no steer echo, though the next provider request contains the steer. With `--replay-user-messages`, a native `user` frame echoes the input and its UUID | Supplying `uuid` and enabling replay was directly verified. OAR launches with `--replay-user-messages` and sends `inputId` as `uuid` ([claude/session.ts](../../packages/oar/src/runtimes/claude/session.ts)). Replay is an acknowledgement, not by itself proof of provider consumption |
 | Pi SDK 0.84.2 | `AgentSession.steer()` queues the input; `accepted` | `queue_update`, then user `message_start` / `message_end`; the next provider request contains the steer | No request ID in the observed native user message. Timestamp and text are not a safe universal correlation key; the SDK expands templates/skills, so even text equality is not guaranteed |
-| Grok 1.0.77 | `_x.ai/interject {sessionId, text, interjectionId: inputId}`; `accepted` once Grok answers `{result: {status: "queued"}}` (`native` on the frame `_x.ai/interject`) | `_x.ai/session/interjection` echoes text and `interjectionId` at once. The running turn takes it at its next safe point (after a tool batch, before a model call, before the turn returns): the next provider request contains it, and the original prompt answers once. One that misses the turn runs as Grok's own `interject-fallback-*` turn ([probe](../../experiments/grok-interject/README.md)) | The echo carries `interjectionId`; the drain itself has no live signal, so consumption is not reported |
+| Grok 1.0.77 | `_x.ai/interject {sessionId, text, interjectionId: inputId}`; OAR accepts a successful RPC. Grok returned `{status: "queued"}` on the `_x.ai/interject` frame | `_x.ai/session/interjection` echoes text and `interjectionId` at once. The running turn takes it at its next safe point (after a tool batch, before a model call, before the turn returns): the next provider request contains it, and the original prompt answers once. One that misses the turn runs as Grok's own `interject-fallback-*` turn ([probe](../../experiments/grok-interject/README.md)) | The echo carries `interjectionId`; the drain itself has no live signal, so consumption is not reported |
 | Antigravity CLI 1.5.0 | Another `session/prompt` on the active session; `accepted` after dispatch | The next provider request contains the steer inside the same tool loop. The original prompt answers early; only the newest prompt answer ends the OAR turn ([control](../../experiments/antigravity-cli-acp-2026-11-05.md)) | The control acceptance alone is not proof of provider consumption; no native per-input correlation is claimed |
 | Kimi Code 0.42.0 | From source: no ACP steer method, so the session has no `steer`; `steerOrQueue` and `deliver` queue in the adapter-held queue | No native steer mapping on the selected ACP transport | Do not show queued input as successfully steered |
 | Cursor `@cursor/sdk` 1.4.0 | `run.steer(text)`; `accepted` for `complete_delivered` or `{ outcome: "queued" }`, with `native.ack` naming that outcome; `revert_to_followup` is rejected `runtime_refused` | A `user-message-appended` update for local delivery (native 1.4.0, 2026-11-16); queued means the SDK owns a follow-up, whose cloud run OAR does not observe | Text only, no id. Delivered and queued transfer ownership; only delivered establishes same-turn delivery ([Cursor evidence](../../experiments/cursor-sdk-1.4/README.md)) |
@@ -52,9 +52,13 @@ retain both views.
 
 ## Native shapes
 
-Codex (`{turnId}`) and Cursor (`{ack}`) carry `native` on the steer response;
-Claude, Pi, Grok and Antigravity answer `{kind: "accepted"}` without it. OAR `request.id` / `response.requestId` are
-operation identity, not native message identity.
+OAR pairs the steer operation and its response using `request.id` and
+`response.requestId`. Each runtime page documents any native receipt fields.
+
+Grok's handler returns `queued` on its only success path. Invalid parameters
+and a missing session produce RPC errors. The handler ignores the result of
+sending the command to the session actor, so the reply alone cannot confirm
+that the actor received the input. [Grok source](https://github.com/xai-org/grok-build/blob/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-shell/src/extensions/interject.rs#L27-L48).
 
 Codex (JSON-RPC transport ID omitted):
 

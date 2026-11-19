@@ -258,7 +258,7 @@ sections describe the default SDK path unless the RPC differences above apply.
 | Native concept or interface | Current OAR mapping |
 |---|---|
 | In-process AgentSession | One OAR Session wrapping the SDK object; no runtime subprocess. |
-| Session file header ID | `Session.id`; resume resolves it to a file in the cwd's session directory. Every open starts a new record stream at seq 0; history is not rebuilt. |
+| Session file header ID | `Session.id`; resume resolves it to a file in the cwd's session directory. Pi restores model context from the file without replaying prior events. See the [record-stream spec](../spec/record-stream.md#placement-and-release). |
 | Agent run | One OAR turn: from the `prompt` request (accepted once pi emits `agent_start`) to pi's `agent_settled`, whose `turn_ended` event carries the outcome. Several native `turn_start`/`turn_end` pairs, threshold compaction and auto-retries sit inside it. |
 | History tree and replacement APIs | OAR maps resume and refuses `SessionOptions.fork` in both SDK and RPC modes. Branch navigation, import and history access remain unavailable. |
 | ModelRuntime and ResourceLoader | Native services determine models/resources; OAR exposes selected startup options and catalog results. The `pi/session_opened` frame reports the effective model and thinking level as `model` and `effort` events. Outside sessions, `createPiProviderAuth` wraps `ModelRuntime.login`/`logout`/auth status and lists the providers pi's `/login` offers (`loginProviders`), and the internal model catalog wraps `ModelRegistry`; hosts discover models through `piRuntime.listModels`. |
@@ -450,13 +450,11 @@ OAR acknowledges dispose after the 10-second limit.
 Native construction restores active-branch context, the saved model when
 available, and the thinking level subject to current model capabilities. An
 explicit OAR `model` overrides the saved one and is checked by readback;
-without one the recorded model is restored, and the resumed stream starts with
-only the `pi/session_opened` frame, whose `model` event carries the model from
-the file. Native restoration can fall back when the saved model is
+without one the `pi/session_opened` frame carries a `model` event naming the restored model. Native restoration can fall back when the saved model is
 unavailable; OAR discards the returned `modelFallbackMessage`.
 [SDK construction][native-sdk-source].
 
-Reopening creates a fresh record stream (seq 0), fresh observers and an empty
+Reopening creates fresh observers and an empty
 adapter queue. It resumes the conversation, not interrupted execution or
 historical event delivery: after a death, replay comes from the host's own
 persisted records ([cursor](../spec/session-graph-and-cursor.md)). Native `session.messages`, tree navigation, fork and
