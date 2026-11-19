@@ -110,6 +110,7 @@ export const piRefusedSessionOptions: RefusedSessionOptions = {
   additionalDirectories: "pi's SDK configures one cwd and exposes no additional workspace directory option",
   launchArgs: "pi runs in this process through its SDK; there is no runtime command line to add arguments to",
   serviceTier: "pi exposes no verified per-session service-tier setting and readback",
+  nativeMemoryDefault: "Pi has no built-in background auto-memory feature or below-user default layer",
 };
 
 /** Pi 1.4.0's truthy customPrompt check replaces an empty string with its default. */

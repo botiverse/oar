@@ -12,6 +12,7 @@ export const codebuddyRefusedSessionOptions: RefusedSessionOptions = {
   name: "CodeBuddy has no verified session name option",
   serviceTier: "CodeBuddy ACP has no verified service-tier setting and readback",
   additionalDirectories: "CodeBuddy ACP does not advertise additionalDirectories",
+  nativeMemoryDefault: "CodeBuddy has no verified settings layer below user configuration for autoMemoryEnabled",
 };
 
 const CODEBUDDY_MANAGED_LAUNCH_ARGS = new Set([

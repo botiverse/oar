@@ -14,6 +14,7 @@ export const factoryRefusedSessionOptions: RefusedSessionOptions = {
   name: "droid's session title persistence has not been verified",
   additionalDirectories: "droid has no additional workspace directory option",
   disallowedTools: "droid's tool deny list (disabledToolIds) has not been verified against OAR's tool names",
+  nativeMemoryDefault: "Factory droid exposes no verified below-user default layer for background auto-memory",
 };
 
 const FACTORY_MANAGED_LAUNCH_ARGS = new Set(["--input-format", "--output-format", "-o", "--session-id", "-s", "--fork", "--cwd", "-f", "--file", "--"]);

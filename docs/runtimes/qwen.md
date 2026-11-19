@@ -51,6 +51,7 @@ its runtime. OAR itself requires Node 24 or newer.
 | Install | Official standalone installer on macOS/Linux, checksum verification by the vendor script, with `--method standalone --no-modify-path`. No npm fallback or shell-profile change. Windows returns unsupported with the official PowerShell instructions. |
 | Login / provider setup | No runtime `login` member or browser flow; native `qwen auth` was removed. `createQwenProviderAuth` drives native ACP provider list/connect. Environment configuration also remains available. |
 | Authentication status | Local user/system credential presence only. Configured or indeterminate sources return `unknown`; none in scope returns `logged_out` with setup guidance and a workspace caveat. No credential validation, native process, network request or write. |
+| Native memory | `SessionOptions.nativeMemoryDefault: "off"` on `0.26.0+` lowers Qwen's system-defaults layer via a private `QWEN_CODE_SYSTEM_DEFAULTS_PATH` temp copy; user, workspace and system settings still override it. `Session.capabilities.nativeMemory` reads back the effective state ([details](#native-memory-default)). |
 | Other surfaces | `fork`, `serviceTier`, `name`, `goals` and `endTurnProcessesOnAbort` are refused; `launchArgs` cannot override the protocol, session-identity, approval-mode, model, system-prompt, output-schema or `--` flags OAR owns (including `--flag=value`, attached short flags and camelCase aliases; see [options.ts](../../packages/oar/src/runtimes/qwen/options.ts)). No account quota, command/MCP/tool inventory, updater, live configure or context breakdown mapping. Skill discovery uses the independent native query described below. |
 
 On resume, pass `systemPrompt` and `appendSystemPrompt` again to retain or
@@ -103,6 +104,38 @@ and projects the tool result, with no `user_message` or host `inputId`. Text
 alongside a tool result or in a separate non-replay runtime user frame is also
 retained only in the native frame. The provider request is probe evidence,
 not an additional OAR input or record.
+
+### Native memory default
+
+In Qwen **0.26.0**, `mergeSettings` merges four layers in order:
+`systemDefaults < user < workspace < system`, where `systemDefaults` is read
+from `QWEN_CODE_SYSTEM_DEFAULTS_PATH` (defaulting to
+`<dirname(systemSettingsPath)>/system-defaults.json`). Built-in defaults enable
+`memory.enableManagedAutoMemory` and `memory.enableManagedAutoDream` (`true`)
+and disable `memory.enableAutoSkill` (`false`).
+
+When `SessionOptions.nativeMemoryDefault: "off"` is passed on `0.26.0+`, OAR
+reads any existing system-defaults file (JSONC and UTF-8 BOM supported, without
+mutating the original), preserves all other keys, sets
+`memory.enableManagedAutoMemory`, `memory.enableManagedAutoDream` and
+`memory.enableAutoSkill` to `false`, writes the merged copy to a `0600` file
+inside a `0700` `oar-qwen-defaults-<pid>-*` temporary directory, and passes
+that path to the child process in `QWEN_CODE_SYSTEM_DEFAULTS_PATH`. The
+directory is removed when the child exits or fails to start, and abandoned
+directories from dead host PIDs are swept on every launch. Versions below
+`0.26.0` (or unreadable versions) refuse `nativeMemoryDefault: "off"` before
+launch (`qwenNativeMemoryRefusal`).
+
+`Session.capabilities.nativeMemory` (`"on"` or `"off"`) evaluates the same
+four layers at open without waiting for Qwen. It is omitted below `0.26.0`,
+when any settings layer is unreadable or malformed, or when
+`security.folderTrust.enabled` is `true` and workspace settings toggle memory
+keys (so OAR does not guess trust). Live scripted-provider evidence on Linux
+`0.26.0` covers default-off suppression of auto-memory injection and background
+extraction, user-settings override reporting `"on"`, existing
+`QWEN_CODE_SYSTEM_DEFAULTS_PATH` preservation, and temporary-directory cleanup
+([vendor test](../../sea-trial/vendor/qwen-native-memory.vendor.test.ts),
+[unit tests](../../tests/qwen/native-memory.test.ts)).
 
 ### Held queue ownership
 

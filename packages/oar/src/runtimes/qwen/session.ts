@@ -40,14 +40,17 @@ export const qwenSession: StartSession = withSessionCredentials(async (installat
   if (semverBelow(installation.version, "0.26.0") && servers.some((server) => isHttpMcpServer(server))) {
     throw new UnsupportedOptionError("mcpServers", `Qwen ${installation.version ?? "below 0.26.0"} does not support HTTP MCP servers; 0.26.0 or later is required`);
   }
-  const child = await launchQwen(installation.command, sessionId, options);
+  const child = await launchQwen(installation.command, sessionId, options, installation.version);
   const control = qwenControl(child);
   const context = qwenContextReadback(child);
   let canReadContext = false;
   try {
     return await streamJsonSession(child, sessionId, credentials, {
       projection: qwenProjectionProfile, initial: initialQwenProjection(options.resume !== undefined),
-      capabilities: { queue: { durable: false }, attribution: "attributed", images: false },
+      capabilities: {
+        queue: { durable: false }, attribution: "attributed", images: false,
+        ...(child.nativeMemory === undefined ? {} : { nativeMemory: child.nativeMemory }),
+      },
       steer: false,
       userMessage: (text, inputId) => `${JSON.stringify({ type: "user", uuid: inputId ?? randomUUID(), session_id: sessionId, parent_tool_use_id: null,
         message: { role: "user", content: [{ type: "text", text }] } })}\n`,

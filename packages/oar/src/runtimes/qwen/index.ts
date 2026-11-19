@@ -6,20 +6,22 @@ import { onFirstCall } from "../../shared/lazy.js";
 import { semverAtLeast, semverBelow } from "../../shared/semver.js";
 import { qwenInstallation } from "./installation.js";
 import { qwenInstall, qwenInstallPlan } from "./install.js";
-import { qwenRefusedSessionOptions } from "./options.js";
+import { qwenNativeMemoryRefusal, qwenRefusedSessionOptions } from "./options.js";
 
 export { createQwenProviderAuth, QwenProviderAuthError } from "./provider-auth.js";
 export type { QwenProvider, QwenProviderAuth, QwenProviderAuthOptions, QwenProviderAuthErrorKind, QwenProviderConnectOptions, QwenProviderConnectResult } from "./provider-auth.js";
 
 function qwenSessionCapabilities(installation: AvailableInstallation): SessionCapabilityDeclaration {
-  // 0.26.0: first release adding HTTP MCP (qwen.vendor.test.ts) and context usage; older readable versions refuse HTTP MCP at open.
-  if (installation.via === "executable" && semverAtLeast(installation.version, "0.26.0")) {
-    return { steer: false, images: false, stopTask: false, contextUsage: { tokens: true, contextWindow: true }, mcpTransports: ["stdio", "http"] };
+  const version = installation.via === "executable" ? installation.version : undefined;
+  const refusedSessionOptions = qwenNativeMemoryRefusal(version);
+  // 0.26.0: first release adding HTTP MCP (qwen.vendor.test.ts), context usage, and system-defaults memory toggle.
+  if (installation.via === "executable" && semverAtLeast(version, "0.26.0")) {
+    return { steer: false, images: false, stopTask: false, contextUsage: { tokens: true, contextWindow: true }, mcpTransports: ["stdio", "http"], refusedSessionOptions };
   }
-  if (installation.via === "executable" && semverBelow(installation.version, "0.26.0")) {
-    return { steer: false, images: false, stopTask: false, mcpTransports: ["stdio"] };
+  if (installation.via === "executable" && semverBelow(version, "0.26.0")) {
+    return { steer: false, images: false, stopTask: false, mcpTransports: ["stdio"], refusedSessionOptions };
   }
-  return { steer: false, images: false, stopTask: false };
+  return { steer: false, images: false, stopTask: false, refusedSessionOptions };
 }
 
 export const qwenRuntime = defineRuntime({

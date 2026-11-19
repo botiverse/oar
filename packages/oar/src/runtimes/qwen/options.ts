@@ -1,5 +1,6 @@
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import { checkManagedLaunchArgs } from "../../shared/launch-args.js";
+import { semverAtLeast } from "../../shared/semver.js";
 
 export const qwenRefusedSessionOptions: RefusedSessionOptions = {
   fork: "OAR has not verified a native Qwen fork that opens a copy of a saved session under a new id, cut after a chosen turn",
@@ -10,6 +11,13 @@ export const qwenRefusedSessionOptions: RefusedSessionOptions = {
   outputSchema: "Qwen rejects --json-schema with its long-lived stream-json input protocol",
   name: "Qwen's stream-json interface does not expose a session-name readback",
 };
+
+/** Qwen 0.26.0+ supports lowering native auto-memory defaults via QWEN_CODE_SYSTEM_DEFAULTS_PATH. */
+export function qwenNativeMemoryRefusal(version: string | undefined): Pick<RefusedSessionOptions, "nativeMemoryDefault"> {
+  return semverAtLeast(version, "0.26.0")
+    ? {}
+    : { nativeMemoryDefault: "Qwen below 0.26.0 has no verified system-defaults memory toggle; 0.26.0 or later is required" };
+}
 
 const QWEN_MANAGED_LAUNCH_ARGS = new Set([
   "--input-format", "--output-format", "--channel", "--approval-mode", "--yolo", "-y",

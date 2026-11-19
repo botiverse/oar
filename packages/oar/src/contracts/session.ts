@@ -139,6 +139,8 @@ export interface SessionCapabilities {
   readonly attribution: AttributionTier;
   /** Input can carry images (`InputOptions.images`), delivered as the runtime's native image content. ACP runtimes: what `initialize` advertised (`promptCapabilities.image`). */
   readonly images: boolean;
+  /** Effective native background auto-memory state observed at session open (`"on"` or `"off"`). Absent when unreadable, unsupported by the installed version, or ambiguous. */
+  readonly nativeMemory?: "on" | "off";
 }
 
 export type RawEventObserver = (record: RawEvent) => void;

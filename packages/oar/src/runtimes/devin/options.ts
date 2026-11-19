@@ -14,4 +14,5 @@ export const devinRefusedSessionOptions: RefusedSessionOptions = {
   serviceTier: "Devin exposes no verified per-session service-tier setting and readback",
   systemPrompt: "Devin ACP exposes no verified system prompt replacement channel",
   userConfiguration: "Devin has no verified separation of user configuration from its native login",
+  nativeMemoryDefault: "Devin exposes no verified below-user default layer for background auto-memory",
 };
