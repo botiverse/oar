@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import { codebuddyAcpProfile } from "../../packages/oar/src/runtimes/codebuddy/session.js";
+import { defaultAcpPromptOutcome } from "../../packages/oar/src/shared/acp/projection.js";
 import { codebuddyPromptOutcome } from "../../packages/oar/src/runtimes/codebuddy/failure.js";
 import { projectCodebuddyModels } from "../../packages/oar/src/runtimes/codebuddy/list-models.js";
 import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
@@ -47,6 +48,11 @@ test.each(["usage-never", "codebuddy-zero-context"])("CodeBuddy preserves absent
   } finally {
     await session.dispose();
   }
+});
+
+test("a bare ACP refusal maps to model_refused, including CodeBuddy without a provider error", () => {
+  const response = { stopReason: "refusal" };
+  expect(codebuddyPromptOutcome(response) ?? defaultAcpPromptOutcome(response)).toEqual({ kind: "failed", failure: "model_refused", reason: "refusal" });
 });
 
 test("CodeBuddy preserves the native failure reason even in a successful prompt RPC", () => {

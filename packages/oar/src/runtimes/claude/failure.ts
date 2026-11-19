@@ -2,7 +2,7 @@ import type { UtcInstant } from "../../contracts/account-usage.js";
 import type { FailedTurn, FailureClass } from "../../contracts/session.js";
 import { anthropicLimitText, failureFromStatus } from "../../shared/failure-class.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
-import { asNumber, type JsonRecord } from "../../shared/json.js";
+import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 
 /*
  * A failed claude turn, classified from what claude says
@@ -10,7 +10,7 @@ import { asNumber, type JsonRecord } from "../../shared/json.js";
  * `assistant` frame (`error`), then the result's `terminal_reason` and
  * `api_error_status`. Observed on 2.1.292 against a scripted provider. The
  * declared categories no run produced (`oauth_org_not_allowed`,
- * `account_on_hold`, `verification_required`, `overloaded`,
+ * `account_on_hold`,
  * `max_output_tokens`, `cloud_credential_error`) fall through to the status.
  * A `rate_limit` while claude's latest `rate_limit_event` says a
  * subscription limit refuses requests until a named reset is `quota` with
@@ -20,6 +20,8 @@ import { asNumber, type JsonRecord } from "../../shared/json.js";
 /** The categories observed, by what they mean; `server_error` is decided by its status (a 529 is overload). */
 const CATEGORIES: Readonly<Partial<Record<string, FailureClass>>> = {
   authentication_failed: "auth",
+  verification_required: "auth",
+  overloaded: "overloaded",
   model_not_found: "model_unavailable",
   rate_limit: "rate_limited",
   billing_error: "billing",
@@ -37,6 +39,9 @@ const SUBTYPES: Readonly<Partial<Record<string, FailureClass>>> = {
 export interface ClaudeFailureFacts {
   /** The `error` of the turn's last root `assistant` frame. */
   readonly category: string | null;
+  /** Structured API failure and limit details on the error assistant. */
+  readonly apiError?: unknown;
+  readonly rateLimitInfo?: JsonRecord | null;
   /** The result's `api_error_status`: the HTTP status, null when no request was sent. */
   readonly status: number | null;
   /** The result's `terminal_reason`. */
@@ -73,6 +78,10 @@ export function claudeLimitReset(info: JsonRecord | null): UtcInstant | null {
   return seconds === null ? null : utcInstantFromDate(new Date(seconds * 1000));
 }
 
+export function claudeSyntheticAssistant(message: JsonRecord): boolean {
+  return message.is_api_error_message === true || asRecord(message.message)?.model === "<synthetic>";
+}
+
 /** An error result's own words: the subtype, then claude's `errors` text when it gives any (#339). */
 export function claudeResultReason(subtype: string | undefined, errors: unknown): string {
   const detail = Array.isArray(errors) ? errors.filter((error): error is string => typeof error === "string" && error.length > 0).join("; ") : "";
@@ -98,6 +107,13 @@ export function claudeFailure(reason: string, facts: ClaudeFailureFacts): Failed
     // No request sent: no credential at all ("Not logged in"). A 401: refused.
     if (status === null) { return { kind: "failed", reason, failure: "auth", credential: "missing" }; }
     return { kind: "failed", reason, failure: "auth", status, ...(status === 401 ? { credential: "rejected" } : {}) };
+  }
+  if (facts.apiError === "usage_limit_reached") {
+    const info = facts.rateLimitInfo;
+    const resetsAt = claudeLimitReset(info ?? null);
+    return { kind: "failed", reason, failure: "quota", ...withStatus,
+      ...(resetsAt === null ? {} : { resetsAt }),
+      ...(typeof info?.rateLimitType === "string" ? { rateLimitType: info.rateLimitType } : {}) };
   }
   if (category === "rate_limit" && limitResetsAt !== null) {
     // A subscription limit refuses requests until a reset claude named: a usage limit, not throttling.

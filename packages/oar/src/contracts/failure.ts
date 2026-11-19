@@ -13,6 +13,7 @@ import type { UtcInstant } from "./account-usage.js";
  * - `billing`: payment or credits.
  * - `model_unavailable`: the selected model cannot be used here (unknown, not entitled, not enabled).
  * - `input_too_large`: the context window or the payload was exceeded.
+ * - `model_refused`: the model declined to answer the input.
  * - `invalid_request`: the runtime or provider rejected the request itself.
  * - `overloaded`: the provider is temporarily overloaded.
  * - `provider`: another provider-side error (a 5xx).
@@ -29,6 +30,7 @@ export type FailureClass =
   | "billing"
   | "model_unavailable"
   | "input_too_large"
+  | "model_refused"
   | "invalid_request"
   | "overloaded"
   | "provider"
@@ -72,6 +74,8 @@ export type FailedTurn =
      * session when it passes.
      */
     readonly resetsAt?: UtcInstant;
+    /** Native name of the exhausted limit, when reported for this failure. */
+    readonly rateLimitType?: string;
   }
   | {
     readonly kind: "failed";

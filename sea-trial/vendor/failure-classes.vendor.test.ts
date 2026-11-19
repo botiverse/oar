@@ -124,6 +124,25 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude: failure class
     }
   }, 120_000);
 
+  test("a Messages API refusal is a model_refused turn", async () => {
+    openTrace("vendor-claude-model-refusal");
+    const env = await startClaudeAimock(undefined, {
+      rewriteResponse: body => body.replaceAll('"stop_reason":"end_turn"', '"stop_reason":"refusal"'),
+    });
+    try {
+      const session = await runtimeUnderTest(runtime, env.env).startSession();
+      try {
+        const outcome = await runTurn(session, "Say hello.");
+        const frames = session.records().flatMap(entry => entry.kind === "frame" ? [entry.body] : []);
+        expect(frames.findLast(frame => frame.type === "assistant")).toMatchObject({
+          native: { error: "invalid_request", message: { model: "<synthetic>", stop_reason: "refusal" } }, events: [],
+        });
+        expect(frames.find(frame => frame.type.startsWith("result/"))?.native).toMatchObject({ stop_reason: "refusal" });
+        expect(classOf(outcome)).toEqual({ failure: "model_refused" });
+      } finally { await session.dispose(); }
+    } finally { await env.stop(); }
+  }, 30_000);
+
   test("missing login: no request is sent, and claude says so", async () => {
     const env = await startClaudeAimock((mock) => { mock.onMessage(/[\s\S]*/u, ANTHROPIC_CELLS.invalidKey); });
     const home = await mkdtemp(path.join(tmpdir(), "oar-claude-no-login-"));

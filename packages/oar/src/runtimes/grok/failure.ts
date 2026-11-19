@@ -1,4 +1,5 @@
 import type { FailureClass, FrameBody, TurnOutcome } from "../../contracts/session.js";
+import { defaultAcpPromptOutcome } from "../../shared/acp/projection.js";
 import { acpErrorReason, rpcErrorCode, type AcpFailureReader } from "../../shared/acp/failure.js";
 import { failureFromErrorCode, failureFromStatus } from "../../shared/failure-class.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
@@ -71,7 +72,8 @@ export const grokFailureOutcome: AcpFailureReader = (error, frames) => {
 
 /** Grok validates its schema and reports either a value or a typed error field, even with end_turn. */
 export function grokPromptOutcome(response: JsonRecord): TurnOutcome {
-  if (response.stopReason === "cancelled") { return { kind: "aborted" }; }
+  const stop = defaultAcpPromptOutcome(response);
+  if (stop.kind !== "completed") { return stop; }
   // oxlint-disable-next-line eslint/no-underscore-dangle -- `_meta` is the native ACP extension envelope.
   const meta = asRecord(response._meta);
   if (typeof meta?.structuredOutputError === "string") {
