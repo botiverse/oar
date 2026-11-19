@@ -30,7 +30,7 @@ state requires. A steer refused `unsupported` (images on a cursor steer) is
 queued instead, as is one refused `no_active_turn` while the status still
 shows the same running turn: a reply the runtime started on its own that the
 adapter cannot steer (OpenCode 2.3.0) or a turn whose abort is pending. A final refusal is `landed: "rejected"` with the last
-control's `code`, `reason` and, for a classified `runtime_refused`, its
+control's `code`, `reason` and, for any classified rejection, its
 `failure` (as on `ControlOutcome`); `steerOrQueue`'s rejection carries the
 same. `steerOrQueue` stays as the running half
 of `now`; unlike it, `deliver` never queues into an idle session, where some
@@ -341,7 +341,7 @@ adapter, and the `session.withdraw-before-dispatch` sea-trial case.
 It retains content and lane attribution when no prompt or verified native
 start has opened a turn. It has neither `openedBy` nor an outcome, and
 `SessionView.openTurn` remains `-1`. Hosts switching exhaustively on
-`ViewMessage.kind` must render this member. A new prompt or native start
+[the message kinds](../../packages/oar/src/observe/session-view.ts) must render this member. A new prompt or native start
 opens a separate turn; it does not adopt preceding activity. Late updates
 to a known tool still amend that tool in its original segment. An input
 inside an observed turn seals only its display segment, so subsequent
@@ -375,12 +375,9 @@ content continues that same lifecycle in a new turn segment.
   host to show apart, above the composer for instance. A queued input's echo
   comes as the runtime drains it, so it sits before the turn it starts, even
   in a later stream after resume.
-- Whether a stream echoes is read off the stream itself: once it has carried
-  a `user_message` with an `inputId` (the echo of the first prompt, on codex,
-  claude, qoder and dsh), later steers and queues wait for their echo. A stream that
-  never has (the ACP runtimes echo nothing; pi's and cursor's echoes carry
-  no `inputId`) places them at their request, the best fact it has. No
-  capability flag or runtime name takes part.
+- Once a stream has echoed an input with an `inputId`, later steers and queues
+  wait for their echo. Otherwise the view places them at their request.
+  [Conversation reducer](../../packages/oar/src/observe/conversation.ts).
 - A rejected input enters where it was refused. If a retry of the same
   input (`deliver`, `steerOrQueue`) must wait for its echo, it leaves
   `messages` for `pendingInputs` again.
@@ -410,7 +407,7 @@ same wording works in a browser or JavaScriptCore:
 | Helper | Input and result |
 | --- | --- |
 | `noticeText(notice)` | A `ViewNotice` to text, including its native reason and available retry details. Child turn outcomes are objects, read by their `kind`. |
-| `noticeTone(notice)` | A `ViewNotice` to `quiet`, `warning` or `danger`. Completed work and a zero exit are quiet; retries, refusals, aborts and an unknown exit code warn; failed work and a nonzero exit are danger. |
+| `noticeTone(notice)` | Display tone for a notice. [Tone mapping](../../packages/oar/src/observe/display-text.ts). |
 | `phaseLabel(phase, runtimeId?)` | A `RunningPhase` to a label such as `Waiting for model` or `Running <tool>`. With `runtimeId`, a running call reads as its action (`Editing file`, `Running command`), and an MCP or unclassified tool by its short name. A tool phase with `writing` (its arguments still streaming, claude only) reads as preparing its action (`Preparing file edit`), or `Writing <tool> arguments` for an MCP or unclassified tool. |
 | `failureText(failure, runtimeName, credential?)` | A `FailureClass` to a neutral sentence such as `Claude Code reported that its usage limit was reached.` With `auth`, a failed outcome's `credential` words it as a missing login (`Claude Code is not signed in.`) or a refused credential (`Claude Code's credentials were rejected.`); without it, `Claude Code could not authenticate.` The host adds any sign-in or recovery instructions. |
 | `taskStatusLabel(status)` | A `TaskStatus` to its display label. |

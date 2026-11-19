@@ -34,7 +34,7 @@ Factory and Devin scripts ([Factory](factory.md#installation-and-updates),
 | opencode `v1` | installed, `line: "v1"` (10 to 13 s, four runs) | `~/.opencode/bin/opencode`, `1.18.35` | no `checkUpdate` in oar; `opencode upgrade`: "Using method: curl", "skipped: 1.18.35 is already installed" |
 | opencode `v2` | installed, `line: "v2"` (15 s; the script also twice by hand) | `~/.opencode/bin/opencode`, `opencode v2.0.26` | `opencode upgrade`: "Using method: curl", "OpenCode upgrade skipped: 2.0.26 is already installed" |
 | opencode, no line | `line_required` ("choose a release line: v1, v2"), plan the same, nothing ran | not_found | |
-| antigravity (the former separate ACP server) | unsupported `requires_gui`, plan the same, nothing ran | not_found | |
+| antigravity (historical separate ACP server, superseded by the agy script installer) | unsupported `requires_gui`, plan the same, nothing ran | not_found | |
 
 In every installed run the second `install()` was `already_installed` and
 ran nothing. For opencode it asked for the other line: after `v2`,

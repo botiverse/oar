@@ -69,8 +69,6 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
     let spontaneousTurn: string | null = null;
     /** The turn an accepted abort is waiting on; only its own end (or droid handing its prompt back) disarms the fallback. */
     let abortingTurn: string | null | false = false;
-    /** The OAR compact request whose `droid.compact_session` is pending: droid's `session_compacted` meanwhile is its completion. */
-    let compactRequestId: string | null = null;
     let settingsWaiter: ((settings: JsonRecord) => void) | null = null;
     const held: Held[] = [];
     let dispatching = false;
@@ -96,17 +94,16 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
       })();
     };
 
+    const released = (): void => { queueMicrotask(drainHeld); };
     const onNotification = (message: JsonRecord): void => {
       const notification = asRecord(asRecord(message.params)?.notification);
+      const wasBusy = busy();
       const extra: RuntimeEventBody[] = [];
       if (notification?.type === "droid_working_state_changed" && notification.newState !== "idle" && notification.newState !== "compacting_conversation" && active === null && !spontaneous && kernel.unreachable() === null) {
         spontaneous = true;
         extra.push({ kind: "turn_active" });
       }
-      const { state, body: folded } = foldFactoryNotification(projection, message);
-      const compacted = compactRequestId;
-      const body = notification?.type === "session_compacted" && compacted !== null
-        ? { ...folded, events: folded.events.map(event => event.kind === "compaction_ended" ? { ...event, requestId: compacted } : event) } : folded;
+      const { state, body } = foldFactoryNotification(projection, message);
       projection = state;
       const after: RuntimeEventBody[] = [];
       const prompted = active;
@@ -138,10 +135,8 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
       if (typeof awaited === "string" && body.events.some(event => event.kind === "input_dropped" && event.inputId === awaited)) { disarm(); }
       kernel.frame(extra.length === 0 && after.length === 0 ? body : { ...body, events: [...extra, ...body.events, ...after] });
       if (notification?.type === "settings_updated") { settingsWaiter?.(asRecord(notification.settings) ?? {}); }
-      if (ended) {
-        readContext();
-        queueMicrotask(drainHeld);
-      }
+      if (ended) { readContext(); }
+      if (ended || (wasBusy && !busy())) { released(); }
     };
     const onServerRequest = (message: JsonRecord): void => {
       const id = typeof message.id === "string" ? message.id : String(message.id);
@@ -152,27 +147,14 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
       client.respond(message.id, reply);
       kernel.respond(id, { kind: "answered", native: reply });
     };
-    client.handle({ onNotification, onServerRequest, onUnmatched: (native) => { kernel.frame({ type: asRecord(native) === null ? "stdout" : "response", native, events: [] }); } });
-    client.onExit((code, reason) => {
-      disarm();
-      held.splice(0);
-      kernel.processExited(code, reason);
-      active = null;
-      spontaneous = false;
-      held.splice(0);
-    });
-
-    await confirmSettings(client, options, settings, recordReply("droid.update_session_settings"), (waiter) => { settingsWaiter = waiter; });
-    readContext();
-
     const capabilities = { queue: { durable: false }, attribution: "opaque", images: true } as const;
     const compaction = manualCompaction(kernel, {
       busy: () => busy() || dispatching || held.length > 0,
       busyReason: "droid compacts only between turns, after OAR's held input has been sent",
       // droid's compact_session answer (or refusal) is the end of the operation; its frame names the request.
       settledBy: "native_response",
-      create: () => factoryCompaction(kernel, client, sessionId, (requestId) => { compactRequestId = requestId; }),
-      released: () => { queueMicrotask(drainHeld); },
+      create: () => factoryCompaction(kernel, client, sessionId),
+      released,
     });
     /** Send one input with `add_user_message`; the reply answers the control. */
     const send = async (request: RequestRecord, input: string, inputId: string, images: readonly LoadedImage[], starts: boolean): Promise<ResponseBody> => {
@@ -187,6 +169,7 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
           projection = { ...projection, sent };
         }
         recordReply("droid.add_user_message", () => [], request.id)(outcome);
+        if (starts && outcome.kind === "error") { released(); }
       };
       try {
         await client.request("droid.add_user_message", { text: input, messageId: inputId, ...droidImages(images) }, settled, request.id);
@@ -206,9 +189,22 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
         carries: [next.inputId ?? next.request.id], ...(next.images === undefined ? {} : { images: next.images }) });
       void (async (): Promise<void> => {
         try { kernel.respond(request.id, await send(request, next.input, next.inputId ?? randomUUID(), next.loaded, true)); }
-        finally { dispatching = false; }
+        finally { dispatching = false; released(); }
       })();
     };
+
+    client.handle({ onNotification, onServerRequest, onUnmatched: (native) => { kernel.frame({ type: asRecord(native) === null ? "stdout" : "response", native, events: [] }); } });
+    client.onExit((code, reason) => {
+      disarm();
+      held.splice(0);
+      kernel.processExited(code, reason);
+      active = null;
+      spontaneous = false;
+      held.splice(0);
+    });
+
+    await confirmSettings(client, options, settings, recordReply("droid.update_session_settings"), (waiter) => { settingsWaiter = waiter; });
+    readContext();
 
     const session: Session = credentials.seal({
       id: kernel.sessionId,
@@ -249,6 +245,7 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
       },
       abort: async (): Promise<ControlResult> => {
         const result = await kernel.control({ kind: "abort" }, async (request) => {
+          if (compaction.busy()) { return { kind: "rejected", code: "busy", reason: "droid cannot interrupt a manual compaction" }; }
           if (!busy()) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
           // Bounded: without droid's end of this turn in time, the process is stopped and its exit is recorded.
           abortingTurn = active !== null && !active.dropped ? active.inputId : spontaneousTurn;

@@ -6,37 +6,22 @@ logins or model requests were run. Native behavior not exercised is marked;
 a missing match in a binary is never proof of absence. Reproduction and
 sanitized observations: [experiments/cancellation](../../experiments/cancellation/README.md).
 
-**Current OAR:** `Session.withdraw(inputId)` exists for every queue OAR holds
-itself (claude, pi, qwen, qoder, cursor, factory, Mister Morph, and the ACP
-runtimes kimi, grok, antigravity, codebuddy, devin and opencode), built as the
-[consequences](#consequences-for-oar-and-rao) below ask: a `withdraw` request
-of its own targeting the earlier input by `inputId`, answered `accepted` only
-when the held entry was removed before dispatch and `not_queued` otherwise,
-with the queue request and its response left as they were
-([record stream](../spec/record-stream.md#withdrawing-held-input)). It removes
-OAR's own held entries only. Two runtimes withdraw natively: Pi Durable by
-submission cancellation, and DSH by `inbox.remove` when its native inventory
-advertises it. Codex has no `withdraw`: its queue is native, and
-`thread/queue/delete` waits on the validation listed at the end. Per-runtime
-controls are in [session controls](../spec/runtime-matrix.md#session-controls).
-Claude's capability-gated bulk `cancel_queued` is used by `abort()` when a
-written prompt has not started;
-[the current mapping](claude.md#interrupted-input) pins before/after-start
-cancellation and its effects on queued notifications. Grok `x.ai/queue/*` and
-Pi `clearQueue()` are unmapped. The 2026-09-16 research below is kept as
-found; the Cursor row comes from the `@cursor/sdk` adapter (2026-10-03; the
-1.4.0 queued acknowledgment from [its evidence](../../experiments/cursor-sdk-1.4/README.md)).
+The [session controls matrix](../spec/runtime-matrix.md#session-controls)
+describes the shipped controls. The findings below preserve the native
+evidence for each examined version. Subsequent probes established Claude's
+[queued cancellation](claude.md#interrupted-input) and Grok's
+[queue notifications](grok.md).
 
 ## Findings
 
-| Runtime / examined version | Steer withdrawal | Queue withdrawal | Current OAR behavior |
-|---|---|---|---|
-| Codex CLI 0.154.0 | No per-steer deletion endpoint established; `turn/steer` returns a turn ID, not a cancellable input handle | **Native per-item deletion**, experimental `thread/queue/delete({threadId, queuedSubmissionId}) → {deleted}`; verified in installed schema and local source, not a live model turn | Native durable queue; the add response keeps the native submission in `response.body.native`. Delete/list are not exposed by Session |
-| Claude Code 2.1.273 | **Unverified**: installed binary contains `cancel_queued`, `cancelQueued`, `interrupt_cancel_queued_v1`, `interrupt_receipt_v1`, `msg_lifecycle_v1` | Same native leads; scope, parameter shape, capability negotiation and receipts need protocol validation | Steer writes a user message to stdin; OAR's later-turn queue is a separate in-memory array; abort sends an interrupt control request |
-| Grok Build 1.0.30 (04b7ffed98c6) | OAR steer is `_x.ai/interject` (1.0.77, 2026-11-10); no native withdrawal of a buffered interjection; `session/cancel` clears every buffered one | **Native extension leads** in installed binary: `x.ai/queue/remove`, `clear`, `edit`, `hold_edit`, `release_edit`, `reorder`; not verified on a wire session | OAR uses the shared ACP adapter-held queue; the vendor queue operations do not cancel OAR's held entries |
-| Kimi Code 0.42.0 (TypeScript harness) | Selected ACP interface has no mapped steer; no per-input withdrawal established | No per-item withdrawal established on selected ACP interface; do not generalize to every native KAP/SDK surface | `kimiAcpProfile` has no steer params, so the session has no `steer`; the ACP queue is OAR-held; `session/cancel` routes to the active agent turn, including deferred cancellation while its turn ID is pending |
-| Pi SDK 0.84.2 | **Native bulk clearing** of pending steering and follow-up messages via `AgentSession.clearQueue()`; no public per-item handle established | SDK clear applies to SDK queues; OAR's later-turn queue is a different array | Steer enters Pi's queue; OAR queue is adapter-held. `abort()` and `clearQueue()` are separate. Installed SDK methods exercised with a mock receiver |
-| Cursor `@cursor/sdk` 1.0.35 | `run.steer(text)` settles once the agent took the text (`complete_delivered`) or handed it back (`revert_to_followup`); SDK 1.4.0 adds `{ outcome: "queued" }`, a follow-up the SDK owns; no handle withdraws a delivered steer, and OAR has no withdrawal for an SDK-queued one | No native queue: an agent takes one run at a time and refuses a second `send` (`already has active run`) | Steer is `accepted` on `complete_delivered` or, on 1.4.0, `queued` (`native.ack` names which); a handed back steer is rejected `runtime_refused` and the caller keeps the input. The queue is adapter-held, sent as the next run, withdrawable until then. `abort()` is `run.cancel()`, its outcome the run's own `cancelled`; an abort before `send` returns the run is held and delivered when it exists. The first send after a resume passes `local.force`, since the agent's store can still hold a dead process's run as active ([cursor](cursor.md#prompt-steering-queueing-and-abort)) |
+| Runtime / examined version | Steer withdrawal | Queue withdrawal |
+|---|---|---|
+| Codex CLI 0.154.0 | No per-steer deletion endpoint established; `turn/steer` returns a turn ID, not a cancellable input handle | **Native per-item deletion**, experimental `thread/queue/delete({threadId, queuedSubmissionId}) → {deleted}`; verified in installed schema and local source, not a live model turn |
+| Claude Code 2.1.273 | **Unverified**: installed binary contains `cancel_queued`, `cancelQueued`, `interrupt_cancel_queued_v1`, `interrupt_receipt_v1`, `msg_lifecycle_v1` | Same native leads; scope, parameter shape, capability negotiation and receipts need protocol validation |
+| Grok Build 1.0.30 (04b7ffed98c6) | OAR steer is `_x.ai/interject` (1.0.77, 2026-11-10); no native withdrawal of a buffered interjection; `session/cancel` clears every buffered one | **Native extension leads** in installed binary: `x.ai/queue/remove`, `clear`, `edit`, `hold_edit`, `release_edit`, `reorder`; not verified on a wire session |
+| Kimi Code 0.42.0 (TypeScript harness) | Selected ACP interface has no mapped steer; no per-input withdrawal established | No per-item withdrawal established on selected ACP interface; do not generalize to every native KAP/SDK surface |
+| Pi SDK 0.84.2 | **Native bulk clearing** of pending steering and follow-up messages via `AgentSession.clearQueue()`; no public per-item handle established | SDK clear applies to SDK queues; OAR's later-turn queue is a different array |
+| Cursor `@cursor/sdk` 1.0.35 | `run.steer(text)` settles once the agent took the text (`complete_delivered`) or handed it back (`revert_to_followup`); SDK 1.4.0 adds `{ outcome: "queued" }`, a follow-up the SDK owns; no handle withdraws a delivered steer, and OAR has no withdrawal for an SDK-queued one | No native queue: an agent takes one run at a time and refuses a second `send` (`already has active run`) |
 
 `queue: { durable: false }` says nothing about cancellation. Session has
 `abort()` and, where OAR holds the queue, `withdraw(inputId)`, which removes
@@ -76,7 +61,7 @@ Local Codex source at `4f39251a010a8bd7d692d25fb33832ff06f1635a`:
 Installed schema and source snapshot are separate evidence. No live race or
 restart durability test was run.
 
-### Claude: new cancellation markers require verification
+### Claude cancellation markers in 2.1.273
 
 The installed binary fingerprint and marker offsets are in the static probe
 output. They outrank an old adapter comment but do **not** establish the
@@ -91,13 +76,10 @@ not asserted to match installed 2.1.273) has
 callback when another permission response wins. That is **not** proof of
 withdrawing a user message.
 
-OAR's [`runtimes/claude/session.ts`](../../packages/oar/src/runtimes/claude/session.ts)
-keeps held input in the in-memory `heldQueue` array. Its interrupt path does
-not clear it, and the turn-end handler can dispatch the next entry. Native
-`cancel_queued`, if verified, would not by itself clear this OAR-owned queue.
-The adapter comment that claude cannot hold input for a later turn natively is
-a mapping assumption, not a current native capability survey; reassess it
-before designing a new API.
+Subsequent protocol controls confirmed when Claude accepts bulk
+`cancel_queued`. OAR's later-turn queue is held separately in the shared
+stream-json driver. [Interrupted input](claude.md#interrupted-input),
+[driver](../../packages/oar/src/shared/stream-json/session.ts).
 
 ### Grok: distinguish the vendor queue from OAR's queue
 
@@ -190,10 +172,8 @@ implement cancellation of OAR `queue()`.
 - Codex: isolated scripted-model run holding one active turn; add two queued
   submissions; delete one, repeat delete, race dispatch, interrupt and restart.
   Verify native IDs and notifications; never use a user's existing thread.
-- Claude: negotiate the installed message-lifecycle/interrupt capabilities in an
-  isolated mock-provider process; establish `cancel_queued` request shape and
-  receipts, which messages it targets, and behavior after dequeue. Binary markers
-  alone do not authorize a support claim.
+- Claude's subsequent [native controls](claude.md#interrupted-input)
+  established the bulk cancellation request and its admission boundary.
 - Grok: isolate its resident server/session; obtain native queue IDs and validate
   remove/clear notifications, changed snapshots, edit locks and dispatch races.
   Establish whether the transport used by OAR exposes those extensions.

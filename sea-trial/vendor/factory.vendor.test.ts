@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { factoryRuntime } from "../../packages/oar/src/runtimes/factory/index.js";
-import { awaitIdle, promptAndWait } from "../../packages/oar/src/observe/turns.js";
+import { awaitIdle, awaitTurnEnd, promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import { eventsOf } from "../../packages/oar/src/observe/events.js";
 import type { RawEvent } from "../../packages/oar/src/contracts/session.js";
 import { FACTORY_AIMOCK_MODEL, startFactoryAimock } from "../harness/factory-aimock.js";
@@ -52,13 +52,13 @@ test.skipIf(!enabled)("abort ends the turn as aborted and returns undrained stee
     mock.onMessage(/[\s\S]*/u, { content: "late" }, { latency: 5000 });
   });
   try {
-    await session.prompt("SLOW_ABORTED");
-    await new Promise((resolve) => { setTimeout(resolve, 800); });
+    const prompt = await session.prompt("SLOW_ABORTED");
+    await expect.poll(() => provider.mock.getRequests().some(r => r.body !== null && JSON.stringify(r.body.messages).includes("SLOW_ABORTED") && Array.isArray(r.body.tools) && r.body.tools.length > 0), { timeout: 15_000 }).toBe(true);
     const steer = await session.steer?.("NEVER_DRAINED");
     expect(steer?.response.body.kind).toBe("accepted");
     const abort = await session.abort();
     expect(abort.response.body.kind).toBe("accepted");
-    expect(await awaitIdle(session)).toEqual({ kind: "aborted" });
+    expect(await awaitTurnEnd(session, prompt.seq)).toEqual({ kind: "aborted" });
     expect(events(session.records())).toContainEqual(expect.objectContaining({ kind: "input_dropped", reason: "turn_interrupted", requestId: steer?.request.id }));
   } finally { await session.dispose(); await provider.stop(); }
 }, 90_000);
@@ -88,8 +88,8 @@ test.skipIf(!enabled)("compact summarizes in the same session between turns, and
     await promptAndWait(session, "first", { timeoutMs: 30_000 });
     await promptAndWait(session, "second", { timeoutMs: 30_000 });
     const compacted = await session.compact?.({ timeoutMs: 30_000 });
-    expect(compacted).toMatchObject({ kind: "completed", frame: { body: { type: "session_compacted" } } });
-    expect(events(session.records())).toContainEqual(expect.objectContaining({ kind: "compaction_ended", outcome: "completed", requestId: compacted?.request.id }));
+    expect(compacted).toMatchObject({ kind: "completed", frame: { body: { type: "droid.compact_session", responseTo: compacted?.request.id } } });
+    expect(session.records().flatMap(record => record.kind === "frame" ? record.body.events : [])).toContainEqual({ kind: "compaction_ended", outcome: "completed" });
     const run = await promptAndWait(session, "after", { timeoutMs: 30_000 });
     expect(run).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
     await session.prompt("SLOW_TURN");

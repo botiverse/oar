@@ -90,7 +90,10 @@ The envelope's `spanId` remains the native **turn** id (Cursor's run id),
 never a replacement for a compaction message id. `compaction_ended.requestId?`
 means the native response explicitly answered that OAR `compact` request:
 Grok's dedicated RPC response can finish it without an observed start. No
-request ownership is inferred from notification timing. Unowned ends retain
+request ownership is inferred from notification timing. Factory's RPC result
+identifies both the request and the current session. Its independent summary
+notification has no request identity. The identity-based event fold also
+supports persisted or adapter-provided requests without `settledBy`. Unowned ends retain
 the previous rules.
 
 The manual operation releases its input reservation and status on the same
@@ -147,9 +150,9 @@ returns `rejected` / `busy`. Claude, Pi, Grok, Factory, Qoder, Cursor and OpenCo
 retain `queue()` input in the OAR queue and drain it after native completion; Codex and DSH refuse new
 queue input `busy` because its native queue could start another turn during
 compaction. A submitted but not yet started input also prevents compact.
-`abort()` uses the native cancellation control once it has a target. Before
-native admission or Codex's compaction item identifies a turn, it returns
-`busy` with the missing-target reason. Claude's queued `cancelled` command
+`abort()` uses the native cancellation control once it has a target. Factory cannot interrupt its compact RPC and returns `busy`. Cursor
+accepts an early cancellation and applies it when the SDK supplies the run.
+Codex returns `busy` until its native compaction item identifies the turn. Claude's queued `cancelled` command
 settles as `aborted`. Once Claude starts compacting, interrupt stops it but
 Claude reports `compact_result: failed`, so the compact result is `failed`
 with `native_failed`; OAR does not reclassify its error text. The ordinary
@@ -182,9 +185,9 @@ its unit regressions use a controlled SDK stand-in.
 | OpenCode v1 | No session member: a project command can replace `/compact` and structural completion is unverified. The installation declares manual compaction unsupported. |
 | OpenCode v2 | The installation declares support with active-turn rejection. `/compact` emits native start/end metadata; the same `messageId` and the RPC answer are both required. Ordinary success is not proof. |
 | Grok | Supported, idle only. Dedicated `_x.ai/compact_conversation` response proves completion, with structured failure/cancellation. No native start or inferred trigger. Empty history is a native successful no-op. |
-| Factory | Supported, idle only. `droid.compact_session` keeps the session id (`newSessionId` equals it on 1.12.1); `session_compacted` while it is pending and the matching answer prove completion. During a turn droid refuses it and OAR answers busy first; an empty conversation is droid's refusal ("Nothing to compact"). An answer naming another session is a failure, since that id would break session identity. |
+| Factory | Supported, idle only. `droid.compact_session` keeps the session id (`newSessionId` equals it on 1.12.1); its own RPC result must confirm a positive removal count for that session. The independent `session_compacted` notification has no request identity. During a turn droid refuses it and OAR answers busy first; an empty conversation is droid's refusal ("Nothing to compact"). An answer naming another session is a failure, since that id would break session identity. |
 | Qoder | Supported, idle only. `/compact` is intercepted before custom commands. Same-command UUID start, manual `compact_boundary`, and command completion/cancellation are required. A completed boundary wins later cancellation; a successful command without a boundary yields `not_compacted`. |
-| Cursor | Supported, idle only. `Agent.summarize()` returns a run id; its root summary status and terminal run result identify completion. An aborted run without a terminal summary returns aborted without inventing a compaction end. |
+| Cursor | Unknown before open. Sessions whose SDK agent supplies `summarize()` offer idle-only compaction. The method returns a run id; its root summary status and terminal run result identify completion. An aborted run without a terminal summary returns aborted without inventing a compaction end. |
 | DSH | Idle only. Native `compactNow` receives a command id; its result and a matching start/end pair prove completion. An empty selection returns `not_compacted`. |
 | Pi Durable | Undeclared; no session member. |
 

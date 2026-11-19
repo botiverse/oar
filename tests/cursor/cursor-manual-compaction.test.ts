@@ -10,6 +10,15 @@ async function open() {
   const f = await openFakeCursor(); assert.ok(f.session.compact !== undefined);
   return { ...f, compact: f.session.compact.bind(f.session) };
 }
+test("the bundled installation leaves compaction unknown until an SDK agent is opened", async () => {
+  const f = await open();
+  try {
+    expect(f.runtime.manualCompaction).toBeUndefined();
+    expect(f.runtime.sessionCapabilities?.({ kind: "available", via: "bundled" }).manualCompaction).toBeUndefined();
+    expect(typeof f.session.compact).toBe("function");
+  } finally { await f.session.dispose(); }
+});
+
 test("Cursor summary identity, run terminal and queue order are all required", async () => {
   const f = await open();
   try {

@@ -22,8 +22,9 @@ Each reader checks the floor for the path it actually uses, even when the
 caller never called `installation()`; a version that is too old or
 unreadable never starts the unsupported query. The refusal keeps each
 reader's usual result kind and adds `installedVersion` and
-`requiredVersion` where they are known. Auth status stays `unknown`: an
-unsupported CLI says nothing about whether its account is signed in.
+`requiredVersion` where they are known. A direct auth reader can return an `unknown` status. When the installation
+itself is unsupported, orientation reports an `unsupported` auth probe and
+makes no inference about account state.
 
 ## Environment
 
@@ -55,7 +56,9 @@ from a workspace whose configuration you trust, or call `listModels` with a
 `cwd`. Costs beyond these, such as an extra process at installation
 discovery, are on each runtime's page.
 
-A missing or failed installation skips the readers that need it. A native
+A `not_found` installation skips dependent readers. When the installation
+probe fails or times out, its outcome propagates to the readers it blocked.
+Absent reader methods remain `unsupported`. A native
 `logged_out` skips usage and models; `unknown` does not. A reader that
 throws is `failed` with a generic reason (`unsupported` when it refuses
 `env`), so credential-bearing error text never reaches the snapshot, and

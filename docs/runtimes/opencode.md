@@ -168,8 +168,7 @@ usage reply contributes nothing. OAR uses the version from ACP initialization
 to select this accounting.
 
 `usage_update.used` measures the latest step's context. On 2.3.2 a two-step
-turn reported 330 tokens spent and 220 tokens of context. Child context updates
-carry no independent token ledger. [Native controls and source](../../experiments/opencode-prompt-usage/README.md)
+turn reported 330 tokens spent and 220 tokens of context. [Native controls and source](../../experiments/opencode-prompt-usage/README.md)
 
 ### Shared-process admission boundary
 
@@ -992,8 +991,7 @@ runs in
 configuration there can add providers.
 
 Effort is the `effort` option in the `thought_level` category, present only
-for a model with variants; its values are the variant names
-(`low`/`high`/`max` on `opencode/fledge-alpha-free`). Because the menu
+for a model with variants; its values are the variant names the model exposes. Because the menu
 belongs to the model, OAR reads it from the model switch's answer when a
 model was requested; on a model without variants `effort` is refused with
 `UnsupportedOptionError`. An unknown model fails the open with the agent's

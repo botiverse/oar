@@ -28,15 +28,19 @@ runtime in `cwd` the way a session would, and those can run that
 workspace's code (project extensions, a stdio MCP server) and connect
 configured MCP servers. Do not take an inventory of a directory you do not
 trust. `env` follows the
-[reader environment rules](orientation.md#environment).
+[reader environment rules](orientation.md#environment). Pi's in-process SDK
+loads inventories using the host environment. If an overlay changes it,
+Pi returns `unsupported` with `scope_unavailable` before loading extensions.
 
 ## Results
 
 A failure is never an empty list. Malformed payloads, failed processes and
 failed native requests are `unavailable`; a runtime or interface with no
 such query is `unsupported`; an empty `ok` list is the runtime saying it
-has none. Native error text and raw server configuration are not copied
-into a result, because they can carry credentials.
+has none. Most readers return a classified reason and omit native text or raw server
+configuration. The OpenCode 1.x skills reader retains a redacted diagnostic
+of at most 500 characters from its native command.
+[Diagnostic handling](../../packages/oar/src/runtimes/opencode/skills-v1.ts).
 
 An `ok` result says how much it covers. `view` names the source: the
 runtime's catalog of what it would load (`discovered`), its live context

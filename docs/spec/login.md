@@ -255,9 +255,9 @@ with `OAR_CHILD_STDERR=inherit`, and no partial environment is returned.
 
 `env` is the complete shell snapshot, plus `null` for inherited variables the
 shell removed, so it can be passed directly as an overlay. It contains secrets.
-`changedVariables` contains only the names whose values changed: `HOME`, `PATH`,
-`CLAUDE_CONFIG_DIR`, `CODEX_HOME`, and upper/lowercase `HTTP_PROXY`, `HTTPS_PROXY`,
-`ALL_PROXY`, `NO_PROXY`. Errors retain no output, environment values or native
+`changedVariables` lists the names of changed variables selected by the
+[shell environment reader](../../packages/oar/src/shared/shell-environment.ts).
+Errors retain no output, environment values or native
 error cause.
 
 Failures reject with `UserShellEnvironmentError`; its `reason` is:
@@ -372,10 +372,10 @@ declares no network, refresh or key-command execution. The
 
 ## Per runtime
 
-| Runtime | login drives | authStatus reads | Floor | Deadline |
+| Runtime | login drives | authStatus reads | Verification notes | Deadline |
 | --- | --- | --- | --- | --- |
-| claude | `claude auth login` over pipes: relays the URL, prompts `manual_code` for the `code#state` the page shows | `claude auth status --json` (`loggedIn`; exit 0 logged in, 1 logged out) | 2.1.126 | 15 min |
-| codex | app-server `account/login/start { type: "chatgptDeviceCode" }`: relays the device code; codex polls | `codex login status` (exit 0 logged in; exit 1 with `Not logged in` logged out) | 0.118.0 | 16 min |
+| claude | `claude auth login` over pipes: relays the URL, prompts `manual_code` for the `code#state` the page shows | `claude auth status --json` (`loggedIn`; exit 0 logged in, 1 logged out) | | 15 min |
+| codex | app-server `account/login/start { type: "chatgptDeviceCode" }`: relays the device code; codex polls | `codex login status` (exit 0 logged in; exit 1 with `Not logged in` logged out) | | 16 min |
 | cursor | `Cursor.auth.login({ openBrowser: false })` in process: relays the URL from `onLoginUrl`; the SDK polls; its save goes through a store oar passes, which refuses it once the login has ended | `Cursor.auth.status` (the stored login only, not `CURSOR_API_KEY`; `email` and the key's expiry) | `@cursor/sdk` 1.4.1 (the pinned peer) | 15 min |
 | codebuddy | private stream-json `initialize` then `authenticate`, native URL callback | private `initialize.account`: object / null / absent; non-empty `CODEBUDDY_API_KEY` instead yields `unknown` with a configured source label | international 2.178.1, Linux arm64 verified; generic `auth_failed` is process failure, not user denial | 5 min |
 | qoder | `qodercli login` over pipes: relays the authorization URL | `qodercli status --output json` (`logged_in`) | native 1.1.78 verified | 5 min |
@@ -389,6 +389,12 @@ declares no network, refresh or key-command execution. The
 | pi | not yet | not yet | | |
 | dsh | none | none | | |
 
+The verification notes describe observed versions. The minimum version
+for Claude's pasted login flow is 2.1.126, for Codex device-code login it
+is 0.118.0, and for the standalone Antigravity CLI it is 1.5.0.
+[Claude](../../packages/oar/src/runtimes/claude/login.ts),
+[Codex](../../packages/oar/src/runtimes/codex/login.ts),
+[Antigravity](../../packages/oar/src/runtimes/antigravity/version.ts).
 The [runtime pages](../runtimes/README.md) record each login path's caveats.
 Claude normally attempts to open a browser; from its login floor (2.1.126),
 `openBrowser: false` overrides `BROWSER` only for its login child process,
@@ -476,7 +482,7 @@ runtime oar does not sign in.
 | timed_out | The deadline passed before the logout finished; it was stopped. |
 | process_failed | The executable is no longer there (looked up before anything is spawned), or the logout could not start or ended without a result. |
 
-| Runtime | logout drives | Server side | Floor | Deadline |
+| Runtime | logout drives | Server side | Verification notes | Deadline |
 | --- | --- | --- | --- | --- |
 | claude | `claude auth logout`, stdin closed | revokes the stored claude.ai OAuth refresh token, best effort | 2.1.41 | 60 s |
 | codex | `codex logout`, stdin closed | revokes a stored ChatGPT login's token, best effort (from 0.122.0); an API key is only deleted | 0.15.0 | 60 s |

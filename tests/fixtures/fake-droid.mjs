@@ -67,6 +67,7 @@ input.on("line", (line) => {
       if (message.params.modelId === "no-such-model") { message.params.modelId = "gpt-6.1-sol"; }
       sessionId = message.params.sessionId ?? sessionId;
       Object.assign(settings, message.params.modelId ? { modelId: message.params.modelId } : {}, message.params.reasoningEffort ? { reasoningEffort: message.params.reasoningEffort } : {});
+      if (mode === "ended-at-open") { note({ type: "agent_turn_completed", reason: "completed", turnId: "previous" }); }
       note({ type: "settings_updated", settings });
       reply({ sessionId, session: { messages: [] }, settings, ...(message.params.cwd ? {} : { cwd: process.env.FAKE_DROID_MODE === "other-cwd" ? "/saved/elsewhere" : process.cwd() }) });
       return;
@@ -124,6 +125,11 @@ input.on("line", (line) => {
       }
       if (mode === "noisy") { write({ type: "response", id: message.id, error: { code: -32_603, message: "context unavailable" } }); return; }
       reply({ used: 10, remaining: 90, limit: 100, accuracy: "estimated", updatedAt: new Date().toISOString() });
+      return;
+    case "droid.compact_session":
+      if (mode === "compact-refusal") { write({ type: "response", id: message.id, error: { code: -32602, message: "Nothing to compact" } }); return; }
+      note({ type: "session_compacted", summaryId: "summary", removedCount: 4 });
+      reply({ newSessionId: sessionId, removedCount: mode === "compact-zero" ? 0 : 4 });
       return;
     case "droid.list_models":
       reply({ models: [{ id: "gpt-6.1-sol", displayName: "GPT 6.1 Sol", supportedReasoningEfforts: ["low", "medium", "high"], defaultReasoningEffort: "medium" }] });

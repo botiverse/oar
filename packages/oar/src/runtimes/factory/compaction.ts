@@ -10,48 +10,37 @@ import type { DroidClient } from "./client.js";
  * current id), reports `session_compacted` and then answers `{ newSessionId,
  * removedCount }`. During a turn it refuses with -32602 "Wait for the current
  * turn to finish before compacting."; on an empty conversation with -32602
- * "Nothing to compact". The RPC id is the OAR compact request id, so
- * `session_compacted` seen while it is pending belongs to it.
+ * "Nothing to compact". Only the identified RPC answer belongs to the request.
  */
-export function factoryCompaction(kernel: SessionKernel, client: DroidClient, sessionId: string, pending: (requestId: string | null) => void): CompactionOperation {
+export function factoryCompaction(kernel: SessionKernel, client: DroidClient, sessionId: string): CompactionOperation {
   let requestId: string | null = null;
-  let compacted: Frame | null = null;
   return {
     async start(request, reply) {
       requestId = request.id;
-      pending(request.id);
-      const recorded: { frame: Frame | null } = { frame: null };
-      try {
-        // The answer line, whole, is recorded where it sat on the wire; its frame settles the operation (observe below).
-        const answer = client.request("droid.compact_session", {}, (outcome) => {
-          if (outcome.kind === "exited") { return; }
-          client.mark(() => {
-            recorded.frame = kernel.frame({ type: outcome.kind === "result" ? "droid.compact_session" : "droid.compact_session/error", native: outcome.native, responseTo: request.id, events: [] });
-          });
-        }, request.id);
-        reply({ kind: "accepted" });
-        await answer;
-        return (recorded.frame === null ? null : settle(recorded.frame)) ?? { kind: "unconfirmed", code: "observation_failed", reason: "droid's compact_session answer was not recorded" };
-      } catch (error) {
-        const refusal = asRecord(asRecord(recorded.frame?.body.native)?.error);
-        if (refusal === null || kernel.unreachable() !== null) { throw error; }
-        return { kind: "rejected", code: "runtime_refused", reason: typeof refusal.message === "string" ? refusal.message : "droid refused compact_session" };
-      } finally { pending(null); }
+      const answer = client.request("droid.compact_session", {}, (outcome) => {
+        if (outcome.kind === "exited") { return; }
+        client.mark(() => { kernel.frame({ type: outcome.kind === "result" ? "droid.compact_session" : "droid.compact_session/error",
+          native: outcome.native, responseTo: request.id, events: [] }); });
+      }, request.id);
+      reply({ kind: "accepted" });
+      await answer;
     },
-    observe: (frame) => settle(frame),
+    observe(frame: Frame): CompactionSettlement | null {
+      if (requestId === null || frame.body.responseTo !== requestId) { return null; }
+      const native = asRecord(frame.body.native);
+      if (frame.body.type === "droid.compact_session/error") {
+        const message = asRecord(native?.error)?.message;
+        return { kind: "rejected", code: "runtime_refused", reason: typeof message === "string" ? message : "droid refused compact_session" };
+      }
+      if (frame.body.type !== "droid.compact_session") { return null; }
+      const answer = asRecord(native?.result);
+      const removed = asNumber(answer?.removedCount);
+      if (typeof answer?.newSessionId === "string" && answer.newSessionId !== sessionId) {
+        return { kind: "failed", code: "native_failed", reason: "droid moved the conversation to another session", frame };
+      }
+      if (removed === 0) { return { kind: "failed", code: "not_compacted", reason: "droid removed no messages", frame }; }
+      if (answer?.newSessionId === sessionId && removed !== null && Number.isSafeInteger(removed) && removed > 0) { return { kind: "completed", frame }; }
+      return { kind: "unconfirmed", code: "observation_failed", reason: "droid's answer did not confirm removal in this session" };
+    },
   };
-  function settle(frame: Frame): CompactionSettlement | null {
-    if (requestId === null) { return null; }
-    const ended = frame.body.events.find(event => event.kind === "compaction_ended");
-    if (ended?.kind === "compaction_ended" && ended.requestId === requestId) { compacted = frame; return null; }
-    if (frame.body.type !== "droid.compact_session" || frame.body.responseTo !== requestId) { return null; }
-    const answer = asRecord(asRecord(frame.body.native)?.result);
-    if (typeof answer?.newSessionId === "string" && answer.newSessionId !== sessionId) {
-      return { kind: "failed", code: "native_failed", reason: `droid moved the conversation to session ${answer.newSessionId}; this session's id no longer names it`, frame };
-    }
-    if (compacted !== null) { return { kind: "completed", frame: compacted }; }
-    return asNumber(answer?.removedCount) === 0
-      ? { kind: "failed", code: "not_compacted", reason: "droid removed no messages", frame }
-      : { kind: "unconfirmed", code: "observation_failed", reason: "droid answered compact_session without reporting session_compacted" };
-  }
 }
