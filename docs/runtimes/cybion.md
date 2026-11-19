@@ -185,7 +185,7 @@ of its own.
   (`input`, `response_output`, `tool_output`, `checkpoint`, `activity`).
 - Tests: `tests/community/cybion/` (the history projection, and a session
   driven against a scripted deployment) run with `OAR_COMMUNITY_TESTS=1`.
-  Community tests are outside CI by default, as for every contributor runtime.
+  The CI unit check enables these tests on Linux, macOS and Windows.
 - **Wire probe, observed 2026-11-18** (`pnpm tsx
   experiments/cybion-agent-api-probe.ts`): a whole turn driven by this
   repository's own adapter over real HTTP against a local server speaking the

@@ -5,8 +5,9 @@
 It lives in `packages/oar/src/community/morph/` and is exported from
 `@botiverse/oar/community`, not `defaultRuntimes`; a host adds it with
 `createRuntimeRegistry([...defaultRuntimes.list(), createMorphRuntime()])`.
-The `oar` CLI includes it. Its tests (`tests/community/morph/`) run only with
-`OAR_COMMUNITY_TESTS=1`.
+The `oar` CLI includes it. CI runs the scripted unit tests in
+`tests/community/morph/` on Linux, macOS and Windows. Set
+`OAR_COMMUNITY_TESTS=1` to include them in a local unit run.
 
 Evidence baseline: native source
 [`quailyquaily/mistermorph`](https://github.com/quailyquaily/mistermorph)
@@ -115,7 +116,9 @@ next step, and the model honored it). The adapter answers:
 - `runtime_refused` (`not_steerable: ...`) when Console found the run but did
   not hold the input (a completed acknowledgement without a target);
 - `accepted` when the run had ended first: the text then started a task of its
-  own, which is followed as a spontaneous turn.
+  own, which is followed as a spontaneous turn. A stream snapshot or task query
+  reporting `running` for the active task emits `turn_active` once. A text
+  update alone leaves the turn status unchanged.
 
 `steer_applied` becomes a `user_message` event (`evidence: "conversation"`,
 no `inputId`: morph names none). Text with file references or commands never
@@ -146,7 +149,7 @@ each with a per-task `seq`. A slow reader may miss snapshots, and the stream's
 | --- | --- |
 | trace `tool_start` (`activity_id` = provider call id, `args`) | `tool_call_started` (`input`: a lone `cmd` as is, otherwise the args as JSON) |
 | trace `tool_output` (names only the tool) | `tool_call_progress` on the newest open call of that tool |
-| trace `tool_done` | `tool_call_ended`: `content` the text, `result`, `exitCode` from a leading `exit_code: N` |
+| trace `tool_done` | `tool_call_ended`: `content` the text, `result`, `exitCode` only for a complete native bash or powershell text observation. Morph writes the numeric header before captured stdout and stderr. [Native formatter and parser](https://github.com/quailyquaily/mistermorph/blob/4ce6f1aa9210d65ab2fe859bbdfd4a0a03edea68/tools/builtin/shell_runner.go#L281-L362), [Console reader](https://github.com/quailyquaily/mistermorph/blob/4ce6f1aa9210d65ab2fe859bbdfd4a0a03edea68/cmd/mistermorph/consolecmd/activity_progress.go#L521-L538) |
 | trace `llm_retry` ("Retrying in 1.0s (1/5).") | `retry` |
 | trace `context_compaction_start` / `_done` / `_failed` | `compaction_started` / `compaction_ended` |
 | trace `steer_applied` | `user_message` |

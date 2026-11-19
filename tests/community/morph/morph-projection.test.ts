@@ -32,6 +32,21 @@ function replay(frames: readonly unknown[], fold: (state: MorphProjection, frame
   return { state, events };
 }
 
+const shellResult = "exit_code: -1\nstdout_truncated: false\nstderr_truncated: true\nstdout:\nexit_code: 99\n\nstderr:\n";
+
+test.each([
+  ["bash", shellResult, -1],
+  ["powershell", shellResult, -1],
+  ["read_file", shellResult, undefined],
+  ["bash", "exit_code: 7", undefined],
+  ["bash", shellResult.replace("\n\nstderr:\n", ""), undefined],
+] as const)("tool_done reads only a complete native shell observation (%s, %j)", (tool, output, exitCode) => {
+  const done = entry(1, { kind: "tool_done", activity_id: "call", tool_name: tool, status: "done", text: output });
+  const { events } = replay([{ task_id: TASK, seq: 1, trace: { entries: [done] } }]);
+  expect(events).toEqual([{ kind: "tool_call_ended", callId: "call", result: "ok", content: [{ type: "text", text: output }],
+    ...(exitCode === undefined ? {} : { exitCode }) }]);
+});
+
 const toolTurn: readonly unknown[] = [
   { task_id: TASK, seq: 61, status: "running" },
   { task_id: TASK, seq: 62, status: "running", trace: { entries: [turnStart] } },
@@ -134,7 +149,7 @@ test("turn outcomes: canceled is aborted, failed carries morph's error classifie
   expect(end({ status: "canceled", error: "stopped by user" })).toEqual({ kind: "turn_ended", outcome: { kind: "aborted" } });
   expect(end({ status: "failed", error: "llm call failed at step 0: 429 rate limit" })).toEqual({
     kind: "turn_ended",
-    outcome: { kind: "failed", reason: "llm call failed at step 0: 429 rate limit", failure: "quota" },
+    outcome: { kind: "failed", reason: "llm call failed at step 0: 429 rate limit", failure: "rate_limited" },
   });
   expect(foldMorphTask(initialMorphProjection, { id: TASK, status: "running" }).events).toEqual([]);
   expect(foldMorphTask(initialMorphProjection, { id: TASK, status: "pending" }).events).toEqual([]);

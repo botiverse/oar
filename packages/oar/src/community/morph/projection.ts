@@ -82,6 +82,15 @@ function modelEvents(state: MorphProjection, model: unknown): { state: MorphProj
     : { state: { ...state, model: name }, events: [{ kind: "model", model: name }] };
 }
 
+/** Read the exit code from Mister Morph's formatShellObservation envelope. */
+function shellExitCode(tool: string, output: string | undefined): number | undefined {
+  if ((tool !== "bash" && tool !== "powershell") || output === undefined) { return undefined; }
+  const header = /^exit_code: (-?\d+)\nstdout_truncated: (?:true|false)\nstderr_truncated: (?:true|false)\nstdout:\n/u.exec(output);
+  if (header === null || !output.includes("\n\nstderr:\n", header[0].length)) { return undefined; }
+  const code = Number(header[1]);
+  return Number.isSafeInteger(code) ? code : undefined;
+}
+
 /** One agent event (mistermorph agent/events.go) as OAR events. */
 function traceEvent(task: MorphTaskProjection, taskId: string, seq: number, event: JsonRecord): { task: MorphTaskProjection; events: RuntimeEventBody[] } {
   const tool = text(event.tool_name) ?? "tool";
@@ -102,7 +111,7 @@ function traceEvent(task: MorphTaskProjection, taskId: string, seq: number, even
     case "tool_done": {
       const callId = text(event.activity_id) ?? task.openCalls.findLast((call) => call.tool === tool)?.callId ?? `${taskId}:${String(seq)}`;
       const output = text(event.text);
-      const exit = output === undefined ? null : /^exit_code: (-?\d+)/u.exec(output);
+      const exitCode = shellExitCode(tool, output);
       const failed = text(event.error) !== undefined || event.status === "failed" || event.status === "error";
       const result = failed ? "failed" : (event.status === "done" ? "ok" : undefined);
       return {
@@ -112,7 +121,7 @@ function traceEvent(task: MorphTaskProjection, taskId: string, seq: number, even
           callId,
           ...(output === undefined ? {} : { content: [{ type: "text", text: output }] }),
           ...(result === undefined ? {} : { result }),
-          ...(exit === null ? {} : { exitCode: Number(exit[1]) }),
+          ...(exitCode === undefined ? {} : { exitCode }),
         }],
       };
     }

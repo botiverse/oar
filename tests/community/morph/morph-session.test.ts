@@ -157,7 +157,7 @@ test("a turn: prompt, snapshots, busy, then the terminal task answer ends it wit
   await until(() => frameTypes(session).includes("task/running"), "the running status");
   fake.finish("task-1");
   await until(() => turnEnds(events) === 1, "turn end");
-  expect(events.map((event) => event.kind)).toEqual(["turn_started", "text_delta", "turn_started", "control_rejected", "usage", "text_delta", "turn_ended"]);
+  expect(events.map((event) => event.kind)).toEqual(["turn_started", "turn_active", "text_delta", "turn_started", "control_rejected", "usage", "text_delta", "turn_ended"]);
   assert.equal(session.contextUsage().value?.percent, 10);
   assert.equal(session.status().value.kind, "idle");
   assert.deepEqual(frameTypes(session), ["stream/running", "task/running", "topic/metadata", "task/done"]);
@@ -174,17 +174,40 @@ test("steer: accepted when Console names the run it steered into; a run that end
   assert.equal(answer(await session.steer?.("more")), "accepted");
   fake.routes.set("POST /tasks", () => ({ status: 200, body: { id: "ack-2", status: "done", topic_id: "topic-1" } }));
   assert.equal(answer(await session.steer?.("lost")), "runtime_refused");
-  fake.statuses.set("task-9", ["running"]);
+  fake.statuses.set("task-9", ["queued"]);
   fake.routes.set("POST /tasks", () => ({ status: 200, body: { id: "task-9", status: "queued", topic_id: "topic-1" } }));
   assert.equal(answer(await session.steer?.("late")), "accepted");
   fake.finish("task-1");
   await until(() => turnEnds(events) === 1 && fake.streams.has("task-9"), "the first turn end");
-  // The steer's own task is followed: its first snapshot adopts the turn.
+  // Text alone cannot establish a turn. A snapshot must name the followed running task.
+  fake.streams.get("task-9")?.({ task_id: "task-9", seq: 1, text: "preview" });
+  fake.streams.get("task-9")?.({ task_id: "other-task", status: "running" });
+  assert.equal(session.status().value.kind, "idle");
   fake.streams.get("task-9")?.({ task_id: "task-9", seq: 2, status: "running", text: "late answer" });
   assert.equal(session.status().value.kind, "running");
   fake.finish("task-9");
   await until(() => turnEnds(events) === 2, "the spontaneous turn's end");
   await session.dispose();
+});
+
+test("a successor already reported running is adopted on its next poll once the old task settles", async () => {
+  const fake = new FakeConsole();
+  const { session, events } = await open(fake);
+  try {
+    await session.prompt("first");
+    fake.routes.set("POST /tasks", () => ({ status: 200, body: { id: "next", status: "queued", topic_id: session.id } }));
+    await session.steer?.("second");
+    await until(() => fake.calls.includes("GET /tasks/next"), "the successor's first running poll");
+    expect(events.filter(event => event.kind === "turn_active")).toHaveLength(1);
+    fake.finish("task-1");
+    await until(() => events.filter(event => event.kind === "turn_active").length === 2, "the successor's running poll after settlement");
+    expect(session.status().value.kind).toBe("running");
+    const running = { task_id: "next", status: "running" };
+    fake.streams.get("next")?.(running);
+    fake.streams.get("next")?.(running);
+    expect(events.filter(event => event.kind === "turn_active")).toHaveLength(2);
+    fake.finish("next");
+  } finally { await session.dispose(); }
 });
 
 test("abort stops the running task and its canceled status ends the turn aborted", async () => {

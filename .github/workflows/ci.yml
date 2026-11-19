@@ -47,6 +47,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run check
+        env:
+          OAR_COMMUNITY_TESTS: '1'
       - uses: actions/upload-artifact@v4
         if: always() && runner.os == 'Windows'
         with:
