@@ -89,7 +89,7 @@ export function createCursorRuntime(options: CursorRuntimeOptions): CursorRuntim
 function cursorRuntime(access: CursorSdkAccess): CursorRuntime {
   const definition = {
     id: "cursor",
-    sessionCapabilities: () => ({ steer: true, images: true }),
+    sessionCapabilities: () => ({ steer: true, images: true, contextUsage: { tokens: true, contextWindow: false } }),
     refusedSessionOptions: access.refusedSessionOptions,
     brand: runtimeBrands.cursor,
     installation: cursorInstallationFor(process.platform, process.arch, access.execution),

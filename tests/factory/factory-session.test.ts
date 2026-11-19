@@ -15,11 +15,16 @@ const fakeDroid = path.resolve(import.meta.dirname, "../fixtures/fake-droid.mjs"
 const open: (() => Promise<void>)[] = [];
 afterEach(async () => { await Promise.all(open.splice(0).map(async (close) => { await close(); })); });
 
-async function session(mode: string, turnMs = 0, extra: { readonly resume?: string; readonly model?: string; readonly effort?: string } = {}): Promise<Session> {
+async function session(
+  mode: string,
+  turnMs = 0,
+  extra: { readonly resume?: string; readonly model?: string; readonly effort?: string; readonly contextReadTimeoutMs?: number; readonly contextMs?: number } = {},
+): Promise<Session> {
   const dir = mkdtempSync(path.join(tmpdir(), "oar-fake-droid-"));
   const command = fakeAgentBinary(dir, [fakeDroid]);
-  const opened = await createFactorySession({ abortFallbackMs: 300 })({ kind: "available", via: "executable", command }, {
-    cwd: dir, env: { FAKE_DROID_MODE: mode, FAKE_DROID_TURN_MS: String(turnMs) }, ...extra,
+  const { contextReadTimeoutMs, contextMs, ...sessionOptions } = extra;
+  const opened = await createFactorySession({ abortFallbackMs: 300, ...(contextReadTimeoutMs === undefined ? {} : { contextReadTimeoutMs }) })({ kind: "available", via: "executable", command }, {
+    cwd: dir, env: { FAKE_DROID_MODE: mode, FAKE_DROID_TURN_MS: String(turnMs), ...(contextMs === undefined ? {} : { FAKE_DROID_CONTEXT_MS: String(contextMs) }) }, ...sessionOptions,
   });
   open.push(async () => { await opened.dispose(); rmSync(dir, { recursive: true, force: true }); });
   return opened;
@@ -183,4 +188,26 @@ it("native working state adopts only the content after that start", async () => 
   expect(view.messages.map(message => message.kind)).toEqual(["activity", "turn"]);
   expect(view.messages.at(-1)).toMatchObject({ sections: [{ parts: [{ text: "inside" }] }], outcome: { kind: "completed" } });
   expect(view.status).not.toHaveProperty("activity");
+});
+
+it("awaits post-turn get_context_stats before turn_ended so contextUsage() is current immediately", async () => {
+  const opened = await session("slow-context", 0, { contextReadTimeoutMs: 500, contextMs: 60 });
+  const first = await opened.prompt("hello");
+  await awaitTurnEnd(opened, first.request.seq);
+  expect(opened.contextUsage().value).toEqual({ tokens: 50, contextWindow: 100, percent: 50 });
+  const records = opened.records();
+  const stats = records.findLastIndex(record => record.kind === "frame" && record.body.type === "droid.get_context_stats");
+  const ended = records.findLastIndex(record => record.kind === "frame" && eventsOf(record).some(event => event.kind === "turn_ended"));
+  expect(stats).toBeGreaterThan(-1);
+  expect(stats).toBeLessThan(ended);
+});
+
+it("keeps previous contextUsage on post-turn get_context_stats timeout and leaves late replies raw", async () => {
+  const opened = await session("slow-context", 0, { contextReadTimeoutMs: 40, contextMs: 180 });
+  await expect.poll(() => opened.contextUsage().value, { timeout: 2000 }).toEqual({ tokens: 10, contextWindow: 100, percent: 10 });
+  const first = await opened.prompt("hello");
+  await awaitTurnEnd(opened, first.request.seq);
+  expect(opened.contextUsage().value).toEqual({ tokens: 10, contextWindow: 100, percent: 10 });
+  await expect.poll(() => opened.records().filter(record => record.kind === "frame" && record.body.type === "droid.get_context_stats").length, { timeout: 2000 }).toBe(2);
+  expect(opened.contextUsage().value).toEqual({ tokens: 10, contextWindow: 100, percent: 10 });
 });

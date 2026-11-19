@@ -35,3 +35,10 @@ export function compareSemver(left: string, right: string): number | null {
   }
   return comparePrerelease(a.prerelease, b.prerelease);
 }
+
+/** Whether a `--version` line contains a semver at or above `floor` (prereleases sort below their release). */
+export function semverAtLeast(versionText: string | undefined, floor: string): boolean {
+  const token = versionText === undefined ? undefined : /\bv?(\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?)\b/u.exec(versionText)?.[1];
+  const order = token === undefined ? null : compareSemver(token, floor);
+  return order !== null && order >= 0;
+}

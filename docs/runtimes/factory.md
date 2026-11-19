@@ -192,9 +192,12 @@ beside it (`cacheReadTokens`, `cacheCreationTokens`), `output` is
 `outputTokens`. `thinkingTokens` stays in the native frame: whether
 `outputTokens` already includes it is not established without a Factory model.
 Once a turn reports sub-agent tokens (`childTokenUsage`), the usage report's
-`total` adds them. After each turn and at open, OAR reads
-`droid.get_context_stats`. Its reply is a frame of that name. A usable
-reading yields a `usage` event with `context` (`used` of `limit`).
+`total` adds them. OAR reads `droid.get_context_stats` at open and before
+emitting `turn_ended` on each non-aborted turn, with a one-second bound. Its
+reply is a frame of that name; a usable reading yields a `usage` event with
+`context` (`used` of `limit`), so `contextUsage()` is current when the turn
+ends. On error or timeout, `contextUsage()` keeps its previous reading and any
+late reply is retained as a raw frame without overwriting a later turn's value.
 
 ### Failures
 

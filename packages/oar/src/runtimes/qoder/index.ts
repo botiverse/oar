@@ -9,7 +9,7 @@ import { qoderRefusedSessionOptions } from "./options.js";
 export const qoderRuntime = defineRuntime({
   id: "qoder",
   minVersion: QODER_MINIMUM_VERSION,
-  sessionCapabilities: () => ({ steer: true, images: false }), brand: runtimeBrands.qoder, verifiedPlatforms: verifiedPlatforms.qoder,
+  sessionCapabilities: () => ({ steer: true, images: false, contextUsage: { tokens: false, contextWindow: false } }), brand: runtimeBrands.qoder, verifiedPlatforms: verifiedPlatforms.qoder,
   manualCompaction: { kind: "supported", activeTurn: "reject" },
   refusedSessionOptions: qoderRefusedSessionOptions,
   installation: qoderInstallation, install: qoderInstall, installPlan: qoderInstallPlan,

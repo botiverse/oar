@@ -6,6 +6,8 @@ import type { JsonRecord } from "../../shared/json.js";
 export interface FactorySessionTimings {
   /** How long an accepted abort waits for droid's end of that turn before the process is stopped. */
   readonly abortFallbackMs?: number;
+  /** How long a completed turn waits for `droid.get_context_stats` before emitting `turn_ended`. */
+  readonly contextReadTimeoutMs?: number;
 }
 
 export interface Held {

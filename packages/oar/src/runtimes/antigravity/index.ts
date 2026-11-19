@@ -11,7 +11,7 @@ import { ANTIGRAVITY_MINIMUM_VERSION } from "./version.js";
 
 export const antigravityRuntime = defineRuntime({
   id: "antigravity",
-  sessionCapabilities: () => ({ steer: true }),
+  sessionCapabilities: () => ({ steer: true, contextUsage: { tokens: true, contextWindow: true } }),
   minVersion: ANTIGRAVITY_MINIMUM_VERSION,
   manualCompaction: { kind: "unsupported", reason: "The CLI advertises /compact, but no structured completion and attribution contract has been verified." },
   brand: runtimeBrands.antigravity, verifiedPlatforms: verifiedPlatforms.antigravity,

@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
+import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
+import { createModels } from "@earendil-works/pi-ai-durable/models";
+import { Harness, MemoryStorage, createRegistry } from "@earendil-works/pi-durable";
 import { createMorphRuntime } from "../packages/oar/src/community/morph/index.js";
-import { createPiRuntime, defineRuntime, installedSessionCapabilities, opencodeRuntime, type AvailableInstallation } from "../packages/oar/src/index.js";
+import { codexRuntime, createCursorRuntime, createPiRuntime, defineRuntime, installedSessionCapabilities, opencodeRuntime, qwenRuntime, type AvailableInstallation } from "../packages/oar/src/index.js";
+import { createPiDurableRuntime } from "../packages/oar/src/pi-durable.js";
 import { scriptedRuntime } from "../packages/oar/src/testing/index.js";
 import { allRuntimes } from "../sea-trial/harness/runtimes.js";
 
 const steer = (installation: AvailableInstallation): boolean | undefined => opencodeRuntime.sessionCapabilities(installation).steer;
 const executable = (version?: string): AvailableInstallation => ({ kind: "available", via: "executable", command: "/bin/agent", ...(version === undefined ? {} : { version }) });
+const unusedSdk = async (): Promise<never> => { await Promise.resolve(); throw new Error("unused"); };
 
 describe("Runtime.sessionCapabilities", () => {
   it("is declared by every built-in runtime and answers synchronously", () => {
@@ -13,7 +18,7 @@ describe("Runtime.sessionCapabilities", () => {
       expect(runtime.sessionCapabilities, runtime.id).toBeTypeOf("function");
       const declared = runtime.sessionCapabilities?.(executable("1.0.0"));
       expect(declared, runtime.id).not.toBeInstanceOf(Promise);
-      const known = new Set(["steer", "images", "refusedSessionOptions", "manualCompaction", "compactionEvents"]);
+      const known = new Set(["steer", "images", "refusedSessionOptions", "manualCompaction", "compactionEvents", "contextUsage"]);
       expect(Object.keys(declared ?? {}).every((key) => known.has(key)), runtime.id).toBe(true);
       // The static declarations are always part of the answer, and the answer is plain data a host can send on.
       expect(declared?.refusedSessionOptions ?? {}, runtime.id).toMatchObject(runtime.refusedSessionOptions ?? {});
@@ -30,17 +35,16 @@ describe("Runtime.sessionCapabilities", () => {
     expect(scriptedRuntime({ turn: () => undefined }).sessionCapabilities?.({ kind: "available", via: "bundled" })).toMatchObject({ steer: true, images: true });
   });
 
-  it("reports OpenCode manual compaction and whole-history fork refusals by installation", () => {
+  it("reports OpenCode manual compaction, contextUsage and whole-history fork refusals by installation", () => {
     const v1 = opencodeRuntime.sessionCapabilities(executable("1.19.6"));
-    expect(v1.manualCompaction?.kind).toBe("unsupported");
+    expect(v1).toMatchObject({ manualCompaction: { kind: "unsupported" }, contextUsage: { tokens: true, contextWindow: true } });
     expect(v1.refusedSessionOptions?.fork).toContain("v1");
     expect(v1.refusedSessionOptions?.additionalDirectories).toContain("v1");
     const v2 = opencodeRuntime.sessionCapabilities(executable("opencode v2.3.2"));
-    expect(v2.manualCompaction).toEqual({ kind: "supported", activeTurn: "reject" });
+    expect(v2).toMatchObject({ manualCompaction: { kind: "supported", activeTurn: "reject" }, contextUsage: { tokens: true, contextWindow: true } });
     expect(v2.refusedSessionOptions?.fork).toBeUndefined();
     const unknown = opencodeRuntime.sessionCapabilities(executable());
-    expect(unknown.manualCompaction).toBeUndefined();
-    expect(unknown.refusedSessionOptions?.fork).toBeUndefined();
+    expect([unknown.manualCompaction, unknown.contextUsage, unknown.refusedSessionOptions?.fork]).toEqual([undefined, undefined, undefined]);
   });
 
   it("declares OpenCode steering only for a readable v1 version", () => {
@@ -50,6 +54,51 @@ describe("Runtime.sessionCapabilities", () => {
     expect(steer(executable("garbage"))).toBeUndefined();
     expect(steer(executable())).toBeUndefined();
     expect(steer({ kind: "available", via: "bundled" })).toBeUndefined();
+  });
+});
+
+describe("SessionCapabilityDeclaration.contextUsage", () => {
+  it("declares per-installation contextUsage across default built-in runtimes", () => {
+    const byId = new Map(allRuntimes.list().map((runtime) => [runtime.id, runtime.sessionCapabilities?.(executable("2.3.2")).contextUsage]));
+    for (const id of ["antigravity", "claude", "codex", "dsh", "factory", "kimi", "opencode", "pi", "qwen"]) {
+      expect(byId.get(id), id).toEqual({ tokens: true, contextWindow: true });
+    }
+    expect(byId.get("grok")).toEqual({ tokens: true, contextWindow: false });
+    expect(byId.get("codebuddy")).toEqual({ tokens: false, contextWindow: false });
+    expect(byId.get("qoder")).toEqual({ tokens: false, contextWindow: false });
+    expect(byId.get("devin")).toBeUndefined();
+  });
+
+  it("declares contextUsage on constructed built-in runtimes (pi subprocess, cursor, pi-durable)", async () => {
+    expect(createPiRuntime({ execution: "subprocess" }).sessionCapabilities?.(executable("1.4.0")).contextUsage).toEqual({ tokens: true, contextWindow: true });
+    expect(createCursorRuntime({ sdk: unusedSdk }).sessionCapabilities?.({ kind: "available", via: "bundled" }).contextUsage).toEqual({ tokens: true, contextWindow: false });
+    const models = createModels();
+    const harness = await Harness.open(new MemoryStorage(), { models, registry: createRegistry() }, BACKGROUND_CONTEXT);
+    try {
+      expect(createPiDurableRuntime({ harness, models }).sessionCapabilities?.({ kind: "available", via: "bundled" }).contextUsage).toEqual({ tokens: false, contextWindow: false });
+    } finally {
+      await harness.close(BACKGROUND_CONTEXT);
+    }
+  });
+
+  it.each([
+    ["codex-cli 0.150.1", undefined],
+    ["codex-cli 0.151.0-beta.1", undefined],
+    ["codex-cli 0.151.0", { tokens: true, contextWindow: true }],
+    ["codex-cli 0.170.0", { tokens: true, contextWindow: true }],
+    [undefined, undefined],
+  ] as const)("gates Codex contextUsage at 0.151.0 (%s)", (version, expected) => {
+    expect(codexRuntime.sessionCapabilities(executable(version)).contextUsage).toEqual(expected);
+  });
+
+  it.each([
+    ["0.25.9", undefined],
+    ["0.26.0-rc.1", undefined],
+    ["0.26.0", { tokens: true, contextWindow: true }],
+    ["0.28.0", { tokens: true, contextWindow: true }],
+    [undefined, undefined],
+  ] as const)("gates Qwen contextUsage at 0.26.0 (%s)", (version, expected) => {
+    expect(qwenRuntime.sessionCapabilities(executable(version)).contextUsage).toEqual(expected);
   });
 });
 

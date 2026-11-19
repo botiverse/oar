@@ -43,7 +43,8 @@ test.skipIf(!enabled)("a steer joins the running turn: one turn end, the steer e
     const last = provider.mock.getRequests().at(-1);
     expect(JSON.stringify(last?.body)).toContain("STEER_SECOND");
     expect(session.usage().value.total?.input).toBeGreaterThan(0);
-    await expect.poll(() => session.contextUsage().value?.contextWindow ?? null, { timeout: 10_000 }).not.toBeNull();
+    expect(session.contextUsage().value?.tokens).toBeTypeOf("number");
+    expect(session.contextUsage().value?.contextWindow).toBeGreaterThan(0);
   } finally { await session.dispose(); await provider.stop(); }
 }, 90_000);
 

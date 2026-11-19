@@ -13,7 +13,8 @@ import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
 import { startDroidClient, type DroidClient, type DroidOutcome } from "./client.js";
 import { checkFactoryLaunchArgs, factoryRefusedSessionOptions } from "./options.js";
-import { contextOf, factoryOpenRequest, openFactory, serverReply } from "./open.js";
+import { factoryContextReadback } from "./context-usage.js";
+import { factoryOpenRequest, openFactory, serverReply } from "./open.js";
 import { confirmSettings } from "./settings.js";
 import { factoryCompaction } from "./compaction.js";
 import { droidImages, type FactorySessionTimings, type Held } from "./session-state.js";
@@ -82,20 +83,10 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
       if (outcome.kind === "exited") { return; }
       client.mark(() => { kernel.frame({ type, native: outcome.native, events: outcome.kind === "result" ? events(outcome.result) : [], ...(responseTo === undefined ? {} : { responseTo }) }); });
     };
-    const readContext = (): void => {
-      if (kernel.unreachable() !== null) { return; }
-      void (async (): Promise<void> => {
-        try {
-          await client.request("droid.get_context_stats", {}, recordReply("droid.get_context_stats", (result) => {
-            const context = contextOf(result);
-            return context === null ? [] : [{ kind: "usage", usage: { context } }];
-          }));
-        } catch { /* Its reply, an error included, is already a frame; an exit is the exited response. */ }
-      })();
-    };
+    const contextReadback = factoryContextReadback(client, recordReply, () => kernel.unreachable(), timings.contextReadTimeoutMs);
 
     const released = (): void => { queueMicrotask(drainHeld); };
-    const onNotification = (message: JsonRecord): void => {
+    const applyNotification = (message: JsonRecord): void => {
       const notification = asRecord(asRecord(message.params)?.notification);
       const wasBusy = busy();
       const extra: RuntimeEventBody[] = [];
@@ -135,8 +126,22 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
       if (typeof awaited === "string" && body.events.some(event => event.kind === "input_dropped" && event.inputId === awaited)) { disarm(); }
       kernel.frame(extra.length === 0 && after.length === 0 ? body : { ...body, events: [...extra, ...body.events, ...after] });
       if (notification?.type === "settings_updated") { settingsWaiter?.(asRecord(notification.settings) ?? {}); }
-      if (ended) { readContext(); }
       if (ended || (wasBusy && !busy())) { released(); }
+    };
+    let notificationQueue: Promise<void> | null = null;
+    const onNotification = (message: JsonRecord): void => {
+      const notification = asRecord(asRecord(message.params)?.notification);
+      const waitContext = notification?.type === "agent_turn_completed" && notification.reason !== "cancelled" && abortingTurn === false && kernel.unreachable() === null;
+      if (notificationQueue === null && !waitContext) { applyNotification(message); return; }
+      const previous = notificationQueue ?? Promise.resolve();
+      const next = (async (): Promise<void> => {
+        await previous;
+        if (waitContext && kernel.unreachable() === null) { await contextReadback.readBounded(); }
+        applyNotification(message);
+      })();
+      notificationQueue = next;
+      // oxlint-disable-next-line promise/prefer-await-to-then -- Clear the tail pointer only when no newer notification queued behind it.
+      void next.finally(() => { if (notificationQueue === next) { notificationQueue = null; } });
     };
     const onServerRequest = (message: JsonRecord): void => {
       const id = typeof message.id === "string" ? message.id : String(message.id);
@@ -198,17 +203,19 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
     };
 
     client.handle({ onNotification, onServerRequest, onUnmatched: (native) => { kernel.frame({ type: asRecord(native) === null ? "stdout" : "response", native, events: [] }); } });
+    let exitSettled: Promise<void> = Promise.resolve();
+    const finishExit = (code: number | null, reason?: string): void => {
+      disarm(); held.splice(0); kernel.processExited(code, reason); active = null; spontaneous = false; held.splice(0);
+    };
     client.onExit((code, reason) => {
-      disarm();
-      held.splice(0);
-      kernel.processExited(code, reason);
-      active = null;
-      spontaneous = false;
-      held.splice(0);
+      contextReadback.end();
+      const pending = notificationQueue;
+      if (pending === null) { finishExit(code, reason); return; }
+      exitSettled = (async (): Promise<void> => { await pending; finishExit(code, reason); })();
     });
 
     await confirmSettings(client, options, settings, recordReply("droid.update_session_settings"), (waiter) => { settingsWaiter = waiter; });
-    readContext();
+    contextReadback.readBackground();
 
     const session: Session = credentials.seal({
       id: kernel.sessionId,
@@ -250,6 +257,7 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
           if (!busy()) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
           // Bounded: without droid's end of this turn in time, the process is stopped and its exit is recorded.
           abortingTurn = active !== null && !active.dropped ? active.inputId : spontaneousTurn;
+          contextReadback.end();
           const refused = abortFallback.arm();
           try {
             await client.request("droid.interrupt_session", {}, recordReply("droid.interrupt_session", () => [], request.id));
@@ -267,10 +275,12 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
       resources: client.resources,
       dispose: async () => {
         await kernel.dispose(async () => {
+          contextReadback.end();
           held.splice(0);
           // Closing stdin ends droid's session (it saves and exits); the process owner escalates if it does not.
           client.kill();
           await client.exited;
+          await exitSettled;
         });
       },
     });

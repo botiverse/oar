@@ -100,6 +100,7 @@ export type {
   RuntimeLogout,
 } from "./login.js";
 export type { CompactionEvents, CredentialStore, CredentialVariable, McpToolsListChanged, RefusableSessionOption, RefusedSessionOptions, ResumeOptionSemantics, ResumedSessionOptions, Runtime, RuntimeCredentials, RuntimePlatform, SessionCapabilityDeclaration } from "./runtime.js";
+export type { ContextUsageCapability } from "./context-usage.js";
 export type {
   AdapterSession,
   AttributionTier,
