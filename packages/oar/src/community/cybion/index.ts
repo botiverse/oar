@@ -2,7 +2,8 @@ import type { RuntimeBrand } from "../../contracts/brand.js";
 import type { InstallationProbe } from "../../contracts/installation.js";
 import { defineRuntime, type Runtime } from "../../contracts/runtime.js";
 import { CybionClient, type CybionOptions } from "./client.js";
-import { cybionRefusedSessionOptions, cybionSessionWith } from "./session.js";
+import { cybionRefusedSessionOptions } from "./refused-options.js";
+import { cybionSessionWith } from "./session.js";
 
 export type { CybionOptions } from "./client.js";
 

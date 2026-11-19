@@ -154,15 +154,20 @@ of its own.
   open fails, as it should, but the Thread already exists and the Agent API has
   no delete route, so it stays in its owner's list.
 - **A turn that dies without writing a record is reported after about 111 s.**
-  The started-guard waits 60 polls, and the backoff is capped at 2 s. Until it
-  gives up, the status fold says running, so `abort` answers `unsupported` and a
-  prompt answers `busy`.
+  The started-guard waits 60 polls, and the backoff is capped at 2 s. A prompt
+  answers `busy` until it gives up. `abort` does not wait: it sends the cancel,
+  and a Thread the cancel stopped ends the turn as `aborted` at the next poll
+  whether or not it was ever seen running.
 - **A superseded tool call ends nowhere in the stream.** Cybion cancels the
   Worker call and writes no record for it, so the `tool_call_started` of a call
   a steer cancelled stays open in the record stream.
-- **A steer that arrives after the turn ended starts a turn of its own.**
-  Cybion takes the input either way; the adapter then follows that turn, so the
-  turn is not lost, but the caller asked to steer and got a new turn.
+- **A steer that arrives after the turn ended starts a turn of its own.** With
+  no turn followed, `steer` answers `no_active_turn` and writes nothing. If the
+  turn ends while the write is already travelling, Cybion takes the input and
+  starts a turn for it; the adapter then records that turn's start as a prompt
+  request (nothing is re-sent) and follows it, so the stream holds a
+  `turn_started` after the accepted steer, and the caller asked to steer and got
+  a new turn.
 - **Images travel inline.** `InputOptions.images` are read from this machine and
   sent as png/jpeg/webp/gif data URLs, within Cybion's count and size limits.
 
@@ -214,11 +219,14 @@ of its own.
     id, model and effort, and its prompt ran in the same conversation.
 
   Usage across those turns read `{input: 78598, output: 647, cacheRead: 59392}`.
-- **Cancellation, observed 2026-11-18** on the same deployment: `POST
-  /api/threads/{id}/cancel` with an API key turned a `running`/`running`
-  Thread into `idle`/`stopped` in one answer, and an earlier `GET` on the same
-  path answered `405` where `/v1/.../cancel` answered `404 route not found` —
-  the route exists on the `/api` router only.
+- **Cancellation, observed 2026-11-18** on Cybion `0.6.108` at
+  `https://cybion.ntnl.io`: `POST /api/threads/{id}/cancel` with an API key
+  turned a `running`/`running` Thread into `idle`/`stopped` in one answer, and
+  an earlier `GET` on the same path answered `405` where `/v1/.../cancel`
+  answered `404 route not found` — the route exists on the `/api` router only.
+  Driven through this adapter, aborting a turn whose tool call was sleeping
+  answered `accepted` and the turn ended `aborted` 2.2 s later, from the
+  Thread's own `stopped` status.
 - **Mid-turn input, observed 2026-11-18** on Cybion `0.6.108` at
   `https://cybion.ntnl.io`, Thread `01a1f0b1-745a-7e33-8b87-516f8c936cfd`: a
   turn running a `bash sleep 40` tool call took a second input at the API. The
@@ -228,7 +236,11 @@ of its own.
   claims: `input` (the prompt), the reasoning and function-call items, the
   `input` of the steer, then one `response_output` `message` answering the
   steer. The in-flight `bash` call got no `tool_output`. So one turn, one end,
-  and the superseded output is not in the conversation as text.
+  and the superseded output is not in the conversation as text. The same route
+  driven through the adapter, `pnpm tsx experiments/cybion-agent-api-probe.ts`
+  on Thread `01a1f0b7-e6e4-7b51-a1c9-e4e7383213bd`, printed
+  `steer accepted status=running` and then `ended+1 started+0` for the turn the
+  steer continued.
 - **Unresolved**: what a `blocked` Thread's end means (the mapping reports
   `unknown` rather than guessing a limit). A Thread also outlives its session —
   the Agent API has no route that deletes one — so a probe leaves a Thread in

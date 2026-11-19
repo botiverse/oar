@@ -183,6 +183,12 @@ export async function cancelThread(client: CybionClient, threadId: string): Prom
   return { kind: "rejected", code: reply.status < 500 && reply.status >= 400 ? "runtime_refused" : "error", reason: replyMessage(reply), native: reply.body };
 }
 
+/** The `display_status` a cancel answered, when the answer named one. */
+export function answeredStatusOf(answer: unknown): string | null {
+  const status = asRecord(answer)?.display_status;
+  return typeof status === "string" ? status : null;
+}
+
 /** The record Cybion says an accepted input occupies; null when it named none. */
 export function acceptedRecordOf(answer: unknown): number | null {
   const index = asRecord(answer)?.record_idx;

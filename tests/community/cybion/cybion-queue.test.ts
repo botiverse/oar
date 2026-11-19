@@ -19,7 +19,7 @@ const base = {
  * an input, then `completed`. `refuseFrom` makes the Thread refuse the n-th
  * input with a 400, the way an over-long or unsupported input is refused.
  */
-function deployment(refuseFrom: number | null) {
+function deployment(refuseFrom: number | null, cancel: { display: "stopped" | "completed"; neverRuns?: boolean } = { display: "stopped" }) {
   const history: Record<string, unknown>[] = [];
   const inputs: { input: string; images?: string[] }[] = [];
   const headers: (string | undefined)[] = [];
@@ -49,20 +49,20 @@ function deployment(refuseFrom: number | null) {
     }
     if (method === "POST" && url.pathname === "/api/threads/t1/cancel") {
       cancelled = true;
-      return json({ ...base, status: "idle", display_status: "stopped" });
+      return json({ ...base, status: "idle", display_status: cancel.display });
     }
     if (method === "GET" && url.pathname === "/v1/threads/t1/history") {
       return json([...history]);
     }
     if (method === "GET" && url.pathname === "/v1/threads/t1") {
       readsSinceInput += 1;
-      const running = !cancelled && readsSinceInput <= 2;
+      const running = cancel.neverRuns !== true && !cancelled && readsSinceInput <= 2;
       if (readsSinceInput === 2 && history.length > 0) {
         const id = nextId;
         nextId += 1;
         history.push({ id, thread_id: "t1", kind: "response_output", payload: { type: "message", id: `m${String(id)}`, role: "assistant", content: [{ type: "output_text", text: `answer ${String(inputs.length)}` }] }, created_at: id });
       }
-      return json({ ...base, status: running ? "running" : "idle", display_status: running ? "running" : cancelled ? "stopped" : "completed" });
+      return json({ ...base, status: running ? "running" : "idle", display_status: running ? "running" : cancelled ? cancel.display : "completed" });
     }
     return json({ error: `unscripted ${method} ${url.pathname}` }, 404);
   };
@@ -150,4 +150,35 @@ describe("a queued cybion input", () => {
     expect(events.find((event) => event.kind === "turn_ended")).toMatchObject({ outcome: { kind: "aborted" } });
     await session.dispose();
   }, 30_000);
+
+  it("answers no_active_turn when the turn ended before the cancel landed", async () => {
+    // Cybion answers an idle Thread unchanged: the turn was already over, so this
+    // abort never had one, and the stream must not read it as an abort.
+    const bed = deployment(null, { display: "completed" });
+    vi.stubGlobal("fetch", bed.fetch);
+    const { session, events } = await open();
+
+    await session.prompt("first");
+    await until(() => session.status().value.kind === "running");
+    const abort = await session.abort();
+    expect(abort).toMatchObject({ kind: "rejected", code: "no_active_turn" });
+    await until(() => session.status().value.kind === "idle");
+    expect(events.find((event) => event.kind === "turn_ended")).toMatchObject({ outcome: { kind: "completed" } });
+    await session.dispose();
+  }, 30_000);
+
+  it("ends the turn as aborted when a cancel stops a Thread that never reported running", async () => {
+    const bed = deployment(null, { display: "stopped", neverRuns: true });
+    vi.stubGlobal("fetch", bed.fetch);
+    const { session, events } = await open();
+
+    await session.prompt("first");
+    // The start guard would otherwise wait its full budget and call this turn one
+    // that never ran; the Thread's own `stopped` word is its end.
+    const abort = await session.abort();
+    expect(abort.kind).toBe("accepted");
+    await until(() => session.status().value.kind === "idle", 6000);
+    expect(events.find((event) => event.kind === "turn_ended")).toMatchObject({ outcome: { kind: "aborted" } });
+    await session.dispose();
+  }, 20_000);
 });

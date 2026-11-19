@@ -1,4 +1,3 @@
-import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type { ControlResult, InputOptions, PromptOptions, ResponseBody, Session, StartSession } from "../../contracts/session.js";
 import type { RuntimeEventBody } from "../../contracts/records.js";
 import { withdrawControl } from "../../shared/held-input.js";
@@ -6,7 +5,8 @@ import { inputImagesRefusal, withInputImages } from "../../shared/input-images.j
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
-import { acceptedRecordOf, cancelThread, lastRecordOf, openThread, refusalOf, submitInput } from "./thread.js";
+import { cybionRefusedSessionOptions } from "./refused-options.js";
+import { acceptedRecordOf, answeredStatusOf, cancelThread, lastRecordOf, openThread, refusalOf, submitInput } from "./thread.js";
 import { createThreadTracker, type ThreadTracker } from "./tracker.js";
 
 /*
@@ -27,29 +27,14 @@ import { createThreadTracker, type ThreadTracker } from "./tracker.js";
  *   overtakes it (`docs/spec/record-stream.md`, adapter-held queue records).
  * - abort: `POST /api/threads/{id}/cancel`, the route Cybion's own UI uses: an
  *   API key authenticates on that router too, and Cybion answers the stopped
- *   Thread. The turn then ends through the Thread's `stopped` status.
+ *   Thread. The turn then ends through the Thread's `stopped` status, and an
+ *   answer that is not `stopped` is read as a turn that had already ended.
  * - dispose: the Thread outlives the session by design (it is resumable), so
  *   releasing it records the release and stops nothing on Cybion's side.
  */
 
 /** How long dispose waits for the running turn to end by itself. */
 const DISPOSE_SETTLE_MS = 3000;
-
-export const cybionRefusedSessionOptions: RefusedSessionOptions = {
-  systemPrompt: "A Cybion Thread takes no per-session system prompt: its instructions are the Manuals Cybion loads for it",
-  appendSystemPrompt: "A Cybion Thread takes no per-session system prompt: its instructions are the Manuals Cybion loads for it",
-  env: "A Cybion Thread runs on its owner's Workers, not in this process",
-  mcpServers: "Cybion's Agent API has no route that attaches an MCP server to a Thread",
-  mcpServerCredentials: "Cybion's Agent API has no route that attaches an MCP server to a Thread",
-  disallowedTools: "Cybion's Agent API has no per-Thread tool filter",
-  launchArgs: "A Cybion Thread is a server-side object; a session launches no process",
-  serviceTier: "Cybion's Agent API exposes a boolean fast-tier flag, not a named service tier",
-  additionalDirectories: "A Cybion Thread runs on its owner's Workers, so a host directory means nothing to it",
-  outputSchema: "Cybion's Agent API has no per-Thread structured output setting",
-  userConfiguration: "A Cybion Thread always runs with its owner's configuration, which cannot be excluded",
-  goals: "Cybion's Agent API exposes no structured goal controls",
-  endTurnProcessesOnAbort: "Cybion cancels a turn, but exposes no per-turn control over the processes it started",
-};
 
 interface Held {
   readonly input: string;
@@ -140,6 +125,19 @@ export function cybionSessionWith(client: Parameters<typeof openThread>[0]): Sta
       return result;
     };
 
+    /**
+     * Record the turn a steer started when it missed the turn it aimed at. Cybion
+     * already holds the input, so nothing is sent: what the stream needs is the
+     * request record of the turn it started, the way an adapter-held input is
+     * dispatched (`dispatch` above), so that turn has its own `turn_started`.
+     */
+    const adoptSteer = async (input: string, images: InputOptions["images"], recordIdx: number | null): Promise<void> => {
+      await kernel.control({ kind: "prompt", input, ...(images === undefined ? {} : { images }) }, (): ResponseBody => {
+        tracker.follow(recordIdx);
+        return { kind: "accepted" };
+      });
+    };
+
     const drain = async (): Promise<void> => {
       if (disposed || draining) {
         return;
@@ -203,17 +201,27 @@ export function cybionSessionWith(client: Parameters<typeof openThread>[0]): Sta
       },
       steer: async (input: string, inputOptions?: InputOptions): Promise<ControlResult> => {
         const result = await kernel.control({ kind: "steer", input, ...inputOptions }, async (): Promise<ResponseBody> => {
+          // A steer continues the turn that runs. With no turn followed there is
+          // nothing to continue, and writing would start a turn this session is not
+          // following — so the caller keeps the input.
           if (!tracker.busy()) {
             return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" };
           }
           const outcome = await send(input, inputOptions?.images, false);
-          // Cybion takes the input into the running turn: the request in flight is
-          // cancelled, the Thread stays `running`, and the turn this tracker follows
-          // continues and ends once, after this input — so the following is not
-          // replaced. Only a turn that had already ended leaves the input starting
-          // one of its own, which the tracker then follows.
           if (outcome.kind === "accepted") {
-            tracker.steer(acceptedRecordOf(outcome.native));
+            const recordIdx = acceptedRecordOf(outcome.native);
+            if (tracker.busy()) {
+              // Cybion takes the input into the running turn: the request in flight
+              // is cancelled, the Thread stays `running`, and the turn keeps going
+              // and ends once, after this input.
+              tracker.steer(recordIdx);
+            } else if (!draining) {
+              // The turn ended while the write was in flight, so Cybion started one
+              // for this input alone: it is a turn of its own, and nothing else is
+              // following it. (A dispatch in flight will follow a turn that already
+              // holds this input, so it needs nothing here.)
+              await adoptSteer(input, inputOptions?.images, recordIdx);
+            }
           }
           return outcome;
         });
@@ -241,10 +249,21 @@ export function cybionSessionWith(client: Parameters<typeof openThread>[0]): Sta
         // because that router authenticates the same bearer credential. The turn
         // then ends through the Thread's own `stopped` status, not here.
         const result = await kernel.control({ kind: "abort" }, async (): Promise<ResponseBody> => {
-          if (!tracker.busy()) {
+          const aborted = tracker.turnId();
+          if (aborted === null) {
             return { kind: "rejected", code: "no_active_turn", reason: "no active turn" };
           }
           const stopped = await cancelThread(client, thread.id);
+          if (stopped.kind !== "accepted") {
+            return stopped;
+          }
+          // The cancel route takes no turn id, so its answer is read rather than
+          // trusted: Cybion answers `stopped` only for a Thread it actually stopped,
+          // and answers an idle Thread unchanged when the turn had already ended.
+          // A turn that came and went while the cancel travelled is not this call's.
+          if (answeredStatusOf(stopped.native) !== "stopped" || tracker.turnId() !== aborted) {
+            return { kind: "rejected", code: "no_active_turn", reason: "no active turn", native: stopped.native };
+          }
           return stopped;
         });
         return result;

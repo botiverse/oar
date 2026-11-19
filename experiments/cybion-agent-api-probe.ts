@@ -203,7 +203,11 @@ async function liveProbe(baseUrl: string, apiKey: string): Promise<void> {
   await waitFor(() => first.status().value.kind === "running", TURN_BUDGET_MS, "the long turn never started");
   const endedBefore = events.filter((event) => event.kind === "turn_ended").length;
   const startedBefore = events.filter((event) => event.kind === "turn_started").length;
-  const steered = await first.steer("Stop waiting for that command and reply with the single word: pong.");
+  const steer = first.steer?.bind(first);
+  if (steer === undefined) {
+    throw new Error("the cybion runtime advertises steer, but the opened session has none");
+  }
+  const steered = await steer("Stop waiting for that command and reply with the single word: pong.");
   console.log(`steer                ${steered.kind} status=${first.status().value.kind}`);
   await waitFor(() => first.status().value.kind === "idle", TURN_BUDGET_MS, "the steered turn never ended");
   const endedAfter = events.filter((event) => event.kind === "turn_ended").length;

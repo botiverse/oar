@@ -50,7 +50,7 @@ const message = (id: number, text: string) => ({
  */
 function runningDeployment() {
   let nextId = 1;
-  const state = { running: false, history: [] as unknown[] };
+  const state: { running: boolean; history: unknown[]; onInput: ((sent: number) => Promise<void>) | null } = { running: false, history: [], onInput: null };
   const sent: string[] = [];
   const fetch = async (raw: string | URL | Request, init?: RequestInit): Promise<Response> => {
     const url = new URL(typeof raw === "string" ? raw : raw instanceof URL ? raw.href : raw.url);
@@ -61,6 +61,7 @@ function runningDeployment() {
     }
     if (method === "POST" && url.pathname === "/v1/threads/t1/inputs") {
       const body = JSON.parse(String(init?.body)) as { input: string };
+      await state.onInput?.(sent.length + 1);
       sent.push(body.input);
       const id = nextId;
       nextId += 1;
@@ -125,6 +126,38 @@ describe("steering a cybion turn", () => {
     expect(events.find((event) => event.kind === "text_delta")).toMatchObject({ text: "answered instead" });
     await session.dispose();
   }, 20_000);
+
+  it("records the turn a steer started when the turn ended before the write landed", async () => {
+    const deployment = runningDeployment();
+    vi.stubGlobal("fetch", deployment.fetch);
+    const runtime = createCybionRuntime({ baseUrl: "https://cybion.test", apiKey: "cyb_me_secret" });
+    const session = await runtime.session({ kind: "available", via: "bundled" }, { cwd: "/work" });
+    const events: Event[] = [];
+    session.events((event) => events.push(event));
+
+    expect((await session.prompt("run the long command")).kind).toBe("accepted");
+    await until(() => session.status().value.kind === "running");
+    // The Thread finishes the turn while the steer is on the wire, so Cybion starts
+    // a turn for that input alone and nothing else is watching it.
+    deployment.state.onInput = async () => {
+      deployment.state.running = false;
+      await new Promise((resolve) => setTimeout(resolve, 900));
+    };
+    const steered = await session.steer("late input");
+    expect(steered.kind).toBe("accepted");
+    await until(() => events.filter((event) => event.kind === "turn_ended").length === 1);
+
+    const started = events.filter((event) => event.kind === "turn_started");
+    expect(started).toHaveLength(2);
+    expect(started[1]).toMatchObject({ input: "late input" });
+
+    deployment.state.history.push(message(4, "answered late"));
+    deployment.state.running = false;
+    await until(() => events.filter((event) => event.kind === "turn_ended").length === 2);
+    expect(events.filter((event) => event.kind === "turn_ended").at(-1)).toMatchObject({ outcome: { kind: "completed" } });
+    expect(events.filter((event) => event.kind === "text_delta").at(-1)).toMatchObject({ text: "answered late" });
+    await session.dispose();
+  }, 25_000);
 
   it("answers no_active_turn when nothing runs, and sends nothing", async () => {
     const deployment = runningDeployment();
@@ -206,6 +239,38 @@ describe("a steer's place in the tracked turn", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
+
+  it("does not end the turn while an accepted steer awaits its run", async () => {
+    const harness = tracked({ status: "running", display: "running", history: [] });
+    harness.tracker.follow(1);
+    harness.state.history.push(input(1, "run the long command"), message(2, "still working"));
+    await harness.nextPoll();
+    harness.state.status = "idle";
+    harness.state.display = "completed";
+    await harness.nextPoll();
+
+    // Accepted into the turn, but Cybion has not picked the input up yet: the
+    // turn's work is done, and every idle read here says nothing about the run
+    // this input will get.
+    harness.tracker.steer(3);
+    await harness.nextPoll();
+    await harness.nextPoll();
+    expect(harness.ends()).toHaveLength(0);
+    expect(harness.tracker.busy()).toBe(true);
+
+    harness.state.status = "running";
+    harness.state.display = "running";
+    harness.state.history.push(input(3, "never mind, answer now"), message(4, "answered instead"));
+    await harness.nextPoll();
+    harness.state.status = "idle";
+    harness.state.display = "completed";
+    await harness.nextPoll();
+    await harness.nextPoll();
+
+    expect(harness.ends()).toHaveLength(1);
+    expect(harness.events().filter((event) => event.kind === "user_message").map((event) => event.input)).toEqual(["run the long command", "never mind, answer now"]);
+    harness.tracker.close();
+  }, 15_000);
 
   it("keeps the turn when the write lands while a status read already says idle", async () => {
     const harness = tracked({ status: "running", display: "running", history: [] });
