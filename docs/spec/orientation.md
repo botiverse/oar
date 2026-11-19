@@ -73,6 +73,16 @@ reader already running: a reader that ignores its deadline can outlive the
 snapshot. Separate `orient` calls do not share budgets or concurrency;
 hosts own scheduling across calls.
 
+### Native reader deadlines
+
+For read-only queries that start an owned native process, `timeoutMs` is a
+hard deadline for the whole call. At the deadline OAR returns the native
+answer if it already arrived, or the reader's timeout outcome otherwise.
+OAR remains responsible for stopping the owned process tree after return.
+Shutdown has a bounded grace period and escalates to forced termination.
+An immediate retry against the same runtime can encounter a port or file
+lock that the previous process has yet to release.
+
 ## Optional customization counts
 
 `include: ["customization"]` runs the native skill, command, MCP and tool
