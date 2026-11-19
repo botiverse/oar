@@ -37,9 +37,10 @@ The remaining sections retain the September observations.
 
 ## Skill provenance
 
-The [shared mapping table](../spec/inventory.md#skill-provenance) normalizes
-explicit classifications while retaining native `source`. These sources were
-checked on November 16; not every enum member has a live fixture observation.
+Each adapter's skills reader maps these native labels to the shared
+[`scope`](../spec/inventory.md#skill-provenance) and keeps the native
+`source`. These sources were checked on November 16; not every enum member
+has a live fixture observation.
 
 - Claude 2.1.325: `get_context_usage.skills.skillFrontmatter` reports `source`
   and `pluginName`. The native source selector distinguishes built-in, settings,

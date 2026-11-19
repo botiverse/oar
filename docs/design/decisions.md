@@ -800,6 +800,12 @@ duplication and add upkeep; removing the duplication removes the class of
 error. Readers are increasingly agents, which read the adapter directly.
 The [Devin page](../runtimes/devin.md) is the first one written this way.
 
+Spec pages follow the same rule. A spec page states the cross-runtime
+semantics a type cannot carry (what a result means, what a call may do to
+the machine, what is never promised) and leaves which runtime does what to
+the adapters and their declarations. Per-runtime tables on spec pages had the
+same errors the runtime pages had.
+
 The same audit found a process left running after a status read timed out,
 because each adapter bounded its one-shot native query its own way. The
 requirement adopted here: one-shot native queries share one helper that stops
