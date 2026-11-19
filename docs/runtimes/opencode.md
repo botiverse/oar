@@ -53,6 +53,18 @@ own OpenCode configuration. The MCP and failure-class vendor fixtures use
 small temporary Git projects so they do not wait for snapshots of the OAR
 checkout; native snapshots stay enabled.
 
+## Automatic compaction
+
+On OpenCode v1, hosts cannot observe the start or end of automatic
+compaction over ACP. In 1.19.6 the summary streamed as ordinary
+`agent_message_chunk` text with a message ID. The prompt returned
+`end_turn` with empty `_meta`. Context usage stayed at 1,000 across a
+confirmed compaction and dropped from 195,000 to 1,000 in a session with
+compaction disabled. OAR therefore emits no `compaction_started` or
+`compaction_ended` for v1. Hosts that keep instructions in the first
+message receive no event when OpenCode summarizes that history.
+[Native recording and controls](../../experiments/opencode-auto-compaction/README.md).
+
 ## Manual compaction
 
 The v2 session exposes idle-only `compact()` through native `/compact`.
