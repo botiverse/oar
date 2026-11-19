@@ -110,7 +110,7 @@ adapter-held queue, including the exceptions below:
 | OpenCode v2 | The compact prompt RPC answer, after recording preceding markers |
 | Qoder | Matching `command_lifecycle completed/cancelled`, with or without an ordinary result |
 | Cursor | The returned run's native terminal result, after the bounded stream drain |
-| DSH | The `compact` command answer or error for the request's command id, after the matching compaction start and end |
+| DSH | The matching `compact` command answer or error. Completion also requires matching start and end markers |
 
 DSH, Factory, Grok, OpenCode and Qoder compact requests carry
 `settledBy: "native_response"`; their terminal frames carry the exact
