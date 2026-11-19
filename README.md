@@ -242,6 +242,7 @@ Every command: [packages/cli](packages/cli/README.md) (published as `@botiverse/
 - [repo-harness](https://github.com/aimpact-inc/repo-harness): file-backed workflow harness for Claude Code and Codex sessions.
 - [Eta](https://github.com/0xfe-project/eta): a self-contained multi-agent loop, runtime and app.
 - [dsh-agent-team](https://github.com/Contexera/dsh-agent-team): agent teams for DeepSeek Harness.
+- [dsh-engine-switch](https://github.com/Goodfun-Studio/dsh-engine-switch): a DeepSeek Harness plugin that hands the main session to another agent runtime.
 - [ducter](https://github.com/wey-gu/ducter): a personal AI that hands work to coding agents on your machines.
 - [tmux-agent-deck](https://github.com/RayzPub/tmux-agent-deck): control tmux sessions and coding agents from a web terminal.
 
