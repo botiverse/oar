@@ -276,7 +276,9 @@ keeps npm-pack timing and failure diagnostics outside the installer deadline.
 
 CI ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) skips a push
 or pull request whose changes are all Markdown files or under `docs/` or
-`assets/`. Otherwise it runs these jobs. The `behavior`, `acp-behavior` and
+`assets/`. Otherwise it runs these jobs (a native version named below is
+the pin when it was written; [`.github/runtime-versions.json`](../.github/runtime-versions.json)
+is authoritative). The `behavior`, `acp-behavior` and
 Pi RPC jobs are chosen by [`.github/scripts/ci-select.mjs`](../.github/scripts/ci-select.mjs):
 a pull request runs, on Linux only, the backends its changed files can reach
 (a runtime's own directory or its vendor tests reach that runtime; shared code,
@@ -292,7 +294,7 @@ still cannot ship.
   plus offline Cursor SDK skill-loader parity against the same local fixtures,
   then native checks: OpenCode 2.2.7 isolated native
   tool cleanup (readiness, surviving-peer and final residual-process
-  assertions); and Kimi 2.4.1's native login tests against a local
+  assertions); and Kimi's native login tests against a local
   OAuth/model server, including browser suppression and credential writes,
   plus native workspace skill discovery cleanup on success, error and timeout.
   The agy CLI 1.5.11 (Antigravity) is installed from official platform
@@ -350,7 +352,7 @@ still cannot ship.
   events, the last active cases, combined Vitest output and redacted Pi RPC
   stderr tails. None of this changes an assertion, concurrency or native
   deadline, or establishes the cause of the intermittent Windows hangs.
-- `acp-behavior`: Kimi 2.4.1, Grok 1.0.70, OpenCode v1 1.19.5 and CodeBuddy 2.179.3 on
+- `acp-behavior`: Kimi, Grok, OpenCode v1 and CodeBuddy on
   Linux and macOS: shared behavior and vendor tests against native programs
   with local scripted providers, isolated configuration, synthetic keys and
   npm download caches. Shared-case
