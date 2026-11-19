@@ -1,10 +1,12 @@
 # Orientation
 
 `orient(registry, options?)` runs a registry's existing readers under one
-time budget and returns what each one said. It never opens a session,
-submits a prompt, installs software or starts a login. It has no
-runtime-name branches. The types are in `contracts/orientation.ts`, the
-behavior in `shared/orientation/` and `tests/orientation.test.ts`.
+time budget and returns what each one said. It never calls
+`Runtime.session`, submits a prompt, installs software or starts a login;
+a native model reader can still open a session of its own (see the depth
+table). It has no runtime-name branches. The types are in
+`contracts/orientation.ts`, the behavior in `shared/orientation/` and
+`tests/orientation.test.ts`.
 
 ```ts
 import { defaultRuntimes, orient } from "@botiverse/oar";
@@ -75,8 +77,11 @@ inventories in an empty temporary directory, at any depth. That directory
 keeps project content out; it does not sandbox the user's configuration.
 These reads can execute user code, start the runtime, connect MCP servers
 and reach the network, so `local` depth's no-network promise does not cover
-them. A count appears only when the catalog is complete and every entry's
-provenance is known; otherwise the category is absent, never zero.
+them. If any inventory times out, the whole probe is `timed_out`; if any
+fails, is unavailable or is partial, the whole probe is `failed`. Among
+complete catalogs, a category whose entries' provenance is not all known,
+or that only reflects context or MCP servers, is left out rather than
+guessed; a complete empty catalog counts zero.
 
 ## Readiness is host policy
 
