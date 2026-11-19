@@ -291,7 +291,9 @@ cross-process live attachment, and load-fallback code effects remain
 **unverified** through OAR.
 
 Native [session fork](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/extensions/session_admin.rs#L994-L1007)
-exists as `x.ai/session/fork`; OAR exposes no fork operation.
+exists as `x.ai/session/fork`. The Grok adapter refuses
+`SessionOptions.fork` because it has no verified mapping for copying a saved
+session through a chosen turn.
 
 ### Interrupted input
 

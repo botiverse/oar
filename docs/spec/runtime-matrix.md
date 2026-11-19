@@ -888,6 +888,8 @@ prompt for that value ([evidence](../runtimes/opencode.md#models-effort-instruct
 OpenCode v2 refuses both prompt options after checking the installed line
 (v1 supports both): there is no verified session-local injection path, and
 its instruction loader ignores the v1 `instructions` configuration.
+At open, OpenCode v1 also refuses a non-empty `additionalDirectories` list
+([additional directories](#additional-directories)).
 
 Grok 1.0.70 refuses any explicitly supplied append-only prompt on resume,
 even unchanged text, since native `rules` is not reapplied without an override

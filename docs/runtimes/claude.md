@@ -87,6 +87,11 @@ regressions. Claude's permission requests remain recorded without an answer.
 
 ### Session creation and resume
 
+Claude refuses `goals: true` and `endTurnProcessesOnAbort: true` at open.
+Native `/goal` is a prompt command. OAR has no verified way to end only
+the processes owned by an aborted turn while keeping the session usable.
+[Declared refusals](../../packages/oar/src/runtimes/claude/options.ts).
+
 OAR's resume call:
 
 ```sh

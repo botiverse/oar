@@ -1,6 +1,7 @@
 # Cursor
 
-Independent inventories: not implemented for Cursor yet.
+Cursor exposes an independent [skill catalog](#skill-discovery). The command,
+MCP server and tool inventories return `unsupported`.
 See the [query contract](../spec/inventory.md) and [native probe evidence](inventory.md).
 
 Initial evidence baseline: **`@cursor/sdk` 1.0.35** (Cursor's official TypeScript
@@ -788,7 +789,7 @@ including a map whose only entries are `null` removals. In subprocess mode
 `env` is the session child's environment, over the host's or over nothing
 ([child environment](#child-environment)), and the agent's tools inherit
 it. `refusedSessionOptions` declares the in-process `env` refusal, and in
-both modes `goals`, `endTurnProcessesOnAbort`, `outputSchema`, `name`,
+both modes `fork`, `goals`, `endTurnProcessesOnAbort`, `outputSchema`, `name`,
 `serviceTier`, `systemPrompt`, `appendSystemPrompt` and `launchArgs`
 ([refused session options](../spec/runtime-matrix.md#refused-session-options)),
 before any session opens. The
@@ -1006,8 +1007,8 @@ to the host's stderr, out of OAR's reach; it names the backend, not the
 verifier.
 
 An SDK handed over without `Cursor.auth` or `FileCredentialStore` makes the
-login `unsupported` / `version_unsupported` (its detail names the required
-1.3.1), and one without `Cursor.auth` makes the status `unknown`; an
+login `unsupported` / `version_unsupported` (the detail names the SDK version
+required by this OAR release), and one without `Cursor.auth` makes the status `unknown`; an
 installation other than `bundled` is `unsupported_installation`, and an SDK
 that fails to load `process_failed`. Verified against a stand-in SDK that
 runs the 1.0.35 order: URL relayed, success with the account, a cancel while
