@@ -26,9 +26,10 @@ Devin behaves, and why OAR maps it this way.
 - **Refused options.** Each reason is in `refusedSessionOptions`. One is not
   obvious: `initialize` advertises `additionalDirectories`, but whether the
   primary `cwd` and tool scoping honor it is unverified.
-- **Turn failures.** Only sign-in failures are recognized (logged out:
-  `-32000`; bad key at open: `-32603` "Authentication required"). Rate-limit,
-  quota and billing payloads need a live account to capture.
+- **Turn failures.** Only sign-in failures have been measured for Devin
+  (logged out: `-32000`; bad key at open: `-32603` "Authentication
+  required"). Rate-limit, quota and billing payloads need a live account to
+  capture.
 - **No login or logout.** Every native route needs a terminal or a browser
   Devin opens itself: `devin auth login` waits on an interactive selector;
   the manual-token flow reads its code from `/dev/tty` and refuses to run
@@ -63,19 +64,28 @@ installer behaviors shape OAR's plan:
   binary, so OAR judges the result by probing the installation again, not by
   the exit code.
 
-Update checks read the `distribution` marker beside the real binary and fetch
-that channel's manifest. Homebrew, desktop and enterprise-portal installs have
-no marker and are reported as unsupported installations. There is no
+Update checks resolve the real executable, read the `distribution` marker
+at `../distribution` relative to its directory, and fetch that channel's
+manifest. A missing or unrecognized marker makes the installation
+unsupported for update checks; Homebrew, desktop and enterprise-portal
+installs update through their own channel. There is no
 `upgrade`: `devin update` asks for confirmation and has no `--yes`.
 
 ## Side effects of reading
 
-Model listing opens a native session in the listing `cwd` and then deletes
-it (or closes it, which keeps its database row, when Devin offers no delete).
-This creates Devin's session database, config and a lock file. The skill
-catalog can create config, telemetry and plugin-lock files and attempts
+`orient()` at its default depth reads neither of the following. Depth
+`models` runs `listModels`; `include: ["customization"]` runs the skill
+catalog.
+
+Model listing opens a native session in the listing `cwd` without
+prompting it, then sends `session/delete` when `initialize` advertises
+`delete`, `session/close` when it advertises only `close`, and neither
+otherwise. On 3000.12.57, `session/delete` removes the entry from
+`session/list` and `sessions.db`; `session/close` unloads it but leaves the
+row. Listing creates Devin's session database, config and a lock file. The
+skill catalog can create config, telemetry and plugin-lock files and attempts
 feature-flag and telemetry connections even without an account; no switch to
-disable them was found. Default `orient()` depths read neither.
+disable them was found.
 
 ## Verification and open gaps
 

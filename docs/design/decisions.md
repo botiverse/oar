@@ -801,9 +801,10 @@ error. Readers are increasingly agents, which read the adapter directly.
 The [Devin page](../runtimes/devin.md) is the first one written this way.
 
 The same audit found a process left running after a status read timed out,
-because each adapter bounded its one-shot native query its own way. One-shot
-native queries share one helper that stops the process tree at the deadline,
-with a contract test across runtimes.
+because each adapter bounded its one-shot native query its own way. The
+requirement adopted here: one-shot native queries share one helper that stops
+the process tree at the deadline, with a contract test across runtimes. The
+helper follows this decision.
 
 **What would reopen it:** a host that cannot get what it needs from the
 declarations, contracts and code, and needs an implementation fact on the
