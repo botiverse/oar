@@ -4,6 +4,8 @@
  * (`UnsupportedOptionError`, `Runtime.refusedSessionOptions`).
  */
 
+export type UserConfigurationCategory = "settings" | "mcp" | "instructions";
+
 /**
  * One MCP server a session attaches (`SessionOptions.mcpServers`), in ACP's
  * `McpServer` shape: a stdio server the runtime starts (`command`, `args`,
@@ -197,18 +199,15 @@ export interface SessionOptions {
    */
   readonly env?: Readonly<Record<string, string | null>>;
   /**
-   * Whether to load user-level configuration. Defaults to `include`, the
-   * runtime's existing behavior. `exclude` skips user plugins, skills,
-   * commands, agents, MCP servers, hooks, memory and settings while retaining
-   * the native login, native session history and host-provided session options.
-   * A remote host can offer a clean configuration without asking the user to
-   * log in again or losing resume. It does not erase
-   * earlier conversation history, disable managed organization policy, or
-   * sandbox tools. Project configuration remains runtime-specific.
-   * Runtimes without a verified separation reject `exclude` with
-   * UnsupportedOptionError and declare `refusedSessionOptions.userConfiguration`.
+   * Omission, `"include"` and an empty list keep the native configuration.
+   * `"exclude"` skips user plugins, skills, commands, agents, MCP, hooks,
+   * memory and settings. All three categories together have the same effect.
+   * On Claude the settings source also supplies user-scope MCP.
+   * Native login, history, host options and organization policy remain.
+   * Project sources vary by runtime. This does not sandbox tools.
+   * See `refusedSessionOptions.userConfiguration` and `partialUserConfiguration`.
    */
-  readonly userConfiguration?: "include" | "exclude";
+  readonly userConfiguration?: "include" | "exclude" | { readonly exclude: readonly UserConfigurationCategory[] };
   /**
    * REPLACE the runtime's built-in system prompt (Claude prompt file, Codex
    * baseInstructions, Pi resource-loader systemPrompt). On Claude resume a
@@ -237,7 +236,7 @@ export interface SessionOptions {
   /**
    * MCP servers attached to THIS session, on top of the servers the runtime
    * is configured with: oar never edits the runtime's configuration or
-   * drops the user's servers unless `userConfiguration: "exclude"` is given
+   * drops the user's servers unless their configuration source is excluded
    * (claude reads the session's from a 0600 FIFO
    * oar removes once read, on Windows a temporary file removed when claude
    * exits; codex from its `thread/start` / `thread/resume` config

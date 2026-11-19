@@ -311,7 +311,9 @@ skills, commands, agents, MCP servers, hooks, memory and settings while
 keeping the native login and session history, so a host can offer a clean
 configuration without a new login or losing resume. It is not a sandbox, and
 project configuration stays runtime-specific. Claude and Cursor support it;
-other runtimes refuse it. Give it again on resume. See
+other runtimes refuse it. On Claude, `{ exclude: ["instructions"] }` leaves
+settings and MCP active. You can combine `settings`, `mcp` and `instructions`.
+Give the option again on resume. See
 [user configuration](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#user-configuration).
 
 `SessionOptions.endTurnProcessesOnAbort: true` (Codex in an isolated

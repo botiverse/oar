@@ -20,15 +20,16 @@ import type { StartSession } from "./session.js";
  * identifies a value of an option a host can know in advance: an
  * `mcpServers` entry carrying a credential (a non-empty `env` on a stdio
  * entry, non-empty `headers` on an http one), which every `serveMcpTools`
- * entry does. `userConfiguration` declares refusal of `"exclude"` only;
+ * entry does. `userConfiguration` refuses any nonempty exclusion;
+ * `partialUserConfiguration` refuses a nonempty proper subset;
  * `"include"` and omission keep native behavior. `fork` is any
  * `SessionOptions.fork`, with or without `through`.
  */
-export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "env" | "mcpServers" | "mcpServerCredentials" | "disallowedTools" | "launchArgs" | "serviceTier" | "additionalDirectories" | "outputSchema" | "name" | "userConfiguration" | "goals" | "endTurnProcessesOnAbort" | "fork";
+export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "env" | "mcpServers" | "mcpServerCredentials" | "disallowedTools" | "launchArgs" | "serviceTier" | "additionalDirectories" | "outputSchema" | "name" | "userConfiguration" | "partialUserConfiguration" | "goals" | "endTurnProcessesOnAbort" | "fork";
 
 /**
  * The options a runtime refuses when they are given (`env`, `mcpServers`, `disallowedTools`, `launchArgs`, `additionalDirectories`: a
- * non-empty one; `mcpServerCredentials`: an entry carrying one; `userConfiguration`: `"exclude"`), each with the reason `session()` rejects with, in the message of an
+ * non-empty one; `mcpServerCredentials`: an entry carrying one; `userConfiguration`: any exclusion), each with the reason `session()` rejects with, in the message of an
  * `UnsupportedOptionError` naming the option (`mcpServers` for `mcpServerCredentials`). Unlisted options can still have value-specific refusals (for example,
  * a tool name the native filter cannot disable); see the runtime page.
  */

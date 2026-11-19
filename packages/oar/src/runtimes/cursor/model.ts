@@ -1,3 +1,4 @@
+import { configurationExclusions } from "../../shared/user-configuration.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import { resolvedAdditionalDirectories } from "../../shared/additional-directories.js";
@@ -54,6 +55,7 @@ function findModel(models: readonly ModelListItem[], id: string): ModelListItem 
  * '--system-prompt'" (probed 2026-10-03), and there is no append.
  */
 export const cursorRefusedSessionOptions: RefusedSessionOptions = {
+  partialUserConfiguration: "Cursor settingSources controls user configuration as a group and cannot exclude individual categories",
   fork: "OAR has not verified a native Cursor fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",
   endTurnProcessesOnAbort: "Cursor runs in the host process through its SDK, so OAR owns no runtime process tree to read for one turn",
@@ -169,7 +171,7 @@ export async function openCursorAgent(sdk: CursorSdk, options: SessionOptions): 
     local: {
       cwd: options.cwd,
       ...(directories.length === 0 ? {} : { dirs: directories }),
-      settingSources: options.userConfiguration === "exclude" ? [] : ["project", "user"],
+      settingSources: configurationExclusions(options.userConfiguration).size > 0 ? [] : ["project", "user"],
       sandboxOptions: { enabled: false },
     },
   };

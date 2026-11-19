@@ -153,6 +153,7 @@ export type {
   McpServer,
   SessionFork,
   SessionOptions,
+  UserConfigurationCategory,
   RawEvent,
   SessionResources,
   SessionUsage,

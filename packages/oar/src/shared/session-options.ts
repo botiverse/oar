@@ -2,6 +2,7 @@ import type { RefusableSessionOption, RefusedSessionOptions } from "../contracts
 import type { SessionOptions } from "../contracts/session.js";
 import { UnsupportedOptionError } from "../contracts/errors.js";
 import { hasMcpCredentials } from "./mcp-servers.js";
+import { configurationExclusions, userConfigurationCategories } from "./user-configuration.js";
 import { checkRetainedBytes } from "./record-retention.js";
 
 /** The names of the `mcpServers` entries carrying a credential: `env` on a stdio entry, `headers` on an http one. */
@@ -13,7 +14,10 @@ function credentialEntries(options: SessionOptions): readonly string[] {
 export function sessionOptionGiven(options: SessionOptions, key: RefusableSessionOption): boolean {
   if (key === "goals") { return options.goals === true; }
   if (key === "endTurnProcessesOnAbort") { return options.endTurnProcessesOnAbort === true; }
-  if (key === "userConfiguration") { return options.userConfiguration === "exclude"; }
+  if (key === "userConfiguration" || key === "partialUserConfiguration") {
+    const excluded = configurationExclusions(options.userConfiguration);
+    return excluded.size > 0 && (key === "userConfiguration" || excluded.size < userConfigurationCategories.length);
+  }
   if (key === "env") {
     return options.env !== undefined && Object.keys(options.env).length > 0;
   }
@@ -35,7 +39,7 @@ export function sessionOptionGiven(options: SessionOptions, key: RefusableSessio
  */
 export function refuseSessionOptions(refused: RefusedSessionOptions, options: SessionOptions): void {
   checkRetainedBytes(options.retainedBytes);
-  for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "goals", "endTurnProcessesOnAbort", "fork"] as const) {
+  for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "partialUserConfiguration", "goals", "endTurnProcessesOnAbort", "fork"] as const) {
     const reason = refused[key];
     if (reason === undefined || !sessionOptionGiven(options, key)) {
       continue;
@@ -43,7 +47,8 @@ export function refuseSessionOptions(refused: RefusedSessionOptions, options: Se
     if (key === "mcpServerCredentials") {
       throw new UnsupportedOptionError("mcpServers", `${reason}: ${JSON.stringify(credentialEntries(options))}`);
     }
-    throw new UnsupportedOptionError(key, key === "disallowedTools" ? `${reason}: ${JSON.stringify(options.disallowedTools)}` : reason);
+    const option = key === "partialUserConfiguration" ? "userConfiguration" : key;
+    throw new UnsupportedOptionError(option, key === "disallowedTools" ? `${reason}: ${JSON.stringify(options.disallowedTools)}` : reason);
   }
   checkResume(options);
   checkFork(options);

@@ -1886,23 +1886,28 @@ Where an SDK option has a counterpart:
 
 ## User configuration
 
-`userConfiguration: "exclude"` keeps the native credential and transcript
-locations and selects `--setting-sources project,local` with
-`--strict-mcp-config`. Host MCP servers still attach. Child-only
-`CLAUDE_CODE_DISABLE_AUTO_MEMORY=1` and `ENABLE_CLAUDEAI_MCP_SERVERS=false`
-exclude automatic memory and account connectors. `claudeMdExcludes` covers
-the native and explicit config directories plus `~/CLAUDE.md` and
-`~/CLAUDE.local.md`: otherwise the project ancestor walk can load home
-memory as project memory. Project settings and memory remain enabled.
-OAR combines these settings with a requested `serviceTier` in one
-`--settings` object, because Claude replaces repeated settings arguments.
+Choose the configuration sources to leave out on each open or resume, for
+example `userConfiguration: { exclude: ["instructions"] }`. All combinations
+preserve the native login, transcript location and host-provided MCP servers.
 
-Omission and `"include"` preserve normal loading. An exclusion open rejects
-`launchArgs` that supply `--settings`, `--setting-sources` or
-`--strict-mcp-config`, because they conflict with its source selection.
-The option is not a sandbox and does not erase earlier conversation text.
+| Category | What Claude skips | What remains |
+|---|---|---|
+| `settings` | The native user settings source, including its hooks, plugins, skills, commands and agents. Selecting `--setting-sources project,local` also removes top-level user MCP servers from `.claude.json`. | Local-scope MCP for the current project, project `.mcp.json`, project hooks, and user instruction files. |
+| `mcp` | User, local and project MCP via `--strict-mcp-config`, and account connectors via `ENABLE_CLAUDEAI_MCP_SERVERS=false`. | Host session MCP, plus the settings and instructions otherwise selected. |
+| `instructions` | Home instructions and rules via `claudeMdExcludes`, and automatic memory via `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`. | Project memory and the selected settings and MCP sources. |
 
-Exclusion also rejects a user directory that lies on the native cwd's ancestor
+The instruction exclusions cover the default and explicit config directories,
+`~/CLAUDE.md` and `~/CLAUDE.local.md`, including when the project is below
+home. A custom automatic-memory directory configured in user settings also
+disappears when that settings source is omitted. OAR combines instruction
+exclusions and a requested service tier in one `--settings` argument.
+
+Omission, `"include"` and an empty exclusion list preserve normal loading.
+`"exclude"` selects all three categories. An open rejects host launch flags
+that override a selected category's managed flag. Earlier conversation text
+remains available on resume.
+
+Excluding settings or instructions also rejects a user directory that lies on the native cwd's ancestor
 chain by real path but not by its configured spelling, before starting a
 process. This includes a `.claude` directory on that chain that aliases the
 configured user directory. Symlinks or Windows junctions outside the ancestor
