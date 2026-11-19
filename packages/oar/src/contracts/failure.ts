@@ -63,10 +63,9 @@ export type FailedTurn =
     /**
      * When the limit resets, where the runtime reports that time for this
      * failure (claude's subscription limits, Codex's preserved provider body
-     * or attributable current-turn exhausted window;
+     * or attributable current-turn exhausted window, agy's native reset countdown;
      * docs/spec/runtime-matrix.md#when-a-limit-resets).
-     * Absent otherwise, never derived from an account-usage read or the
-     * runtime's prose. It is the runtime's last report, which may be older
+     * Absent otherwise, never derived from a separate account-usage read. It is the runtime's last report, which may be older
      * than the failure: a time already past means the host should treat the
      * reset as unknown. A fact, not a retry: oar does not continue the
      * session when it passes.

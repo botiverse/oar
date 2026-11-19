@@ -1,3 +1,6 @@
+/* oxlint-disable import/max-dependencies -- The ACP profile composes Antigravity launch, configuration, token and outcome readers. */
+import { antigravityQuotaError, antigravityQuotaNotice } from "./quota.js";
+import { wholePromptTokenUsage } from "../../shared/acp/token-usage.js";
 import { configureAntigravityModel } from "./model-selection.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { antigravityStateArgs } from "./state-directory.js";
@@ -37,6 +40,9 @@ export const antigravityAcpProfile: AcpSessionProfile = {
   capabilities: { queue: { durable: false }, attribution: "opaque" },
   steerParams: () => ({}),
   steerSupersedesPrompt: true,
+  promptTokenUsage: wholePromptTokenUsage,
+  promptOutcome: antigravityQuotaNotice,
+  failureOutcome: (error, _frames, receivedAt) => antigravityQuotaError(error, receivedAt),
   steerOutcomeIsLatest: true,
   // Native invalid image prompts return invalid-params without entering the loop.
   isSteerRefusal: (error) => rpcErrorCode(error) === -32_602,

@@ -66,8 +66,10 @@ const THIRD_PARTY_WEEKLY = "1";
 test("rate limited only when every group is used up and agy reports no AI credits", () => {
   expect(projectAntigravityUsage(withUsedUp(GEMINI_5H), 0)).toMatchObject({ rateLimited: false });
   const allGone = withUsedUp(GEMINI_5H, THIRD_PARTY_WEEKLY);
-  expect(projectAntigravityUsage(allGone, 0)).toMatchObject({ rateLimited: true });
-  for (const credits of [undefined, null, 3]) {
+  expect(projectAntigravityUsage(allGone, 0)).toMatchObject({ rateLimited: true, credits: { available: false, balance: "0" } });
+  expect(projectAntigravityUsage(allGone, 3)).toMatchObject({ rateLimited: false, credits: { available: true, balance: "3" } });
+  for (const credits of [undefined, null]) {
+    expect(projectAntigravityUsage(allGone, credits)).not.toHaveProperty("credits");
     expect(projectAntigravityUsage(allGone, credits)).toMatchObject({ rateLimited: false });
   }
 });
@@ -88,6 +90,7 @@ test("agy's /credits answer: the number, or null when it does not say", () => {
   const credits: unknown = JSON.parse(readFileSync(path.join(import.meta.dirname, "agy-1.5.7-credits.json"), "utf8"));
   expect(projectAntigravityCredits(credits)).toBe(0);
   expect(projectAntigravityCredits({ status: "ERROR" })).toBeNull();
+  expect(projectAntigravityCredits({ status: "SUCCESS", command: { name: "credits", data: { remaining_credits: "0" } } })).toBeNull();
 });
 
 test("a sliver of quota left is not used up", () => {

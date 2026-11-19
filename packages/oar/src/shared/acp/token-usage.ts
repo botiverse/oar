@@ -1,5 +1,5 @@
 import type { RuntimeEventBody, TokenTotals } from "../../contracts/session.js";
-import type { JsonRecord } from "../json.js";
+import { asNumber, asRecord, type JsonRecord } from "../json.js";
 import { acpPromptUsage } from "./projection.js";
 import type { AcpSessionProfile } from "./profile.js";
 
@@ -29,5 +29,27 @@ export function createAcpTokenUsage(profile: AcpSessionProfile, sentByOar: (prom
       ({ billed } = reading);
       return reading.event;
     },
+  };
+}
+
+/** Opt in only for runtimes whose standard ACP reply accounts for the whole prompt.
+ * Total less output includes cached input regardless of how the vendor splits it.
+ * agy 1.5.12 has only reported zero cache writes on the verified Gemini paths.
+ */
+export function wholePromptTokenUsage(response: JsonRecord): TokenTotals | null {
+  const usage = asRecord(response.usage);
+  if (usage === null) { return null; }
+  const total = asNumber(usage.totalTokens);
+  const output = asNumber(usage.outputTokens);
+  const inputTokens = asNumber(usage.inputTokens);
+  if (total === null || output === null || inputTokens === null || output < 0 || inputTokens < 0 || total - output < inputTokens) { return null; }
+  const input = total - output;
+  const read = asNumber(usage.cachedReadTokens);
+  const thought = asNumber(usage.thoughtTokens);
+  return {
+    input, output,
+    ...(read !== null && read >= 0 && read <= input ? { cacheRead: read } : {}),
+    ...(usage.cachedWriteTokens === 0 ? { cacheWrite: 0 } : {}),
+    ...(thought !== null && thought >= 0 && thought <= output ? { reasoning: thought } : {}),
   };
 }

@@ -1,7 +1,14 @@
 /* oxlint-disable eslint/max-statements, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument, import/no-nodejs-modules, unicorn/numeric-separators-style -- Raw ACP fake for the measured early-answer lifecycle. */
 import { existsSync, readFileSync } from "node:fs";
 
-export default function replacingPrompt(text, message, { pendingPrompts, result, error }) {
+export default function replacingPrompt(text, message, { pendingPrompts, result, error, update }) {
+  if (text.startsWith("agy-replay:") === true) {
+    const replay = JSON.parse(text.slice("agy-replay:".length));
+    for (const frame of replay.updates) { update(frame); }
+    if (replay.error === undefined) { result(message.id, replay.response); }
+    else { error(message.id, replay.error.code, replay.error.message, replay.error.data); }
+    return true;
+  }
   if (text === "agy-refused-race" || text === "agy-natural-before-refusal") {
     if (text === "agy-refused-race") { error(message.id, -32602, "Invalid params: image is empty"); }
     for (const id of pendingPrompts.keys()) { result(id, { stopReason: "end_turn" }); }

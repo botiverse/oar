@@ -270,7 +270,8 @@ SessionView preserve it through JSON replay.
 | cursor | `turn-ended.usage.reasoningTokens` | SDK 1.0.37 `TokenUsage` / `TurnUsageInput`; optional subset of output [src] |
 | dsh | `usage.reasoningTokens` of durable `assistant/message` | optional native field [src]; the tested pi-ai route drops the provider's count, so it was absent on the wire |
 | factory | absent: `tokenUsage.thinkingTokens` stays in the native frame | whether `outputTokens` includes it is not established without a Factory model ([factory](../runtimes/factory.md#usage-and-context)) |
-| claude, kimi, opencode, antigravity, qwen, qoder, codebuddy, devin | absent | no verified native reasoning counter on the integrated surface |
+| antigravity | `session/prompt` usage `thoughtTokens` | Gemini's 5 candidate and 3 thought tokens yielded 8 output, including 3 reasoning, on [agy 1.5.12](../../experiments/antigravity-prompt-usage/README.md) |
+| claude, kimi, opencode, qwen, qoder, codebuddy, devin | absent | no verified native reasoning counter on the integrated surface |
 
 [Accounting regressions](../../tests/reasoning-tokens.test.ts) pin absence,
 zero, agent/child totals and replay. The
@@ -312,7 +313,8 @@ without `input` changing under existing consumers
 | qoder | `result.usage.cache_read_input_tokens` | `result.usage.cache_creation_input_tokens` | both added into `input`; per-query reports summed since open; the local probe reported zero cache counts ([qoder](../runtimes/qoder.md#usage-and-failures)) [env] |
 | dsh | durable `usage.cacheReadTokens` | durable `usage.cacheWriteTokens` | both added into `input`: native `inputTokens` excludes them (60 plus 40 cached of a provider 100 [env]); `cacheWriteTokens` not yet seen on a wire |
 | factory | `agent_turn_completed.tokenUsage.cacheReadTokens` | `tokenUsage.cacheCreationTokens` | both added into `input` (droid reports them beside `inputTokens`); per-turn counts summed since open ([factory](../runtimes/factory.md#usage-and-context)) |
-| kimi, opencode, antigravity, codebuddy | absent | absent | no token totals reported, `usage().total` stays null |
+| antigravity | `cachedReadTokens` | observed `cachedWriteTokens: 0` | each prompt contributes `totalTokens - outputTokens` input; nonzero writes are unverified ([native controls](../../experiments/antigravity-prompt-usage/README.md)) |
+| kimi, opencode, codebuddy | absent | absent | no token totals reported, `usage().total` stays null |
 | devin | absent | absent | no usage ledger mapped; live authenticated turns are unverified ([devin](../runtimes/devin.md#verification-and-open-gaps)) |
 
 Codex fills `cachedInputTokens` and `cacheWriteInputTokens` from the

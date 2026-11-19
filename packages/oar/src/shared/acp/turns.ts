@@ -1,6 +1,6 @@
 /* oxlint-disable import/max-dependencies, eslint/max-lines -- The turn driver composes input, protocol, projection and cancellation ownership, and reads as one state machine. */
 import type {
-  InputImage, InputOptions, RuntimeEventBody, RequestRecord,
+  InputImage, InputOptions, RawEvent, RuntimeEventBody, RequestRecord,
   ResponseBody, SessionCapabilities, TurnOutcome,
 } from "../../contracts/session.js";
 import { withdrawHeld } from "../held-input.js";
@@ -95,7 +95,7 @@ export function createAcpTurns(deps: {
   const finishRequest = (
     state: ActiveTurn,
     requestNumber: number,
-    frame: { readonly type: string; readonly native: unknown; readonly context: RuntimeEventBody | null; readonly dropped?: string | undefined; readonly steered: boolean },
+    frame: { readonly type: string; readonly native: unknown; readonly context: RuntimeEventBody | null; readonly receivedAt?: number; readonly dropped?: string | undefined; readonly steered: boolean },
     outcome: TurnOutcome | null,
   ): void => {
     state.pending.delete(requestNumber);
@@ -115,7 +115,7 @@ export function createAcpTurns(deps: {
       events.push(frame.context);
     }
     if (closes) { events.push(...closeTurn(state)); }
-    kernel.frame({ type: frame.type, native: frame.native, events });
+    kernel.frame({ type: frame.type, native: frame.native, events }, frame.receivedAt === undefined ? undefined : { receivedAt: frame.receivedAt });
   };
   const staleSteer = new Error("not_steerable: no active turn");
   const startVendorPrompt = (state: ActiveTurn, prompt: readonly JsonRecord[], extraParams: JsonRecord = {}, steered?: { readonly inputId: string | undefined; readonly respond: (body: ResponseBody) => void }): void => {
@@ -141,12 +141,14 @@ export function createAcpTurns(deps: {
         // at that end includes this turn's usage.
         await usageGate.settleAfterPrompt(profile, state.abortRequested);
         const usage = promptUsage(result);
+        const rootTurnRecords = (): readonly RawEvent[] => kernel.records().slice(state.since + 1)
+          .filter(record => record.sessionId === rootId && record.agentPath.length === 0);
         finishRequest(state, requestNumber, {
           type: methods.agent.session.prompt,
           native: result,
           context: usage,
           steered: steered !== undefined,
-        }, profile.promptOutcome?.(result) ?? defaultAcpPromptOutcome(result));
+        }, profile.promptOutcome?.(result, rootTurnRecords) ?? defaultAcpPromptOutcome(result));
       } catch (error) {
         if (steered !== undefined && !dispatch.sent) {
           state.pending.delete(requestNumber);
@@ -160,13 +162,14 @@ export function createAcpTurns(deps: {
           closeTurn(state);
           return;
         }
+        const receivedAt = Date.now();
         const turnFrames = kernel.records().flatMap((record) => (record.kind === "frame" && record.seq > state.since ? [record.body] : []));
-        const outcome = state.abortRequested ? { kind: "aborted" as const } : acpFailureOutcome(error, turnFrames, profile.failureOutcome);
+        const outcome = state.abortRequested ? { kind: "aborted" as const } : acpFailureOutcome(error, turnFrames, profile.failureOutcome, receivedAt);
         const refused = steered !== undefined && (profile.isSteerRefusal?.(error) === true || profile.steerOutcomeIsLatest !== true
           || [...state.pending].some(number => number < requestNumber && !state.answered.has(number)));
         finishRequest(state, requestNumber, {
           type: `${methods.agent.session.prompt}/error`,
-          native: acpErrorNative(error),
+          native: acpErrorNative(error), receivedAt,
           context: null,
           steered: steered !== undefined,
           ...(refused ? { dropped: steered.inputId } : {}),
