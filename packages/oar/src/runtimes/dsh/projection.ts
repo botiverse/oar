@@ -183,7 +183,7 @@ function sessionEvent(state: DshProjection, sessionId: string, session: DshSessi
     case "assistant/attempt":
       return { ...spent(session, attemptUsage(data.stream), false), links: state.links };
     case "request/context":
-      return { session: { ...session, contextWindow: asNumber(data.contextWindow) ?? session.contextWindow }, links: state.links, events: [] };
+      return { session: { ...session, contextWindow: asNumber(data.contextWindow) }, links: state.links, events: [] };
     case "request/header": {
       const config = asRecord(asRecord(data.header)?.config);
       return { ...unchanged, events: [
@@ -262,6 +262,11 @@ export function foldDsh(state: DshProjection, message: JsonRecord): DshFolded {
       state: { ...state, links: next.links, sessions: { ...state.sessions, [sessionId]: next.session } },
       frame: { ...at, body: { type: `session/event:${String(event.type)}`, native, events: next.events } },
     };
+  }
+  if (message.channel === "session/requestContext") {
+    const restored = { ...session, contextWindow: asNumber(message.contextWindow) };
+    return { state: { ...state, sessions: { ...state.sessions, [sessionId]: restored } },
+      frame: { ...at, body: { type: message.channel, native, events: [] } } };
   }
   if (message.channel === "goal/read") {
     const goal = dshGoal(asRecord(native)?.goal);

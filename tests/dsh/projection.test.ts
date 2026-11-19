@@ -195,6 +195,22 @@ test("a failure without a known code falls to its reported status and never pars
   expect(dshFailureClass(null)).toBe("unknown");
 });
 
+test("a restored window belongs to its session and a new request can clear it", () => {
+  const usage = { inputTokens: 100, outputTokens: 12, totalTokens: 112 };
+  const events = eventsOf([
+    native("session/requestContext", { contextWindow: 1000 }),
+    durable("assistant/message", { usage }, { sessionId: "child" }),
+    durable("assistant/message", { usage }),
+    durable("request/context", { provider: "p", model: "m2" }),
+    durable("assistant/message", { usage }),
+  ]);
+  expect(events.map((event) => event.kind === "usage" && event.usage.context)).toEqual([
+    { tokens: 112, contextWindow: null, percent: null },
+    { tokens: 112, contextWindow: 1000, percent: 11 },
+    { tokens: 112, contextWindow: null, percent: null },
+  ]);
+});
+
 // oxlint-disable-next-line eslint/max-lines-per-function -- One inline snapshot of one running total.
 test("usage is native: cache parts count as input, totals run per session, an empty failed attempt reports nothing", () => {
   const { state, frames } = replay([

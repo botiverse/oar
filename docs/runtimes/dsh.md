@@ -151,7 +151,13 @@ Tokens are native. `inputTokens` excludes the cache counts DSH reports beside it
 so `input` adds them (60 fresh plus 40 cached is 100). A failed attempt's usage
 chunk counts when nonzero. `reasoning` copies `reasoningTokens` where reported;
 the provider route tested does not pass it on. Context uses the committed call's
-`totalTokens` over the last `request/context` window.
+`totalTokens` over the last `request/context` window. On resume, DSH can go
+many turns without repeating that event. OAR reads the saved session's
+`requestContext()` during resume and uses its window for the next usage
+report. A new `request/context` replaces that window, including when it omits
+the size. An explicit switch to another model waits for that model's own
+window. Resuming adds no historical tokens to the new handle's usage.
+[Interrupted-turn controls](../../experiments/dsh-plugin/resumed-context.md).
 
 Turn ends: `completed`; `aborted`; `error` by native code (below);
 `max-tokens` is `failed` `limit_reached`; `blocked` and any later kind are `failed`
