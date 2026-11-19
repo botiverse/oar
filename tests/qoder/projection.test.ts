@@ -50,3 +50,11 @@ test("native exposed query totals accumulate once across two turns", () => {
   expect(state.usage).toEqual({ input: 300, output: 30, cacheRead: 0, cacheWrite: 0 });
   expect(texts.join("")).toBe("OTTER_1OTTER_2");
 });
+
+test("Qoder's compacting status emits one start and the status clear emits no end", () => {
+  const events = ["compacting", null].map(status => {
+    const { commands } = foldStreamJsonStdout(qoderProjectionProfile, initialQoderProjection(), { type: "system", subtype: "status", status });
+    return commands.flatMap(command => command.kind === "frame" ? command.body.events : []);
+  });
+  expect(events).toEqual([[{ kind: "compaction_started" }], []]);
+});

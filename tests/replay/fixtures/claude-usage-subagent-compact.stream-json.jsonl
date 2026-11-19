@@ -23,7 +23,7 @@
 [{"kind":"frame","body":{"type":"assistant","native":"<original frame>","events":[{"kind":"reasoning","content":{"kind":"empty"},"messageId":"msg_011Cfs1B7x3dzPzv7nqb6Q2w"}]},"agentPath":[]}]
 [{"kind":"frame","body":{"type":"assistant","native":"<original frame>","events":[{"kind":"text_delta","text":"OK","messageId":"msg_011Cfs1B7x3dzPzv7nqb6Q2w"}]},"agentPath":[]}]
 [{"kind":"frame","body":{"type":"result/success","native":"<original frame>","events":[{"kind":"service_tier","serviceTier":"default"},{"kind":"turn_ended","outcome":{"kind":"completed"},"forkAnchor":"701bc688-b7de-407f-9b94-368ec21846ff"},{"kind":"usage","usage":{"context":{"tokens":22563,"contextWindow":200000,"percent":11},"tokens":{"input":66439,"output":863,"cacheRead":57757,"cacheWrite":8654},"total":{"input":91710,"output":1040,"cacheRead":70069,"cacheWrite":21595}}}]},"agentPath":[]}]
-[{"kind":"frame","body":{"type":"system/status","native":"<original frame>","events":[]},"agentPath":[]}]
+[{"kind":"frame","body":{"type":"system/status","native":"<original frame>","events":[{"kind":"compaction_started"}]},"agentPath":[]}]
 [{"kind":"frame","body":{"type":"system/status","native":"<original frame>","events":[]},"agentPath":[]}]
 [{"kind":"frame","body":{"type":"system/init","native":"<original frame>","events":[{"kind":"turn_active"},{"kind":"model","model":"claude-haiku-4-5-20251001"},{"kind":"service_tier","serviceTier":"default"}]},"agentPath":[]}]
 [{"kind":"frame","body":{"type":"system/compact_boundary","native":"<original frame>","events":[{"kind":"compaction_ended","outcome":"completed","trigger":"manual"}]},"agentPath":[]}]

@@ -20,6 +20,8 @@ export interface StreamJsonProjectionState {
   /** Prompt-like writes with neither queued nor started since THIS write; reset when an id is reused. */
   readonly unacknowledgedInputs: ReadonlySet<string>;
   readonly pendingInputId: string | null;
+  /** Agent paths with a native compacting status, until its clear, boundary or result. */
+  readonly compactingAgents: ReadonlySet<string>;
   readonly agents: ReadonlyMap<string, readonly string[]>;
   readonly partials: StreamJsonPartials;
 }
@@ -34,6 +36,7 @@ export const initialStreamJsonProjection: StreamJsonProjectionState = {
   unstartedInputs: new Set(),
   unacknowledgedInputs: new Set(),
   pendingInputId: null,
+  compactingAgents: new Set(),
   agents: new Map(),
   partials: new Map(),
 };

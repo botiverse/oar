@@ -115,6 +115,7 @@ function assistantAnchor(previous: string | null, message: JsonRecord): string |
 
 export const claudeProjectionProfile: StreamJsonProjectionProfile<ClaudeProjectionState> = {
   name: "claude",
+  compactingStatus: true,
   duplicateReason: "claude ignored the input: its inputId was already used in this session",
   assistant: (state, message, root) => root ? { ...state, failureCategory: typeof message.error === "string" ? message.error : state.failureCategory, context: claudeContextSent(state.context, message),
     lastAssistantUuid: assistantAnchor(state.lastAssistantUuid, message) } : state,
@@ -142,7 +143,11 @@ export const claudeProjectionProfile: StreamJsonProjectionProfile<ClaudeProjecti
   compacted: (state, root) => root ? { ...state, context: claudeContextCompacted(state.context) } : state,
   system: (state, message, agentPath) => {
     const task = claudeTaskViews(message, state.taskDescriptions, agentPath);
-    return { events: [...task.events, ...claudeServiceTierEvents(message)],
+    const events = [...task.events, ...claudeServiceTierEvents(message)];
+    if (message.subtype === "status" && message.compact_result === "failed") {
+      events.push({ kind: "compaction_ended", outcome: "failed", ...(typeof message.compact_error === "string" ? { reason: message.compact_error } : {}) });
+    }
+    return { events,
       state: task.descriptions === state.taskDescriptions ? state : { ...state, taskDescriptions: task.descriptions } };
   },
   other: (state, message) => ({ events: [], state: message.type === "rate_limit_event" ? { ...state, limitResetsAt: claudeLimitReset(asRecord(message.rate_limit_info)) } : state }),

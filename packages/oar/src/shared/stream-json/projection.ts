@@ -21,6 +21,15 @@ function attributionOf(state: StreamJsonProjectionState, message: JsonRecord): r
   return [...(state.agents.get(parent) ?? []), parent];
 }
 
+function withCompactingAgent<S extends StreamJsonProjectionState>(state: S, agentPath: readonly string[], compacting: boolean): S {
+  if (!compacting && state.compactingAgents.size === 0) { return state; }
+  const key = JSON.stringify(agentPath);
+  if (state.compactingAgents.has(key) === compacting) { return state; }
+  const agents = new Set(state.compactingAgents);
+  if (compacting) { agents.add(key); } else { agents.delete(key); }
+  return { ...state, compactingAgents: agents };
+}
+
 function rememberToolUses<S extends StreamJsonProjectionState>(state: S, message: JsonRecord, agentPath: readonly string[]): S {
   const event = asRecord(message.event);
   const partial = event?.type === "content_block_start" ? asRecord(event.content_block) : null;
@@ -79,7 +88,7 @@ export function foldStreamJsonStdout<S extends StreamJsonProjectionState>(
       const result = profile.result(state, message, agentPath);
       return event({ events: [...result.before, { kind: "turn_ended", outcome: result.outcome, ...(result.forkAnchor === undefined ? {} : { forkAnchor: result.forkAnchor }), ...(typeof message.user_message_uuid === "string" ? { inputId: message.user_message_uuid } : {}),
         ...(Array.isArray(message.user_message_uuids) && message.user_message_uuids.every((id) => typeof id === "string") ? { inputIds: message.user_message_uuids } : {}) }, ...result.after] }, {
-        ...result.state,
+        ...withCompactingAgent(result.state, agentPath, false),
         ...(agentPath.length === 0 ? { turnActive: false, nativeTurnActive: false, unclaimedInit: false, ...(state.pendingInputId === null ? { promptInputId: null } : {}) } : {}),
         abortRequested: false,
       });
@@ -88,7 +97,7 @@ export function foldStreamJsonStdout<S extends StreamJsonProjectionState>(
       if (message.subtype === "compact_boundary") {
         // This boundary reports completion, not the start of compaction.
         const trigger = asRecord(message.compact_metadata)?.trigger;
-        return event({ events: [{ kind: "compaction_ended", outcome: "completed", ...(typeof trigger === "string" ? { trigger } : {}) }] }, profile.compacted(state, agentPath.length === 0));
+        return event({ events: [{ kind: "compaction_ended", outcome: "completed", ...(typeof trigger === "string" ? { trigger } : {}) }] }, profile.compacted(withCompactingAgent(state, agentPath, false), agentPath.length === 0));
       }
       if (message.subtype === "init") {
         const initialized = profile.initStartsTurn === false ? { state, events: [] } : streamJsonInitialized(state, agentPath.length === 0, profile.commandLifecycle !== false);
@@ -97,6 +106,17 @@ export function foldStreamJsonStdout<S extends StreamJsonProjectionState>(
           ...profile.init(message)] }, initialized.state);
       }
       const next = profile.system(state, message, agentPath);
+      if (profile.compactingStatus === true && message.subtype === "status") {
+        if (message.status === null || next.events.some(view => view.kind === "compaction_ended")) {
+          return event({ events: next.events }, withCompactingAgent(next.state, agentPath, false));
+        }
+        if (message.status === "compacting") {
+          const updated = withCompactingAgent(next.state, agentPath, true);
+          // A slow summary can repeat the same status while it is still running.
+          const events = updated === next.state ? next.events : [...next.events, { kind: "compaction_started" as const }];
+          return event({ events }, updated);
+        }
+      }
       return event({ events: next.events }, next.state);
     }
     case "control_response": {

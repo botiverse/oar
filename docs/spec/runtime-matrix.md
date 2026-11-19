@@ -1384,7 +1384,9 @@ by default (`CLAUDE_CODE_MAX_RETRIES`; the runs set 1).
 | inside the stream | none: claude retries the stream, then repeats the request without streaming, and that answer ends the turn | | | |
 
 After a tool call the fields are the same; an oversized context first tries
-compaction (`system/status` `compacting`). Other `error` values claude 2.1.292
+compaction (`system/status` `compacting`). [Claude 2.1.326 controls](../../experiments/claude-compaction-start/README.md)
+observed the same start on manual compaction and automatic recovery after
+a tool result. The boundary reports the trigger. Other `error` values claude 2.1.292
 declares: `oauth_org_not_allowed`, `account_on_hold`, `verification_required`,
 `overloaded`, `max_output_tokens`, `cloud_credential_error` `[sym]`; a
 subscription's limits arrive as `rate_limit_event` frames `[sym]`, not observed
