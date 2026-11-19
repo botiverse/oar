@@ -1,0 +1,130 @@
+{
+  "auto": {
+    "sqlite": {
+      "parts": [
+        {
+          "type": "compaction",
+          "auto": true,
+          "overflow": false
+        }
+      ],
+      "summaries": [
+        {
+          "finish": "stop"
+        }
+      ]
+    },
+    "pressureProviderCalls": [
+      {
+        "turn": "pressure",
+        "kind": "assistant",
+        "input": 195000,
+        "sawSummary": false
+      },
+      {
+        "turn": "pressure",
+        "kind": "summary",
+        "input": 1000,
+        "sawSummary": false
+      },
+      {
+        "turn": "pressure",
+        "kind": "assistant",
+        "input": 1000,
+        "sawSummary": true
+      }
+    ],
+    "pressureInbound": {
+      "agent_message_chunk": 7,
+      "usage_update": 1,
+      "prompt result": 1
+    },
+    "pressurePromptResult": {
+      "stopReason": "end_turn",
+      "usage": {
+        "inputTokens": 1000,
+        "outputTokens": 20,
+        "totalTokens": 1020
+      },
+      "_meta": {}
+    },
+    "usedByTurn": {
+      "seed": [
+        1000
+      ],
+      "pressure": [
+        1000
+      ],
+      "followup": [
+        1000
+      ],
+      "mimic": [
+        1000
+      ]
+    },
+    "firstSummaryTextChunk": {
+      "turn": "pressure",
+      "update": {
+        "sessionUpdate": "agent_message_chunk",
+        "messageId": "message-2",
+        "content": {
+          "type": "text",
+          "text": "## Objective\nKeep th"
+        }
+      }
+    }
+  },
+  "control": {
+    "sqlite": {
+      "parts": [],
+      "summaries": []
+    },
+    "pressureProviderCalls": [
+      {
+        "turn": "pressure",
+        "kind": "assistant",
+        "input": 195000,
+        "sawSummary": false
+      }
+    ],
+    "pressureInbound": {
+      "agent_message_chunk": 1,
+      "usage_update": 1,
+      "prompt result": 1
+    },
+    "pressurePromptResult": {
+      "stopReason": "end_turn",
+      "usage": {
+        "inputTokens": 195000,
+        "outputTokens": 20,
+        "totalTokens": 195020
+      },
+      "_meta": {}
+    },
+    "usedByTurn": {
+      "seed": [
+        1000
+      ],
+      "pressure": [
+        195000
+      ],
+      "followup": [
+        1000
+      ],
+      "mimic": [
+        1000
+      ]
+    },
+    "firstSummaryTextChunk": {
+      "turn": "mimic",
+      "update": {
+        "sessionUpdate": "agent_message_chunk",
+        "messageId": "message-1",
+        "content": {
+          "type": "text",
+          "text": "## Objective\nKeep th"
+        }
+      }
+    }
+  }
+}
