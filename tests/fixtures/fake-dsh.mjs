@@ -85,7 +85,7 @@ const llm = {
     if (provider === "broken" || mode === "listing-fails") { throw new Error("no credential"); }
     return [{ provider, id: "plain", name: "Plain" }, { provider, id: "thinks", name: "Thinks" }];
   },
-  resolveModelInfo: async (provider, id) => ({ provider, id, ...(id === "thinks" ? { reasoning: { efforts: [{ id: "low", name: "Low" }, { id: "high", name: "High" }], defaultEffort: "low" } } : {}) }),
+  resolveModelInfo: async (provider, id) => ({ provider, id, ...(id === "thinks" ? { reasoning: { efforts: [{ id: "low", name: "Low" }, { id: "high", name: "High" }], defaultEffort: "low" } } : {}), ...(process.env.FAKE_DSH_IMAGES === "1" ? { inputModalities: ["text", "image"] } : {}) }),
   ...(missing.has("resolveCallConfig") ? {} : { resolveCallConfig: async (route) => {
     if (route.reasoningEffort === "bad") { throw Object.assign(new Error('does not support reasoning effort "bad"'), { code: "UNSUPPORTED_REASONING_EFFORT" }); }
     if (route.model === "bad") { throw Object.assign(new Error('no configured model "bad"'), { code: "UNKNOWN_MODEL" }); }
@@ -99,7 +99,11 @@ const skills = { ...(missing.has("snapshot") ? {} : { snapshot: async ({ cwd }) 
   return { skills: [{ name: "fixture", path: cwd, source: "project-dsh", description: process.env.OAR_SKILL_DESCRIPTION,
     invocation: { modelInvocable: false, userInvocable: true }, content: "PRIVATE_SKILL_BODY", provider: "filesystem" }], complete: true };
 } }) };
-const services = { agents, sessionPersistence: persistence, llm, skills, ...(mode === "no-default" ? {} : { agentDefaultModel: { currentSelection: () => ({ provider: "local", model: "thinks" }) } }) };
+const attachments = process.env.FAKE_DSH_IMAGES === "1" ? {
+  imageLimits: { mediaTypes: ["image/png"] },
+  saveImages: async (imgs) => { await new Promise((resolve) => { setTimeout(resolve, 30); }); return imgs.map((_, index) => ({ id: `att-${index}` })); },
+} : undefined;
+const services = { agents, sessionPersistence: persistence, llm, skills, ...(attachments === undefined ? {} : { attachments }), ...(mode === "no-default" ? {} : { agentDefaultModel: { currentSelection: () => ({ provider: "local", model: "thinks" }) } }) };
 const loader = {
   await: async () => { if (mode === "barrier-fails") { throw new Error("barrier failed"); } },
   ...(mode === "mcp-inactive" ? { entries: () => patch[1].insert.map(options => ({ options, fiber: { state: 0, await: async () => {} } })) } : {}),

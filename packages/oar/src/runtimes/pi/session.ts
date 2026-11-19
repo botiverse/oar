@@ -6,7 +6,7 @@ import type {
   RequestRecord, ContextUsage, ControlResult, InputOptions, ResponseBody, Session, StartSession } from "../../contracts/session.js";
 import type { PiProjectOptions } from "./options.js";
 import { classifyFailure } from "../../shared/failure-class.js";
-import { withdrawControl } from "../../shared/held-input.js";
+import { enqueueHeld, withdrawControl } from "../../shared/held-input.js";
 import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
 import {
@@ -141,8 +141,8 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
     if (next === undefined) { return; }
     void (async (): Promise<void> => {
       const { inputId: _inputId, ...body } = next.body;
-      const result = await kernel.control({ ...body, kind: "prompt", admission: "native", carries: [next.inputId ?? next.requestId] },
-         async request => { const response = await start(request, next.body.input, next.images, true); return response; });
+      const result = await kernel.control({ ...body, kind: "prompt", admission: "native", carries: [next.inputId ?? next.request.id] },
+         async request => { const response = kernel.unreachable() ?? await start(request, next.body.input, next.images, true); return response; });
       // Handled inputs and preflight refusals drain after their response.
       queueBarrier.responded(result.request.id);
     })();
@@ -246,10 +246,10 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
       const body = { kind: "queue" as const, input, ...inputOptions };
       const result = await kernel.control(body, request =>
         withInputImages(capabilities, inputOptions?.images, (images) => {
-          held.push({ body, requestId: request.id, inputId: inputOptions?.inputId, images });
+          enqueueHeld(held, { body, request, inputId: inputOptions?.inputId, images });
           return { kind: "accepted", queued: "adapter" };
         }));
-      const queued = held.find(entry => entry.requestId === result.request.id);
+      const queued = held.find(entry => entry.request.id === result.request.id);
       if (queued !== undefined) { queued.accepted = true; }
       drainHeld();
       return result;

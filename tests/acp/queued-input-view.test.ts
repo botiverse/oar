@@ -23,3 +23,25 @@ test.each([undefined, "11111111-1111-4111-8111-111111111111"])("ACP queue dispat
   expect(view.status.kind).toBe("idle");
   expect(kernel.records().filter(record => record.kind === "response" && record.requestId === queued.request.id)).toHaveLength(1);
 });
+
+test("ACP queue held before runtime.spawned settles is immediately withdrawable and never sent", async () => {
+  const kernel = createSessionKernel("root");
+  const spawn = Promise.withResolvers<void>();
+  const send = vi.fn(async () => ({ stopReason: "end_turn" }));
+  // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- Exercise pre-spawn hold/withdraw against the real turn driver.
+  const runtime = { spawned: spawn.promise, closed: false, connection: { agent: { request: send } } } as unknown as AcpProcess;
+  const turns = createAcpTurns({ kernel, runtime, profile: profile(), usageGate: createUsageUpdateGate(), capabilities: { images: false }, promptUsage: () => null });
+  const withdrawnId = "11111111-1111-4111-8111-111111111111";
+  const keptId = "22222222-2222-4222-8222-222222222222";
+  const withdrawnQueue = kernel.control({ kind: "queue", input: "withdrawn", inputId: withdrawnId }, request => turns.hold("withdrawn", undefined, withdrawnId, request));
+  const keptQueue = kernel.control({ kind: "queue", input: "kept", inputId: keptId }, request => turns.hold("kept", undefined, keptId, request));
+  expect(turns.withdraw(withdrawnId)).toEqual({ kind: "accepted" });
+  expect(send).not.toHaveBeenCalled();
+  spawn.resolve();
+  const [withdrawnResult, keptResult] = await Promise.all([withdrawnQueue, keptQueue]);
+  expect(withdrawnResult.response.body).toEqual({ kind: "accepted", queued: "adapter" });
+  expect(keptResult.response.body).toEqual({ kind: "accepted", queued: "adapter" });
+  await vi.waitFor(() => { expect(kernel.records().at(-1)).toMatchObject({ kind: "frame", body: { events: [{ kind: "turn_ended" }] } }); });
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(send).toHaveBeenCalledWith("session/prompt", { sessionId: "root", prompt: [{ type: "text", text: "kept" }] }, undefined);
+});

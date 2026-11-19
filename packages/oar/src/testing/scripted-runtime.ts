@@ -4,6 +4,7 @@ import { defineRuntime, type Runtime } from "../contracts/runtime.js";
 import type { InputImage, InputOptions, RuntimeEventBody, Session, SessionCapabilities, SessionOptions, StartSession, TokenTotals, TurnOutcome } from "../contracts/session.js";
 // Built on the public runtime-author SPI (@botiverse/oar/kernel), like a host runtime.
 import { createSessionKernel, inputImagesRefusal, sealSession, withdrawHeld } from "../kernel.js";
+import { enqueueHeld } from "../shared/held-input.js";
 import { toolContent } from "../shared/tool-output.js";
 import { scriptedTasks, type ScriptedTask, type ScriptedTaskSpec } from "./scripted-tasks.js";
 
@@ -90,7 +91,7 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
     if (sessionOptions.fork !== undefined) { throw new UnsupportedOptionError("fork", SCRIPTED_FORK_REFUSAL); }
     const kernel = createSessionKernel(sessionOptions.resume);
     kernel.opened(context ?? { requested: "auto", placement: "in_process" });
-    const queued: { readonly input: string; readonly inputId: string | undefined; readonly images: readonly InputImage[] }[] = [];
+    const queued: { readonly request: { readonly seq: number }; readonly input: string; readonly inputId: string | undefined; readonly images: readonly InputImage[] }[] = [];
     const totals: { input: number; output: number } = { input: 0, output: 0 };
     let active: { controller: AbortController; steered: string[] } | null = null;
     const frame = (type: string, native: unknown, events: readonly RuntimeEventBody[]): void => {
@@ -242,7 +243,7 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
         return result;
       },
       queue: async (input, inputOptions) => {
-        const result = await kernel.control({ kind: "queue", input, ...inputOptions }, () => {
+        const result = await kernel.control({ kind: "queue", input, ...inputOptions }, (request) => {
           const refused = inputImagesRefusal(capabilities, inputOptions?.images);
           if (refused !== null) {
             return refused;
@@ -250,7 +251,7 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
           if (active === null) {
             run(input, inputOptions?.images);
           } else {
-            queued.push({ input, inputId: inputOptions?.inputId, images: inputOptions?.images ?? [] });
+            enqueueHeld(queued, { request, input, inputId: inputOptions?.inputId, images: inputOptions?.images ?? [] });
           }
           return { kind: "accepted" };
         });

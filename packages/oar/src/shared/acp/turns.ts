@@ -3,7 +3,7 @@ import type {
   InputImage, InputOptions, RawEvent, RuntimeEventBody, RequestRecord,
   ResponseBody, SessionCapabilities, TurnOutcome,
 } from "../../contracts/session.js";
-import { withdrawHeld } from "../held-input.js";
+import { enqueueHeld, withdrawHeld } from "../held-input.js";
 import { withInputImages } from "../input-images.js";
 import { inputBytesRefusal } from "../control-input.js";
 import { asRecord, type JsonRecord } from "../json.js";
@@ -49,7 +49,7 @@ export interface AcpTurns {
   /** session/cancel, then a bounded fallback: release this shared root or stop its isolated process. */
   abort(state: ActiveTurn, request?: RequestRecord): Promise<ResponseBody>;
   /** Hold input for the next turn, drained when the active one closes; rejected like `begin`. */
-  hold(input: string, images: readonly InputImage[] | undefined, inputId: string | undefined, request: RequestRecord): Promise<ResponseBody>;
+  hold(input: string, images: readonly InputImage[] | undefined, inputId: string | undefined, request: RequestRecord): ResponseBody;
   /** Take a held input back by its `inputId` before the drain sends it (`withdrawHeld`). */
   withdraw(inputId: string): ResponseBody;
   /** The process is gone: close the active turn (its end is the exited response) and drop held input. */
@@ -73,6 +73,9 @@ export function createAcpTurns(deps: {
   const rootId = kernel.sessionId;
   const held: { readonly inputId: string | undefined; readonly input: string; readonly images: readonly InputImage[] | undefined; readonly request: RequestRecord; readonly prompt: JsonRecord[]; accepted: boolean }[] = [];
   let dispatching = false;
+  let spawned = false;
+  // oxlint-disable-next-line promise/prefer-await-to-then, promise/always-return -- Drain once the child comes up without delaying queue admission.
+  void runtime.spawned.then(() => { spawned = true; drainHeld(); }, () => {});
   kernel.rawEvents((record) => {
     if (record.kind !== "response" || record.body.kind !== "accepted" || record.body.queued !== "adapter") { return; }
     const entry = held.find(value => value.request.id === record.requestId);
@@ -204,7 +207,7 @@ export function createAcpTurns(deps: {
   function drainHeld(): void {
     // Held input is dropped once the stream says the runtime is unreachable
     // (an `exited` response or a `dispose` request), not by an adapter flag.
-    if (kernel.unreachable() !== null || active !== null || runtime.closed || observingCancellation !== null || deps.operationBusy?.() === true) {
+    if (!spawned || kernel.unreachable() !== null || active !== null || runtime.closed || observingCancellation !== null || deps.operationBusy?.() === true) {
       return;
     }
     // Taken off `held` in the same step it is sent: a withdraw after this finds it gone.
@@ -213,9 +216,11 @@ export function createAcpTurns(deps: {
     if (next !== undefined) {
       dispatching = true;
       try {
+        const origin = next.request.body.kind === "queue" ? next.request.body.origin : undefined;
         const request = kernel.request("toRuntime", { kind: "prompt", input: next.input,
-          carries: [next.inputId ?? next.request.id], ...(next.images === undefined ? {} : { images: next.images }) });
-        kernel.respond(request.id, open(request, next.prompt));
+          carries: [next.inputId ?? next.request.id], ...(next.images === undefined ? {} : { images: next.images }),
+          ...(origin === undefined ? {} : { origin }) });
+        kernel.respond(request.id, kernel.unreachable() ?? open(request, next.prompt));
       } finally { dispatching = false; }
     }
   }
@@ -283,13 +288,12 @@ export function createAcpTurns(deps: {
       }
       return { kind: "accepted" };
     },
-    async hold(input, images, inputId, request) {
-      await runtime.spawned;
+    hold(input, images, inputId, request) {
       if (runtime.closed) {
         return gone();
       }
       return inputBytesRefusal(profile.maxInputBytes, input) ?? withInputImages(capabilities, images, (loaded) => {
-        held.push({ inputId, input, images, request, prompt: acpPrompt(input, loaded), accepted: false });
+        enqueueHeld(held, { inputId, input, images, request, prompt: acpPrompt(input, loaded), accepted: false });
         return { kind: "accepted", queued: "adapter" };
       });
     },

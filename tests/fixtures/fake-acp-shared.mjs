@@ -141,7 +141,7 @@ async function handle(message) {
 
     } else { update(params.sessionId, `echo:${text}:${session.cwd}`); }
     result(id, { stopReason: 'end_turn', pid: process.pid });
-  } else if (id !== undefined) { result(id, {}); }
+  } else if (id !== undefined && method !== 'fixture/hang-steer') { result(id, {}); }
 }
 const lines = readline.createInterface({ input: process.stdin });
 lines.on('line', line => { const message = JSON.parse(line); void handle(message).catch(error => send({ id: message.id, error: { code: -32_000, message: error.message } })); });

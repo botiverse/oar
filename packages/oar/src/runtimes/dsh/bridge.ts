@@ -197,13 +197,16 @@ ${dshGoalSource}
     prompt: request => admitInput("prompt", request),
     queue: request => admitInput("queue", request),
     steer: request => admitInput("steer", request),
-    withdraw(request) {
+    async withdraw(request) {
       const { agent } = owned(request.sessionId);
       requireMethod(agent.inbox, "remove", "withdraw");
+      const matching = (pendingQueues.get(agent) ?? []).filter((entry) => entry.id === request.messageId);
+      for (const entry of matching) { entry.withdrawn = true; }
+      const intercepted = matching.length > 0 ? (await Promise.all(matching.map((entry) => entry.settled))).some(Boolean) : false;
       // Only input held for a later turn: a steer may already be in the next request.
-      if (!agent.inbox.nextTurn.some((message) => message.id === request.messageId)) { return { removed: false }; }
+      if (!agent.inbox.nextTurn.some((message) => message.id === request.messageId)) { return { removed: intercepted }; }
       cause = "withdraw";
-      try { return { removed: agent.inbox.remove(request.messageId) }; } finally { cause = undefined; }
+      try { return { removed: agent.inbox.remove(request.messageId) || intercepted }; } finally { cause = undefined; }
     },
     cancel(request) {
       const { agent } = owned(request.sessionId);

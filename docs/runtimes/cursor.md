@@ -652,8 +652,10 @@ summary statuses `onDelta` omits, retaining each message verbatim as a
 raw. Completed summaries also invalidate the previous context count. Other
 stream messages add no events, so text, tools and spend are
 counted once, through `onDelta`. No trigger or failure reason is reported.
-`fallback` stays native and means a trimmed transcript was saved [src]; it
-still counts as completed compaction. Cancellation can end the run with only
+`fallback: true` on a `completed` summary message stays native and means a
+trimmed transcript was saved instead of a model-written summary [src]; its
+`status` is still `"completed"`, so it counts as completed compaction.
+Cancellation can end the run with only
 a summary start observed; OAR adds no compaction end in that case.
 
 **Manual `compact()`** is present on the opened session when its agent exposes

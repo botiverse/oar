@@ -2,6 +2,7 @@
 export const dshInputSource = String.raw`
   const routes = new WeakMap();
   const admissions = new WeakMap();
+  const pendingQueues = new WeakMap();
   const supportedMedia = ["image/png", "image/jpeg", "image/gif", "image/webp"];
   async function imageTypes(agent) {
     const route = agent.model?.current?.() ?? routes.get(agent);
@@ -13,7 +14,7 @@ export const dshInputSource = String.raw`
       return info.inputModalities?.includes("image") ? supportedMedia.filter(type => attachments.imageLimits?.mediaTypes?.includes(type)) : [];
     } catch { return []; }
   }
-  const submit = async (agent, method, request) => {
+  const submit = async (agent, method, request, pending) => {
     const isImage = request.images?.length > 0;
     const verify = () => {
       if (compacting.has(agent)) throw refusal("busy", "DSH is compacting this session");
@@ -32,15 +33,40 @@ export const dshInputSource = String.raw`
       for (const attachment of refs) content.push({ type: "image", attachment });
       verify();
     }
-    const message = Object.freeze({ id: request.inputId ?? randomUUID(), role: "user", content: Object.freeze(content), source: Object.freeze({ kind: "user" }) });
+    const messageId = pending?.id ?? request.inputId ?? randomUUID();
+    if (pending?.withdrawn === true) { pending.intercepted = true; return { messageId }; }
+    const message = Object.freeze({ id: messageId, role: "user", content: Object.freeze(content), source: Object.freeze({ kind: "user" }) });
     cause = method === "prompt" ? "prompt" : undefined;
     try { agent[action](message); } finally { cause = undefined; }
     return { messageId: message.id };
   };
   const admitInput = (method, request) => {
     const { agent } = owned(request.sessionId);
+    let pending;
+    if (method === "queue") {
+      requireMethod(agent, "followup", "queue");
+      let settledResolve;
+      const settled = new Promise(resolve => { settledResolve = resolve; });
+      pending = { id: request.inputId ?? randomUUID(), withdrawn: false, intercepted: false, settled, resolve: settledResolve };
+      const list = pendingQueues.get(agent) ?? [];
+      list.push(pending);
+      pendingQueues.set(agent, list);
+    }
+    const removePending = () => {
+      if (pending === undefined) return;
+      const list = pendingQueues.get(agent);
+      if (list !== undefined) {
+        const index = list.indexOf(pending);
+        if (index >= 0) list.splice(index, 1);
+        if (list.length === 0) pendingQueues.delete(agent);
+      }
+      pending.resolve(pending.intercepted);
+    };
     const previous = admissions.get(agent);
-    const run = () => submit(agent, method, request);
+    const run = async () => {
+      try { const value = await submit(agent, method, request, pending); removePending(); return value; }
+      catch (error) { removePending(); throw error; }
+    };
     const next = previous === undefined ? run() : previous.then(run, run);
     admissions.set(agent, next);
     const clear = () => { if (admissions.get(agent) === next) admissions.delete(agent); };

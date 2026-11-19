@@ -4,7 +4,7 @@ import type { LoadedImage } from "../../shared/input-images.js";
 /** Original queue identity and options survive the adapter's dispatch. */
 export interface PiHeldInput {
   readonly body: InputOptions & { readonly kind: "queue"; readonly input: string };
-  readonly requestId: string;
+  readonly request: RequestRecord;
   readonly inputId: string | undefined;
   readonly images: readonly LoadedImage[];
   accepted?: true;

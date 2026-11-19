@@ -4,7 +4,7 @@ import type { ControlResult, InputOptions, RequestRecord, ResponseBody, RuntimeE
 import { createAbortFallback } from "../../shared/abort-fallback.js";
 import { appendCleanupFailure } from "../../shared/executable/process-cleanup.js";
 import { sessionEnvironment } from "../../shared/environment.js";
-import { withdrawHeld } from "../../shared/held-input.js";
+import { enqueueHeld, withdrawControl } from "../../shared/held-input.js";
 import { manualCompaction } from "../../shared/manual-compaction.js";
 import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
@@ -185,8 +185,12 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
       const next = held.shift();
       if (next === undefined) { return; }
       dispatching = true;
+      const origin = next.request.body.kind === "queue" ? next.request.body.origin : undefined;
       const request = kernel.request("toRuntime", { kind: "prompt", input: next.input,
-        carries: [next.inputId ?? next.request.id], ...(next.images === undefined ? {} : { images: next.images }) });
+        carries: [next.inputId ?? next.request.id], ...(next.images === undefined ? {} : { images: next.images }),
+        ...(origin === undefined ? {} : { origin }) });
+      const unreachable = kernel.unreachable();
+      if (unreachable !== null) { dispatching = false; kernel.respond(request.id, unreachable); return; }
       void (async (): Promise<void> => {
         try { kernel.respond(request.id, await send(request, next.input, next.inputId ?? randomUUID(), next.loaded, true)); }
         finally { dispatching = false; released(); }
@@ -231,7 +235,7 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
       },
       queue: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
         const result = await kernel.control({ kind: "queue", input, ...inputOptions }, request => withInputImages(capabilities, inputOptions?.images, (loaded) => {
-          held.push({ inputId: inputOptions?.inputId, input, images: inputOptions?.images, loaded, request, accepted: false });
+          enqueueHeld(held, { inputId: inputOptions?.inputId, input, images: inputOptions?.images, loaded, request, accepted: false });
           return { kind: "accepted", queued: "adapter" };
         }));
         const entry = held.find(value => value.request.id === result.request.id);
@@ -239,10 +243,7 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
         drainHeld();
         return result;
       },
-      withdraw: async (inputId): Promise<ControlResult> => {
-        const result = await kernel.control({ kind: "withdraw", inputId }, () => withdrawHeld(held, inputId));
-        return result;
-      },
+      withdraw: withdrawControl(kernel, held),
       abort: async (): Promise<ControlResult> => {
         const result = await kernel.control({ kind: "abort" }, async (request) => {
           if (compaction.busy()) { return { kind: "rejected", code: "busy", reason: "droid cannot interrupt a manual compaction" }; }

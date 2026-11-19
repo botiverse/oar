@@ -23,11 +23,31 @@ function watchEndSummary(end: WatchEnd): unknown {
   return "error" in end ? { kind: end.kind, error: errorSummary(end.error) } : end;
 }
 
-async function withdraw(harness: Harness, conversation: Conversation, inputId: string): Promise<ResponseBody> {
+interface PendingQueue {
+  readonly inputId: string | undefined;
+  withdrawn: boolean;
+  intercepted: boolean;
+  readonly settled: Promise<boolean>;
+  readonly resolve: (intercepted: boolean) => void;
+}
+
+function createPendingQueue(pendingQueues: Set<PendingQueue>, inputId: string | undefined): PendingQueue {
+  const { promise, resolve } = Promise.withResolvers<boolean>();
+  const entry: PendingQueue = { inputId, withdrawn: false, intercepted: false, settled: promise, resolve };
+  pendingQueues.add(entry);
+  return entry;
+}
+
+async function withdraw(harness: Harness, conversation: Conversation, pendingQueues: Set<PendingQueue>, inputId: string): Promise<ResponseBody> {
+  const matching = [...pendingQueues].filter(entry => entry.inputId === inputId);
+  for (const entry of matching) { entry.withdrawn = true; }
+  const settled = matching.length === 0 ? [] : await Promise.all(matching.map(async entry => { const value = await entry.settled; return value; }));
+  const intercepted = settled.some(Boolean);
   const record = await harness.commit(async (tx) => { const value = await tx.submissionByRequest(conversation.id, inputId); return value; }, BACKGROUND_CONTEXT);
   const submission = record === undefined ? undefined : await harness.submission(record.id, BACKGROUND_CONTEXT);
   const native = await submission?.abort(BACKGROUND_CONTEXT);
-  return native === "aborted" ? { kind: "accepted", native } : { kind: "rejected", code: "not_queued", reason: native ?? "No submission with this inputId", native };
+  if (native === "aborted") { return { kind: "accepted", native }; }
+  return intercepted ? { kind: "accepted" } : { kind: "rejected", code: "not_queued", reason: native ?? "No submission with this inputId", native };
 }
 
 export async function piDurableSession(harness: Harness, models: DurableModels, options: SessionOptions, context?: SessionOpenContext): Promise<Session> {
@@ -122,17 +142,20 @@ export async function piDurableSession(harness: Harness, models: DurableModels, 
     }
   }
 
-  const submit = async (kind: "prompt" | "steer" | "queue", input: string, inputOptions: InputOptions, wasRunning: boolean): Promise<ResponseBody> => {
-    if ((inputOptions.images?.length ?? 0) > 0) { return { kind: "rejected", code: "unsupported", reason: "pi-durable browser sessions do not read local image files" }; }
+  const pendingQueues = new Set<PendingQueue>();
+  let admissions = Promise.resolve();
+  const submit = async (kind: "prompt" | "steer" | "queue", input: string, inputOptions: InputOptions, wasRunning: boolean, queued?: PendingQueue): Promise<ResponseBody> => {
     const prior = inputOptions.inputId === undefined ? undefined : await harness.commit(async (tx) => { const value = await tx.submissionByRequest(conversation.id, inputOptions.inputId ?? ""); return value; }, BACKGROUND_CONTEXT);
     if (prior !== undefined) {
       kernel.frame({ type: "pi-durable/submission", native: prior, events: !wasRunning && liveOf(state.view).run === undefined && kind === "prompt" ? settledOutcome(prior) : [] });
       return { kind: "accepted", native: prior };
     }
+    if (queued?.withdrawn === true) { queued.intercepted = true; return { kind: "accepted" }; }
     if (kind === "prompt" && wasRunning) { return { kind: "rejected", code: "busy", reason: "busy" }; }
     if (kind === "steer" && liveOf(state.view).run === undefined) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
+    const whenBusy = kind === "prompt" ? "reject" : (kind === "steer" ? "steer" : "followUp");
     try {
-      const submission = await conversation.submit({ type: "input", content: input, ...(inputOptions.inputId === undefined ? {} : { requestId: inputOptions.inputId }), whenBusy: kind === "prompt" ? "reject" : (kind === "steer" ? "steer" : "followUp") }, BACKGROUND_CONTEXT);
+      const submission = await conversation.submit({ type: "input", content: input, ...(inputOptions.inputId === undefined ? {} : { requestId: inputOptions.inputId }), whenBusy }, BACKGROUND_CONTEXT);
       const native = await submission.status(BACKGROUND_CONTEXT);
       kernel.frame({ type: "pi-durable/submission", native, events: [] });
       return { kind: "accepted", native };
@@ -141,10 +164,19 @@ export async function piDurableSession(harness: Harness, models: DurableModels, 
       return { kind: "rejected", code: "runtime_refused", reason: native.message, native };
     }
   };
+  const admit = async (run: () => Promise<ResponseBody>, queued?: PendingQueue): Promise<ResponseBody> => {
+    const previous = admissions;
+    const current = (async (): Promise<ResponseBody> => { await previous; const response = await run(); return response; })();
+    admissions = (async (): Promise<void> => { try { await current; } catch { /* Independent submissions do not block later ones. */ } })();
+    try { const response = await current; return response; }
+    finally { if (queued !== undefined) { pendingQueues.delete(queued); queued.resolve(queued.intercepted); } }
+  };
   const inputControl = async (kind: "prompt" | "steer" | "queue", input: string, inputOptions: InputOptions = {}): Promise<ControlResult> => {
     const wasRunning = statusOf(kernel.records(), kernel.sessionId).value.kind === "running";
     const result = await kernel.control({ kind, input, ...inputOptions }, async () => {
-      const response = await submit(kind, input, inputOptions, wasRunning);
+      if ((inputOptions.images?.length ?? 0) > 0) { return { kind: "rejected", code: "unsupported", reason: "pi-durable browser sessions do not read local image files" }; }
+      const queued = kind === "queue" ? createPendingQueue(pendingQueues, inputOptions.inputId) : undefined;
+      const response = await admit(async () => { const value = await submit(kind, input, inputOptions, wasRunning, queued); return value; }, queued);
       return response;
     });
     return result;
@@ -156,7 +188,7 @@ export async function piDurableSession(harness: Harness, models: DurableModels, 
     steer: async (input, inputOptions) => { const result = await inputControl("steer", input, inputOptions); return result; },
     queue: async (input, inputOptions) => { const result = await inputControl("queue", input, inputOptions); return result; },
     withdraw: async (inputId) => {
-      const result = await kernel.control({ kind: "withdraw", inputId }, async () => { const response = await withdraw(harness, conversation, inputId); return response; });
+      const result = await kernel.control({ kind: "withdraw", inputId }, async () => { const response = await withdraw(harness, conversation, pendingQueues, inputId); return response; });
       return result;
     },
     abort: async () => {
