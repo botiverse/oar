@@ -9,13 +9,13 @@ export interface ProcessSessionLifecycle {
   dispose(this: void): Promise<void>;
 }
 
-function cleanupQueue(kernel: SessionKernel, cleanup: () => Promise<void>, timeoutMs: number): (request: RequestRecord) => Promise<void> {
+function cleanupQueue(kernel: SessionKernel, cleanup: (request: RequestRecord) => Promise<SessionCleanup | void>, timeoutMs: number): (request: RequestRecord) => Promise<void> {
   let chain = Promise.resolve();
   const run = async (request: RequestRecord): Promise<void> => {
     let timer: ReturnType<typeof setTimeout> | undefined = undefined;
     const deadline = new Promise<SessionCleanup>((resolve) => { timer = setTimeout(() => { resolve({ kind: "failed", reason: "session cleanup timed out; work may still be running" }); }, timeoutMs); });
     const attempt = (async (): Promise<SessionCleanup> => {
-      try { await cleanup(); return { kind: "completed" }; }
+      try { return await cleanup(request) ?? { kind: "completed" }; }
       catch (error) { return { kind: "failed", reason: error instanceof Error ? error.message : String(error) }; }
     })();
     try { kernel.respond(request.id, { kind: "cleanup", result: await Promise.race([attempt, deadline]) }); }
@@ -32,7 +32,7 @@ function cleanupQueue(kernel: SessionKernel, cleanup: () => Promise<void>, timeo
 }
 
 /** Recording and process ownership; native per-session cleanup stays in the adapter. */
-export function processSessionLifecycle(kernel: SessionKernel, lease: ProcessLease<PooledProcess>, cleanup: () => Promise<void>, cleanupTimeoutMs = 1000): ProcessSessionLifecycle {
+export function processSessionLifecycle(kernel: SessionKernel, lease: ProcessLease<PooledProcess>, cleanup: (request: RequestRecord) => Promise<SessionCleanup | void>, cleanupTimeoutMs = 1000): ProcessSessionLifecycle {
   let released: ResponseRecord | undefined = undefined;
   const hasExited = (): boolean => kernel.unreachable()?.code === "runtime_exited";
   const recordExit = (code: number | null): void => {

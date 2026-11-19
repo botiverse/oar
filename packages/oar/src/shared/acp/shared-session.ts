@@ -1,5 +1,6 @@
 /* oxlint-disable import/max-dependencies -- Connection ownership composes the existing ACP session mechanisms. */
-import type { SessionOptions, StartSession } from "../../contracts/session.js";
+import type { SessionCleanup } from "../../contracts/placement.js";
+import type { RequestRecord, SessionOptions, StartSession } from "../../contracts/session.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { SessionUnavailableError } from "../../contracts/session-unavailable-error.js";
 import { sessionEnvironment } from "../environment.js";
@@ -168,10 +169,12 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
     const owner = routing.attach({ terminal: state.terminalHost, hooks: state.hooks }, credentials);
     let nativeId: string | null = null;
     let initializationRefusal: string | null = null;
-    const cleanup = async (): Promise<void> => {
+    const cleanup = async (request?: RequestRecord): Promise<SessionCleanup | void> => {
+      const preserveTerminals = options.endTurnProcessesOnAbort === true && request?.body.kind === "abort";
       try { await cleanupAcpOwner(async () => {
         if (nativeId !== null && !runtime.closed) { await shared.cleanup(runtime, nativeId); }
-      }, async () => { await state.terminalHost.dispose(); }); } catch (error) { throw routing.redactValue(error); }
+      }, async () => { if (!preserveTerminals) { await state.terminalHost.dispose(); } }); } catch (error) { throw routing.redactValue(error); }
+      if (preserveTerminals) { return { kind: "failed", reason: "Native abort was unconfirmed; hosted terminals remain owned until dispose" }; }
     };
     try {
       if (options.resume !== undefined) { owner.reserve(options.resume); nativeId = options.resume; }

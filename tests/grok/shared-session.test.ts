@@ -125,6 +125,24 @@ sharedTest("occupied resume refuses, retired resume falls back before native res
   expect(exits(b)).toHaveLength(0); await b.dispose(); expect(exits(b)).toHaveLength(1);
 });
 
+sharedTest("shared abort fallback leaves prior terminals owned until dispose and reports once", async () => {
+  const f = await fixture();
+  const a = await f.open("a", { endTurnProcessesOnAbort: true });
+  const peer = await f.open("a");
+  await promptAndWait(a, "terminal");
+  const marker = path.join(f.root, "a", `terminal-${a.id}.pid`);
+  const pid = await vi.waitFor(async () => Number(await readFile(marker, "utf8")));
+  await a.prompt("ignore-cancel");
+  const stop = await a.abort();
+  const receipts = () => a.records().filter(r => r.kind === "response" && r.requestId === stop.requestId && r.body.kind === "cleanup");
+  await expect.poll(receipts).toMatchObject([{ body: { result: { kind: "failed" } } }]);
+  expect(() => process.kill(pid, 0)).not.toThrow();
+  await a.dispose();
+  await expect.poll(() => { try { process.kill(pid, 0); return false; } catch { return true; } }).toBe(true);
+  expect(receipts()).toHaveLength(1);
+  expect(await promptAndWait(peer, "peer")).toMatchObject({ kind: "ended" });
+});
+
 sharedTest("shared crash emits one final exit per root after cleanup, within the Windows cleanup budgets", async () => {
   const f = await fixture(); const [a, b] = await Promise.all([f.open("a"), f.open("a")]); await a.prompt("exit");
   try { await expect.poll(() => [exits(a).length, exits(b).length], { timeout: 15_000 }).toEqual([1, 1]); }

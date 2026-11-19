@@ -13,20 +13,21 @@ function harness() {
   const ended: (readonly string[])[] = [];
   let seq = 0;
   const kernel = {
+    sessionId: "root",
     rawEvents: (observer: (event: RawEvent) => void) => { observe = observer; return () => {}; },
     respond: (requestId: string, body: ResponseBody) => { responses.push({ requestId, body }); },
   } as unknown as SessionKernel;
   const state = { active: null as ActiveTurn | null };
   const turns = acpTurnTerminals(true, kernel, { end: async (ids) => { ended.push(ids); await Promise.resolve(); return { signalled: ids.length }; } }, () => state.active);
-  const emit = (event: object): void => { seq += 1; observe({ seq, ...event } as unknown as RawEvent); };
-  const terminal = (terminalId: string): void => {
+  const emit = (event: object): void => { seq += 1; observe({ seq, sessionId: "root", ...event } as unknown as RawEvent); };
+  const terminal = (terminalId: string, sessionId = "root"): void => {
     const id = `t-${terminalId}`;
-    emit({ kind: "request", direction: "toApp", id, body: { kind: "native", type: "terminal/create", native: {} } });
-    emit({ kind: "response", requestId: id, body: { kind: "answered", native: { terminalId } } });
+    emit({ kind: "request", sessionId, direction: "toApp", id, body: { kind: "native", type: "terminal/create", native: {} } });
+    emit({ kind: "response", sessionId, requestId: id, body: { kind: "answered", native: { terminalId } } });
   };
-  const begin = (): ActiveTurn => { const turn = { since: seq } as unknown as ActiveTurn; state.active = turn; return turn; };
-  const close = (): void => { state.active = null; emit({ kind: "frame", body: { type: "session/prompt", native: {}, events: [{ kind: "turn_ended", outcome: { kind: "aborted" } }] } }); };
-  return { turns, terminal, begin, close, responses, ended };
+  const begin = (kind: "compact" | "prompt" = "prompt"): ActiveTurn => { const turn = { since: seq, request: { body: { kind } } } as unknown as ActiveTurn; state.active = turn; return turn; };
+  const close = (kind: "completed" | "aborted" = "aborted"): void => { state.active = null; emit({ kind: "frame", body: { type: "session/prompt", native: {}, events: [{ kind: "turn_ended", outcome: { kind } }] } }); };
+  return { turns, terminal, begin, close, responses, ended, emit };
 }
 const request = (id: string): RequestRecord => ({ id } as unknown as RequestRecord);
 const settled = async (): Promise<void> => { await delay(0); };
@@ -81,4 +82,45 @@ test("terminals requested after the aborted turn closed are not its own, even be
   claim.accepted();
   await settled();
   expect(h.ended).toEqual([["this-turn"]]);
+});
+
+test("accepted cancellation preserves terminals when the native turn completed", async () => {
+  const h = harness();
+  const turn = h.begin();
+  h.terminal("root-terminal");
+  h.turns.aborting(turn, request("cancel")).accepted();
+  h.close("completed");
+  await settled();
+  expect(h.ended).toEqual([]);
+});
+
+test("a root turn can stop only its own terminal", async () => {
+  const h = harness();
+  const turn = h.begin();
+  h.terminal("root-terminal");
+  h.terminal("child-terminal", "child");
+  h.turns.aborting(turn, request("cancel")).accepted();
+  h.close();
+  await settled();
+  expect(h.ended).toEqual([["root-terminal"]]);
+});
+
+test("a compact cancellation cannot claim terminals from the next prompt", async () => {
+  const h = harness();
+  const compact = h.begin("compact");
+  h.turns.aborting(compact, request("cancel")).accepted();
+  h.emit({ kind: "frame", body: { events: [{ kind: "compaction_ended", outcome: "aborted" }] } });
+  h.begin();
+  h.terminal("next-turn");
+  h.close("completed");
+  await settled();
+  expect(h.ended).toEqual([]);
+});
+
+test("shared fallback has a single cleanup reporter for its abort request", () => {
+  const h = harness();
+  const turn = h.begin();
+  h.turns.aborting(turn, request("cancel")).accepted();
+  h.emit({ kind: "response", requestId: "cancel", body: { kind: "released", reason: "abort_fallback" } });
+  expect(h.responses).toEqual([]);
 });
