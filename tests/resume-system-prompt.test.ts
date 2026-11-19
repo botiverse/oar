@@ -12,7 +12,7 @@ const cases = ["systemPrompt", "appendSystemPrompt"].flatMap((option) => ["", "s
 test.each(cases)("Claude forwards resumed $option=$value through its native prompt file", async ({ option, value }) => {
   const launched = new Error("stop after inspecting argv");
   spawnLineProcess.mockImplementation((_command, args) => {
-    expect(args).toEqual(expect.arrayContaining(["--resume", "saved-session"]));
+    expect(args).toContain("--resume=saved-session");
     const flag = option === "systemPrompt" ? "--system-prompt-file" : "--append-system-prompt-file";
     const file = args[args.indexOf(flag) + 1];
     expect(file).toBeDefined();

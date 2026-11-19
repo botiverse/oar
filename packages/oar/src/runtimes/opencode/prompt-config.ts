@@ -3,6 +3,7 @@ import { rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import type { SessionOptions } from "../../contracts/session.js";
+import { checkResume } from "../../shared/session-options.js";
 import { processFailure } from "../../shared/executable/diagnostics.js";
 import { runExecutable, type ExecutableRunner } from "../../shared/executable/run.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
@@ -18,6 +19,7 @@ export interface OpenCodePromptConfig {
 }
 
 export function validateOpenCodePrompts(options: SessionOptions): void {
+  checkResume(options);
   const option = options.systemPrompt !== undefined ? "systemPrompt" : "appendSystemPrompt";
   if (options.systemPrompt === undefined && options.appendSystemPrompt === undefined) {
     return;

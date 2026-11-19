@@ -20,6 +20,13 @@ function failedInitialization(message: JsonRecord): boolean {
   return message.type === "result" && message.subtype === "error_during_execution";
 }
 
+function isMissingResumeError(error: unknown): boolean {
+  return typeof error === "string" && (
+    error.startsWith("No conversation found with session ID")
+    || error.includes("is not a UUID and does not match any session title")
+  );
+}
+
 function refusalFor(answer: JsonRecord | Error, option: Option, requested: string, options: SessionOptions): string | null {
   if (answer instanceof Error) { return `${answer.message}, so ${option} ${requested} cannot be confirmed`; }
   if (failedInitialization(answer)) {
@@ -62,8 +69,8 @@ interface OpenSettings {
    * like the others.
    */
   usageBaseline(): Promise<ClaudeUsageBaseline>;
-  /** A fork's id as claude reports it (`get_status`, fork-identity.ts); rejects and stops the process unless it is `expected`. */
-  confirmSessionId(expected: string): Promise<void>;
+  /** A resumed or forked session's id as claude reports it (`get_status`, fork-identity.ts); rejects and stops the process unless it is `expected`. */
+  confirmSessionId(expected: string, options: SessionOptions): Promise<void>;
 }
 
 /** Bounded native readbacks at open, consumed before the ordinary projection stream. */
@@ -95,9 +102,8 @@ export function claudeOpenSettings(child: ClaudeProcess, limits: ClaudeOpenLimit
         // Only a missing-resume result that won the initialize readback.
         // Prose is the last resort, pinned by claude-missing-resume.json.
         if (option === "resume" && method === "initialize" && native !== undefined && failedInitialization(native)
-          && Array.isArray(native.errors) && typeof native.errors[0] === "string"
-          && native.errors[0].startsWith("No conversation found with session ID") && cause !== undefined) {
-          throw new SessionNotFoundError(requested, redact(refusal), cause);
+          && Array.isArray(native.errors) && isMissingResumeError(native.errors[0]) && cause !== undefined) {
+          throw new SessionNotFoundError(redact(requested), redact(refusal), cause);
         }
         throw new Error(redact(refusal), cause === undefined ? undefined : { cause });
       }
@@ -126,7 +132,8 @@ export function claudeOpenSettings(child: ClaudeProcess, limits: ClaudeOpenLimit
       lifetime.code = code;
       if (pending !== null) { pending.settle(exitError(pending.method)); }
     },
-    async confirmSessionId(expected) {
+    async confirmSessionId(expected, options) {
+      const { redact } = sessionCredentialRedactor(options);
       const { promise, resolve } = Promise.withResolvers<JsonRecord | Error>();
       const id = `oar-status-${randomUUID()}`;
       pending = { id, method: "get_status", settle: resolve };
@@ -137,8 +144,15 @@ export function claudeOpenSettings(child: ClaudeProcess, limits: ClaudeOpenLimit
           // A closed stdin (EPIPE) throws here: it is a refusal too, so the process is still stopped.
           try { child.write(claudeStatusRequest(id)); } catch (error) { resolve(error instanceof Error ? error : new Error(String(error))); }
         }
-        const refusal = claudeForkIdRefusal(expected, await promise);
-        if (refusal !== null) { child.kill(); await child.exited; throw new Error(refusal); }
+        const answer = await promise;
+        const refusal = claudeForkIdRefusal(expected, answer, options.fork === undefined ? "resume" : "fork");
+        if (refusal !== null) {
+          const native = failureNative(answer);
+          const cause = native === undefined ? undefined : nativeErrorCause("get_status", native, redact);
+          child.kill();
+          await child.exited;
+          throw new Error(redact(refusal), cause === undefined ? undefined : { cause });
+        }
       } finally {
         clearTimeout(timer);
         pending = null;

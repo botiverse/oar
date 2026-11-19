@@ -13,7 +13,7 @@ export async function launchQwen(command: string, sessionId: string, options: Se
   const child = spawnLineProcess(command, [
     "--input-format", "stream-json", "--output-format", "stream-json", "--channel=SDK",
     "--include-partial-messages", "--approval-mode", "yolo",
-    ...(options.resume === undefined ? ["--session-id", sessionId] : ["--resume", sessionId]),
+    options.resume === undefined ? `--session-id=${sessionId}` : `--resume=${sessionId}`,
     ...(options.model === undefined ? [] : ["--model", options.model]),
     ...(options.systemPrompt === undefined ? [] : ["--system-prompt", options.systemPrompt]),
     ...(options.appendSystemPrompt === undefined ? [] : ["--append-system-prompt", options.appendSystemPrompt]),

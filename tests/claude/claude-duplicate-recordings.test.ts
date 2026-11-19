@@ -64,7 +64,11 @@ test("recorded resume-id reuse has only replay/completed and never opens a turn"
   const child = fakeLineProcess((text, process) => {
     const request = asRecord(parseJson(text));
     if (request?.type === "control_request") {
-      process.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request.request_id, response: {} } })}\n`);
+      const subtype = asRecord(request.request)?.subtype;
+      const response = subtype === "get_status"
+        ? { sections: [{ title: "Session", rows: [{ label: "Session ID", value: "00000000-0000-4000-8000-000000000001" }] }] }
+        : {};
+      process.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request.request_id, response } })}\n`);
     }
   });
   spawnLineProcess.mockReturnValue(child);

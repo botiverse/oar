@@ -70,12 +70,18 @@ test.each(["throw", "reject"])("prompt-only directory is cleaned when spawn fail
   if (failure === "reject") { expect(child.killed()).toBe(true); }
 });
 
-test.each(["1.1.78", "1.1.79", "1.1.80"])("legacy %s keeps the worker and stdio permission arguments", async (version) => {
+test.each(["1.1.78", "1.1.79", "1.1.80"])("legacy %s keeps the worker and stdio permission arguments with --flag=value session ids", async (version) => {
   const child = fakeLineProcess(); spawned.spawnLineProcess.mockReturnValue(child);
   await launchQoder("qoder", "session", { cwd: tmpdir() }, version);
   const args: unknown = spawned.spawnLineProcess.mock.calls[0]?.[1];
-  expect(args).toEqual(expect.arrayContaining(["--print", "--input-format", "stream-json", "--permission-prompt-tool", "stdio"]));
+  expect(args).toEqual(expect.arrayContaining(["--print", "--input-format", "stream-json", "--permission-prompt-tool", "stdio", "--session-id=session"]));
   expect(args).not.toContain("--sdk"); child.end(0);
+
+  spawned.spawnLineProcess.mockReset();
+  const resumed = fakeLineProcess(); spawned.spawnLineProcess.mockReturnValue(resumed);
+  await launchQoder("qoder", "saved", { cwd: tmpdir(), resume: "saved" }, version);
+  expect(spawned.spawnLineProcess.mock.calls[0]?.[1]).toContain("--resume=saved");
+  resumed.end(0);
 });
 
 test("1.1.81 sends private launch files inside open_session, not daemon argv, and removes them on failure", async () => {

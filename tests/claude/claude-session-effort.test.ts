@@ -32,6 +32,11 @@ function scriptedClaude(applied: Record<string, unknown> | { readonly error: str
       process.emit(line({ type: "control_response", response: { subtype: "success", request_id: message.request_id, response: {} } }));
       return;
     }
+    if (message?.type === "control_request" && request?.subtype === "get_status") {
+      const resumed = argv().find((arg) => arg.startsWith("--resume="))?.slice("--resume=".length) ?? "earlier-id";
+      process.emit(line({ type: "control_response", response: { subtype: "success", request_id: message.request_id, response: { sections: [{ title: "Session", rows: [{ label: "Session ID", value: resumed }] }] } } }));
+      return;
+    }
     if (message?.type === "control_request" && request?.subtype === "get_usage") {
       process.emit(line({ type: "control_response", response: { subtype: "success", request_id: message.request_id, response: { session: { model_usage: {} } } } }));
       return;
@@ -65,7 +70,7 @@ function argv(): readonly string[] {
 test("effort is --effort on a new session, confirmed by claude's get_settings before the session opens", async () => {
   const fresh = scriptedClaude({ model: "claude-opus-5-5[1m]", effort: "low" });
   const session = await claudeSession(installation, { cwd: "/work", effort: "low" });
-  expect(argv()).toEqual(expect.arrayContaining(["--effort", "low", "--session-id", session.id]));
+  expect(argv()).toEqual(expect.arrayContaining(["--effort", "low", `--session-id=${session.id}`]));
   expect(fresh.written.map((text) => asRecord(asRecord(JSON.parse(text))?.request)?.subtype)).toEqual(["get_settings"]);
   await session.dispose();
 });
@@ -73,7 +78,7 @@ test("effort is --effort on a new session, confirmed by claude's get_settings be
 test("effort is --effort on a resume too, confirmed the same way", async () => {
   scriptedClaude({ model: "claude-opus-5-5[1m]", effort: "high" });
   const resumed = await claudeSession(installation, { cwd: "/work", resume: "earlier-id", effort: "high" });
-  expect(argv()).toEqual(expect.arrayContaining(["--resume", "earlier-id", "--effort", "high"]));
+  expect(argv()).toEqual(expect.arrayContaining(["--resume=earlier-id", "--effort", "high"]));
   expect(resumed.id).toBe("earlier-id");
   await resumed.dispose();
 });

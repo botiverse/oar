@@ -45,7 +45,21 @@ export function refuseSessionOptions(refused: RefusedSessionOptions, options: Se
     }
     throw new UnsupportedOptionError(key, key === "disallowedTools" ? `${reason}: ${JSON.stringify(options.disallowedTools)}` : reason);
   }
+  checkResume(options);
   checkFork(options);
+}
+
+/**
+ * A blank `SessionOptions.resume`, one starting with `-` (which native CLIs
+ * with optional `--resume` values read as a flag), or one with a NUL character
+ * is refused before anything starts, across every runtime.
+ */
+export function checkResume(options: SessionOptions): void {
+  const resume = options.resume;
+  if (resume === undefined) { return; }
+  if (resume.trim().length === 0 || resume.startsWith("-") || resume.includes("\0")) {
+    throw new UnsupportedOptionError("resume", "resume must be a non-empty session id not starting with - and without NUL characters");
+  }
 }
 
 /**

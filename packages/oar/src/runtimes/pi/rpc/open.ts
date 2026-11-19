@@ -93,6 +93,7 @@ export async function openPiRpc(options: SessionOptions, credentials: Credential
       // The shared preflight refuses missing packages first. Native offline
       // mode also prevents installation if the store changes after that check.
       ...(runtime.allowProjectPackageInstall === true ? [] : ["--offline"]),
+      // Pi's CLI parser does not split --flag=value; both paths are resolved absolute paths, never raw session ids.
       "--no-mcp", "--session-dir", sessionDir, "-e", extension,
       ...(lifetime?.noSession === true ? ["--no-session"] : []),
       ...(sessionFile === undefined ? [] : ["--session", sessionFile]),

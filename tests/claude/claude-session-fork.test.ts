@@ -22,29 +22,29 @@ async function argsFor(options: Partial<SessionOptions>): Promise<readonly strin
   return spawnLineProcess.mock.calls[0]?.[1] ?? [];
 }
 
-// [env] claude 2.1.323: the copy runs under the --session-id given with --fork-session,
-// and --resume-session-at cuts it after that assistant message.
+// [env] claude 2.1.323..2.1.328: the copy runs under the --session-id given with --fork-session,
+// and --resume-session-at cuts it after that assistant message. Both id flags use --flag=value.
 test("a fork resumes the source with --fork-session under OAR's new id, cut with --resume-session-at", async () => {
   const args = await argsFor({ resume: "source", fork: { through: "assistant-uuid" } });
-  expect(args).toEqual(expect.arrayContaining(["--resume", "source", "--fork-session", "--session-id", "new-id", "--resume-session-at=assistant-uuid"]));
-  expect(args.indexOf("--fork-session")).toBe(args.indexOf("--resume") + 2);
+  expect(args).toEqual(expect.arrayContaining(["--resume=source", "--fork-session", "--session-id=new-id", "--resume-session-at=assistant-uuid"]));
+  expect(args.indexOf("--fork-session")).toBe(args.indexOf("--resume=source") + 1);
 });
 
 test("a fork without through copies the whole conversation", async () => {
   const args = await argsFor({ resume: "source", fork: {} });
-  expect(args).toEqual(expect.arrayContaining(["--resume", "source", "--fork-session", "--session-id", "new-id"]));
+  expect(args).toEqual(expect.arrayContaining(["--resume=source", "--fork-session", "--session-id=new-id"]));
   expect(args.some((arg) => arg.startsWith("--resume-session-at"))).toBe(false);
 });
 
-test("a resume and a new session launch as before", async () => {
+test("a resume and a new session pass ids in --flag=value form", async () => {
   const resumed = await argsFor({ resume: "new-id" });
-  expect(resumed).toEqual(expect.arrayContaining(["--resume", "new-id"]));
+  expect(resumed).toContain("--resume=new-id");
   expect(resumed).not.toContain("--fork-session");
-  expect(resumed).not.toContain("--session-id");
+  expect(resumed.some((arg) => arg.startsWith("--session-id"))).toBe(false);
   spawnLineProcess.mockReset();
   const fresh = await argsFor({});
-  expect(fresh).toEqual(expect.arrayContaining(["--session-id", "new-id"]));
-  expect(fresh).not.toContain("--resume");
+  expect(fresh).toContain("--session-id=new-id");
+  expect(fresh.some((arg) => arg.startsWith("--resume"))).toBe(false);
 });
 
 test("a fork is a new session, so it takes --name; a plain resume still does not", async () => {
@@ -62,7 +62,7 @@ test("--resume-session-at in launchArgs is refused with a fork, and passes witho
     .rejects.toMatchObject({ name: "UnsupportedOptionError", option: "launchArgs", message: "claude launchArgs cannot include --resume-session-at with SessionOptions.fork: use fork.through" });
   expect(spawnLineProcess).not.toHaveBeenCalled();
   // A resume launches under its own id, which claudeSession passes as the session id.
-  expect(await argsFor({ resume: "new-id", launchArgs: ["--resume-session-at", "b"] })).toEqual(expect.arrayContaining(["--resume", "new-id", "--resume-session-at", "b"]));
+  expect(await argsFor({ resume: "new-id", launchArgs: ["--resume-session-at", "b"] })).toEqual(expect.arrayContaining(["--resume=new-id", "--resume-session-at", "b"]));
 });
 
 test.each([
@@ -82,17 +82,22 @@ function subtypeOf(line: string): unknown {
   return asRecord(request?.request)?.subtype;
 }
 
+function argFlagValue(args: readonly string[], prefix: string): string | undefined {
+  return args.find((arg) => arg.startsWith(prefix))?.slice(prefix.length);
+}
+
 /**
  * A claude that answers every control request; `get_status` reports `reported`
- * (default: the --session-id it was launched with) as its Session ID row,
- * beside the account rows that make the answer private.
+ * (default: the --session-id=... or --resume=... it was launched with) as its
+ * Session ID row, beside the account rows that make the answer private.
  */
 function forkedClaude(reported?: string | null): FakeLineProcess {
   const fake = fakeLineProcess((text, child) => {
     const request = asRecord(JSON.parse(text));
     const subtype = asRecord(request?.request)?.subtype;
     const args = spawnLineProcess.mock.calls[0]?.[1] ?? [];
-    const id = reported === undefined ? args[args.indexOf("--session-id") + 1] : reported;
+    const launchedId = argFlagValue(args, "--session-id=") ?? argFlagValue(args, "--resume=");
+    const id = reported === undefined ? launchedId : reported;
     const status = { sections: [{ title: "Session", rows: [{ label: "Version", value: "2.1.323" }, ...(id === null ? [] : [{ label: "Session ID", value: id }]), { label: "Email", value: "user@example.com" }] }] };
     const answers: Record<string, object> = { get_usage: { session: { model_usage: {} } }, get_status: status };
     const response = typeof subtype === "string" ? answers[subtype] ?? {} : {};
@@ -107,7 +112,7 @@ test("the forked Session reports the new id it launched under, after claude's ge
   const session = await claudeSession(installation, { cwd: "/work", resume: "source", fork: { through: "assistant-uuid" } });
   const args = spawnLineProcess.mock.calls[0]?.[1] ?? [];
   expect(session.id).not.toBe("source");
-  expect(args[args.indexOf("--session-id") + 1]).toBe(session.id);
+  expect(argFlagValue(args, "--session-id=")).toBe(session.id);
   expect(fake.written.map(subtypeOf)).toEqual(["initialize", "get_status", "get_usage"]);
   expect(JSON.stringify(session.records())).not.toContain("user@example.com");
   await session.dispose();
@@ -120,7 +125,7 @@ test.each([
   const fake = forkedClaude(reported);
   const failure: unknown = await claudeSession(installation, { cwd: "/work", resume: "source", fork: {} }).catch((error: unknown) => error);
   const args = spawnLineProcess.mock.calls[0]?.[1] ?? [];
-  const assigned = String(args[args.indexOf("--session-id") + 1]);
+  const assigned = String(argFlagValue(args, "--session-id="));
   expect(failure).toMatchObject({ message: message.replace("NEW", assigned) });
   expect(fake.killed()).toBe(true);
 });
@@ -155,12 +160,40 @@ test("a claude that refuses get_status fails the fork open with its words and st
   expect(fake.killed()).toBe(true);
 });
 
-test("a plain resume sends no get_status", async () => {
+test("a plain resume confirms its session id with get_status and keeps that answer private", async () => {
   const fake = forkedClaude();
   const session = await claudeSession(installation, { cwd: "/work", resume: "existing" });
   expect(session.id).toBe("existing");
-  expect(fake.written.map(subtypeOf)).toEqual(["initialize", "get_usage"]);
+  expect(fake.written.map(subtypeOf)).toEqual(["initialize", "get_status", "get_usage"]);
+  expect(JSON.stringify(session.records())).not.toContain("user@example.com");
   await session.dispose();
+});
+
+test("a plain resume rejects a title match whose native session id differs", async () => {
+  const titleMatched = forkedClaude("a1c1eea1-cb11-4dd0-be73-3481755f8074");
+  const failure: unknown = await claudeSession(installation, { cwd: "/work", resume: "UNIQUE_TITLE_ONE" }).catch((error: unknown) => error);
+  expect(failure).toMatchObject({ message: "claude opened session a1c1eea1-cb11-4dd0-be73-3481755f8074, not UNIQUE_TITLE_ONE as requested" });
+  expect(titleMatched.killed()).toBe(true);
+});
+
+test("confirmSessionId redacts session credentials in refusal messages and get_status error causes", async () => {
+  const secret = "sk-secret-status-canary-99887766";
+  const fake = fakeLineProcess((text, child) => {
+    const request = asRecord(JSON.parse(text));
+    const subtype = asRecord(request?.request)?.subtype;
+    const response = subtype === "get_status"
+      ? { subtype: "error", request_id: request?.request_id, error: `get_status leaked ${secret}` }
+      : { subtype: "success", request_id: request?.request_id, response: {} };
+    child.emit(`${JSON.stringify({ type: "control_response", response })}\n`);
+  });
+  spawnLineProcess.mockReturnValue(fake);
+  const failure: unknown = await claudeSession(installation, { cwd: "/work", resume: secret, env: { ANTHROPIC_API_KEY: secret } }).catch((error: unknown) => error);
+  expect(failure).toMatchObject({
+    message: "claude refused get_status: get_status leaked [redacted], so resume [redacted] cannot be confirmed",
+    cause: { method: "get_status", native: { subtype: "error", error: "get_status leaked [redacted]" } },
+  });
+  expect(JSON.stringify(failure)).not.toContain(secret);
+  expect(fake.killed()).toBe(true);
 });
 
 function fold(frames: readonly JsonRecord[]): JsonRecord[] {

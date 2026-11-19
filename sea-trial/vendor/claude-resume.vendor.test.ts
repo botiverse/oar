@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test } from "vitest";
-import { claudeInstallation, SessionNotFoundError, type Session, claudeRuntime } from "../../packages/oar/src/index.js";
+import { claudeInstallation, SessionNotFoundError, UnsupportedOptionError, type Session, claudeRuntime } from "../../packages/oar/src/index.js";
 
 import { startClaudeAimock } from "../harness/aimock.js";
 import { runTurn } from "./support/asserts.js";
@@ -64,6 +64,33 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude existing resume co
     expect(current.usage().value).toEqual({ total: mainLoopOf(current) });
   } finally {
     await current?.dispose();
+    await provider.stop();
+    await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+  }
+}, 120_000);
+
+// oxlint-disable-next-line eslint/max-statements -- One seeded titled session checks dash flags, unmatched title, and matched title together.
+test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude resume refuses dash flags, rejects title-resolved sessions, and maps unmatched titles to SessionNotFoundError", async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), "oar-claude-title-resume-"));
+  const provider = await startClaudeAimock();
+  let seeded: Session | undefined = undefined;
+  try {
+    const installation = await claudeInstallation();
+    if (installation.kind !== "available") { throw new Error("Claude installation unavailable"); }
+    const options = { cwd: directory, env: { ...provider.env, CLAUDE_CONFIG_DIR: directory, ANTHROPIC_AUTH_TOKEN: null, CLAUDE_CODE_OAUTH_TOKEN: null } };
+    seeded = await claudeSession(installation, { ...options, name: "UNIQUE_TITLE_ONE" });
+    await expect(runTurn(seeded, "seed")).resolves.toEqual({ kind: "completed" });
+    const realId = seeded.id;
+    await seeded.dispose();
+    seeded = undefined;
+
+    await expect(claudeSession(installation, { ...options, resume: "-c" })).rejects.toBeInstanceOf(UnsupportedOptionError);
+    await expect(claudeSession(installation, { ...options, resume: "-c", fork: {} })).rejects.toBeInstanceOf(UnsupportedOptionError);
+    await expect(claudeSession(installation, { ...options, resume: "NO_SUCH_TITLE" })).rejects.toBeInstanceOf(SessionNotFoundError);
+    await expect(claudeSession(installation, { ...options, resume: "UNIQUE_TITLE_ONE" }))
+      .rejects.toThrow(`claude opened session ${realId}, not UNIQUE_TITLE_ONE as requested`);
+  } finally {
+    await seeded?.dispose();
     await provider.stop();
     await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
   }

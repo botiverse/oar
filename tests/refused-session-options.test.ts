@@ -182,3 +182,30 @@ test("the scripted runtime declares and refuses fork: a script keeps no conversa
   expect(runtime.refusedSessionOptions).toEqual({ fork: "a scripted runtime keeps no saved conversation to fork" });
   await expect(runtime.session({ kind: "available", via: "bundled" }, { cwd: "/tmp", resume: "source", fork: {} })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "fork", message: "a scripted runtime keeps no saved conversation to fork" });
 });
+
+test.each(["", "   ", "-c", "--continue", "--help", "id\0secret"])("an empty, dash-leading or NUL-containing resume is refused before anything starts on every runtime: %j", async (resume) => {
+  const secret = "sk-secret-resume-canary-99887766";
+  const value = resume === "id\0secret" ? `id\0${secret}` : resume;
+  for (const runtime of allRuntimes.list()) {
+    // oxlint-disable-next-line no-await-in-loop -- one open at a time keeps the failure attributable.
+    const failure: unknown = await runtime.session(nowhere(runtime.id), {
+      cwd: "/tmp",
+      resume: value,
+      ...(runtime.id === "opencode" ? { systemPrompt: "replace" } : {}),
+    }).catch((error: unknown) => error);
+    expect(failure, runtime.id).toBeInstanceOf(UnsupportedOptionError);
+    expect(failure, runtime.id).toMatchObject({
+      name: "UnsupportedOptionError",
+      option: "resume",
+      message: "resume must be a non-empty session id not starting with - and without NUL characters",
+    });
+    expect(JSON.stringify(failure), runtime.id).not.toContain(secret);
+  }
+  for (const runtime of allRuntimes.list().filter((candidate) => candidate.refusedSessionOptions?.fork === undefined)) {
+    // oxlint-disable-next-line no-await-in-loop -- also check fork with invalid source resume on fork-supporting runtimes.
+    await expect(runtime.session(nowhere(runtime.id), { cwd: "/tmp", resume: value, fork: {} }), `${runtime.id} fork`).rejects.toMatchObject({
+      name: "UnsupportedOptionError",
+      option: "resume",
+    });
+  }
+});
