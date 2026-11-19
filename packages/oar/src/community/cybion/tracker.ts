@@ -36,6 +36,11 @@ export interface ThreadTracker {
   steer(recordIdx: number | null): void;
   /** The followed turn's identity, or null when none is followed. */
   turnId(): number | null;
+  /**
+   * Record that Cybion stopped the turn `id` because this session asked it to: only
+   * then does `stopped` end that turn before it was seen running.
+   */
+  stoppedByUs(id: number): void;
   /** Resolves when the turn followed now has ended, or after `ms`. */
   settle(ms: number): Promise<void>;
   /** Stop following; nothing more is recorded. */
@@ -175,10 +180,10 @@ export function createThreadTracker(options: TrackerOptions): ThreadTracker {
     record(current, history);
     emitUsage(now);
     observe(current, now);
-    if (now.displayStatus === "stopped") {
-      // The Thread was stopped, and that is its own end: a cancel can land before
-      // this tracker ever saw the Thread running, and waiting out the start guard
-      // would report an aborted turn as one that never ran.
+    if (now.displayStatus === "stopped" && (current.worked || current.stoppedByUs)) {
+      // A turn this Thread stopped, or one this session stopped for it, ends here
+      // even if it was never seen running; a `stopped` carried over from an earlier
+      // turn is not this turn's end and falls through to the start guard.
       finish(current, now, { kind: "aborted" }, true);
       return;
     }
@@ -247,6 +252,7 @@ export function createThreadTracker(options: TrackerOptions): ThreadTracker {
       worked: false,
       quiet: 0,
       startPolls: 0,
+      stoppedByUs: false,
       steerRecord: null,
     };
     replaced?.ended.resolve();
@@ -259,6 +265,11 @@ export function createThreadTracker(options: TrackerOptions): ThreadTracker {
     busy: () => turn !== null,
     follow: followTurn,
     turnId: () => turn?.id ?? null,
+    stoppedByUs: (id) => {
+      if (turn?.id === id) {
+        turn.stoppedByUs = true;
+      }
+    },
     steer: (recordIdx) => {
       const current = turn;
       if (current === null) {

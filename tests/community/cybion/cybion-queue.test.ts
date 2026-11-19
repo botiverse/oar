@@ -25,6 +25,8 @@ function deployment(refuseFrom: number | null, cancel: { display: "stopped" | "c
   const headers: (string | undefined)[] = [];
   let readsSinceInput = 0;
   let cancelled = false;
+  /** Reads left that still answer the status a cancelled turn left behind. */
+  let staleStopped = 0;
   let nextId = 1;
 
   const fetch = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
@@ -42,6 +44,10 @@ function deployment(refuseFrom: number | null, cancel: { display: "stopped" | "c
       }
       inputs.push(body);
       readsSinceInput = 0;
+      // A new input starts a turn, but the Thread reports the status it carried
+      // from the last one until it picks the input up.
+      staleStopped = cancelled ? 1 : 0;
+      cancelled = false;
       const id = nextId;
       nextId += 1;
       history.push({ id, thread_id: "t1", kind: "input", payload: { role: "user", content: body.input }, created_at: id });
@@ -55,8 +61,12 @@ function deployment(refuseFrom: number | null, cancel: { display: "stopped" | "c
       return json([...history]);
     }
     if (method === "GET" && url.pathname === "/v1/threads/t1") {
+      if (staleStopped > 0) {
+        staleStopped -= 1;
+        return json({ ...base, status: "idle", display_status: cancel.display });
+      }
       readsSinceInput += 1;
-      const running = cancel.neverRuns !== true && !cancelled && readsSinceInput <= 2;
+      const running = cancel.neverRuns !== true && readsSinceInput <= 2;
       if (readsSinceInput === 2 && history.length > 0) {
         const id = nextId;
         nextId += 1;
@@ -164,6 +174,30 @@ describe("a queued cybion input", () => {
     expect(abort).toMatchObject({ kind: "rejected", code: "no_active_turn" });
     await until(() => session.status().value.kind === "idle");
     expect(events.find((event) => event.kind === "turn_ended")).toMatchObject({ outcome: { kind: "completed" } });
+    await session.dispose();
+  }, 30_000);
+
+  it("does not read a stopped status left by the last turn as the next turn's end", async () => {
+    // The Thread keeps answering `idle`/`stopped` after a cancel until it picks the
+    // new input up. That word belongs to the turn this session stopped, not to the
+    // one the prompt just started.
+    const bed = deployment(null);
+    vi.stubGlobal("fetch", bed.fetch);
+    const { session, events } = await open();
+
+    await session.prompt("first");
+    await until(() => session.status().value.kind === "running");
+    expect((await session.abort()).kind).toBe("accepted");
+    await until(() => session.status().value.kind === "idle");
+
+    expect((await session.prompt("second")).kind).toBe("accepted");
+    await until(() => session.status().value.kind === "running", 6000);
+    await until(() => session.status().value.kind === "idle");
+    const ends = events.filter((event) => event.kind === "turn_ended");
+    expect(ends).toHaveLength(2);
+    expect(ends[0]).toMatchObject({ outcome: { kind: "aborted" } });
+    expect(ends[1]).toMatchObject({ outcome: { kind: "completed" } });
+    expect(events.filter((event) => event.kind === "user_message").map((event) => event.input)).toEqual(["first", "second"]);
     await session.dispose();
   }, 30_000);
 

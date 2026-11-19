@@ -156,8 +156,10 @@ of its own.
 - **A turn that dies without writing a record is reported after about 111 s.**
   The started-guard waits 60 polls, and the backoff is capped at 2 s. A prompt
   answers `busy` until it gives up. `abort` does not wait: it sends the cancel,
-  and a Thread the cancel stopped ends the turn as `aborted` at the next poll
-  whether or not it was ever seen running.
+  and the turn a cancel this session sent is `aborted` at the next poll even if
+  it was never seen running. A `stopped` word the Thread still carries from an
+  earlier turn (or one its owner's UI set) is not this turn's end; that case
+  falls back to the guard and its honest "never ran".
 - **A superseded tool call ends nowhere in the stream.** Cybion cancels the
   Worker call and writes no record for it, so the `tool_call_started` of a call
   a steer cancelled stays open in the record stream.
@@ -168,6 +170,10 @@ of its own.
   request (nothing is re-sent) and follows it, so the stream holds a
   `turn_started` after the accepted steer, and the caller asked to steer and got
   a new turn.
+- **Input handed back after a give-up reads `turn_interrupted`.** The record
+  contract's meaning — an input the turn ahead of it never took — is the case
+  here, and the `cybion/held_dropped` frame names the cause (the adapter stopped
+  following); the input returns to the host either way.
 - **Images travel inline.** `InputOptions.images` are read from this machine and
   sent as png/jpeg/webp/gif data URLs, within Cybion's count and size limits.
 

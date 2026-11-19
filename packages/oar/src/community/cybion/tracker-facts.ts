@@ -50,6 +50,12 @@ export interface Turn {
   quiet: number;
   startPolls: number;
   /**
+   * This session asked Cybion to stop this very turn, and Cybion answered that
+   * it did. A `stopped` status from any other source (an earlier turn's stop the
+   * Thread still reports, its owner's UI) is not this turn's end.
+   */
+  stoppedByUs: boolean;
+  /**
    * The record of the newest steer whose input the Thread has not been seen
    * taking in yet, or null. Cybion accepts a steer into the running turn, so the
    * turn is that input's too: it cannot end until the Thread ran (`running`) or

@@ -130,6 +130,11 @@ export function cybionSessionWith(client: Parameters<typeof openThread>[0]): Sta
      * already holds the input, so nothing is sent: what the stream needs is the
      * request record of the turn it started, the way an adapter-held input is
      * dispatched (`dispatch` above), so that turn has its own `turn_started`.
+     *
+     * This runs a `prompt` control from inside the `steer` control's handler: the
+     * kernel allows a control to open another one, and this relies on it. A kernel
+     * that serialised controls would deadlock here, so keep the two in one step
+     * (or record the prompt before the write) if that ever changes.
      */
     const adoptSteer = async (input: string, images: InputOptions["images"], recordIdx: number | null): Promise<void> => {
       await kernel.control({ kind: "prompt", input, ...(images === undefined ? {} : { images }) }, (): ResponseBody => {
@@ -264,6 +269,9 @@ export function cybionSessionWith(client: Parameters<typeof openThread>[0]): Sta
           if (answeredStatusOf(stopped.native) !== "stopped" || tracker.turnId() !== aborted) {
             return { kind: "rejected", code: "no_active_turn", reason: "no active turn", native: stopped.native };
           }
+          // The Thread carries `stopped` from here on; only this turn may read it
+          // as its own end, or the next turn would abort on the same word.
+          tracker.stoppedByUs(aborted);
           return stopped;
         });
         return result;
