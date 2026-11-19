@@ -107,7 +107,7 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
         append(kernel);
       }
     },
-    update(notification, receivedAt) {
+    update(notification, receivedAt = Date.now()) {
       write((kernel) => {
         const source = attributeUpdate?.(notification);
         const update = asRecord(notification.update);
@@ -119,7 +119,7 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
           // This also covers an unresolved parent. Records are append-only: a
           // later accepted link does not retroactively project this native-only frame.
           kernel.frame({ type: methods.client.session.update, native: notification, events: [] },
-            { sessionId: notification.sessionId, ...(receivedAt === undefined ? {} : { receivedAt }) });
+            { sessionId: notification.sessionId, receivedAt });
           return;
         }
         const sessionId = source?.sessionId ?? notification.sessionId;
@@ -127,26 +127,26 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
         const type = typeof update?.sessionUpdate === "string" ? update.sessionUpdate : methods.client.session.update;
         if (source !== null && source !== undefined && notifiedChildren.has(sessionId)) {
           // The extension channel already projects this child; a standard copy must not add events twice.
-          kernel.frame({ type, native: notification, events: [] }, { sessionId, ...(receivedAt === undefined ? {} : { receivedAt }) });
+          kernel.frame({ type, native: notification, events: [] }, { sessionId, receivedAt });
           return;
         }
-        const events: RuntimeEventBody[] = update === null ? [] : [...projectAcpUpdate(projectionFor(sessionId), update), ...projectUpdate?.(update) ?? []];
+        const events: RuntimeEventBody[] = update === null ? [] : [...projectAcpUpdate(projectionFor(sessionId), update), ...projectUpdate?.(update, receivedAt) ?? []];
         if (ownedLinks !== undefined) { events.push(...newSessionLinks(kernel, ownedLinks.map(({ parent, child }) => ({ parent, child, via: "tool_call" })))); }
         else if (source?.parent !== undefined) {
           events.push(...newSessionLinks(kernel, [{ parent: source.parent, child: sessionId, via: "tool_call" }]));
         }
         events.push(...spawnedLinks(kernel, sessionId, update));
-        const record = kernel.frame({ type, native: notification, events }, { ...(foreign ? { sessionId } : {}), ...(receivedAt === undefined ? {} : { receivedAt }) });
+        const record = kernel.frame({ type, native: notification, events }, { ...(foreign ? { sessionId } : {}), receivedAt });
         if (!foreign) {
           usageGate.observe(events.some((event) => event.kind === "usage") ? record.seq : undefined);
         }
       });
     },
-    extension(method, params, afterOpen, receivedAt) {
+    extension(method, params, afterOpen, receivedAt = Date.now()) {
       write((kernel) => {
         const notice = derived.childNotification?.(method, params);
         if (notice !== null && notice !== undefined) {
-          const at = receivedAt === undefined ? {} : { receivedAt };
+          const at = { receivedAt };
           if (associations !== undefined && !associations(method, params).some(link => link.parent === notice.parent && link.child === notice.sessionId)) {
             // As for standard updates: an unowned claim stays native-only on the carrier.
             kernel.frame({ type: method, native: params, events: [] }, at);
@@ -157,7 +157,7 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
           const sessionId = notice.update === null ? notice.parent : notice.sessionId;
           const events: RuntimeEventBody[] = notice.update === null
             ? [...projectExtension?.(method, params) ?? []]
-            : [...projectAcpUpdate(projectionFor(notice.sessionId), notice.update), ...projectUpdate?.(notice.update) ?? []];
+            : [...projectAcpUpdate(projectionFor(notice.sessionId), notice.update), ...projectUpdate?.(notice.update, receivedAt) ?? []];
           events.push(...newSessionLinks(kernel, childLineage.claim(notice.sessionId, notice.parent)), ...spawnedLinks(kernel, notice.sessionId, notice.update));
           kernel.frame({ type: method, native: params, events }, { ...(sessionId === kernel.sessionId ? {} : { sessionId }), ...at });
           return;
@@ -176,7 +176,7 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
         const usage = sessionId === kernel.sessionId ? tokenUsage?.extension(method, params, afterOpen ?? false) : null;
         if (usage !== null && usage !== undefined) { events.push(usage); }
         events.push(...projectExtension?.(method, params) ?? [], ...nativeTurns?.project(method, params, kernel.sessionId, afterOpen ?? false) ?? []);
-        kernel.frame({ type: method, native: params, events }, { ...(foreign ? { sessionId } : {}), ...(receivedAt === undefined ? {} : { receivedAt }) });
+        kernel.frame({ type: method, native: params, events }, { ...(foreign ? { sessionId } : {}), receivedAt });
       });
     },
     step(method, response) {

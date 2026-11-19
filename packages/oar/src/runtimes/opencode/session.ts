@@ -14,6 +14,7 @@ import { prepareOpenCodePrompts, validateOpenCodePrompts, verifyOpenCodeAgent } 
 import { prepareOpenCodeV2Prompts, verifyOpenCodeAgents } from "./prompt-config-v2.js";
 import { acquireOpenCodeStartup } from "./startup-gate.js";
 import { opencodePromptTokenUsage } from "./token-usage.js";
+import { opencodeRetryEvents } from "./retry.js";
 import { opencodeSteering } from "./steering.js";
 
 export const opencodeAcpProfile: AcpSessionProfile = {
@@ -53,7 +54,8 @@ export const opencodeV2RefusedSessionOptions: RefusedSessionOptions = opencodeRe
 export const opencodeV2AcpProfile: AcpSessionProfile = {
   ...commonProfile,
   promptTokenUsage: opencodePromptTokenUsage,
-  compaction: opencodeCompaction, projectUpdate: opencodeCompactionEvents,
+  compaction: opencodeCompaction,
+  projectUpdate: (update, receivedAt) => [...opencodeCompactionEvents(update), ...opencodeRetryEvents(update, receivedAt)],
   capabilities: { queue: { durable: false }, attribution: "nested" },
   attributeUpdate: opencodeChildAttribution,
   validateOptions: (options) => { refuseSessionOptions(opencodeV2RefusedSessionOptions, options); },

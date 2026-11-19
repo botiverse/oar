@@ -1,0 +1,50 @@
+{
+  "version": "opencode v2.3.2",
+  "trials": 2,
+  "outcome": "completed",
+  "frames": [
+    {
+      "type": "session_info_update",
+      "receivedAt": 1795082324537,
+      "stopReason": null,
+      "events": [
+        {
+          "kind": "retry",
+          "attempt": 2,
+          "delayMs": 1601,
+          "reason": "provider.internal"
+        }
+      ],
+      "retry": {
+        "attempt": 2,
+        "nextRetryAt": "2026-11-19T09:58:46.138Z",
+        "type": "provider.internal"
+      }
+    },
+    {
+      "type": "session_info_update",
+      "receivedAt": 1795082326213,
+      "stopReason": null,
+      "events": [],
+      "retry": null
+    },
+    {
+      "type": "agent_message_chunk",
+      "receivedAt": 1795082326215,
+      "stopReason": null,
+      "events": [
+        "text_delta"
+      ]
+    },
+    {
+      "type": "session/prompt",
+      "receivedAt": 1795082326248,
+      "stopReason": "end_turn",
+      "events": [
+        "turn_ended",
+        "usage"
+      ]
+    }
+  ],
+  "next": "completed"
+}
