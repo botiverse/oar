@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { processTreeCleanup } from "../packages/oar/src/shared/executable/process-cleanup.js";
+import { cleanupFailureReason, processTreeCleanup } from "../packages/oar/src/shared/executable/process-cleanup.js";
 import { observeBeforeCancellation } from "../packages/oar/src/shared/executable/process-cancellation.js";
 // oxlint-disable-next-line import/no-namespace -- Control query timing without replacing cleanup or its caller budget.
 import * as reads from "../packages/oar/src/shared/executable/process-table-async.js";
@@ -9,6 +9,7 @@ import * as tree from "../packages/oar/src/shared/executable/process-tree.js";
 const root = { pid: 123, ppid: process.pid, pgid: 0, start: "2026-10-31T00:00:00Z" };
 const tool = { pid: 456, ppid: root.pid, pgid: 0, start: "2026-10-31T00:00:01Z" };
 const snapshot: tree.ProcessTableObservation = { ok: true, source: "windows", elapsedMs: 1, skipped: 0, table: new Map([root, tool].map(entry => [entry.pid, entry])) };
+const empty = { ok: true, source: "windows", elapsedMs: 1, skipped: 0, table: new Map<number, tree.ProcessEntry>() } as const;
 const invalid: tree.ProcessTableObservation = { ok: false, source: "windows", reason: "command_failed", elapsedMs: 4000, exitCode: 1 };
 
 function mockBatchedRead(query: typeof reads.observeProcessTableOnce) {
@@ -29,7 +30,7 @@ test("five seconds includes the prior batch and discards a successful late ident
   const query = vi.fn().mockReturnValueOnce(previous.promise).mockReturnValueOnce(own.promise);
   const batched = mockBatchedRead(query);
   const earlier = batched("windows"); await Promise.resolve();
-  const kill = vi.spyOn(tree, "killEntries").mockImplementation(() => {});
+  const kill = vi.spyOn(tree, "killEntries").mockReturnValue(new Set());
   const cleanup = processTreeCleanup(root.pid);
   const pending = cleanup.capture();
   await vi.advanceTimersByTimeAsync(4000);
@@ -49,12 +50,12 @@ test("five seconds includes the prior batch and discards a successful late ident
 // oxlint-disable-next-line eslint/max-statements -- Preparation and cleanup expire behind the same query; only a subsequent fresh capture can authorize cleanup.
 test("preparation and cleanup queued behind a query longer than five seconds are both skipped", async () => {
   const previous = Promise.withResolvers<tree.ProcessTableObservation>();
-  const query = vi.fn().mockReturnValueOnce(previous.promise).mockResolvedValue(snapshot);
+  const query = vi.fn().mockReturnValueOnce(previous.promise).mockResolvedValueOnce(snapshot).mockResolvedValueOnce(snapshot).mockResolvedValue(empty);
   const batched = mockBatchedRead(query);
   const earlier = batched("windows"); await Promise.resolve();
   const preparation = await import("../packages/oar/src/shared/executable/process-table-preparation.js");
   preparation.prepareProcessTable();
-  const kill = vi.spyOn(tree, "killEntries").mockImplementation(() => {});
+  const kill = vi.spyOn(tree, "killEntries").mockReturnValue(new Set());
   const cleanup = processTreeCleanup(root.pid);
   const pending = cleanup.capture();
   await vi.advanceTimersByTimeAsync(5001); await pending;
@@ -69,7 +70,7 @@ test("preparation and cleanup queued behind a query longer than five seconds are
   expect(preparation.processTablePreparation()).toEqual(timeout);
   const fresh = processTreeCleanup(root.pid);
   await fresh.capture(); await fresh.finish();
-  expect(query).toHaveBeenCalledTimes(3);
+  expect(query).toHaveBeenCalledTimes(4);
   expect(kill).toHaveBeenCalledExactlyOnceWith([tool], snapshot.table);
   expect(fresh.diagnostics().status).toBe("observed");
   expect(cleanup.diagnostics().status).toBe("unverified");
@@ -102,11 +103,11 @@ test("a non-timeout retry has only the remainder of the original budget", async 
 });
 
 test("a retry within the budget captures and revalidates descendants normally", async () => {
-  const read = vi.spyOn(reads, "observeProcessTableAsync").mockResolvedValueOnce(invalid).mockResolvedValue(snapshot);
-  const kill = vi.spyOn(tree, "killEntries").mockImplementation(() => {});
+  const read = vi.spyOn(reads, "observeProcessTableAsync").mockResolvedValueOnce(invalid).mockResolvedValueOnce(snapshot).mockResolvedValueOnce(snapshot).mockResolvedValue(empty);
+  const kill = vi.spyOn(tree, "killEntries").mockReturnValue(new Set());
   const cleanup = processTreeCleanup(root.pid);
   await cleanup.capture(); await cleanup.finish();
-  expect(read).toHaveBeenCalledTimes(3);
+  expect(read).toHaveBeenCalledTimes(4);
   expect(kill).toHaveBeenCalledWith([tool], snapshot.table);
   expect(cleanup.diagnostics().status).toBe("observed");
 });
@@ -125,7 +126,7 @@ test("root exit during an unsuccessful observation prevents retry", async () => 
 test.each(["force", "finish"])("%s has its own five-second total budget and discards late evidence", async phase => {
   const gate = Promise.withResolvers<tree.ProcessTableObservation>();
   const read = vi.spyOn(reads, "observeProcessTableAsync").mockReturnValue(gate.promise);
-  const kill = vi.spyOn(tree, "killEntries").mockImplementation(() => {});
+  const kill = vi.spyOn(tree, "killEntries").mockReturnValue(new Set());
   const stop = vi.fn<() => void>();
   const cleanup = processTreeCleanup(root.pid);
   cleanup.rememberCancellation(snapshot);
@@ -161,4 +162,64 @@ test("the one-second cancellation budget also discards an overdue result deliver
   const pending = observeBeforeCancellation();
   clock.mockReturnValue(1001); gate.resolve(snapshot);
   expect(await pending).toEqual({ ok: false, source: "windows", reason: "timeout", timeoutMs: 1000, elapsedMs: 1001 });
+});
+
+// oxlint-disable-next-line eslint/max-statements -- Hold the native read open across each shutdown path and release it with a reused PID.
+test.each(["force", "finish"])("a signalled identity must exit before %s cleanup finishes", async phase => {
+  const confirm = Promise.withResolvers<tree.ProcessTableObservation>();
+  const read = vi.spyOn(reads, "observeProcessTableAsync").mockResolvedValueOnce(snapshot);
+  if (phase === "force") { read.mockResolvedValueOnce(snapshot); }
+  read.mockReturnValueOnce(confirm.promise);
+  vi.spyOn(tree, "killEntries").mockReturnValue(new Set());
+  const cleanup = processTreeCleanup(root.pid);
+  cleanup.rememberCancellation(snapshot);
+  if (phase === "force") { await cleanup.force(() => {}); }
+  const done = vi.fn();
+  const finished = (async () => { await cleanup.finish(); done(); })();
+  await vi.advanceTimersByTimeAsync(50);
+  expect(done).not.toHaveBeenCalled();
+  // A different owner at the same PID proves the captured process exited.
+  confirm.resolve({ ...empty, table: new Map([[tool.pid, { ...tool, start: "new owner" }]]) });
+  await finished;
+  expect(cleanup.diagnostics().status).toBe("observed");
+});
+
+// oxlint-disable-next-line eslint/max-statements -- The first read and the final confirmation share one deadline.
+test("a survivor outlives the remainder of the five-second final budget", async () => {
+  const initial = Promise.withResolvers<tree.ProcessTableObservation>();
+  vi.spyOn(reads, "observeProcessTableAsync").mockReturnValueOnce(initial.promise).mockResolvedValue(snapshot);
+  vi.spyOn(tree, "killEntries").mockReturnValue(new Set());
+  const cleanup = processTreeCleanup(root.pid);
+  cleanup.rememberCancellation(snapshot);
+  const finished = cleanup.finish();
+  await vi.advanceTimersByTimeAsync(4950);
+  initial.resolve(snapshot);
+  await vi.advanceTimersByTimeAsync(50); await finished;
+  expect(cleanup.diagnostics().status).toBe("unverified");
+  expect(cleanup.diagnostics().observations.at(-1)).toMatchObject({ ok: false, phase: "after_exit", reason: "descendant_still_running" });
+});
+
+test.each(["after force", "after exit"])("an unreadable captured identity %s cannot count as exited", async phase => {
+  const unknown: tree.ProcessTableObservation = { ...empty, skipped: 1, unreadable: new Set([tool.pid]) };
+  const read = vi.spyOn(reads, "observeProcessTableAsync").mockResolvedValueOnce(snapshot).mockResolvedValue(unknown);
+  vi.spyOn(tree, "killEntries").mockReturnValue(new Set());
+  const cleanup = processTreeCleanup(root.pid);
+  cleanup.rememberCancellation(snapshot);
+  if (phase === "after force") { await cleanup.force(() => {}); }
+  await cleanup.finish();
+  expect(read).toHaveBeenCalledTimes(2);
+  expect(cleanupFailureReason(cleanup.diagnostics())).toContain("after_exit windows: descendant_unreadable");
+});
+
+test("a captured PID unreadable during force is revalidated before final cleanup", async () => {
+  vi.spyOn(reads, "observeProcessTableAsync")
+    .mockResolvedValueOnce({ ...empty, skipped: 1, unreadable: new Set([tool.pid]) })
+    .mockResolvedValueOnce(snapshot).mockResolvedValue(empty);
+  const signal = vi.spyOn(tree, "killEntries").mockReturnValue(new Set());
+  const cleanup = processTreeCleanup(root.pid);
+  cleanup.rememberCancellation(snapshot);
+  await cleanup.force(() => {});
+  expect(signal).toHaveBeenLastCalledWith([], expect.any(Map));
+  await cleanup.finish();
+  expect(signal).toHaveBeenLastCalledWith([tool], snapshot.table);
 });

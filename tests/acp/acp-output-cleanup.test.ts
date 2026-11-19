@@ -34,7 +34,7 @@ test.skipIf(process.platform === "win32")("ACP cancellation drains ongoing outpu
     expect({ pulses, parsed }).toEqual(atStop);
     expect(child.diagnostics().stderr).toContain("native-shutdown-hook");
     expect(child.diagnostics().stderr).not.toMatch(/EPIPE|SIGPIPE/u);
-    expect(child.diagnostics().cleanup).toMatchObject({ status: "observed", observations: [{ ok: true, phase: "before_eof" }, { ok: true, phase: "after_exit" }] });
+    expect(child.diagnostics().cleanup).toMatchObject({ status: "observed", observations: [{ ok: true, phase: "before_eof" }, { ok: true, phase: "after_exit" }, { ok: true, phase: "after_exit" }] });
     expect(await gone(tool)).toBe(true);
   } finally {
     vi.restoreAllMocks(); child.kill(); await child.exited;

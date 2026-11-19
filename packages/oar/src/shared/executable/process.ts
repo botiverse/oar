@@ -50,7 +50,8 @@ export interface LineProcess {
   /**
    * Resolves when the process is truly gone and its state has been released.
    * After `kill()`, it includes bounded observations around the SIGKILL
-   * escalation and any asynchronous descendant cleanup after native exit.
+   * escalation and confirmation of known descendants' exit after native exit.
+   * A surviving or unreadable identity leaves cleanup unverified.
    * It then waits at most PIPE_CLOSE_MS (pipe-close.ts) for the output
    * pipes: past that OAR closes its end of each one still held, and reports
    * the closed pipes and the holders it saw in `diagnostics().cleanup.heldPipes`

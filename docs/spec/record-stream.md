@@ -459,9 +459,14 @@ Further rules:
   returns at once, not after the kill grace. When OAR closed a
   command's pipes its result is not `ok`: it fails with `OUTPUT_INCOMPLETE`
   and carries `heldPipes`. On Windows sessions resolve `exited` without
-  waiting for the pipes, as before, and one-shot commands wait for them. Cleanup
-  completion means the owned signalling actions have finished, not that the
-  operating system has finished terminating or reaping every descendant.
+  waiting for the pipes, as before, and one-shot commands wait for them. When OAR stops a tree, the final five-second cleanup budget covers both
+  revalidation before signalling and confirmation of exit on every platform.
+  Before `exited` settles, each identified descendant OAR owns must disappear, have
+  a different start time at the same PID, or be a POSIX zombie. A surviving
+  identity, an unreadable identity or an expired observation leaves cleanup
+  `unverified`. A direct `EPERM` puts that identity in the separate `foreign`
+  count. Its exit remains unknown, and its open pipes still appear in
+  `heldPipes`. Descendants never observed by OAR are outside this guarantee.
   Failed asynchronous observations settle as cleanup diagnostics, not unhandled
   promise rejections. A root observed exiting during capture cannot claim a
   reused PID or initiate another capture attempt.
@@ -574,7 +579,8 @@ Further rules:
   Pending asynchronous cleanup remains registered even after root and pipe
   closure. This hook revalidates its already captured descendant identities
   against a fresh synchronous table shared by all pending cleanups; an
-  unreadable table is reported as unverified, never guessed from an old PID.
+  unreadable table or a signal whose target cannot be checked again before
+  host exit is reported as unverified.
   This is a final
   fallback, not a substitute for disposal: no graceful hooks run. Node
   does not emit `exit` for an unhandled terminating signal, including

@@ -51,10 +51,12 @@ function heldPipesReason(held: HeldPipes): string {
   return `Output pipes (${held.pipes.join(", ")}) still open ${String(held.waitedMs)} ms after the root exited (${who}); OAR closed its end, so output may be incomplete`;
 }
 
-/** Internal observations, not a guarantee that every descendant has exited. */
+/** After a tree stop, observed cleanup confirms exit for the identified descendants. Unobserved descendants are outside that guarantee. */
 export interface ProcessCleanupDiagnostics {
   readonly status: "observed" | "unverified";
   readonly observations: readonly Observation[];
+  /** Distinct identities the OS denied permission to stop. Their exit remains unknown. */
+  readonly foreign?: number;
   /** Processes left holding the output pipes once the root had exited; OAR stopped waiting for them. */
   readonly heldPipes?: HeldPipes;
   /** Host preparation metadata captured after this process's cleanup finishes. */

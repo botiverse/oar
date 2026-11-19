@@ -9,6 +9,9 @@ import { codebuddyLogout } from "../../packages/oar/src/runtimes/codebuddy/logou
 import { fakeLoginCli } from "../fixtures/login-fixtures.js";
 import { recordedInteraction } from "../fixtures/login-interaction.js";
 
+// oxlint-disable-next-line import/no-namespace, import/max-dependencies -- Record the real cleanup reads without making an extra request during login.
+import * as processTables from "../../packages/oar/src/shared/executable/process-table-async.js";
+
 const directories: string[] = [];
 beforeEach(() => { vi.stubEnv("CODEBUDDY_API_KEY", undefined); });
 // A timed-out status query returns at its deadline, before its process is gone (#703): on Windows that process may still hold or write the directory.
@@ -171,14 +174,37 @@ it("stops when the host cannot display the link", async () => {
   expect(fake.read().loggedIn).toBe(true);
 });
 
+// oxlint-disable-next-line eslint/max-statements -- Compare both native process identities at the public login return.
 it("a silent confirmation shares the whole login deadline and cannot contradict native success", async () => {
   vi.stubEnv("OAR_KILL_GRACE_MS", "2000");
   const { fake, installation } = await fixture("silent-confirmation");
-  expect(await codebuddyLogin(installation, recordedInteraction([]), { timeoutMs: 1500 })).toEqual({ kind: "logged_in" });
-  const { pids } = fake.read();
-  assert.ok(Array.isArray(pids));
-  expect(pids).toHaveLength(2);
-  for (const pid of pids) { expect(() => process.kill(Number(pid), 0)).toThrow(); }
+  const identities = new Map<number, string>();
+  const observe = processTables.observeProcessTableAsync;
+  const capture = vi.spyOn(processTables, "observeProcessTableAsync").mockImplementation(async (...args) => {
+    const result = await observe(...args);
+    const { pids } = fake.read();
+    if (result.ok && Array.isArray(pids)) {
+      for (const pid of pids.map(Number)) {
+        const entry = result.table.get(pid);
+        if (entry && !identities.has(pid)) { identities.set(pid, entry.start); }
+      }
+    }
+    return result;
+  });
+  try {
+    expect(await codebuddyLogin(installation, recordedInteraction([]), { timeoutMs: 1500 })).toEqual({ kind: "logged_in" });
+    const { pids } = fake.read();
+    assert.ok(Array.isArray(pids));
+    expect(pids).toHaveLength(2);
+    const after = await observe();
+    assert.ok(after.ok);
+    for (const pid of pids.map(Number)) {
+      expect(identities.has(pid)).toBe(true);
+      expect(after.unreadable?.has(pid)).not.toBe(true);
+      const current = after.table.get(pid);
+      expect(current?.start === identities.get(pid) && current?.zombie !== true).toBe(false);
+    }
+  } finally { capture.mockRestore(); }
   expect(fake.read().loggedIn).toBe(true);
 }, 10_000);
 

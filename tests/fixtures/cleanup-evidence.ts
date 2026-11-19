@@ -54,8 +54,8 @@ export function expectCleanupEvidence(
       expect(entry.source, diagnostic).toBe("windows");
     }
     expect(entry.reason, diagnostic).toBe("timeout");
-    if (entry.phase === "before_eof") {
-      // A retry shares the original five-second capture deadline.
+    if (entry.phase === "before_eof" || entry.phase === "after_exit") {
+      // A retry or a final exit check shares the phase's original five-second deadline.
       expect(entry.timeoutMs, diagnostic).toBeGreaterThan(0);
       expect(entry.timeoutMs, diagnostic).toBeLessThanOrEqual(5000);
     } else { expect(entry.timeoutMs, diagnostic).toBe(entry.phase === "before_cancel" ? 1000 : 5000); }
