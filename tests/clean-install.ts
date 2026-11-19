@@ -4,6 +4,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import CAPABILITIES_PROBE from "./fixtures/capabilities-entry-probe.js";
 import PI_AUTH_PROBE from "./fixtures/pi-auth-entry-probe.js";
 import { checkPiHost, DURABLE_PROBE, DURABLE_TYPES } from "./fixtures/pi-clean-install.js";
 import { cleanInstallPolicy } from "./fixtures/clean-install-pins.js";
@@ -159,6 +160,7 @@ assert.equal(process.getActiveResourcesInfo().length, resources, "forms left som
 const ENTRIES = `
 import * as oar from "@botiverse/oar";
 import * as browser from "@botiverse/oar/browser";
+import * as capabilities from "@botiverse/oar/capabilities";
 import * as forms from "@botiverse/oar/forms";
 import * as agents from "@botiverse/oar/agents";
 import * as report from "@botiverse/oar/agents/report";
@@ -169,7 +171,7 @@ import * as observe from "@botiverse/oar/observe";
 import * as testing from "@botiverse/oar/testing";
 import { createPiProviderAuth, createPiRuntime, type PiProviderAuthOptions } from "@botiverse/oar/runtimes/pi";
 
-export const entries = [oar, browser, forms, agents, report, brands, kernel, observe, testing];
+export const entries = [oar, browser, capabilities, forms, agents, report, brands, kernel, observe, testing];
 export const runtimeAuthorHelpers = [kernel.inputImagesRefusal, kernel.withdrawHeld, browser.withdrawHeld];
 export type RuntimeAuthorQueue = kernel.HeldInput[];
 export const hostEntrances = [oar.defaultRuntimes, oar.orient, oar.openVoyage, oar.createRuntimeRegistry, oar.defineRuntime, oar.promptAndWait, testing.scriptedRuntime, createPiRuntime];
@@ -255,6 +257,7 @@ assert.deepEqual(Object.values(browser.metafile.outputs).flatMap((output) => out
 
 run(process.execPath, ["--input-type=module", "-e", REPORT_PROBE], host);
 run(process.execPath, ["--input-type=module", "-e", FORMS_PROBE], host);
+run(process.execPath, ["--input-type=module", "-e", CAPABILITIES_PROBE], host);
 run(process.execPath, ["--input-type=module", "-e", PI_AUTH_PROBE], host);
 assert.equal(readdirSync(path.join(host, "node_modules")).includes("@cursor"), false, "@cursor/sdk was installed without being asked for");
 assert.equal(readdirSync(path.join(host, "node_modules/@earendil-works")).includes("pi-durable"), false, "pi-durable was installed without being asked for");
