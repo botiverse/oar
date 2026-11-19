@@ -138,10 +138,22 @@ test("disabled control on the 2.2 profile: no capability is declared and 2.3.0 s
   }
 });
 
-test("only 2.3 and later declare the capability; 2.2 profiles keep the standard child projection", async () => {
-  const installation = { kind: "available", via: "executable", command: "opencode" } as const;
-  const releases = await Promise.all(["2.2.5", "2.2.7", "opencode v2.3.0", "2.3.1-beta.1", "2.4.0", "1.18.35"].map(async (version) => opencodeRelease({ ...installation, version })));
-  expect(releases.map((release) => hasBackgroundChildUpdates(release))).toEqual([false, false, true, true, true, false]);
+test.each([
+  ["1.18.35", false],
+  ["2.2.5", false],
+  ["2.2.7", false],
+  ["2.3.0-beta", false],
+  ["2.3.0-rc.1+build.5", false],
+  ["opencode v2.3.0", true],
+  ["2.3.0+build.5", true],
+  ["2.3.1-beta.1", true],
+  ["2.4.0", true],
+] as const)("background child updates for %s: %s", async (version, expected) => {
+  const release = await opencodeRelease({ kind: "available", via: "executable", command: "opencode", version });
+  expect(hasBackgroundChildUpdates(release)).toBe(expected);
+});
+
+test("only the background child profile advertises the native extension", () => {
   expect(opencodeV2AcpProfile.clientCapabilitiesMeta).toBeUndefined();
   expect(opencodeV2AcpProfile.extensionNotifications ?? []).not.toContain(CHILD_UPDATE);
   expect(opencodeBackgroundChildProfile.clientCapabilitiesMeta?.({ cwd: "/" })).toEqual({ "opencode/child-session-updates": true });

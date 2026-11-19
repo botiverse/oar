@@ -8,13 +8,16 @@ no ACP message is exchanged. Runtime id `dsh`, placement isolated only.
 
 Native evidence: the [plugin probe](../../experiments/dsh-plugin/README.md) and
 `sea-trial/vendor/dsh*.vendor.test.ts` against the real CLI with a loopback
-provider. Run on Linux x64, Node 24, on 2026-11-05:
+provider. The first three rows are the Linux x64, Node 24 runs from 2026-11-05.
+The later rows list the platforms and controls measured for those releases.
 
-| Version | Vendor tests | Shared behavior suite |
+| Version | Vendor tests or focused native controls | Shared behavior suite |
 |---|---|---|
-| 0.2.1-rc.5 (CI pin) | 18 passed | 18 passed, 1 skipped by capability (`accountUsage`) |
+| 0.2.1-rc.5 (November 5 CI pin) | 18 passed | 18 passed, 1 skipped by capability (`accountUsage`) |
 | 0.2.2-alpha.2 | 18 passed | 18 passed, 1 skipped by capability |
 | 0.2.2-rc.1 (`latest` and `next` on November 5) | 18 passed | 18 passed, 1 skipped by capability |
+| 0.2.2-rc.3 | All 15 [file and shell controls](../../experiments/dsh-option-boundaries/README.md#session-scoped-writable-roots-and-shell-jobs) passed on Linux x64 and macOS arm64, including writable roots on open and resume. | Focused probes only |
+| 0.2.2-rc.5 | All 15 writable-root controls passed on Linux x64. On Linux, [automatic and manual compaction](../../experiments/dsh-option-boundaries/README.md#image-input-and-compaction) reported matching boundaries. | Focused probes only |
 
 The [daily version inventory](../../experiments/runtime-versions.ts) compares
 `@deepseek-ai/dsh`'s npm `latest` with `OAR_DSH_BIN` or `dsh` on PATH. Each new

@@ -1,4 +1,4 @@
-import { parseOpencodeRelease, type OpencodeRelease } from "./version.js";
+import { atLeastV2, parseOpencodeRelease, type OpencodeRelease } from "./version.js";
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { RefusedSessionOptions, SessionCapabilityDeclaration } from "../../contracts/runtime.js";
 
@@ -29,17 +29,10 @@ export const opencodeV1RefusedSessionOptions: RefusedSessionOptions = {
 const V2_INSTRUCTIONS = { minor: 0, patch: 30, version: "2.0.30" } as const;
 const V2_AGENT_LISTING = { minor: 2, patch: 0, version: "2.2.0" } as const;
 
-/** A pre-release of the floor itself (`2.2.0-beta`) is below it: it may predate the measured behavior. */
-function atLeast(release: OpencodeRelease, floor: { readonly minor: number; readonly patch: number }): boolean {
-  if (release.minor !== floor.minor) { return release.minor > floor.minor; }
-  if (release.patch !== floor.patch) { return release.patch > floor.patch; }
-  return !/^\d+\.\d+\.\d+-/u.test(release.version);
-}
-
 export function opencodeV2PromptRefusals(release: OpencodeRelease): Pick<RefusedSessionOptions, "appendSystemPrompt" | "systemPrompt"> {
   return {
-    ...(!atLeast(release, V2_INSTRUCTIONS) ? { appendSystemPrompt: `opencode ${release.version} does not load configured instructions; ${V2_INSTRUCTIONS.version} or later does` } : {}),
-    ...(!atLeast(release, V2_AGENT_LISTING) ? { systemPrompt: `opencode ${release.version} cannot list its agents without the shared background service; ${V2_AGENT_LISTING.version} or later can` } : {}),
+    ...(!atLeastV2(release, V2_INSTRUCTIONS) ? { appendSystemPrompt: `opencode ${release.version} does not load configured instructions; ${V2_INSTRUCTIONS.version} or later does` } : {}),
+    ...(!atLeastV2(release, V2_AGENT_LISTING) ? { systemPrompt: `opencode ${release.version} cannot list its agents without the shared background service; ${V2_AGENT_LISTING.version} or later can` } : {}),
   };
 }
 

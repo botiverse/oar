@@ -40,7 +40,15 @@ export async function opencodeMajor(installation: ExecutableInstallation, option
   return release.major;
 }
 
+/** A pre-release of the floor itself (`2.2.0-beta`) is below it: it may predate the measured behavior. */
+export function atLeastV2(release: OpencodeRelease, floor: { readonly minor: number; readonly patch: number }): boolean {
+  if (release.major !== 2) { return false; }
+  if (release.minor !== floor.minor) { return release.minor > floor.minor; }
+  if (release.patch !== floor.patch) { return release.patch > floor.patch; }
+  return !/^\d+\.\d+\.\d+-/u.test(release.version);
+}
+
 /** 2.3.0 runs subagents in the background and reports them through `opencode/session/child_update`. */
 export function hasBackgroundChildUpdates(release: OpencodeRelease): boolean {
-  return release.major === 2 && release.minor >= 3;
+  return atLeastV2(release, { minor: 3, patch: 0 });
 }

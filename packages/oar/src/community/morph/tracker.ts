@@ -1,4 +1,5 @@
 import { setTimeout as delay } from "node:timers/promises";
+import type { RuntimeEventBody } from "../../contracts/session.js";
 import { asRecord } from "../../shared/json.js";
 import type { SessionKernel } from "../../shared/session-kernel.js";
 import type { ConsoleClient } from "./console.js";
@@ -19,6 +20,7 @@ const UNREACHABLE_AFTER = 8;
 interface Tracked {
   readonly taskId: string;
   status: string | null;
+  reportedRunning: boolean;
   readonly approved: Set<string>;
   closeStream: () => void;
   readonly ended: PromiseWithResolvers<void>;
@@ -61,11 +63,20 @@ export function createTaskTracker(options: TrackerOptions): TaskTracker {
   let projection: MorphProjection = initialMorphProjection;
   let closed = false;
 
-  const recordStream = (frame: unknown): void => {
+  // A newer task may already be running while the previous task's terminal poll is pending.
+  const runningEvents = (task: Tracked, id: unknown, status: unknown): readonly RuntimeEventBody[] => {
+    if (task !== tracked[0] || id !== task.taskId || status !== "running" || task.reportedRunning) { return []; }
+    task.reportedRunning = true;
+    return [{ kind: "turn_active" }];
+  };
+
+  const recordStream = (task: Tracked, frame: unknown): void => {
     const fold = foldMorphStream(projection, frame);
     projection = fold.state;
-    const status = asRecord(frame)?.status;
-    kernel.frame({ type: `stream/${typeof status === "string" ? status : "snapshot"}`, native: frame, events: fold.events });
+    const snapshot = asRecord(frame);
+    const status = snapshot?.status;
+    const events = [...runningEvents(task, snapshot?.task_id, status), ...fold.events];
+    kernel.frame({ type: `stream/${typeof status === "string" ? status : "snapshot"}`, native: frame, events });
   };
 
   const approve = async (task: Tracked, approvalId: string): Promise<void> => {
@@ -104,13 +115,14 @@ export function createTaskTracker(options: TrackerOptions): TaskTracker {
     if (reply.status !== 200 || status === null) {
       return false;
     }
-    if (status !== task.status) {
+    const events = runningEvents(task, info?.id, status);
+    if (status !== task.status || events.length > 0) {
       task.status = status;
       if (TERMINAL_TASK_STATUSES.has(status)) {
         await finish(task, reply.body);
         return true;
       }
-      kernel.frame({ type: `task/${status}`, native: reply.body, events: [] });
+      kernel.frame({ type: `task/${status}`, native: reply.body, events });
     }
     const approvalId = info?.approval_request_id;
     if (status === "pending" && typeof approvalId === "string" && approvalId !== "" && !task.approved.has(approvalId)) {
@@ -162,6 +174,7 @@ export function createTaskTracker(options: TrackerOptions): TaskTracker {
       const task: Tracked = {
         taskId,
         status: null,
+        reportedRunning: false,
         approved: new Set(),
         closeStream: () => {
           streaming = false;
@@ -169,7 +182,7 @@ export function createTaskTracker(options: TrackerOptions): TaskTracker {
         ended: Promise.withResolvers(),
       };
       const connect = (): void => {
-        const close = client.stream(taskId, recordStream, (): void => {
+        const close = client.stream(taskId, frame => { recordStream(task, frame); }, (): void => {
           // Snapshots are a live view: reconnect while the task runs; the
           // task query settles the turn even if the stream stays away.
           if (streaming && !closed && tracked.includes(task)) {
