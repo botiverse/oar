@@ -323,6 +323,10 @@ The field remains optional on `unsupported` and `reauth_required` for
 compatibility with older/custom adapters; absent reasons must be presented as
 unknown rather than guessed. It is required on the new `unavailable` branch.
 
+A `reauth_required` or `unavailable` snapshot may carry `lastAccount`
+when the runtime identifies the previous sign-in. Its optional `email` and
+`displayName` are display information for the host.
+
 | Kind | Reason | Meaning |
 | --- | --- | --- |
 | unsupported | capability_unavailable | The runtime has no account-usage reader (reported by the CLI/embedding app). |

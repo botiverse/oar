@@ -264,7 +264,7 @@ test("a claude that cannot read a pasted code, or an aborted signal, starts noth
 
 test("auth status reads claude auth status --json", async () => {
   const states = [{ loggedIn: true }, { loggedIn: false }, { statusBroken: true }];
-  const statuses = await Promise.all(states.map(async (state) => claudeAuthStatus(installation(fakeClaude(state)))));
+  const statuses = await Promise.all(states.map(async (state) => claudeAuthStatus(installation(fakeClaude(state)), { env: { CLAUDE_CONFIG_DIR: dir } })));
   expect(statuses).toMatchInlineSnapshot(`
     [
       {

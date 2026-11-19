@@ -141,8 +141,20 @@ test.each([
     self.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "error", request_id: id, error: nativeError } })}\n`);
   });
   spawnLineProcess.mockReturnValue(fake);
-  await expect(claudeAccountUsage(installation)).resolves.toEqual({ kind, reason });
+  await expect(claudeAccountUsage(installation, { env: { CLAUDE_CONFIG_DIR: import.meta.dirname } })).resolves.toEqual({ kind, reason });
   expect(fake.killed()).toBe(true);
+});
+
+test("native authentication refusal retains the account identified by initialize", async () => {
+  const fake = fakeLineProcess((text, self) => {
+    const { id, subtype } = control(text);
+    if (subtype === "initialize") { answer(self, id, { account: { email: "old@example.invalid" } }); return; }
+    self.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "error", request_id: id, error: "Authentication required" } })}\n`);
+  });
+  spawnLineProcess.mockReturnValue(fake);
+  await expect(claudeAccountUsage(installation, { env: { CLAUDE_CONFIG_DIR: import.meta.dirname } })).resolves.toEqual({
+    kind: "reauth_required", reason: "not_authenticated", lastAccount: { email: "old@example.invalid" },
+  });
 });
 
 test("operational failures stay errors instead of unsupported or zero usage", async () => {

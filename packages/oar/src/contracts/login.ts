@@ -22,6 +22,12 @@ export interface LoginAccount {
   readonly expiresAt?: UtcInstant;
 }
 
+/** Identity the runtime still remembers from a previous sign-in. It grants no access. */
+export interface LastAccount {
+  readonly email?: string;
+  readonly displayName?: string;
+}
+
 /** Why a login ended without a logged-in runtime. */
 export type LoginFailureReason =
   | "timed_out" // oar's deadline passed before the runtime reported success; the login process and everything it started were stopped
@@ -161,7 +167,7 @@ export type RuntimeLogout = (
  */
 export type AuthStatus =
   | { readonly kind: "logged_in"; readonly account?: LoginAccount; readonly source: string }
-  | { readonly kind: "logged_out"; readonly source: string; readonly detail?: string }
+  | { readonly kind: "logged_out"; readonly source: string; readonly detail?: string; readonly lastAccount?: LastAccount }
   /** The status query failed, was unreadable, or local configuration cannot establish a login. */
   | {
     readonly kind: "unknown";

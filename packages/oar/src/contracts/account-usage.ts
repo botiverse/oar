@@ -1,4 +1,5 @@
 import type { AvailableInstallation } from "./installation.js";
+import type { LastAccount } from "./login.js";
 import type { SessionOptions } from "./session-options.js";
 
 declare const utcInstantBrand: unique symbol;
@@ -81,7 +82,7 @@ export type AccountUsageReauthReason =
   | "not_authenticated" | "credentials_missing" | "scope_missing" | "credentials_rejected";
 
 export type AccountUsageSnapshot =
-  | { readonly kind: "unavailable"; readonly reason: AccountUsageUnavailableReason }
+  | { readonly kind: "unavailable"; readonly reason: AccountUsageUnavailableReason; readonly lastAccount?: LastAccount }
   | {
       readonly kind: "available";
       /** Runtime-reported subscription plan or tier; omitted when not exposed. */
@@ -99,8 +100,8 @@ export type AccountUsageSnapshot =
     }
   | {
       readonly kind: "reauth_required";
-      /** Built-in readers always report a reason; optional for older adapters. */
-      readonly reason?: AccountUsageReauthReason;
+      readonly lastAccount?: LastAccount;
+      readonly reason?: AccountUsageReauthReason; // Optional for older adapters.
     }
   | {
       readonly kind: "unsupported";

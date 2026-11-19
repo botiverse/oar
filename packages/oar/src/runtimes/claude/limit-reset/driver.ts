@@ -1,6 +1,6 @@
 /* oxlint-disable eslint/max-lines -- One driver: the session, its key rules and both flows read together. */
-import { constants } from "node:fs";
-import { mkdtemp, open, rm, stat } from "node:fs/promises";
+import { readClaudeConfigField } from "../global-config.js";
+import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -246,32 +246,10 @@ function isDrivablePlatform(platform: NodeJS.Platform): boolean {
  * the one boolean is read; the file's account fields are not touched.
  */
 async function readCachedFlags(env: NodeJS.ProcessEnv): Promise<ClaudeLimitResetFlags> {
-  const configDir = env.CLAUDE_CONFIG_DIR;
-  const configPath = configDir !== undefined && configDir !== ""
-    ? path.join(configDir, ".claude.json")
-    : path.join(env.HOME ?? os.homedir(), ".claude.json");
-  try {
-    const entry = await stat(configPath);
-    if (!entry.isFile()) { return { limitResets: null }; }
-    // Nonblocking open also handles a regular file replaced by a FIFO after stat.
-    const file = await open(configPath, constants.O_RDONLY | constants.O_NONBLOCK);
-    let text = "";
-    try {
-      const opened = await file.stat();
-      if (!opened.isFile()) { return { limitResets: null }; }
-      text = await file.readFile("utf8");
-    } finally {
-      await file.close();
-    }
-    const config: unknown = JSON.parse(text);
-    // cachedGrowthBookFeatures.tengu_cedar_ember.enabled; anything else on the way is no answer.
-    const features = typeof config === "object" && config !== null && "cachedGrowthBookFeatures" in config ? config.cachedGrowthBookFeatures : undefined;
-    const flag = typeof features === "object" && features !== null && "tengu_cedar_ember" in features ? features.tengu_cedar_ember : undefined;
-    const enabled = typeof flag === "object" && flag !== null && "enabled" in flag ? flag.enabled : undefined;
-    return { limitResets: typeof enabled === "boolean" ? enabled : null };
-  } catch {
-    return { limitResets: null };
-  }
+  const features = await readClaudeConfigField(env, "cachedGrowthBookFeatures");
+  const flag = typeof features === "object" && features !== null && "tengu_cedar_ember" in features ? features.tengu_cedar_ember : undefined;
+  const enabled = typeof flag === "object" && flag !== null && "enabled" in flag ? flag.enabled : undefined;
+  return { limitResets: typeof enabled === "boolean" ? enabled : null };
 }
 
 /**
