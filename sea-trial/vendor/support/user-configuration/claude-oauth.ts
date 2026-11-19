@@ -18,7 +18,7 @@ interface MockOAuth {
   close(): Promise<void>;
 }
 
-export async function mockRefresh(key: Buffer, cert: Buffer): Promise<MockOAuth> {
+export async function mockRefresh(key: Buffer, cert: Buffer, mode: "accepted" | "rejected" = "accepted"): Promise<MockOAuth> {
   const seen: Observations = { exchanges: 0, profiles: 0, verified: false, routes: [] };
   const sockets = new Set<Socket>();
   const handle = async (request: IncomingMessage, response: ServerResponse): Promise<void> => {
@@ -37,7 +37,8 @@ export async function mockRefresh(key: Buffer, cert: Buffer): Promise<MockOAuth>
       assert.ok("grant_type" in body && body.grant_type === "refresh_token");
       assert.ok("refresh_token" in body && body.refresh_token === REFRESH);
       seen.verified = true;
-      result = {
+      status = mode === "rejected" ? 400 : 200;
+      result = mode === "rejected" ? { error: "invalid_grant" } : {
         access_token: TOKEN, refresh_token: ROTATED,
         expires_in: 3600, token_type: "Bearer", scope: "user:profile user:inference user:sessions:claude_code",
         account: { uuid: ACCOUNT, email_address: EMAIL }, organization: { uuid: ORGANIZATION },

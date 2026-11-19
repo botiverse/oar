@@ -1375,6 +1375,17 @@ at the paste prompt (`login cancelled`, exit 130, no process left over, the
 previous login unchanged).
 [Login](../../packages/oar/src/runtimes/claude/login.ts).
 
+On Claude Code 2.1.327, a rejected OAuth refresh left the previous email and
+display name in the native `oauthAccount` profile even though both
+`auth status` and `initialize.account` stopped reporting the email.
+`authStatus().lastAccount` on a logged-out result reads that profile from
+`.claude.json` under `CLAUDE_CONFIG_DIR` or the native home. Explicit
+logout removed the profile. A successful refresh kept the ordinary signed-in
+account. In both logged-out controls `get_usage` reported
+`rate_limits_available: false`, so the usage result remained
+`unsupported/quota_unavailable`. Hosts can use `authStatus` to display
+the previous sign-in. [Local OAuth controls](../../experiments/claude-last-account/README.md).
+
 `login(..., { openBrowser: false })` suppresses that local browser attempt.
 OAR sets `BROWSER` only in the login child's environment: `true` on POSIX,
 the system `hostname.exe` on Windows. The program receives the URL and exits

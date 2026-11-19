@@ -1,12 +1,12 @@
 import { withQueryDeadline } from "../../shared/executable/query.js";
 import type { SessionOptions } from "../../contracts/session-options.js";
-import { randomUUID } from "node:crypto";
 import type { AccountUsageReader, AccountUsageSnapshot, AccountUsageWindow, AccountUsageWindowScope } from "../../contracts/account-usage.js";
 import { runExecutable, spawnLineProcess } from "../../shared/executable/index.js";
 import { assertRan } from "../../shared/executable/diagnostics.js";
 import { remainingMs } from "../../shared/deadline.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord, asRecordList, parseJson, type JsonRecord } from "../../shared/json.js";
+import { rememberedClaudeAccount } from "./last-account.js";
 import { claudeEnv } from "./environment.js";
 
 const HOUR_MS = 3_600_000;
@@ -93,13 +93,14 @@ export function projectClaudeUsage(payload: unknown, email?: string): AccountUsa
   };
 }
 
-function controlFailure(reply: JsonRecord): AccountUsageSnapshot {
+async function controlFailure(reply: JsonRecord, env: NodeJS.ProcessEnv, email?: string): Promise<AccountUsageSnapshot> {
   const detail = typeof reply.error === "string" ? reply.error : "Malformed control response";
   if (/unsupported control request subtype|unknown control request|not supported in this context|not available on this connection/iu.test(detail)) {
     return { kind: "unsupported", reason: "endpoint_unavailable" };
   }
   if (/not logged in|authentication required|please (?:run )?\/login/iu.test(detail)) {
-    return { kind: "reauth_required", reason: "not_authenticated" };
+    const lastAccount = email === undefined ? await rememberedClaudeAccount(env) : { email };
+    return { kind: "reauth_required", reason: "not_authenticated", ...(lastAccount === undefined ? {} : { lastAccount }) };
   }
   throw new Error(`Claude usage control request failed: ${detail}`);
 }
@@ -154,10 +155,11 @@ export const claudeAccountUsage: AccountUsageReader = async (installation, optio
     }
     signal.throwIfAborted();
     remainingMs(deadline, USAGE);
+    const env = claudeEnv(options.env);
     const child = spawnLineProcess(installation.command, [
       "-p", "--input-format", "stream-json", "--output-format", "stream-json",
       "--verbose", "--no-session-persistence", "--safe-mode",
-    ], { env: claudeEnv(options.env), killTree: true });
+    ], { env, killTree: true });
     let pending: { id: string; resolve: (reply: JsonRecord | null) => void } | null = null;
     let ended = false;
     child.onLine((line) => {
@@ -181,7 +183,7 @@ export const claudeAccountUsage: AccountUsageReader = async (installation, optio
       if (ended || signal.aborted) {
         throw new Error("Claude exited or timed out before answering usage queries");
       }
-      const id = `oar-usage-${randomUUID()}`;
+      const id = `oar-usage-${globalThis.crypto.randomUUID()}`;
       const { promise, resolve } = Promise.withResolvers<JsonRecord | null>();
       pending = { id, resolve };
       child.write(`${JSON.stringify({ type: "control_request", request_id: id, request })}\n`);
@@ -196,14 +198,14 @@ export const claudeAccountUsage: AccountUsageReader = async (installation, optio
       await child.spawned;
       const initialized = await query({ subtype: "initialize" });
       if (initialized.subtype !== "success") {
-        return controlFailure(initialized);
+        return await controlFailure(initialized, env);
       }
       const account = asRecord(asRecord(initialized.response)?.account);
       const email = typeof account?.email === "string" && account.email.trim().length > 0
         ? account.email.trim() : undefined;
       const reply = await query({ subtype: "get_usage", skip_behaviors: true });
       if (reply.subtype !== "success") {
-        return controlFailure(reply);
+        return await controlFailure(reply, env, email);
       }
       return projectClaudeUsage(reply.response, email);
     } finally {

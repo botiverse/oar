@@ -87,6 +87,7 @@ export type {
   AuthStatus,
   AuthStatusOptions,
   AuthStatusReader,
+  LastAccount,
   LoginAccount,
   LoginFailureReason,
   LoginOptions,

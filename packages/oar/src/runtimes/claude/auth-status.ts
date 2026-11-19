@@ -3,6 +3,7 @@ import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { AuthStatus, AuthStatusOptions, LoginAccount } from "../../contracts/login.js";
 import { runExecutable } from "../../shared/executable/index.js";
 import { asRecord, parseJson } from "../../shared/json.js";
+import { rememberedClaudeAccount } from "./last-account.js";
 import { claudeEnv } from "./environment.js";
 
 const STATUS_TIMEOUT_MS = 20_000;
@@ -71,7 +72,9 @@ export async function claudeAuthStatus(
 ): Promise<AuthStatus> {
   const result = await withQueryDeadline<AuthStatus>("Claude auth status", options.timeoutMs ?? STATUS_TIMEOUT_MS, async (signal) => {
     const { status } = await readClaudeAuthStatus(installation, { ...options, signal });
-    return status;
+    if (status.kind !== "logged_out") { return status; }
+    const lastAccount = await rememberedClaudeAccount(claudeEnv(options.env));
+    return lastAccount === undefined ? status : { ...status, lastAccount };
   }, { kind: "unknown", source: STATUS_SOURCE, detail: "Claude auth status timed out" });
   return result;
 }

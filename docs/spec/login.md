@@ -348,7 +348,9 @@ caller closes it. A prompt or event handler that throws stops the login with
 found local configuration without establishing a login; never a guess either
 way. `source` names the native command, SDK call or
 configuration observed. `logged_out.detail` can give setup guidance and the
-limits of that observation.
+limits of that observation. A logged-out status may include `lastAccount`
+with the email or display name the runtime still remembers. A host can label
+it as the previous sign-in. It confers no session access.
 
 The `unknown` variant has an optional `configured?: readonly string[]`. A
 nonempty list means the reader observed local authentication configuration
