@@ -94,10 +94,12 @@ test("v2 failures retain native process diagnostics", async () => {
 });
 
 for (const option of ["systemPrompt", "appendSystemPrompt"] as const) {
-  test.each([undefined, "old-session"])(`v2 refuses ${option} before any ACP launch or helper query, resume=%s`, async (resume) => {
-    await expect(opencodeSession({ ...installation, version: "opencode v2.0.26" }, {
+  test.each([undefined, "old-session"])(`v2 below its measured floor refuses ${option} before any ACP launch or helper query, resume=%s`, async (resume) => {
+    const refusal: unknown = await opencodeSession({ ...installation, version: "opencode v2.0.26" }, {
       cwd: "/project", [option]: "must never disappear", ...(resume === undefined ? {} : { resume }),
-    })).rejects.toMatchObject({ name: "UnsupportedOptionError", option });
+    }).catch((error: unknown) => error);
+    expect(refusal).toMatchObject({ name: "UnsupportedOptionError", option });
+    expect(String(refusal)).toContain("opencode 2.0.26");
     expect(run).not.toHaveBeenCalled();
   });
 }

@@ -11,7 +11,7 @@ import { acpFixture } from "../../experiments/sharing/acp-fixture.js";
 import { cleanupObserver } from "./support/opencode-cleanup.js";
 import { preservingProbeEvidence, probeErrorText } from "../../experiments/sharing/fixture-lifetime.js";
 import { cwdEvidence } from "../../experiments/sharing/observation.js";
-import { asRecord } from "../../packages/oar/src/shared/json.js";
+import { asRecord, asRecordList } from "../../packages/oar/src/shared/json.js";
 
 const enabled = process.env.OAR_TEST === "opencode-cleanup";
 const expectedVersion = process.env.OAR_CI_CANDIDATE_VERSION ?? "2.2.7";
@@ -133,3 +133,46 @@ for (const placement of ["isolated"] as const) {
     ]);
   }, 240_000);
 }
+
+// Session prompts through the native config overlay: a custom default agent, a disabled built-in that must stay
+// disabled, then a resume that replaces the system prompt (experiments/opencode-v2-prompts).
+test.skipIf(!enabled)(`OpenCode ${expectedVersion}: systemPrompt and appendSystemPrompt reach the model on a new session and its resume`, async () => {
+  const { startOpencodeAimock } = await import("../harness/aimock-acp.js");
+  const requests: string[] = [];
+  const updates: string[] = [];
+  const fixture = await startOpencodeAimock(mock => {
+    mock.on({ predicate: request => (request.tools ?? []).length > 0 }, request => {
+      requests.push(JSON.stringify(request.messages.filter(message => message.role === "system")));
+      updates.push(JSON.stringify(request.messages.filter(message => message.role === "user" && JSON.stringify(message.content).includes("system-update"))));
+      return { content: "Complete" };
+    });
+  }, { default_agent: "review", agents: { review: { mode: "primary", description: "Fixture review agent", system: "USER-REVIEW-PROMPT" }, plan: { disabled: true } } });
+  const installation = await opencodeRuntime.installation();
+  expect(installation.kind).toBe("available");
+  if (installation.kind !== "available") { return; }
+  const base: SessionOptions = { cwd: fixture.env.HOME ?? "", env: fixture.env, model: "aimock/aimock-model" };
+  try {
+    const first = await opencodeRuntime.session(installation, { ...base, systemPrompt: "OAR-SYSTEM-ONE", appendSystemPrompt: "OAR-APPEND-ONE" });
+    try {
+      // The disabled built-in stays out of the session's mode choices: the overlay did not bring it back.
+      const opened = first.records().find(record => record.kind === "frame" && record.body.type === "session/new");
+      const modes = opened?.kind === "frame" ? asRecordList(asRecord(opened.body.native)?.configOptions).find(option => option.category === "mode") : undefined;
+      const choices = asRecordList(modes?.options).map(option => option.value);
+      expect(choices).toEqual(expect.arrayContaining(["review", "build"]));
+      expect(choices).not.toContain("plan");
+      expect(modes?.currentValue).toBe("review");
+      expect(await promptAndWait(first, "first")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
+    } finally { await first.dispose(); }
+    expect(requests.at(-1)).toContain("OAR-SYSTEM-ONE");
+    expect(requests.at(-1)).toContain("OAR-APPEND-ONE");
+    expect(requests.at(-1)).not.toContain("USER-REVIEW-PROMPT");
+    const resumed = await opencodeRuntime.session(installation, { ...base, resume: first.id, systemPrompt: "OAR-SYSTEM-TWO" });
+    try {
+      expect(await promptAndWait(resumed, "second")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
+    } finally { await resumed.dispose(); }
+    expect(requests.at(-1)).toContain("OAR-SYSTEM-TWO");
+    expect(requests.at(-1)).not.toContain("OAR-SYSTEM-ONE");
+    // The first file's text stays in the saved system snapshot; OpenCode retracts it in a user update.
+    expect(updates.at(-1)).toContain("no longer apply");
+  } finally { await fixture.stop(); }
+}, 180_000);
