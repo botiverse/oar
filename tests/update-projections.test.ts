@@ -52,11 +52,15 @@ test("grok's check JSON decides, and a lookup error is never a current installat
   assert.equal(projectGrokUpdateCheck("1.0.46", undefined).kind, "unavailable");
 });
 
-test("claude's install method comes from the executable's real path", () => {
+test("claude's install method comes from the executable's real path and never guesses native", () => {
   assert.equal(claudeInstallMethod("/home/u/.local/share/claude/versions/2.1.286"), "native");
   assert.equal(claudeInstallMethod("/usr/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe"), "npm");
   assert.equal(claudeInstallMethod("/opt/homebrew/Caskroom/claude-code/2.1.285/claude"), "package_manager");
-  // A shim whose path is not a layout defers to claude's recorded method.
+  // A shim whose path is not a layout defers to claude's recorded method for npm only.
   assert.equal(claudeInstallMethod("C:/Users/u/AppData/Roaming/npm/claude.cmd", "global"), "npm");
   assert.equal(claudeInstallMethod("/home/u/.local/share/claude/versions/2.1.286", "global"), "native");
+  // Unrecognized layouts (system packages like /usr/bin/claude or copied binaries) stay unknown.
+  assert.equal(claudeInstallMethod("/usr/bin/claude"), "unknown");
+  assert.equal(claudeInstallMethod("/usr/bin/claude", "native"), "unknown");
+  assert.equal(claudeInstallMethod("/opt/custom/claude", undefined), "unknown");
 });

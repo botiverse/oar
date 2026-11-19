@@ -71,9 +71,10 @@ verdict where it gives one; otherwise `latest !== installed`.
 | failed | The updater exited non-zero or timed out, and the version did not move. |
 | unsupported | This installation cannot be upgraded without a person: `requires_terminal` (kimi before 0.43.0) or `unsupported_installation`. |
 
-When the check is unavailable, the updater still runs and its outcome is
-judged the same way, so a Homebrew copy reports `unchanged` with the updater's
-instruction to run `brew upgrade`.
+When the check is unavailable because of a transient lookup error or disabled
+checks, the updater may still run and its outcome is judged the same way.
+Package-manager-owned or unrecognized Claude installations return
+`unsupported_installation` without invoking `claude update`.
 
 ## Per runtime
 

@@ -24,8 +24,20 @@ So oar reads the executable's `--version` before and after.
 ## Per runtime
 
 **claude.** Installs: native (`~/.local/bin/claude` links into
-`~/.local/share/claude/versions/<v>`), npm, Homebrew, WinGet, apt/dnf/apk.
-`claude update` updates the running copy with that copy's own method. Channels
+`~/.local/share/claude/versions/<v>`), npm, Homebrew, WinGet, mise, asdf, and
+Linux system packages (apt/dpkg, dnf/rpm, apk, pacman). Linux system packages
+install to standard paths such as `/usr/bin/claude` with no distinctive path
+segment; Claude 2.1.292 identifies them via `/etc/os-release` and `dpkg -S`,
+`rpm -qf`, `apk info --who-owns` or `pacman -Qo` (`[sym]`) and prints a
+package-manager notice while exiting 0 without changing the binary. On an
+unrecognized standalone copy not owned by a package manager (`[env]` Linux
+2.1.292), `claude update` rewrites `.claude.json` `installMethod` to `"native"`
+and attempts to download a native copy into `~/.local/share/claude`. OAR
+therefore never defaults unrecognized layouts to `"native"`: Linux
+system-package copies and path-matched package managers report
+`package_manager`, unrecognized layouts report `unmanaged_installation`, and
+`upgrade` returns `unsupported_installation` without running `claude update`.
+`claude update` runs only for recognized native and npm copies. Channels
 `latest` and `stable` (settings `autoUpdatesChannel`); on `stable`,
 `claude update` can move to an older version. No check only mode; the native
 updater reads `downloads.claude.ai/claude-code-releases/{latest,stable}`, the
