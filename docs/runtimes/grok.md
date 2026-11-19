@@ -472,7 +472,10 @@ OAR drives Grok Build's own sign-in, reads its status and signs it out
   authenticated.` (exit 0): `logged_out`. With one, its first line is `You
   are logged in with grok.com.` (seen on a real 1.0.77 login): `logged_in`,
   with `account.method` taken from that line. Neither line, or a failing
-  command, is `unknown`.
+  command, is `unknown`. With an expired login on 1.0.89, the read-only ACP
+  `_x.ai/auth/info` reply still named the previous email. OAR returns it in
+  `lastAccount` on signed-out status and reauthentication-required usage.
+  Explicit logout cleared it from both. [Account controls](../../experiments/remembered-accounts/README.md).
 - `logout` runs `grok logout` (`No cached session to log out of.` and exit 0
   when there is none), then `grok models` decides; a sign-in that stays is
   `still_logged_in`.
@@ -1125,8 +1128,9 @@ history. Omission and `"include"` retain existing behavior. See the
 `listModels()` starts an ACP process, initializes and authenticates it,
 and calls the native `_x.ai/models/list` extension. Authentication and catalog
 reads can use the network; workspace configuration is loaded, but no model
-prompt is submitted. `authStatus` runs `grok models` ([login](#login)) and is
-not `localOnly`, so local-depth orientation skips it.
+prompt is submitted. `authStatus` runs `grok models` and can start a
+read-only ACP identity query after a signed-out result. Local-depth
+orientation skips this account read ([login](#login)).
 
 ## Reader environment
 

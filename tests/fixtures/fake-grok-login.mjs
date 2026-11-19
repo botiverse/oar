@@ -1,5 +1,6 @@
 /* oxlint-disable eslint/max-statements, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-return, typescript/no-unsafe-argument, typescript/strict-boolean-expressions -- Standalone untyped fixture executable. */
 // grok 1.0.77's login, model listing and logout as observed on 2026-11-11 (docs/runtimes/grok.md#login).
+import { createInterface } from "node:readline";
 import { readFileSync } from "node:fs";
 import saveLoginState from "./login-state.mjs";
 
@@ -19,6 +20,19 @@ if (args[0] === "logout") {
   if (!state.loggedIn) { console.log("No cached session to log out of."); process.exit(0); }
   state.loggedIn = state.mode === "sticky"; save();
   console.log("Logged out.");
+  process.exit(0);
+}
+if (args[0] === "agent") {
+  const lines = createInterface({ input: process.stdin });
+  for await (const line of lines) {
+    const request = JSON.parse(line);
+    if (request.method === "initialize") {
+      console.log(JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { protocolVersion: 1, agentCapabilities: {}, authMethods: [] } }));
+    } else if (request.method === "_x.ai/auth/info") {
+      const result = state.mode === "expired" ? { email: "previous@example.invalid" } : {};
+      console.log(JSON.stringify({ jsonrpc: "2.0", id: request.id, result }));
+    } else { process.exit(2); }
+  }
   process.exit(0);
 }
 if (args[0] !== "login" || args[1] !== "--device-auth") { process.exit(2); }

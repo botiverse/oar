@@ -1,10 +1,8 @@
 import { expect, test } from "vitest";
 import { accountEmail } from "../packages/oar/src/runtimes/codex/account-request.js";
 import { projectCodexUsage } from "../packages/oar/src/runtimes/codex/account-usage.js";
-import {
-  grokAccountEmail,
-  projectGrokUsage,
-} from "../packages/oar/src/runtimes/grok/account-usage.js";
+import { grokAccountEmail } from "../packages/oar/src/runtimes/grok/account-info.js";
+import { projectGrokUsage } from "../packages/oar/src/runtimes/grok/account-usage.js";
 
 const separateLimits = {
   rateLimits: {

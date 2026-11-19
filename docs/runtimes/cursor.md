@@ -966,7 +966,7 @@ the backoff; the login then throws `Login was cancelled.`), but the minting
 takes no signal, and the save follows it whatever the signal says.
 `status()` reads only the file: `logged-out` when it is missing, unreadable
 or past its expiry, else `logged-in` with `backendUrl`, `email` and
-`apiKeyExpiresAtMs`, never the key.
+`apiKeyExpiresAtMs`, never the key. SDK 1.4.1 returned only `{ status: "logged-out" }` after both expiry and explicit logout. [Account controls](../../experiments/remembered-accounts/README.md).
 
 OAR passes `openBrowser: false` and relays the URL from `onLoginUrl` as one
 `auth_url` event; nothing is pasted back. The abort the SDK would ignore is

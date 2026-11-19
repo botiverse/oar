@@ -1,3 +1,4 @@
+import { RequestError } from "../../packages/oar/node_modules/@agentclientprotocol/sdk/dist/acp.js";
 import { setImmediate as tick } from "node:timers/promises";
 import { readerEnvironment, expectReaderEnvironment } from "../fixtures/reader-environment.js";
 import { afterEach, expect, test, vi } from "vitest";
@@ -228,4 +229,18 @@ test("late optional identity cannot replace the timely billing-only result", asy
     kind: "available", plan: "SuperGrok", rateLimited: false,
     windows: [{ label: "Included usage", usedRatio: 0.25, scope: { kind: "account" } }],
   });
+});
+
+test.each([
+  [{ email: "previous@example.invalid" }, { lastAccount: { email: "previous@example.invalid" } }],
+  [{ methodId: "cached_token", email: "current@example.invalid" }, {}],
+  [{}, {}],
+])("only a remaining signed-out identity accompanies the billing refusal", async (info, expected) => {
+  acp.request.mockImplementation(async method => {
+    if (method === "initialize") { return { protocolVersion: 1, authMethods: [] }; }
+    if (method === "_x.ai/billing") { throw new RequestError(-32_000, "Authentication required"); }
+    if (method === "_x.ai/auth/info") { return info; }
+    throw new Error(`Unexpected request ${method}`);
+  });
+  expect(await grokAccountUsage(installation)).toEqual({ kind: "reauth_required", reason: "not_authenticated", ...expected });
 });

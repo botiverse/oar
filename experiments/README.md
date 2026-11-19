@@ -1,5 +1,7 @@
 # experiments
 
+- [Remembered accounts](remembered-accounts/README.md) compares what the native account readers return after expiry or logout.
+
 - [Remembered Claude account](claude-last-account/README.md) compares native status, control replies and the profile after an accepted refresh, rejected refresh and explicit logout.
 
 - [OpenCode prompt usage](opencode-prompt-usage/README.md) compares two-step token accounting across the 2.0.22 boundary and v1.
