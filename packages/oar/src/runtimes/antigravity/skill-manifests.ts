@@ -1,7 +1,9 @@
 /* oxlint-disable no-await-in-loop -- Preserve native entry and inheritance precedence. */
-import { readFile, readdir, realpath, stat } from "node:fs/promises";
-import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { readFile, readdir, stat } from "node:fs/promises";
+import { basename, join, resolve } from "node:path";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
+
+export type SkillBoundary = (path: string) => Promise<boolean>;
 
 export async function skillPathExists(path: string): Promise<boolean> {
   try { await stat(path); return true; } catch { return false; }
@@ -23,23 +25,18 @@ export async function skillDirectories(path: string, signal: AbortSignal): Promi
     return result.toSorted();
   } catch { signal.throwIfAborted(); return []; }
 }
-export interface ManifestScope { readonly base: string; readonly projectRoot?: string; readonly signal: AbortSignal }
+export interface ManifestScope { readonly base: string; readonly projectRoot?: string; readonly boundary: SkillBoundary; readonly signal: AbortSignal }
 async function declaredPath(value: string, scope: ManifestScope): Promise<string | null> {
   const local = resolve(scope.base, value);
-  if (scope.projectRoot === undefined) { return local; }
-  const path = await skillPathExists(local) ? local : resolve(scope.projectRoot, value);
-  const resolved = await realpath(path).catch(() => null);
-  if (resolved === null) { return null; }
-  const root = await realpath(scope.projectRoot);
-  const within = relative(root, resolved);
-  return within === ".." || within.startsWith(`..${sep}`) || isAbsolute(within) ? null : path;
+  const path = scope.projectRoot === undefined || await skillPathExists(local) ? local : resolve(scope.projectRoot, value);
+  return await scope.boundary(path) ? path : null;
 }
 function strings(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
 export async function skillManifest(path: string, scope: ManifestScope, seen = new Set<string>()): Promise<string[]> {
   scope.signal.throwIfAborted();
-  if (seen.has(path)) { return []; }
+  if (seen.has(path) || !await scope.boundary(path)) { return []; }
   seen.add(path);
   const data = await skillJson(path, scope.signal) ?? {};
   const result: string[] = [];
@@ -50,8 +47,10 @@ export async function skillManifest(path: string, scope: ManifestScope, seen = n
     if (parent === null) { continue; }
     const only = strings(entry.include_only);
     const excluded = new Set(strings(entry.exclude));
-    const children = only.length > 0 ? only.map(name => join(parent, name)) : await skillDirectories(parent, scope.signal);
-    result.push(...children.filter(child => !excluded.has(child.slice(parent.length + 1))));
+    const candidates = only.length > 0 ? only.map(name => join(parent, name)) : await skillDirectories(parent, scope.signal);
+    for (const child of candidates) {
+      if (!excluded.has(child.slice(parent.length + 1)) && await scope.boundary(child)) { result.push(child); }
+    }
   }
   for (const value of Array.isArray(data.inherits) ? data.inherits : []) {
     const entry = asRecord(value);
