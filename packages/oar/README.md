@@ -298,7 +298,7 @@ none for a turn that ends on a tool call or was aborted). Claude and Codex
 
 `SessionOptions.additionalDirectories` adds native workspace paths, resolved
 relative to `cwd`. Claude, Codex, Cursor, Kimi (new sessions only),
-OpenCode v2, Qwen and Qoder support it; other runtimes refuse it. Empty or omitted adds no
+OpenCode v2, Qwen, Qoder and DSH 0.2.2-rc.3+ (Linux and macOS) support it; other runtimes refuse it. Empty or omitted adds no
 override. It keeps the primary `cwd` and does not change the sandbox mode.
 Project rules or instruction files in those directories may or may not load:
 the option does not guarantee it. Resume and configuration rules differ by runtime; see

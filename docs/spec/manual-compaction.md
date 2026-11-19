@@ -144,7 +144,7 @@ native input identities without inference; see the
 
 While compaction remains unresolved, a new `prompt`, `steer`, or `compact`
 returns `rejected` / `busy`. Claude, Pi, Grok, Factory, Qoder, Cursor and OpenCode v2
-retain `queue()` input in the OAR queue and drain it after native completion; Codex refuses new
+retain `queue()` input in the OAR queue and drain it after native completion; Codex and DSH refuse new
 queue input `busy` because its native queue could start another turn during
 compaction. A submitted but not yet started input also prevents compact.
 `abort()` uses the native cancellation control once it has a target. Before
@@ -185,7 +185,7 @@ its unit regressions use a controlled SDK stand-in.
 | Factory | Supported, idle only. `droid.compact_session` keeps the session id (`newSessionId` equals it on 1.12.1); `session_compacted` while it is pending and the matching answer prove completion. During a turn droid refuses it and OAR answers busy first; an empty conversation is droid's refusal ("Nothing to compact"). An answer naming another session is a failure, since that id would break session identity. |
 | Qoder | Supported, idle only. `/compact` is intercepted before custom commands. Same-command UUID start, manual `compact_boundary`, and command completion/cancellation are required. A completed boundary wins later cancellation; a successful command without a boundary yields `not_compacted`. |
 | Cursor | Supported, idle only. `Agent.summarize()` returns a run id; its root summary status and terminal run result identify completion. An aborted run without a terminal summary returns aborted without inventing a compaction end. |
-| DSH | Undeclared; no session member. |
+| DSH | Idle only. Native `compactNow` receives a command id; its result and a matching start/end pair prove completion. An empty selection returns `not_compacted`. |
 | Pi Durable | Undeclared; no session member. |
 
 Claude's command-source read and dispatch are separate native messages, not

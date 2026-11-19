@@ -30,7 +30,7 @@ const textOf = (value: unknown): string | undefined => typeof value === "string"
 
 export interface DshControl {
   readonly ready: Promise<DshReady>;
-  request(this: void, method: string, fields?: JsonRecord, timeoutMs?: number): Promise<JsonRecord>;
+  request(this: void, method: string, fields?: JsonRecord, timeoutMs?: number | null): Promise<JsonRecord>;
 }
 
 /**
@@ -40,7 +40,7 @@ export interface DshControl {
 export function dshControl(child: LineProcess, receive: (message: JsonRecord) => void): DshControl {
   let sequence = 0;
   let ended = false;
-  const pending = new Map<string, { resolve(value: JsonRecord): void; reject(error: Error): void; timer: NodeJS.Timeout }>();
+  const pending = new Map<string, { resolve(value: JsonRecord): void; reject(error: Error): void; timer: NodeJS.Timeout | undefined }>();
   const { promise: ready, resolve: resolveReady, reject: rejectReady } = Promise.withResolvers<DshReady>();
   // A rejected startup may be observed only after the opening awaits it.
   void (async (): Promise<void> => { try { await ready; } catch { /* The opening reports it. */ } })();
@@ -84,7 +84,7 @@ export function dshControl(child: LineProcess, receive: (message: JsonRecord) =>
       sequence += 1;
       const id = `oar-dsh-${String(sequence)}`;
       const { promise, resolve, reject } = Promise.withResolvers<JsonRecord>();
-      const timer = setTimeout(() => {
+      const timer = timeoutMs === null ? undefined : setTimeout(() => {
         pending.delete(id);
         reject(new Error(`DSH did not answer ${method} within ${String(timeoutMs)} ms: ${child.diagnostics().stderr}`));
         child.kill();

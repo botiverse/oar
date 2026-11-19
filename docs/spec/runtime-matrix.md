@@ -138,7 +138,7 @@ and the opened session stays authoritative.
 | codex | true | true |
 | cursor | true (an individual steer can still be rejected: `unsupported` with images, `runtime_refused` when the run cannot take it, as above) | true |
 | devin | false | absent: advertised by `initialize` |
-| dsh | absent: the bridge reports the agent's methods at open | false |
+| dsh | absent: the bridge reports the agent's methods at open | absent: the selected model and native attachment store determine image support |
 | factory | true | true |
 | grok | true | true |
 | kimi | false | absent: advertised by `initialize` |
@@ -176,7 +176,7 @@ available installation ([orientation](orientation.md#session-capabilities)).
 | Grok | Parent `subagent_spawned` / `subagent_finished` | Absent: child `session/cancel` left its work running on 1.0.77. |
 | Qwen | `system/task_started` / `task_notification` with nested `data`, verified on 0.26.8 | Absent: no verified host single-task control. |
 | OpenCode 2.3.0 | `opencode/session/child_update` status `created`, `running`, `completed`, `failed`, `interrupted` | Absent. |
-| DSH | `subagent/start` / `subagent/end`; durable `job/registered` / `job/settled` for shell and other jobs, including foreground commands ([mapping and completion boundaries](../runtimes/dsh.md#root-completion-and-background-work)) | Absent. |
+| DSH | `subagent/start` / `subagent/end`; durable `job/registered` / `job/settled` for shell and other jobs, including foreground commands ([mapping and completion boundaries](../runtimes/dsh.md#root-completion-and-background-work)) | Native `jobs.kill` and `jobs.wait` for this session's explicitly backgrounded shell jobs. |
 | Other runtimes | Existing runtime-specific observations only | Absent. |
 
 The [contract](subagents.md#native-single-task-stop) distinguishes native
@@ -612,7 +612,8 @@ runtime and is not guaranteed by this option.
 | opencode v2 | ACP `additionalDirectories`, after capability advertisement | Pass again; a cold resume without it does not restore the extra roots. |
 | qwen | `--include-directories` | Pass the list again for the new process. |
 | qoder | `--add-dir` | Pass the list again for the new process. |
-| opencode v1, grok, antigravity, codebuddy, devin, dsh, factory, pi, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
+| dsh | Linux and macOS from 0.2.2-rc.3 register each path on the session in its existing sandbox policy. Earlier releases and Windows refuse. | Each resume registers only the paths supplied for that session. |
+| opencode v1, grok, antigravity, codebuddy, devin, factory, pi, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
 
 The unconditional refusals are declared in `Runtime.refusedSessionOptions`.
 Kimi's resume restriction and OpenCode's release-line restriction are checked
@@ -829,7 +830,7 @@ in [user configuration](#user-configuration).
 | pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping |
 | pi | `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `userConfiguration: "exclude"` | it runs in the host process through its SDK, with no command line |
 | qwen | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
-| dsh | `mcpServerCredentials`, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `userConfiguration: "exclude"` | MCP credentials have no verified persistence boundary; launcher overlays can disable the bridge; root `agentOptions.outputSchema` is ignored while the native child API supports it; the other options remain unverified through the bridge ([mapping](../runtimes/dsh.md#session-options)) |
+| dsh | `mcpServerCredentials`, `launchArgs`, `serviceTier`, `outputSchema`, `userConfiguration: "exclude"` | MCP credentials have no verified persistence boundary; launcher overlays can disable the bridge; root `agentOptions.outputSchema` is ignored while the native child API supports it; the other options remain unverified through the bridge ([mapping](../runtimes/dsh.md#session-options)) |
 | factory | `serviceTier`, `outputSchema`, `name`, `additionalDirectories`, `disallowedTools`, `userConfiguration: "exclude"` | no tier; structured output, session titles and tool denials not yet verified; no extra-directory or user-configuration exclusion channel ([mapping](../runtimes/factory.md#session-options)) |
 | qoder | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
 | codex | `userConfiguration: "exclude"`; `endTurnProcessesOnAbort: true` only with shared placement | temporary clean homes break shared history paths after cleanup ([evidence](../runtimes/codex.md#user-configuration)); a shared app-server's process table does not say which session's turn started a process |

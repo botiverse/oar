@@ -1,5 +1,8 @@
 /* oxlint-disable import/max-dependencies -- Native launch, controls, projection and the credential boundary meet here. */
 /* oxlint-disable eslint/require-await -- Session controls return kernel promises directly. */
+import { resolvedAdditionalDirectories } from "../../shared/additional-directories.js";
+import { readExecutableVersion } from "../../shared/executable/index.js";
+import { dshVersionRefusal } from "./version.js";
 import { randomUUID } from "node:crypto";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { ResumeCwdError } from "../../contracts/resume-cwd-error.js";
@@ -9,16 +12,18 @@ import { SessionNotFoundError } from "../../contracts/session-not-found-error.js
 import type { ResponseBody, Session, SessionOptions, StartSession } from "../../contracts/session.js";
 import { createAbortFallback } from "../../shared/abort-fallback.js";
 import { appendCleanupFailure, cleanupFailureReason } from "../../shared/executable/process-cleanup.js";
-import { withInputImages } from "../../shared/input-images.js";
+import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { sameDirectory } from "../../shared/same-directory.js";
 import { checkSessionName, refuseSessionOptions } from "../../shared/session-options.js";
 import { withSessionCredentials, type SessionCredentials } from "../../shared/session-credentials.js";
+import { dshCompaction } from "./compaction.js";
 import { DshCommandError, dshControl, type DshControl } from "./control.js";
-import { dshEnvironment, dshExecutableRefusal, launchDsh } from "./launch.js";
+import { dshEnvironment, launchDsh } from "./launch.js";
+import { isBackgroundShellJob } from "./jobs.js";
 import { dshGoalControl } from "./goal.js";
 import { dshMcpRows } from "./mcp.js";
-import { dshAgentOptions, dshRefusedSessionOptions, type DshAgentOptions } from "./options.js";
+import { dshAgentOptions, dshDirectoryRefusal, dshRefusedSessionOptions, type DshAgentOptions } from "./options.js";
 import { dshOpenedFrame, foldDsh, initialDshProjection } from "./projection.js";
 
 const OPEN_TIMEOUT_MS = 60_000;
@@ -30,7 +35,7 @@ function openFailure(error: unknown, sessionId: string, resuming: boolean): unkn
   if (error.native.name === "SessionPersistenceNotFoundError") {
     return new SessionNotFoundError(sessionId, `DSH has no saved session ${sessionId}`, { method: "sessionPersistence.open", native: error.native });
   }
-  if ((error.code === "native_method_unavailable" || error.code === "option_not_applied") && (error.capability === "name" || error.capability === "disallowedTools")) {
+  if ((error.code === "native_method_unavailable" || error.code === "option_not_applied") && (error.capability === "name" || error.capability === "disallowedTools" || error.capability === "additionalDirectories")) {
     return new UnsupportedOptionError(error.capability, error.message);
   }
   if (error.code === "prompt_not_applied" && (error.capability === "systemPrompt" || error.capability === "appendSystemPrompt")) {
@@ -81,11 +86,14 @@ function refusalOf(error: unknown): ResponseBody {
   if (!(error instanceof DshCommandError)) { return { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) }; }
   if (error.code === "busy") { return { kind: "rejected", code: "busy", reason: "busy" }; }
   if (error.code === "no_active_turn") { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
-  if (error.code === "native_method_unavailable") { return { kind: "rejected", code: "unsupported", reason: error.message, native: error.native }; }
+  if (error.code === "native_method_unavailable" || error.code === "unsupported_task" || error.code === "image_unsupported") { return { kind: "rejected", code: "unsupported", reason: error.message, native: error.native }; }
   return { kind: "rejected", code: "runtime_refused", reason: error.message, native: error.native };
 }
 
-const inputFields = (text: string, inputId: string | undefined): JsonRecord => ({ text, ...(inputId === undefined ? {} : { inputId }) });
+const inputFields = (text: string, inputId: string | undefined, images: readonly LoadedImage[]): JsonRecord => ({
+  text, ...(inputId === undefined ? {} : { inputId }),
+  ...(images.length === 0 ? {} : { images: images.map(({ data, mediaType }) => ({ data, mediaType })) }),
+});
 
 async function open(command: string, options: SessionOptions, env: NodeJS.ProcessEnv, credentials: SessionCredentials, mcpRows: readonly JsonRecord[]): Promise<Session> {
   const sessionId = options.resume ?? randomUUID();
@@ -105,6 +113,7 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
     kernel.processExited(code, reason);
   });
   const fields = { sessionId, agentOptions: { ...agentOptions },
+    ...(options.additionalDirectories === undefined ? {} : { additionalDirectories: options.additionalDirectories }),
     ...(options.disallowedTools === undefined ? {} : { disallowedTools: options.disallowedTools }),
     ...(options.systemPrompt === undefined ? {} : { systemPrompt: options.systemPrompt }),
     ...(options.appendSystemPrompt === undefined ? {} : { appendSystemPrompt: options.appendSystemPrompt }),
@@ -128,29 +137,35 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
   }
   kernel.frame(dshOpenedFrame(opened));
 
-  const capabilities = { queue: { durable: false }, attribution: "nested", images: false } as const;
+  const capabilities = { queue: { durable: false }, attribution: "nested", images: Array.isArray(opened.imageTypes) && opened.imageTypes.length > 0 } as const;
   const methods = asRecord(opened.methods) ?? {};
   const inboxMethods = asRecord(opened.inboxMethods) ?? {};
+  const jobMethods = asRecord(opened.jobMethods);
   const send = async (method: string, payload: JsonRecord): Promise<ResponseBody> => {
     try { return { kind: "accepted", native: await control.request(method, { sessionId, ...payload }) }; }
     catch (error) { return refusalOf(error); }
   };
   const active = (): boolean => projection.sessions[sessionId]?.turnOpen === true;
 
+  const compaction = opened.compact === true ? dshCompaction(kernel, control, () => active() || (projection.sessions[sessionId]?.nextTurn.length ?? 0) > 0) : undefined;
+  const compactBusy = { kind: "rejected", code: "busy", reason: "DSH is compacting this session" } as const;
+
   return credentials.seal({
     id: sessionId, capabilities, resources: child.resources,
+    ...(compaction === undefined ? {} : { compact: compaction.compact }),
     ...(options.goals === true ? { goal: dshGoalControl(kernel, control, sessionId, refusalOf) } : {}),
     prompt: async (text, inputOptions) => kernel.control({ kind: "prompt", input: text, ...inputOptions }, async () => {
+      if (compaction?.busy() === true) { return compactBusy; }
       if (active()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
-      return withInputImages(capabilities, inputOptions?.images, async () => send("prompt", inputFields(text, inputOptions?.inputId)));
+      return withInputImages(capabilities, inputOptions?.images, async images => send("prompt", inputFields(text, inputOptions?.inputId, images)));
     }),
     // A control the runtime cannot do is an absent member; `dsh/opened` keeps the inventory that says why.
     ...(methods.steer === true ? {
       steer: async (text, inputOptions) => kernel.control({ kind: "steer", input: text, ...inputOptions }, async () =>
-        withInputImages(capabilities, inputOptions?.images, async () => send("steer", inputFields(text, inputOptions?.inputId)))),
+        compaction?.busy() === true ? compactBusy : withInputImages(capabilities, inputOptions?.images, async images => send("steer", inputFields(text, inputOptions?.inputId, images)))),
     } : {}),
     queue: async (text, inputOptions) => kernel.control({ kind: "queue", input: text, ...inputOptions }, async () =>
-      withInputImages(capabilities, inputOptions?.images, async () => send("queue", inputFields(text, inputOptions?.inputId)))),
+      compaction?.busy() === true ? compactBusy : withInputImages(capabilities, inputOptions?.images, async images => send("queue", inputFields(text, inputOptions?.inputId, images)))),
     ...(inboxMethods.remove === true ? {
       withdraw: async (inputId) => kernel.control({ kind: "withdraw", inputId }, async () => {
         const answer = await send("withdraw", { messageId: inputId });
@@ -158,7 +173,13 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
           ? { kind: "rejected", code: "not_queued", reason: "no held input with this inputId is waiting" } : answer;
       }),
     } : {}),
+    ...(jobMethods?.get === true && jobMethods.kill === true && jobMethods.wait === true ? {
+      stopTask: async (taskId) => kernel.control({ kind: "stop_task", taskId }, async () =>
+        isBackgroundShellJob(kernel.records(), sessionId, taskId) ? send("stopTask", { taskId })
+          : { kind: "rejected", code: "unsupported", reason: "DSH stops only this session's explicitly backgrounded shell jobs" }),
+    } : {}),
     abort: async () => kernel.control({ kind: "abort" }, async () => {
+      if (compaction?.busy() === true) { return compaction.admitted() ? send("cancelCompaction", {}) : compactBusy; }
       const disarm = fallback.arm();
       const answer = await send("cancel", {});
       if (answer.kind !== "accepted") { disarm(); }
@@ -192,7 +213,10 @@ export const dshSession: StartSession = withSessionCredentials(async (installati
   if (installation.via !== "executable") { throw new Error("DSH requires its executable installation"); }
   const env = dshEnvironment(options.env);
   // A floor refusal names the real version, before anything starts.
-  const refusal = await dshExecutableRefusal(installation.command, installation.version, env);
+  const version = installation.version ?? await readExecutableVersion(installation.command, 15_000, undefined, env);
+  const refusal = dshVersionRefusal(version);
   if (refusal !== null) { throw new RuntimeFailureError("invalid_request", refusal); }
-  return open(installation.command, options, env, credentials, mcpRows);
+  refuseSessionOptions(dshDirectoryRefusal(version), options);
+  const directories = resolvedAdditionalDirectories(options);
+  return open(installation.command, directories.length === 0 ? options : { ...options, additionalDirectories: directories }, env, credentials, mcpRows);
 });

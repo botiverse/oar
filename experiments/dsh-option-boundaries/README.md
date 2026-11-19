@@ -109,3 +109,29 @@ DSH emitted `developer`. The corrected controls read the actual native result
 and both instruction roles. Neither preparation failure was evidence of an
 adapter or native-runtime defect. An initial implementation forwarded arguments;
 it was withdrawn after the conflict probes, before publication.
+
+## Session-scoped writable roots and shell jobs
+
+On Linux x64, DSH 0.2.2-rc.3 and rc.5 passed all 15 file and shell controls in
+[the session-roots probe](probe-session-roots.ts). On macOS 27.0 arm64, rc.3
+passed the same 15 controls. Registering a root preserved the primary workspace,
+a separately configured writable root and read-only mode. A peer session could
+not write the new root. A resumed session needed the grant again. In contrast,
+the rc.1 configuration overlay replaced the effective sandbox mode.
+
+The [job probe](probe-abort-jobs.ts) on 0.2.2-rc.1 and rc.5 selected one
+running bash job, requested its termination with its owner's session id, and
+waited for native status `killed`. The old job with the same owner and the peer
+session's job were still running. The [public API test](../../sea-trial/vendor/dsh-background.vendor.test.ts)
+checks the stopped task record and refusal of a peer's id.
+
+## Image input and compaction
+
+DSH 0.2.1-rc.5 and 0.2.2-rc.5 on Linux sent the original PNG bytes to a local
+vision model after the [native probe](probe-compaction-images.ts) saved the
+image and passed the attachment reference to the agent. Run the probe with
+`image`, `manual` or `auto` as its first argument. Automatic compaction emitted
+a start and an end with the same id and a turn number. Manual compaction echoed
+the initiating command id on both boundaries and in the result of `compactNow`.
+The [session tests](../../sea-trial/vendor/dsh-compaction-images.vendor.test.ts)
+cover image delivery, native settlement, competing input, timeout and abort.

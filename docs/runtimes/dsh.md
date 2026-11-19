@@ -127,8 +127,14 @@ Durable events read: `turn/start`, `turn/end` (`turn_ended`), `agent/inbox/splic
 (`model` as `provider/model`, `effort`), `request/context` (window),
 `assistant/message` and `assistant/attempt` (usage), `subagent/catalog`
 (`session_linked`), `compaction/start` and `compaction/end`. `assistant/message`
-adds no second text. Compaction reads are from the source and unit-tested, not yet
-exercised natively.
+adds no second text. On 0.2.1-rc.5 and 0.2.2-rc.5, automatic compaction emitted both boundaries
+with a turn number. A manual compaction on an idle session carried the initiating
+command id instead. Its native return and durable boundaries agreed on the
+compaction id. [Native controls](../../experiments/dsh-option-boundaries/probe-compaction-images.ts).
+
+`stopTask(jobId)` stops a shell job this session explicitly started with `run_in_background: true`. DSH checks the
+owner on `jobs.get`, `kill` and `wait`; OAR confirms the `killed` result.
+The separate subagent run id has no corresponding stop operation.
 
 Job events carry their native `toolCall.callId` and label. Settlement maps
 `completed` and `failed` directly, and `killed` to `stopped`; unknown results
@@ -260,17 +266,18 @@ session in `SessionOptions.env`: nobody sits at an approval prompt, and native r
 tools run and the native `permission/preset` frame is recorded.
 
 Refused with `UnsupportedOptionError` until an effective native mapping is verified:
-`fork`, `mcpServerCredentials`, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`,
+`fork`, `mcpServerCredentials`, `launchArgs`, `serviceTier`, `outputSchema`,
 `userConfiguration: "exclude"`, `endTurnProcessesOnAbort: true`
-([`options.ts`](../../packages/oar/src/runtimes/dsh/options.ts)). Images are not
-sent: `capabilities.images` is false and an input with images is rejected
-`unsupported`. `queue.durable` is false: native dispose clears the inbox
+([`options.ts`](../../packages/oar/src/runtimes/dsh/options.ts)). The opened session reports image support when its selected model advertises
+image input and DSH mounts a matching attachment store. Images are saved as
+native attachments. A scripted vision model received the original PNG bytes,
+including with an empty text input. `queue.durable` is false: native dispose clears the inbox
 (measured). After a SIGKILL,
 one probe on 0.2.1-rc.5 found the queued input still in the log: it does not run at
 resume, `dsh/opened` reports it as `pending`, and it runs at the next wake, ahead of
 the prompt that woke it. Flush timing has not been established, so OAR promises
-nothing here. Login, auth status and account usage are absent. Manual compaction
-is undeclared, meaning untested. DSH exposes an
+nothing here. Login, auth status and account usage are absent. Manual compaction requires an idle session and the native `compactNow` service.
+An empty history yields `not_compacted`. DSH exposes an
 [independent skill catalog](#independent-skill-catalog). Its `commands()`,
 `mcpServers()` and `tools()` inventories return `unsupported`.
 
@@ -298,12 +305,15 @@ hosts without requiring a runtime-specific assumption.
 
 The [remaining-option probes](../../experiments/dsh-option-boundaries/remaining.md)
 cover DSH 0.2.1-rc.5 and 0.2.2-rc.1 on Linux with synthetic providers. They also
-explain three retained refusals:
+explain the following boundaries:
 
 - Extra writable roots work in 0.2.2-rc.1's native sandbox policy, but the
   minimum version ignores them. A roots-only overlay replaces the whole
-  policy config and resets its mode; preserving the effective policy is
-  not yet verified, so `additionalDirectories` stays refused.
+  policy config and resets its mode. From 0.2.2-rc.3 on Linux and macOS,
+  OAR registers each requested directory on the live session at open or resume.
+  The original workspace root, configured roots and read-only mode survive.
+  Peers receive no grant. Windows lacks the matching shell guarantee.
+  [File and shell controls](../../experiments/dsh-option-boundaries/probe-session-roots.ts).
 - Default-config dumping omits user provider routes and cannot be combined
   with `--patch`. It is not a verified configuration-exclusion launch that
   preserves providers, login and history.
