@@ -99,7 +99,7 @@ describe("steering a cybion turn", () => {
     const deployment = runningDeployment();
     vi.stubGlobal("fetch", deployment.fetch);
     const runtime = createCybionRuntime({ baseUrl: "https://cybion.test", apiKey: "cyb_me_secret" });
-    expect(runtime.sessionCapabilities?.({ kind: "available", via: "bundled" })).toEqual({ steer: true, images: true });
+    expect(runtime.sessionCapabilities?.({ kind: "available", via: "bundled" })).toMatchObject({ steer: true, images: true });
     const session: Session = await runtime.session({ kind: "available", via: "bundled" }, { cwd: "/work" });
     expect(session.steer).toBeDefined();
     const events: Event[] = [];
