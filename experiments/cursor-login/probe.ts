@@ -323,7 +323,7 @@ interface Home {
 }
 
 /** A fresh temporary home, empty or holding a previous login the SDK's own store wrote. */
-async function scenarioHome(name: string, previous: boolean): Promise<Home> {
+async function scenarioHome(name: string, previous: boolean, expiresInMs = 30 * DAY_MS): Promise<Home> {
   const home = path.join(root, name);
   useHome(home);
   const authFile = path.join(home, ".cursor", "sdk", "auth.json");
@@ -333,7 +333,7 @@ async function scenarioHome(name: string, previous: boolean): Promise<Home> {
       version: 1,
       backendUrl: mock.url,
       apiKey: PREVIOUS_KEY,
-      apiKeyExpiresAtMs: Date.now() + 30 * DAY_MS,
+      apiKeyExpiresAtMs: Date.now() + expiresInMs,
       email: PREVIOUS_EMAIL,
       createdAtMs: Date.now(),
     });
@@ -474,9 +474,17 @@ async function logout(): Promise<string> {
   assert.deepEqual(results, [{ kind: "logged_out" }, { kind: "logged_out" }]);
   assert.ok(!existsSync(home.authFile), "auth.json is still there after the logout");
   assert.deepEqual(await runtime.authStatus(bundled), { kind: "logged_out", source: "Cursor.auth.status" });
+  assert.deepEqual(await realAuth.status(), { status: "logged-out" });
   assertNoRequest();
   assert.equal(output, "", `the SDK printed: ${JSON.stringify(output)}`);
   return "logged_out, auth.json removed, status logged_out; again when already out: logged_out; no request, nothing printed";
+}
+
+async function expired(): Promise<string> {
+  const home = await scenarioHome("expired", true, -DAY_MS);
+  assert.deepEqual(home.statusBefore, { kind: "logged_out", source: "Cursor.auth.status" });
+  assert.deepEqual(await realAuth.status(), { status: "logged-out" });
+  return "expired key, native status returned only logged-out";
 }
 
 /** With `CURSOR_API_KEY` set the logout still clears the stored login and leaves the variable; the status, which ignores it, reads logged out. */
@@ -509,6 +517,7 @@ const scenarios: readonly (readonly [string, (previous: boolean) => Promise<stri
   ["timeout while polling, previous login", timeoutWhilePolling, true],
   ["timeout while minting, empty home", timeoutWhileMinting, false],
   ["timeout while minting, previous login", timeoutWhileMinting, true],
+  ["expiry, previous login", expired, true],
   ["logout, previous login", logout, true],
   ["logout with CURSOR_API_KEY set, previous login", logoutWithEnvKey, true],
 ];

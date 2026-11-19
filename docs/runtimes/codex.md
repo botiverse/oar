@@ -1437,6 +1437,8 @@ commit `f7e6428`); for codex: the status read, a login with the device code,
 and a cancel while the code was shown (`login cancelled`, exit 130, no process left over, the previous login
 unchanged). [Login](../../packages/oar/src/runtimes/codex/login.ts).
 
+After a rejected refresh on 0.169.1, app-server `account/read` returned `account: null` where the same session previously returned the ChatGPT email. Explicit logout also returned a null account. [Account controls](../../experiments/remembered-accounts/README.md).
+
 ### Logout
 
 **Mapped** ([runtime logout](../spec/login.md#logout)): `logout` runs

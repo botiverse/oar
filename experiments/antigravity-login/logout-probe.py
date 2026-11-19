@@ -47,6 +47,11 @@ try:
     print("sign-in methods:", [method.get("id") for method in result.get("authMethods", [])])
     print("logout answer:", json.dumps(call(2, "logout", {})))
     print("placeholder token file still there:", token.exists())
+    models = subprocess.run([binary, "models"], env={"HOME": str(home), "PATH": "/usr/bin:/bin",
+                            "HTTPS_PROXY": "http://127.0.0.1:9"}, cwd=home, capture_output=True, text=True, timeout=20)
+    output = models.stdout + models.stderr
+    print("models requires sign-in after logout:", models.returncode == 1 and "Please sign in" in output)
+    print("models names an email:", "@" in output)
 finally:
     child.kill()
     shutil.rmtree(home, ignore_errors=True)

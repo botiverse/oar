@@ -46,6 +46,8 @@ Devin behaves, and why OAR maps it this way.
 does not see the environment key, so with the key set OAR reports `unknown`
 with the key as configured, without checking it.
 
+Devin 3000.12.57 showed the signed-in user in `devin auth status`, then omitted the user section after the server rejected the login and after explicit logout. [Account controls](../../experiments/remembered-accounts/README.md).
+
 ## Session MCP servers
 
 Stdio and HTTP entries are accepted with their `env` and `headers`. Devin

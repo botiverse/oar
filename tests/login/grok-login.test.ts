@@ -59,6 +59,13 @@ it("status reads grok models: signed in (with the method it names), signed out, 
   expect(await grokAuthStatus(await installed("models-error", true))).toMatchObject({ kind: "unknown", source: "grok models" });
 });
 
+it("only a signed-out status with a surviving native identity names the previous login", async () => {
+  expect(await grokAuthStatus(await installed("expired"))).toEqual({
+    kind: "logged_out", source: "grok models", lastAccount: { email: "previous@example.invalid" },
+  });
+  expect(await grokAuthStatus(await installed("success"))).toEqual({ kind: "logged_out", source: "grok models" });
+});
+
 it("logout is grok logout, confirmed by grok models; a sign-in that stays is not called logged out", async () => {
   const signedIn = await fixture("success", true);
   expect(await grokLogout(signedIn.installation)).toEqual({ kind: "logged_out" });

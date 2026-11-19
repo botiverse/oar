@@ -886,6 +886,8 @@ requests device authorization or starts login. Both the readiness check and
 its OAuth-summary fallback read cached credentials without refreshing them.
 This is not proof that every part of ACP startup is local-only, so this reader
 does not declare `localOnly`. It returns no inferred email, credential form or billing basis.
+On Kimi 2.6.3, the native Web profile returned a nickname after a successful OAuth refresh. After a rejected refresh it returned an error with no account details. [Account controls](../../experiments/remembered-accounts/README.md).
+
 Login, status and logout use the same explicit `env` overlay as sessions.
 
 A failed, timed-out or cancelled login does **not** guarantee the old

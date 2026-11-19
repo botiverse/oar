@@ -43,11 +43,16 @@ export async function readGrokAuthStatus(installation: AvailableInstallation, op
 
 /** Whether Grok is signed in, by its own model listing. */
 export async function grokAuthStatus(installation: AvailableInstallation, options: AuthStatusOptions = {}): Promise<AuthStatus> {
-  const status = await withQueryDeadline<AuthStatus>("Grok auth status", options.timeoutMs ?? 30_000, async (signal) => {
+  const timeoutMs = options.timeoutMs ?? 30_000;
+  const deadline = Date.now() + timeoutMs;
+  const status = await withQueryDeadline<AuthStatus>("Grok auth status", timeoutMs, async (signal) => {
     const read = await readGrokAuthStatus(installation, { ...options, signal });
     return read;
   }, { kind: "unknown", source: SOURCE, detail: "Grok auth status timed out" });
-  return status;
+  if (status.kind !== "logged_out" || installation.via !== "executable") { return status; }
+  const { previousGrokEmail } = await import("./account-info.js");
+  const email = await previousGrokEmail(installation.command, sessionEnvironment(options.env), deadline - Date.now());
+  return email === null ? status : { ...status, lastAccount: { email } };
 }
 
 type Ending =

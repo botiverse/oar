@@ -539,6 +539,7 @@ async function main(): Promise<void> {
     assert.equal(rejectedStatusRun.exitCode, 0);
     assert.match(rejectedStatusRun.stdout, /^User \/ team info:/mu);
     assert.match(rejectedStatusRun.stdout, /Failed to fetch from server:/u);
+    assert.doesNotMatch(rejectedStatusRun.stdout, /^User:|^\s*(?:Email|Name):|alice@example\.test/mu);
     const rejectedParsed = parseDevinAuthStatus(rejectedStatusRun.stdout);
     assert.equal(rejectedParsed.kind, "logged_out");
 
@@ -549,6 +550,7 @@ async function main(): Promise<void> {
     assert.equal(existsSync(credsPath), false);
 
     const afterLogoutStatusRun = await runAsyncCommand(devinArgv(devinCommand, ["auth", "status"]), env);
+    assert.doesNotMatch(afterLogoutStatusRun.stdout, /^User:|^\s*(?:Email|Name):|alice@example\.test/mu);
     assert.equal(afterLogoutStatusRun.exitCode, 0);
     assert.equal(parseDevinAuthStatus(afterLogoutStatusRun.stdout).kind, "logged_out");
     assert.equal(state.browserPageLoads, 0);

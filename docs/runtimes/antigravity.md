@@ -570,6 +570,7 @@ confirmed.
   `initialize` (`agentCapabilities.auth.logout`), answers `{}`, and removes its
   stored token file itself (checked in an empty HOME holding a placeholder
   file, 2026-11-11; [probe](../../experiments/antigravity-login/README.md#logout)).
+  On agy 1.5.12 the subsequent `agy models` printed only a sign-in request, with no previous account. [Account controls](../../experiments/remembered-accounts/README.md).
   A build that does not declare it is `unsupported` (`version_unsupported`).
   `agy models` then decides, so a sign-in from elsewhere (a keyring entry
   agy keeps, an environment credential) reads `still_logged_in`. Whether agy

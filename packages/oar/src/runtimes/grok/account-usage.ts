@@ -2,9 +2,7 @@ import { withQueryDeadline } from "../../shared/executable/query.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 /* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
 import {
-  client as createClient,
   methods,
-  PROTOCOL_VERSION,
   RequestError,
 } from "@agentclientprotocol/sdk";
 import type {
@@ -12,11 +10,13 @@ import type {
   AccountUsageSnapshot,
   UtcInstant,
 } from "../../contracts/account-usage.js";
-import { startAcpProcess, withAcpDeadline } from "../../shared/acp/process.js";
+import { withAcpDeadline } from "../../shared/acp/process.js";
 import { remainingMs } from "../../shared/deadline.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
-import { grokInitializeMeta, selectGrokAuthMethod } from "./session.js";
+import { selectGrokAuthMethod } from "./session.js";
+
+import { grokAccountEmail, initializeGrokReader, readGrokAccountInfo, signedOutEmail, startGrokReader } from "./account-info.js";
 
 function centValue(value: unknown): number | null {
   return asNumber(asRecord(value)?.val);
@@ -35,16 +35,6 @@ function periodLabel(value: unknown): string {
   }
   const normalized = value.replace(/^USAGE_PERIOD_TYPE_/u, "").toLowerCase();
   return `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)} included usage`;
-}
-
-/** Extract identity only from Grok's authenticated `_x.ai/auth/info` result. */
-export function grokAccountEmail(result: unknown): string | undefined {
-  const email = asRecord(result)?.email;
-  if (typeof email !== "string") {
-    return undefined;
-  }
-  const trimmed = email.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
 }
 
 export function projectGrokUsage(result: unknown, email?: string): AccountUsageSnapshot {
@@ -109,49 +99,26 @@ export function projectGrokUsage(result: unknown, email?: string): AccountUsageS
   };
 }
 
-interface GrokAccountPayload {
-  readonly billing: JsonRecord;
-  readonly email?: string;
-}
-
 const USAGE = "Grok account usage";
 
 // Identity is optional. Leave room to return the already-read billing result
 // before the caller's deadline, without waiting for process cleanup.
 const IDENTITY_MARGIN_MS = 100;
 
-async function readBilling(command: string, timeoutMs: number, env: NodeJS.ProcessEnv): Promise<GrokAccountPayload> {
+async function readBilling(command: string, timeoutMs: number, env: NodeJS.ProcessEnv): Promise<AccountUsageSnapshot> {
   const deadline = Date.now() + timeoutMs;
-  const runtime = startAcpProcess(
-    command,
-    ["agent", "--always-approve", "--no-leader", "stdio"],
-    createClient({ name: "oar" }),
-    { env },
-  );
+  const runtime = startGrokReader(command, env);
   const stop = (): void => { runtime.kill(); };
   try {
-    // Failure to obtain billing is fatal. Once obtained, optional identity
-    // gets its own earlier cutoff and cannot discard the billing result.
+    // Billing or an explicit refusal settles first. Reading optional identity
+    // within the remaining budget cannot discard that decision.
     const billing = await withQueryDeadline(USAGE, remainingMs(deadline, USAGE), async (signal) => {
       signal.addEventListener("abort", stop, { once: true });
+      let initializedForIdentity = false;
       try {
-        const initialize = methods.agent.initialize;
-        const response = await withAcpDeadline(
-          runtime,
-          initialize,
-          remainingMs(deadline, USAGE),
-          (requestOptions) => runtime.connection.agent.request(initialize, {
-            protocolVersion: PROTOCOL_VERSION,
-            clientCapabilities: {
-              fs: { readTextFile: false, writeTextFile: false },
-              terminal: false,
-            },
-            clientInfo: { name: "oar", version: "0.0.0" },
-            _meta: grokInitializeMeta({ cwd: process.cwd() }),
-          }, requestOptions),
-        );
+        const initialized = await initializeGrokReader(runtime, remainingMs(deadline, USAGE));
         signal.throwIfAborted();
-        const initialized = asRecord(response) ?? {};
+        initializedForIdentity = true;
         const method = selectGrokAuthMethod(initialized);
         if (method !== undefined) {
           const authenticate = methods.agent.authenticate;
@@ -179,36 +146,28 @@ async function readBilling(command: string, timeoutMs: number, env: NodeJS.Proce
         );
         signal.throwIfAborted();
         return payload;
+      } catch (error) {
+        if (error instanceof RequestError && error.code !== -32_601
+          && (error.code === -32_000 || /auth(?:entication)?|log(?:ged)? ?in/iu.test(error.message))) {
+          return initializedForIdentity ? "reauth_required" as const : "initialize_refused" as const;
+        }
+        throw error;
       } finally {
         signal.removeEventListener("abort", stop);
       }
     });
+    if (billing === "initialize_refused") { return { kind: "reauth_required", reason: "not_authenticated" }; }
     const identityMs = deadline - Date.now() - IDENTITY_MARGIN_MS;
-    if (identityMs <= 0) { return { billing }; }
-    const email = await withQueryDeadline<string | null>(USAGE, identityMs, async (signal) => {
+    const info = identityMs <= 0 ? null : await withQueryDeadline(USAGE, identityMs, async (signal) => {
       signal.addEventListener("abort", stop, { once: true });
-      try {
-        const authInfo = await withAcpDeadline(
-          runtime,
-          "_x.ai/auth/info",
-          identityMs,
-          (requestOptions) => runtime.connection.agent.request<JsonRecord>(
-            "_x.ai/auth/info",
-            {},
-            requestOptions,
-          ),
-        );
-        signal.throwIfAborted();
-        return grokAccountEmail(authInfo) ?? null;
-      } catch {
-        // Older Grok builds and transient identity failures must not hide the
-        // billing result that was already read successfully.
-        return null;
-      } finally {
-        signal.removeEventListener("abort", stop);
-      }
+      try { return await readGrokAccountInfo(runtime, identityMs); }
+      finally { signal.removeEventListener("abort", stop); }
     }, null);
-    return { billing, ...(email === null ? {} : { email }) };
+    if (billing === "reauth_required") {
+      const email = signedOutEmail(info);
+      return { kind: "reauth_required", reason: "not_authenticated", ...(email === undefined ? {} : { lastAccount: { email } }) };
+    }
+    return projectGrokUsage(billing, grokAccountEmail(info));
   } finally {
     // Process ownership and escalation remain with the ACP process. Joining
     // exited here would discard billing when optional identity times out.
@@ -222,16 +181,10 @@ export const grokAccountUsage: AccountUsageReader = async (installation, options
   }
   try {
     // One grok start and up to four requests, which a slow launcher stretches.
-    const payload = await readBilling(installation.command, options.timeoutMs ?? 30_000, sessionEnvironment(options.env));
-    return projectGrokUsage(payload.billing, payload.email);
+    return await readBilling(installation.command, options.timeoutMs ?? 30_000, sessionEnvironment(options.env));
   } catch (error) {
-    if (error instanceof RequestError) {
-      if (error.code === -32_601) {
-        return { kind: "unsupported", reason: "endpoint_unavailable" };
-      }
-      if (error.code === -32_000 || /auth(?:entication)?|log(?:ged)? ?in/iu.test(error.message)) {
-        return { kind: "reauth_required", reason: "not_authenticated" };
-      }
+    if (error instanceof RequestError && error.code === -32_601) {
+      return { kind: "unsupported", reason: "endpoint_unavailable" };
     }
     throw new Error("Failed to read Grok account usage", { cause: error });
   }

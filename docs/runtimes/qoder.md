@@ -277,6 +277,8 @@ deletes Qoder's credential itself (isolated HOME, 2026-11-11).
 `logged_in` boolean. A failed query or missing field is `unknown`. Account
 details returned by this command never leave the private query.
 
+Qoder 1.1.92 returns from the signed-out branch of `status --output json` before adding `username` or `email`, including when it has a native invalidation reason. [Account controls](../../experiments/remembered-accounts/README.md).
+
 ## Evidence and limits
 
 Required CI pins `@qoder-ai/qodercli@1.1.81` on Linux, macOS and Windows, so

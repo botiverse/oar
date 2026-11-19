@@ -152,6 +152,8 @@ an account object without validating that key. Such an object therefore does
 not establish a browser login or remote authentication. Removing the key from
 the effective environment restores the account query.
 
+With no environment key, CodeBuddy 2.184.0 returned `initialize.account: null` after stream-json logout, with no previous email or display name. [Account controls](../../experiments/remembered-accounts/README.md).
+
 [src] For file-backed browser login in 2.178.1, 2.179.3 and 2.184.0,
 `AuthenticationManager.login` awaits `storeSession`. Its file writer flushes
 the temporary file and renames it into place before stream-json `authenticate`
