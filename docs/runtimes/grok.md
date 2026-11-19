@@ -340,7 +340,8 @@ image delivery without an empty text block, using a local scripted model.
 
 **Prompt (mapped):** `prompt()` records a prompt request and answers it
 `accepted` when OAR starts the turn and schedules the RPC. It can reject
-with `busy` during an active turn or when the process is gone. The
+with `busy` while a turn, queued input or manual compaction owns the session.
+After process exit it returns `runtime_exited`. The
 `session/prompt` RPC runs asynchronously and cancellation bounds its lifetime. The RPC answer is Grok's own turn end: a frame
 `session/prompt` with `native` = the answer, a `turn_ended` event
 (`stopReason: "cancelled"` → aborted, else completed) and a `usage` event
@@ -364,8 +365,10 @@ is an `exited` response, classified by the folds as described below. Around each
 
 **Steer (mapped; joins the running turn):** `steer()` sends
 `_x.ai/interject {sessionId, text, interjectionId: inputId}` (with `content`
-blocks when images travel) and answers `accepted` once Grok replies
-`{result: {status: "queued"}}`; that reply is a frame `_x.ai/interject` with
+blocks when images travel) and answers `accepted` on a successful native RPC reply.
+Grok reported `{result: {status: "queued"}}` in the control. OAR does not
+require that status value. A 15-second timeout rejects with `error` and
+leaves delivery unconfirmed. The successful reply is a frame `_x.ai/interject` with
 `responseTo` the steer request. An RPC error is a frame
 `_x.ai/interject/error` and the steer is rejected `runtime_refused`. With no
 active turn, OAR's or Grok's own, it is rejected `no_active_turn` (reason
@@ -431,8 +434,9 @@ within about a second (`turn_completed stop_reason: cancelled`,
 `session/prompt` answer with `turn_ended: aborted`). If no answer arrives
 within ten seconds, OAR kills the process and the `exited` response is the
 turn's end, read as `aborted` by the folds because the abort was accepted.
-The exit code stays on the exit response. A late abort is rejected `no active turn`. Effects on background
-children remain **unverified**. (`live-contract/abort`,
+The exit code stays on the exit response. A late abort is rejected with
+`no_active_turn`. For hosted terminal processes, see
+[ending a turn’s processes on abort](#ending-a-turns-processes-on-abort). (`live-contract/abort`,
 `live-contract/busy-and-late-control`.)
 
 **Unreachable runtime:** a `dispose` mid-turn cancels first, so the stream
@@ -443,7 +447,7 @@ an `aborted` outcome in the folds. When
 Grok dies on its own (SIGKILL), the stream gets `response exited` with
 `requestId ""` and code `null` and no turn end from the runtime
 (`runtime_exited` for `awaitTurnEnd`); every later
-prompt/steer/queue/withdraw/abort is rejected `runtime exited` by the
+prompt/steer/queue/withdraw/abort is rejected `runtime_exited` by the
 kernel's reachability gate (read off the
 stream, not an adapter flag) and a later `dispose` is answered `accepted`.
 (`live-contract/dispose-mid-turn`, `live-contract/kill-runtime`;
@@ -494,23 +498,21 @@ host (`terminal/create`). Native `session/cancel` ends the turn but leaves
 those terminals running (1.0.70, [measured](../spec/runtime-matrix.md#what-abort-stops); 1.0.77 in the vendor test
 below), so a command keeps going after the turn is aborted until `dispose()`.
 
-**Mapped (opt-in):** `SessionOptions.endTurnProcessesOnAbort: true`. Every
-`terminal/create` is a `toApp` request record answered with its
-`terminalId`, so the terminals one turn created are exactly those whose
-request comes after the turn began and before the frame that closed it (a
-terminal requested after that belongs to a later turn, even while the
-abort's answer is still pending). When an aborted turn closes, OAR stops
-the ones still running, each by its own process group (its process tree on
-Windows), and records one `cleanup` response on the abort request:
-`completed {signalled}` counts the commands it had to stop. The terminals
-stay known to Grok, which can still read and release them. A terminal from an
-earlier turn (a command left running in the background) is spared. This
-holds for Grok's own turns too. Shared placement accepts the option (each
-shared session hosts its own terminals) but has not been run. Only accepted
-aborts end anything: a turn that ends on its own while its abort is refused
-stops nothing and records no `cleanup`. If the runtime exits or the session is released
-before the aborted turn closes, the response is `failed` with that reason,
-and exit or dispose cleanup applies.
+**Mapped (opt-in):** With `endTurnProcessesOnAbort: true`, OAR associates a
+root session's `terminal/create` with the turn active when the request
+arrived. A native `turn_ended` with outcome `aborted` and an accepted
+abort authorize cleanup of that turn's terminals. OAR stops each running
+terminal's process group (process tree on Windows) and records one
+`cleanup` response per accepted abort with the number signalled. Grok can
+still read and release the terminals. A native completion racing an accepted
+abort records zero signalled. Dedicated compaction cancellation, earlier
+turns and child sessions retain their terminals.
+
+In the shared-placement experiment, the abort fallback closes the native
+session. When this option is enabled and the native turn's end is
+unconfirmed, its one cleanup response reports failure. Hosted terminals
+remain owned until explicit disposal or process exit. The production
+adapter uses isolated placement.
 
 Limits: a command that leaves its terminal's process group (`setsid`) is not
 reached; a command Grok runs without asking OAR for a terminal is not

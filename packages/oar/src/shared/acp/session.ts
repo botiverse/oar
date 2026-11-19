@@ -1,4 +1,5 @@
 /* oxlint-disable import/max-dependencies -- Session assembly wires the environment, process, terminal host, recorder and control machinery. */
+import type { SessionCleanup } from "../../contracts/placement.js";
 import { appendCleanupFailure, cleanupFailureReason } from "../executable/process-cleanup.js";
 import { sessionEnvironment } from "../environment.js";
 /* oxlint-disable typescript/promise-function-async -- SDK callbacks deliberately return the SDK's native promises. */
@@ -93,7 +94,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
 
 export interface SharedAcpSessionOwnership {
   readonly lease: ProcessLease<PooledProcess>;
-  readonly cleanup: () => Promise<void>;
+  readonly cleanup: (request: RequestRecord) => Promise<SessionCleanup | void>;
   readonly detach: () => void;
   readonly stopRequests: () => void;
   readonly redact: <T>(value: T) => T;

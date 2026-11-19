@@ -23,77 +23,90 @@ export interface AcpTurnTerminals {
   aborting(state: ActiveTurn, request: RequestRecord): { readonly accepted: () => void; readonly refused: () => void };
 }
 
-/** One turn's aborts: each request's answer so far, and the seq of the frame that closed the turn once it has. */
-interface PendingAbort { readonly state: ActiveTurn; readonly requests: Map<string, "sent" | "accepted">; closedAt: number | undefined }
+interface PendingAbort {
+  readonly requests: Map<string, "sent" | "accepted">;
+  outcome?: "aborted" | "other";
+}
 
-/** The abort requests the runtime accepted. */
-const accepted = (abort: PendingAbort): readonly string[] => [...abort.requests].flatMap(([id, answer]) => answer === "accepted" ? [id] : []);
+const accepted = (abort: PendingAbort): string[] => [...abort.requests].flatMap(([id, answer]) => answer === "accepted" ? [id] : []);
 
 const passive: AcpTurnTerminals = { aborting: () => ({ accepted() {}, refused() {} }) };
 
 export function acpTurnTerminals(enabled: boolean, kernel: SessionKernel, host: Pick<OwnedAcpTerminalHost, "end">, active: () => ActiveTurn | null): AcpTurnTerminals {
   if (!enabled) { return passive; }
-  /** terminal/create requests awaiting their answer, by request id: the request's seq. */
-  const creating = new Map<string, number>();
-  const created: { readonly seq: number; readonly terminalId: string }[] = [];
+  const creating = new Map<string, ActiveTurn>();
+  const terminals = new WeakMap<ActiveTurn, string[]>();
   const pending = new Map<ActiveTurn, PendingAbort>();
-  const record = (requestIds: readonly string[], result: SessionCleanup): void => {
-    for (const requestId of requestIds) { kernel.respond(requestId, { kind: "cleanup", result }); }
+  const record = (ids: readonly string[], result: SessionCleanup): void => {
+    for (const id of ids) { kernel.respond(id, { kind: "cleanup", result }); }
   };
-  /** The seq of the last frame that closed a turn: an abort sent after its turn closed is bounded by it. */
-  let lastClose = 0;
-  const end = async (requestIds: readonly string[], since: number, closedAt: number): Promise<void> => {
-    const ids = created.filter((entry) => entry.seq > since && entry.seq < closedAt).map((entry) => entry.terminalId);
+  const end = async (turn: ActiveTurn, requests: readonly string[]): Promise<void> => {
     try {
-      const { signalled } = await host.end(ids);
-      record(requestIds, { kind: "completed", signalled });
+      const { signalled } = await host.end(terminals.get(turn) ?? []);
+      record(requests, { kind: "completed", signalled });
     } catch (error) {
-      record(requestIds, { kind: "failed", reason: `stopping the aborted turn's terminals failed: ${error instanceof Error ? error.message : String(error)}` });
+      record(requests, { kind: "failed", reason: `stopping the aborted turn's terminals failed: ${error instanceof Error ? error.message : String(error)}` });
     }
   };
-  /** Settle once the turn has closed and every abort sent to it has its answer: only accepted aborts end anything. */
-  const settle = (abort: PendingAbort): void => {
-    if (abort.closedAt === undefined || [...abort.requests.values()].includes("sent")) { return; }
-    pending.delete(abort.state);
-    const requestIds = accepted(abort);
-    if (requestIds.length > 0) { void end(requestIds, abort.state.since, abort.closedAt); }
+  const settle = (turn: ActiveTurn): void => {
+    const abort = pending.get(turn);
+    if (abort === undefined || abort.outcome === undefined || [...abort.requests.values()].includes("sent")) { return; }
+    if (abort.outcome === "aborted" && [...creating.values()].includes(turn)) { return; }
+    pending.delete(turn);
+    const requests = accepted(abort);
+    if (requests.length === 0) { return; }
+    if (abort.outcome === "aborted") { void end(turn, requests); }
+    else { record(requests, { kind: "completed", signalled: 0 }); }
   };
   kernel.rawEvents((event) => {
+    if (event.sessionId !== kernel.sessionId) { return; }
     if (event.kind === "request") {
-      if (event.direction === "toApp" && event.body.kind === "native" && event.body.type === "terminal/create") { creating.set(event.id, event.seq); }
+      if (event.direction === "toApp" && event.body.kind === "native" && event.body.type === "terminal/create") {
+        const turn = active();
+        if (turn !== null && turn.request?.body.kind !== "compact") { creating.set(event.id, turn); }
+      }
       return;
     }
     if (event.kind === "response") {
-      const seq = creating.get(event.requestId);
-      if (seq !== undefined && event.body.kind === "answered") {
+      const turn = creating.get(event.requestId);
+      if (turn !== undefined && event.body.kind === "answered") {
         creating.delete(event.requestId);
-        const terminalId = asRecord(event.body.native)?.terminalId;
-        if (typeof terminalId === "string") { created.push({ seq, terminalId }); }
+        const id = asRecord(event.body.native)?.terminalId;
+        if (typeof id === "string") {
+          const ids = terminals.get(turn) ?? [];
+          ids.push(id);
+          terminals.set(turn, ids);
+        }
+        settle(turn);
       }
-      if (event.body.kind === "exited" || event.body.kind === "released") {
-        const reason = event.body.kind === "exited" ? "the runtime exited before the aborted turn ended; its exit cleanup applies instead" : "OAR released the session before the aborted turn ended; dispose ends its terminals";
-        for (const abort of pending.values()) { record(accepted(abort), { kind: "failed", reason }); }
+      if (event.body.kind === "released" || event.body.kind === "exited") {
+        const fallback = event.body.kind === "released" && event.body.reason === "abort_fallback" ? event.requestId : null;
+        for (const abort of pending.values()) {
+          record(accepted(abort).filter(id => id !== fallback), { kind: "failed", reason: "Session became unavailable before turn cleanup was confirmed" });
+        }
         pending.clear();
+        creating.clear();
       }
       return;
     }
-    if (!event.body.events.some((body) => body.kind === "turn_ended")) { return; }
-    lastClose = event.seq;
-    for (const abort of pending.values()) {
-      if (abort.closedAt === undefined && active() !== abort.state) { abort.closedAt = event.seq; settle(abort); }
+    const ended = event.body.events.find(body => body.kind === "turn_ended");
+    if (ended === undefined) { return; }
+    for (const [turn, abort] of pending) {
+      if (abort.outcome === undefined && active() !== turn) {
+        abort.outcome = ended.outcome.kind === "aborted" ? "aborted" : "other";
+        settle(turn);
+      }
     }
-    // With no abort waiting, nothing needs terminals from turns that have ended:
-    // a later abort only looks at terminals its own turn requested.
-    if (pending.size === 0) { created.length = 0; creating.clear(); }
   });
   return {
-    aborting(state, request) {
-      const abort = pending.get(state) ?? { state, requests: new Map<string, "sent" | "accepted">(), closedAt: active() === state ? undefined : lastClose };
+    aborting(turn, request) {
+      if (turn.request?.body.kind === "compact") { return passive.aborting(turn, request); }
+      const abort = pending.get(turn) ?? { requests: new Map<string, "sent" | "accepted">() };
       abort.requests.set(request.id, "sent");
-      pending.set(state, abort);
+      pending.set(turn, abort);
       return {
-        accepted() { if (abort.requests.has(request.id)) { abort.requests.set(request.id, "accepted"); settle(abort); } },
-        refused() { abort.requests.delete(request.id); if (abort.requests.size === 0) { pending.delete(state); } else { settle(abort); } },
+        accepted() { if (pending.get(turn) === abort) { abort.requests.set(request.id, "accepted"); settle(turn); } },
+        refused() { abort.requests.delete(request.id); if (abort.requests.size === 0) { pending.delete(turn); } else { settle(turn); } },
       };
     },
   };
