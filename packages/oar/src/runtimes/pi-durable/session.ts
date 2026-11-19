@@ -4,7 +4,6 @@ import { type Conversation, type ConversationView, type Harness, type Submission
 import type { ControlResult, InputOptions, ResponseBody, RuntimeEventBody, Session, SessionOptions, TurnOutcome } from "../../contracts/session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
 import { sealSession } from "../../shared/seal-session.js";
-import { statusOf } from "../../observe/agent-status.js";
 import { openConversation, type DurableModels } from "./options.js";
 import { appendedEntries, foldDurableView, initialDurableProjection, liveOf, runEnded, submissionOutcome } from "./projection.js";
 
@@ -172,7 +171,7 @@ export async function piDurableSession(harness: Harness, models: DurableModels, 
     finally { if (queued !== undefined) { pendingQueues.delete(queued); queued.resolve(queued.intercepted); } }
   };
   const inputControl = async (kind: "prompt" | "steer" | "queue", input: string, inputOptions: InputOptions = {}): Promise<ControlResult> => {
-    const wasRunning = statusOf(kernel.records(), kernel.sessionId).value.kind === "running";
+    const wasRunning = session.status().value.kind === "running";
     const result = await kernel.control({ kind, input, ...inputOptions }, async () => {
       if ((inputOptions.images?.length ?? 0) > 0) { return { kind: "rejected", code: "unsupported", reason: "pi-durable browser sessions do not read local image files" }; }
       const queued = kind === "queue" ? createPendingQueue(pendingQueues, inputOptions.inputId) : undefined;
@@ -181,7 +180,7 @@ export async function piDurableSession(harness: Harness, models: DurableModels, 
     });
     return result;
   };
-  return sealSession({
+  const session = sealSession({
     id: kernel.sessionId,
     capabilities: { queue: { durable: true }, attribution: "opaque", images: false },
     prompt: async (input, inputOptions) => { const result = await inputControl("prompt", input, inputOptions); return result; },
@@ -211,6 +210,7 @@ export async function piDurableSession(harness: Harness, models: DurableModels, 
       }, () => { observation.detach(); });
     },
   });
+  return session;
 
   async function flush(): Promise<void> {
     let current = draining;
