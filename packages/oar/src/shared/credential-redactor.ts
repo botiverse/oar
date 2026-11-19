@@ -1,5 +1,6 @@
 /* oxlint-disable import/prefer-default-export -- Shared named helper. */
 import type { SessionOptions } from "../contracts/session.js";
+import { environmentValue } from "./environment.js";
 import { redactText } from "./redact-text.js";
 
 const CREDENTIAL_WORDS = new Set(["KEY", "APIKEY", "TOKEN", "SECRET", "PASSWORD", "PASSWD", "PASSPHRASE", "CREDENTIAL", "CREDENTIALS", "COOKIE", "PWD"]);
@@ -66,4 +67,35 @@ export function sessionCredentialRedactor(options: Partial<SessionOptions>): Cre
     // values, and preserve the original object when the scan finds no match.
     redactValue: (value) => values.length === 0 ? value : redactText(value, redact, (text) => values.some((knownValue) => text.includes(knownValue))),
   };
+}
+
+/**
+ * Read a named runtime credential from an effective environment (including
+ * values inherited from `process.env` when not cleared by `null`) and register
+ * it on the redactor with the same length, path and URL rules as explicit
+ * `SessionOptions.env`.
+ */
+export function readEnvironmentCredential(
+  env: Readonly<NodeJS.ProcessEnv>,
+  name: string,
+  redactor?: Pick<CredentialRedactor, "add">,
+  platform: NodeJS.Platform = process.platform,
+): string | undefined {
+  const value = environmentValue(env, name, platform);
+  if (redactor !== undefined) {
+    redactor.add(value);
+    for (const credential of urlCredentials(value)) { redactor.add(credential); }
+  }
+  return value;
+}
+
+export function rememberEnvironmentCredentials(
+  redactor: Pick<CredentialRedactor, "add">,
+  env: Readonly<NodeJS.ProcessEnv>,
+  names: readonly string[],
+  platform: NodeJS.Platform = process.platform,
+): void {
+  for (const name of names) {
+    readEnvironmentCredential(env, name, redactor, platform);
+  }
 }

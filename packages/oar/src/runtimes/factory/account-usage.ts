@@ -1,6 +1,7 @@
 import type { AccountUsageReader, AccountUsageSnapshot, AccountUsageWindow, AccountUsageWindowScope } from "../../contracts/account-usage.js";
 import { remainingMs } from "../../shared/deadline.js";
 import { credentialHeaderValue, requestFailure } from "../../shared/credential-http.js";
+import { sessionCredentialRedactor } from "../../shared/credential-redactor.js";
 import { environmentValue } from "../../shared/environment.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord, parseJson } from "../../shared/json.js";
@@ -103,10 +104,11 @@ async function body(response: Response): Promise<unknown> {
 export const factoryAccountUsage: AccountUsageReader = async (installation, options = {}) => {
   if (installation.via !== "executable") { return { kind: "unsupported", reason: "unsupported_installation" }; }
   const env = accountUsageEnvironment("Factory", options.env);
+  const redactor = sessionCredentialRedactor(options.env === undefined ? {} : { env: options.env });
   const deadline = Date.now() + (options.timeoutMs ?? 30_000);
   const api = baseUrl(environmentValue(env, "FACTORY_API_BASE_URL"), API);
   try {
-    const credential = await factoryCredential(env, api);
+    const credential = await factoryCredential(env, api, redactor);
     if (credential.kind === "snapshot") { return credential.snapshot; }
     credentialHeaderValue(credential.token, "The Factory credential");
     if (credential.organizationId !== null) { credentialHeaderValue(credential.organizationId, "droid's stored organization id"); }
@@ -130,6 +132,6 @@ export const factoryAccountUsage: AccountUsageReader = async (installation, opti
     if (!response.ok) { throw new Error(`Factory limits endpoint returned HTTP ${String(response.status)}`); }
     return projectFactoryUsage(await body(response));
   } catch (error) {
-    throw new Error("Failed to read Factory account usage", { cause: error });
+    throw redactor.redactValue(new Error("Failed to read Factory account usage", { cause: error }));
   }
 };

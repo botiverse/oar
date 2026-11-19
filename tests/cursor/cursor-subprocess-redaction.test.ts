@@ -1,6 +1,8 @@
 import { inspect } from "node:util";
-import { expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { bundled, fakeCursorRuntime } from "../fixtures/cursor-subprocess.js";
+
+afterEach(() => { vi.unstubAllEnvs(); });
 
 /*
  * The one-shot calls redact their answers and errors with the credentials in
@@ -57,4 +59,14 @@ test.each(["session", "models", "status"] as const)("Cursor subprocess %s reject
   if (operation === "status") { expect(result).toMatchObject({ kind: "unknown" }); }
   else { expect(result).toBeInstanceOf(Error); }
   expect(everything(result)).toContain("without null bytes");
+});
+
+test.each(["throw", "exit"] as const)("inherited CURSOR_API_KEY in subprocess inherit mode is redacted in model listing and session open errors (%s)", async (leak) => {
+  vi.stubEnv("CURSOR_API_KEY", KEY);
+  const runtime = fakeCursorRuntime("subprocess", "inherit");
+  const modelError: unknown = await runtime.listModels(bundled, { env: { OAR_FAKE_LEAK: leak } }).catch((error: unknown) => error);
+  expect(everything(modelError)).toContain("[redacted]");
+  expect(everything(modelError)).not.toContain(KEY);
+  const session = await runtime.session(bundled, { cwd: process.cwd(), env: { OAR_FAKE_LEAK: leak } }).catch((error: unknown) => error);
+  expect(everything(session)).not.toContain(KEY);
 });

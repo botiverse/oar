@@ -44,7 +44,11 @@ test("model menus come from the native capabilities, with no assumed defaults", 
 
 test("MCP HTTP uses httpUrl; launch arguments cannot change OAR's protocol or identity", () => {
   expect(qwenMcpConfig([{ name: "remote", type: "http", url: "https://example.test/mcp", headers: { Authorization: "fixture" } }])).toEqual({ remote: { httpUrl: "https://example.test/mcp", headers: { Authorization: "fixture" } } });
-  for (const flag of ["--channel=CLI", "--approval-mode=default", "--resume", "--output-format=text", "-p", "-otext", "-o=text", "--inputFormat=text", "--approvalMode=default", "--"]) {
+  for (const flag of [
+    "--channel=CLI", "--approval-mode=default", "--resume", "--output-format=text", "-p", "-phello", "-otext", "-o=text",
+    "--inputFormat=text", "--approvalMode=default", "--include-partial-messages", "--no-include-partial-messages",
+    "--model", "--model=qwen", "-m", "-mqwen", "--system-prompt=x", "--append-system-prompt=y", "--",
+  ]) {
     expect(() => { checkQwenLaunchArgs([flag]); }).toThrow(/launchArgs/u);
   }
 });

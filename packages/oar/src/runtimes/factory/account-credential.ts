@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { getSystemErrorMap } from "node:util";
 import type { AccountUsageSnapshot } from "../../contracts/account-usage.js";
+import { readEnvironmentCredential, type CredentialRedactor } from "../../shared/credential-redactor.js";
 import { environmentValue } from "../../shared/environment.js";
 import { environmentHome } from "../../shared/environment-home.js";
 import { asRecord, parseJson } from "../../shared/json.js";
@@ -74,10 +75,11 @@ export function factoryDirectory(env: NodeJS.ProcessEnv): string {
   return path.join(override === undefined || override === "" ? environmentHome(env) : override, ".factory");
 }
 
-export async function factoryCredential(env: NodeJS.ProcessEnv, api: string): Promise<FactoryCredential> {
+export async function factoryCredential(env: NodeJS.ProcessEnv, api: string, redactor?: Pick<CredentialRedactor, "add">): Promise<FactoryCredential> {
   const directory = factoryDirectory(env);
-  const key = environmentValue(env, "FACTORY_API_KEY")?.trim();
+  const key = readEnvironmentCredential(env, "FACTORY_API_KEY", redactor)?.trim();
   if (key !== undefined && key !== "") {
+    redactor?.add(key);
     return { kind: "credential", token: key, region: await apiKeyRegion(directory, key, api), organizationId: null };
   }
   const sealed = ["auth.v2.keyring", "auth.v2.loginkeychain"].map(file => path.join(directory, file));
@@ -91,6 +93,7 @@ export async function factoryCredential(env: NodeJS.ProcessEnv, api: string): Pr
   const credentials = asRecord(parseJson(plain));
   const token = typeof credentials?.access_token === "string" ? credentials.access_token.trim() : "";
   if (token === "") { throw new Error("droid's stored login has no usable access_token"); }
+  redactor?.add(token);
   const routed = asRecord(credentials?.whoami)?.region ?? credentials?.region;
   const organization = typeof credentials?.active_organization_id === "string" ? credentials.active_organization_id.trim() : "";
   return { kind: "credential", token, region: typeof routed === "string" ? routed : null, organizationId: organization === "" ? null : organization };

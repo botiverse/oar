@@ -1,5 +1,6 @@
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import type { SessionFork } from "../../contracts/session-options.js";
+import { checkManagedLaunchArgs } from "../../shared/launch-args.js";
 
 /**
  * claude flags OAR sets itself, which a host's `launchArgs` would contradict
@@ -7,7 +8,7 @@ import type { SessionFork } from "../../contracts/session-options.js";
  * `--fork-session` claude ran under a new id while `Session.id` kept the old
  * one (SessionOptions.fork passes it with the id OAR assigns). Permission targets require an answer API that OAR does not have.
  * Each maps to the reason the open is refused. A short alias is checked as
- * a whole argument, a long flag also in its `--flag=value` form.
+ * a whole argument or attached value, a long flag also in its `--flag=value` form.
  */
 const MANAGED: ReadonlyMap<string, string> = new Map([
   ["--continue", "OAR assigns the session id; use SessionOptions.resume with the id to continue"],
@@ -21,18 +22,25 @@ const MANAGED: ReadonlyMap<string, string> = new Map([
   ["-p", "OAR drives claude in print mode over stream-json already"],
   ["--input-format", "OAR drives claude over stream-json"],
   ["--output-format", "OAR drives claude over stream-json"],
+  ["--include-partial-messages", "OAR drives claude over partial stream-json messages"],
+  ["--no-include-partial-messages", "OAR drives claude over partial stream-json messages"],
+  ["--replay-user-messages", "OAR drives claude with user-message replay"],
+  ["--no-replay-user-messages", "OAR drives claude with user-message replay"],
+  ["--model", "use SessionOptions.model"],
+  ["--effort", "use SessionOptions.effort"],
+  ["--system-prompt", "use SessionOptions.systemPrompt"],
+  ["--system-prompt-file", "use SessionOptions.systemPrompt"],
+  ["--append-system-prompt", "use SessionOptions.appendSystemPrompt"],
+  ["--append-system-prompt-file", "use SessionOptions.appendSystemPrompt"],
+  ["--name", "use SessionOptions.name"],
+  ["-n", "use SessionOptions.name"],
   ["--json-schema", "use SessionOptions.outputSchema"],
+  ["--", "OAR passes flags after host launchArgs"],
 ]);
 
 /** Refuse, before claude starts, a `launchArgs` entry that collides with a flag OAR manages. */
 export function refuseManagedLaunchArgs(launchArgs: readonly string[] | undefined): void {
-  for (const arg of launchArgs ?? []) {
-    const flag = arg.startsWith("--") ? arg.split("=", 1)[0] ?? arg : arg;
-    const reason = MANAGED.get(flag);
-    if (reason !== undefined) {
-      throw new UnsupportedOptionError("launchArgs", `claude launchArgs cannot include ${flag}: ${reason}`);
-    }
-  }
+  checkManagedLaunchArgs(launchArgs, MANAGED, (flag, reason) => `claude launchArgs cannot include ${flag}: ${reason ?? "managed by OAR"}`);
 }
 
 /**

@@ -1,8 +1,13 @@
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import type { DshControl } from "../../packages/oar/src/runtimes/dsh/control.js";
+import { dshRuntime } from "../../packages/oar/src/index.js";
 import { createSessionKernel } from "../../packages/oar/src/shared/session-kernel.js";
 import { expect, test, vi } from "vitest";
 import { dshGoal, dshGoalControl, dshGoalEvents } from "../../packages/oar/src/runtimes/dsh/goal.js";
 import { foldDsh, initialDshProjection } from "../../packages/oar/src/runtimes/dsh/projection.js";
+import { fakeAgentBinary } from "../fixtures/process-tree.js";
 
 test("DSH goal snapshots preserve native phases and convert time units without inventing token counters", () => {
   expect(dshGoal({ objective: "work", phase: "blocked", maxGoalRounds: 256, roundsStarted: 3, createdAt: 12_340, updatedAt: 56_780 })).toMatchInlineSnapshot(`
@@ -61,4 +66,55 @@ test("DSH null is an observed absence for read, but cannot confirm setting a goa
   expect(await goal.read()).toMatchObject({ response: { body: { kind: "accepted" } } });
   expect(await goal.set({ objective: "work" })).toMatchObject({ response: { body: { kind: "rejected", code: "runtime_refused" } } });
   expect(kernel.records().filter((record) => record.kind === "frame")).toHaveLength(0);
+});
+
+// oxlint-disable-next-line eslint/max-statements -- Spawned bridge fixture verifies a failed create/edit refuses without invoking undefined status mutations while preserving observed native state.
+test("DSH bridge goal.set refuses when create/edit returns undefined without calling status mutations and records observed native state", async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "oar-dsh-goal-refusal-"));
+  try {
+    const script = path.join(dir, "fake-dsh-goal.mjs");
+    const callsFile = path.join(dir, "status-calls.json");
+    writeFileSync(script, `
+      import { readFileSync, writeFileSync } from "node:fs";
+      if (process.argv.includes("--version")) { process.stdout.write("0.2.1-rc.5\\n"); process.exit(0); }
+      const patch = JSON.parse(readFileSync(process.argv[process.argv.indexOf("--patch") + 1], "utf8"));
+      const bridgeRow = patch[1].insert.find(r => r.id === "oar-dsh-bridge");
+      const bridge = await import(bridgeRow.name);
+      const listeners = new Map();
+      const on = (ch, fn) => { listeners.set(ch, [...(listeners.get(ch) ?? []), fn]); return () => {}; };
+      const statusCalls = [];
+      let storedGoal = undefined;
+      const goals = {
+        get: () => storedGoal,
+        create: (_a, { objective }) => { storedGoal = objective === "broken" ? undefined : { id: "g1", objective, phase: "active" }; return storedGoal; },
+        edit: (_a, _c, { objective }) => { if (objective !== "broken") { storedGoal = { id: "g1", objective, phase: "active" }; return storedGoal; } storedGoal = undefined; return undefined; },
+        pause: (_a, current) => { statusCalls.push(["pause", current ?? null]); },
+        resume: (_a, current) => { statusCalls.push(["resume", current ?? null]); },
+        complete: (_a, current) => { statusCalls.push(["complete", current ?? null]); },
+        clear: () => { storedGoal = undefined; },
+      };
+      const services = {
+        goals,
+        agents: { create: async ({ sessionId, setup }) => { const session = { id: sessionId, header: { id: sessionId, cwd: process.cwd() } }; const agent = { session, status: "idle", inbox: { nextTurn: [], nextStep: [] }, followup() {}, cancel() {} }; await setup?.({}, agent); return { agent, dispose: async () => {} }; } },
+        sessionPersistence: { flush: async () => {} },
+        llm: { listProviders: () => [], listModels: async () => [], resolveModelInfo: async () => ({}), resolveCallConfig: async r => r },
+        agentDefaultModel: { currentSelection: () => ({ provider: "local", model: "m" }) },
+      };
+      bridge.apply({ get: n => n === "loader" ? { await: async () => {} } : services[n], on, effect: () => {} }, bridgeRow.config ?? {});
+      process.stdin.on("end", () => { writeFileSync(${JSON.stringify(callsFile)}, JSON.stringify(statusCalls)); process.exit(0); });
+    `);
+    const command = fakeAgentBinary(dir, [script]);
+    const session = await dshRuntime.session({ kind: "available", via: "executable", command, version: "0.2.1-rc.5" }, { cwd: dir, goals: true });
+    try {
+      const accepted = await session.goal?.set({ objective: "keep-me" });
+      expect(accepted?.kind).toBe("accepted");
+      expect(await session.goal?.set({ objective: "broken", status: "paused" })).toMatchObject({ kind: "rejected", code: "runtime_refused" });
+      const goalEvents = session.records().flatMap(record => record.kind === "frame" ? record.body.events.filter(event => event.kind === "goal_changed") : []);
+      expect(goalEvents).toEqual([
+        { kind: "goal_changed", goal: { objective: "keep-me", status: "active" } },
+        { kind: "goal_changed", goal: null },
+      ]);
+    } finally { await session.dispose(); }
+    expect(JSON.parse(readFileSync(callsFile, "utf8"))).toEqual([]);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });

@@ -87,7 +87,7 @@ export function cursorAuthStatusWith(source: CursorSdkSource): AuthStatusReader 
       return "failed" in status ? { kind: "unknown", detail: new LoginSecrets().line(status.failed) } : status;
     }, { kind: "unknown", source: STATUS_SOURCE, detail: `Cursor.auth.status did not answer within ${String(options.timeoutMs ?? STATUS_TIMEOUT_MS)} ms` });
     // Details can carry the SDK's or the child's words: redacted with the call's credentials too.
-    return callRedaction(options.env)(result);
+    return callRedaction(options.env, access.environment(options.env))(result);
   };
   // With no status options, the official SDK uses only its local file store.
   return Object.assign(reader, { localOnly: true as const });

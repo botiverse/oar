@@ -2,7 +2,7 @@ import { manualCompaction } from "../packages/oar/src/shared/manual-compaction.j
 import { inspect } from "node:util";
 import { expect, test } from "vitest";
 import { mcpCredentialRedactor } from "../packages/oar/src/shared/mcp-servers.js";
-import { sessionCredentialRedactor } from "../packages/oar/src/shared/credential-redactor.js";
+import { readEnvironmentCredential, rememberEnvironmentCredentials, sessionCredentialRedactor } from "../packages/oar/src/shared/credential-redactor.js";
 import { withSessionCredentials } from "../packages/oar/src/shared/session-credentials.js";
 import { createSessionKernel } from "../packages/oar/src/shared/session-kernel.js";
 import { RuntimeFailureError } from "../packages/oar/src/contracts/runtime-failure-error.js";
@@ -167,6 +167,13 @@ test("connection URLs with short passwords redact only the whole URL", () => {
   const url = "postgres://user:pass@localhost/db";
   const { redact } = sessionCredentialRedactor({ env: { DATABASE_URL: url } });
   expect(redact(`${url}; tests pass`)).toBe("[redacted]; tests pass");
+});
+
+test("readEnvironmentCredential registers inherited runtime credentials with case-insensitive Windows lookup and URL rules", () => {
+  const redactor = sessionCredentialRedactor({});
+  expect(readEnvironmentCredential({ qoder_personal_access_token: secret }, "QODER_PERSONAL_ACCESS_TOKEN", redactor, "win32")).toBe(secret);
+  rememberEnvironmentCredentials(redactor, { CURSOR_API_KEY: "short", SERVICE_URL: `https://user:${secret}-db@example.test/api` }, ["CURSOR_API_KEY", "SERVICE_URL"]);
+  expect(redactor.redact(`seen ${secret} and ${secret}-db and short`)).toBe("seen [redacted] and [redacted] and short");
 });
 
 

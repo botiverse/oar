@@ -51,7 +51,7 @@ async function confirmModel(control: ReturnType<typeof qoderControl>, requested:
 export const qoderSession: StartSession = withSessionCredentials(async (installation, options, credentials) => {
   if (installation.via !== "executable") { throw new Error("Qoder requires its executable installation"); }
   const sessionId = options.resume ?? randomUUID();
-  const child = await launchQoder(installation.command, sessionId, options, installation.version);
+  const child = await launchQoder(installation.command, sessionId, options, installation.version, undefined, credentials);
   const control = qoderControl(child, (value) => { rememberQoderSecrets(value, credentials.add); });
   let model: string | null = null;
   try {

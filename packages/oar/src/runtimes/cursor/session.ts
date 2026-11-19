@@ -6,9 +6,10 @@ import { manualCompaction } from "../../shared/manual-compaction.js";
 import { cursorCompaction } from "./compaction.js";
 import { enqueueHeld, withdrawControl } from "../../shared/held-input.js";
 import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
+import { rememberEnvironmentCredentials } from "../../shared/credential-redactor.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { checkMcpServerNames } from "../../shared/mcp-servers.js";
-import { cursorSdkAccess, type CursorSdkSource } from "./access.js";
+import { CURSOR_CREDENTIAL_ENV, cursorSdkAccess, type CursorSdkSource } from "./access.js";
 import { cursorSessionEnd, openCursorSession } from "./session-process.js";
 import {
   cursorOpenedFrame,
@@ -36,6 +37,7 @@ export function cursorSessionWith(source: CursorSdkSource): StartSession {
     if (installation.via !== "bundled") {
       throw new Error("The cursor session adapter needs the bundled @cursor/sdk installation");
     }
+    rememberEnvironmentCredentials(credentials, access.environment(options.env), CURSOR_CREDENTIAL_ENV);
     const { lease, agent } = await openCursorSession(access, options);
     const kernel = credentials.kernel(agent.agentId);
     let projection: CursorProjectionState = initialCursorProjection;

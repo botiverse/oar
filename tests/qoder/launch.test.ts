@@ -12,7 +12,13 @@ const spawned = vi.hoisted(() => ({ spawnLineProcess: vi.fn(), readExecutableVer
 vi.mock("../../packages/oar/src/shared/executable/index.js", () => spawned);
 beforeEach(() => { spawned.spawnLineProcess.mockReset(); spawned.readExecutableVersion.mockReset().mockResolvedValue("1.1.80"); });
 
-test.each(["--replay-user-messages", "--no-replay-user-messages", "--replay-user-messages=false"])("refuses an override of native input identity before spawn: %s", async (flag) => {
+test.each([
+  "--replay-user-messages", "--no-replay-user-messages", "--replay-user-messages=false",
+  "--include-partial-messages", "--no-include-partial-messages", "--includePartialMessages",
+  "--model", "--model=efficient", "-m", "-mefficient", "--reasoning-effort=high",
+  "--system-prompt", "--system-prompt-file=/tmp/x", "--append-system-prompt=x", "--append-system-prompt-file=/tmp/y",
+  "-phello", "--permission-mode=plan", "--",
+])("refuses an override of protocol, identity, model or prompt flags before spawn: %s", async (flag) => {
   await expect(launchQoder("qoder", "session", { cwd: tmpdir(), launchArgs: [flag] })).rejects.toMatchObject({
     name: "UnsupportedOptionError", option: "launchArgs",
   });

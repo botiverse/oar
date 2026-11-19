@@ -3,6 +3,7 @@ import type { OwnQueryProcess } from "../../shared/executable/query.js";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { SessionOptions } from "../../contracts/session.js";
+import { rememberEnvironmentCredentials, type CredentialRedactor } from "../../shared/credential-redactor.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { readExecutableVersion, spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { privateTempDir } from "../../shared/private-temp.js";
@@ -10,14 +11,15 @@ import { checkMcpServerNames, isHttpMcpServer } from "../../shared/mcp-servers.j
 import { refuseSessionOptions } from "../../shared/session-options.js";
 import { resolvedAdditionalDirectories } from "../../shared/additional-directories.js";
 import { qoderDaemonSession } from "./daemon.js";
-import { qoderVersionInfo, qoderStartupError } from "./protocol.js";
+import { QODER_CREDENTIAL_ENV, qoderVersionInfo, qoderStartupError } from "./protocol.js";
 import { checkQoderLaunchArgs, qoderRefusedSessionOptions } from "./options.js";
 
 /** Process-scoped files keep MCP credentials and system prompts out of argv. */
-export async function launchQoder(command: string, sessionId: string, options: SessionOptions, version?: string, query?: { readonly signal: AbortSignal; readonly own: OwnQueryProcess }): Promise<LineProcess & { readonly qoderVersion: string }> {
+export async function launchQoder(command: string, sessionId: string, options: SessionOptions, version?: string, query?: { readonly signal: AbortSignal; readonly own: OwnQueryProcess }, credentials?: Pick<CredentialRedactor, "add">): Promise<LineProcess & { readonly qoderVersion: string }> {
   refuseSessionOptions(qoderRefusedSessionOptions, options);
   checkQoderLaunchArgs(options.launchArgs);
   const env = { ...sessionEnvironment(options.env), QODER_EXPOSE_TOKEN_USAGE: "1" };
+  if (credentials !== undefined) { rememberEnvironmentCredentials(credentials, env, QODER_CREDENTIAL_ENV); }
   const servers = options.mcpServers ?? [];
   checkMcpServerNames(servers);
   const directories = resolvedAdditionalDirectories(options);
@@ -65,7 +67,7 @@ export async function launchQoder(command: string, sessionId: string, options: S
     query?.own(child);
     child.onExit(() => { temporary?.remove(); });
     await child.spawned;
-    const transport = protocol === "daemon" ? await qoderDaemonSession(child, sessionId, args, path.resolve(options.cwd), env) : child;
+    const transport = protocol === "daemon" ? await qoderDaemonSession(child, sessionId, args, path.resolve(options.cwd), env, credentials) : child;
     return { ...transport, qoderVersion: compatibility.version };
   } catch (error) { child?.kill(); temporary?.remove(); throw qoderStartupError(error, options.effort); }
 }

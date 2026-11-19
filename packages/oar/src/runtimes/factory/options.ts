@@ -1,6 +1,6 @@
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
-import { UnsupportedOptionError } from "../../contracts/errors.js";
 import type { McpServer } from "../../contracts/session-options.js";
+import { checkManagedLaunchArgs } from "../../shared/launch-args.js";
 import { isHttpMcpServer } from "../../shared/mcp-servers.js";
 import type { JsonRecord } from "../../shared/json.js";
 
@@ -16,13 +16,11 @@ export const factoryRefusedSessionOptions: RefusedSessionOptions = {
   disallowedTools: "droid's tool deny list (disabledToolIds) has not been verified against OAR's tool names",
 };
 
+const FACTORY_MANAGED_LAUNCH_ARGS = new Set(["--input-format", "--output-format", "-o", "--session-id", "-s", "--fork", "--cwd", "-f", "--file", "--"]);
+
 /** The protocol and session identity belong to OAR: launchArgs must not change them. */
 export function checkFactoryLaunchArgs(args: readonly string[] | undefined): void {
-  const managed = new Set(["--input-format", "--output-format", "-o", "--session-id", "-s", "--fork", "--cwd", "-f", "--file"]);
-  for (const arg of args ?? []) {
-    const flag = arg.split("=", 1)[0] ?? arg;
-    if (managed.has(flag)) { throw new UnsupportedOptionError("launchArgs", `Factory launchArgs cannot override ${flag}; OAR owns the protocol and session identity`); }
-  }
+  checkManagedLaunchArgs(args, FACTORY_MANAGED_LAUNCH_ARGS, (flag) => `Factory launchArgs cannot override ${flag}; OAR owns the protocol and session identity`);
 }
 
 /** OAR's MCP server shape as `initialize_session` / `load_session` take it (stdio `env` is a record, http `headers` a list). */

@@ -61,6 +61,6 @@ export function cursorLogoutWith(source: CursorSdkSource): RuntimeLogout {
       return confirmedLogout(native, await readCursorAuthStatus(auth), LOGOUT_CALL);
     });
     // Details can carry the SDK's or the child's words: redacted with the call's credentials too.
-    return callRedaction(options.env)("failed" in result ? { kind: "failed", reason: "process_failed", detail: new LoginSecrets().line(result.failed) } : result);
+    return callRedaction(options.env, access.environment(options.env))("failed" in result ? { kind: "failed", reason: "process_failed", detail: new LoginSecrets().line(result.failed) } : result);
   };
 }
