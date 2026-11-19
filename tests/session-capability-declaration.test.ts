@@ -17,7 +17,7 @@ describe("Runtime.sessionCapabilities", () => {
       expect(Object.keys(declared ?? {}).every((key) => known.has(key)), runtime.id).toBe(true);
       // The static declarations are always part of the answer, and the answer is plain data a host can send on.
       expect(declared?.refusedSessionOptions ?? {}, runtime.id).toMatchObject(runtime.refusedSessionOptions ?? {});
-      expect(declared?.manualCompaction, runtime.id).toEqual(runtime.manualCompaction);
+      expect(declared, runtime.id).toMatchObject(runtime.manualCompaction === undefined ? {} : { manualCompaction: runtime.manualCompaction });
       // oxlint-disable-next-line unicorn/prefer-structured-clone -- the JSON round trip is the property under test.
       const sent: unknown = JSON.parse(JSON.stringify({ brand: runtime.brand, minVersion: runtime.minVersion, declared }));
       expect(sent, runtime.id).toEqual({ brand: runtime.brand, minVersion: runtime.minVersion, declared });
@@ -28,6 +28,19 @@ describe("Runtime.sessionCapabilities", () => {
     expect(createPiRuntime({ execution: "subprocess" }).sessionCapabilities?.(executable("0.80.0"))).toMatchObject({ steer: true, images: true });
     expect(createMorphRuntime().sessionCapabilities?.(executable())).toMatchObject({ steer: true, images: false });
     expect(scriptedRuntime({ turn: () => undefined }).sessionCapabilities?.({ kind: "available", via: "bundled" })).toMatchObject({ steer: true, images: true });
+  });
+
+  it("reports OpenCode manual compaction and whole-history fork refusals by installation", () => {
+    const v1 = opencodeRuntime.sessionCapabilities(executable("1.19.6"));
+    expect(v1.manualCompaction?.kind).toBe("unsupported");
+    expect(v1.refusedSessionOptions?.fork).toContain("v1");
+    expect(v1.refusedSessionOptions?.additionalDirectories).toContain("v1");
+    const v2 = opencodeRuntime.sessionCapabilities(executable("opencode v2.3.2"));
+    expect(v2.manualCompaction).toEqual({ kind: "supported", activeTurn: "reject" });
+    expect(v2.refusedSessionOptions?.fork).toBeUndefined();
+    const unknown = opencodeRuntime.sessionCapabilities(executable());
+    expect(unknown.manualCompaction).toBeUndefined();
+    expect(unknown.refusedSessionOptions?.fork).toBeUndefined();
   });
 
   it("declares OpenCode steering only for a readable v1 version", () => {
