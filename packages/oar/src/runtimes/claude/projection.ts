@@ -2,7 +2,7 @@
 import { claudeServiceTierEvents } from "./service-tier.js";
 import type { UtcInstant } from "../../contracts/account-usage.js";
 import type { RuntimeEventBody, TokenTotals, TurnOutcome } from "../../contracts/session.js";
-import { claudeFailure, claudeLimitReset, claudeResultReason } from "./failure.js";
+import { claudeFailure, claudeLimitReset, claudeResultReason, claudeSyntheticAssistant } from "./failure.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 import { claudeContextCompacted, claudeContextSent, claudeContextUsage, initialClaudeContext, type ClaudeContextReading } from "./context-usage.js";
 import { foldModelUsage, freshModelUsage, resumedModelUsage, withBaseline, withMainLoop, type ClaudeModelUsage, type ClaudeUsageBaseline } from "./token-usage.js";
@@ -20,7 +20,8 @@ export interface ClaudeProjectionState extends StreamJsonProjectionState {
   readonly modelUsage: ClaudeModelUsage;
   readonly context: ClaudeContextReading;
   readonly taskDescriptions: ReadonlyMap<string, string>;
-  readonly failureCategory: string | null;
+  /** Last error or refusal per agent, cleared on settlement or a later ordinary assistant. */
+  readonly assistantFailures: ReadonlyMap<string, JsonRecord>;
   readonly limitResetsAt: UtcInstant | null;
   /**
    * The turn's fork anchor (`--resume-session-at`, launch.ts), stamped on its
@@ -45,7 +46,7 @@ export const initialClaudeProjection: ClaudeProjectionState = {
   modelUsage: freshModelUsage,
   context: initialClaudeContext,
   taskDescriptions: new Map(),
-  failureCategory: null,
+  assistantFailures: new Map(),
   limitResetsAt: null,
   lastAssistantUuid: null,
 };
@@ -62,11 +63,17 @@ export { streamJsonPrompted as claudePrompted } from "../../shared/stream-json/i
 
 export const claudeAbortRequested = streamJsonAbortRequested<ClaudeProjectionState>;
 
-function resultOutcome(state: ClaudeProjectionState, message: JsonRecord): TurnOutcome {
+function resultOutcome(state: ClaudeProjectionState, message: JsonRecord, assistant: JsonRecord | undefined): TurnOutcome {
   if (state.abortRequested) {
     return { kind: "aborted" };
   }
-  if (message.is_error === true) {
+  const synthetic = assistant !== undefined && claudeSyntheticAssistant(assistant);
+  const diagnostic = synthetic ? contentBlocks(assistant).flatMap(block => block.type === "text" && typeof block.text === "string" ? [block.text] : []).join("\n") : "";
+  if (message.stop_reason === "refusal" || asRecord(assistant?.message)?.stop_reason === "refusal") {
+    const reason = diagnostic || (typeof message.result === "string" && message.result.length > 0 ? message.result : "refusal");
+    return { kind: "failed", failure: "model_refused", reason };
+  }
+  if (message.is_error === true || (synthetic && (assistant.is_api_error_message === true || typeof assistant.error === "string"))) {
     // Vendor quirk (pinned 2026-08-22): claude can report is_error=true with
     // subtype "success" and put the actual error text in result.
     const text = typeof message.result === "string" && message.result.length > 0
@@ -75,9 +82,11 @@ function resultOutcome(state: ClaudeProjectionState, message: JsonRecord): TurnO
     const subtype = typeof message.subtype === "string" && message.subtype !== "success"
       ? message.subtype
       : undefined;
-    return claudeFailure(text ?? claudeResultReason(subtype, message.errors), {
-      category: state.failureCategory,
-      status: asNumber(message.api_error_status),
+    return claudeFailure(diagnostic || (text ?? claudeResultReason(subtype, message.errors)), {
+      category: typeof assistant?.error === "string" ? assistant.error : null,
+      apiError: assistant?.api_error,
+      rateLimitInfo: asRecord(asRecord(assistant?.api_error_params)?.rate_limit_info),
+      status: asNumber(message.api_error_status) ?? asNumber(assistant?.api_error_status),
       terminalReason: typeof message.terminal_reason === "string" ? message.terminal_reason : null,
       limitResetsAt: state.limitResetsAt,
       subtype: subtype ?? null,
@@ -117,8 +126,16 @@ export const claudeProjectionProfile: StreamJsonProjectionProfile<ClaudeProjecti
   name: "claude",
   compactingStatus: true,
   duplicateReason: "claude ignored the input: its inputId was already used in this session",
-  assistant: (state, message, root) => root ? { ...state, failureCategory: typeof message.error === "string" ? message.error : state.failureCategory, context: claudeContextSent(state.context, message),
-    lastAssistantUuid: assistantAnchor(state.lastAssistantUuid, message) } : state,
+  isAssistantError: claudeSyntheticAssistant,
+  assistant: (state, message, agentPath) => {
+    const key = pathKey(agentPath);
+    const failed = claudeSyntheticAssistant(message) || typeof message.error === "string" || asRecord(message.message)?.stop_reason === "refusal";
+    let assistantFailures = state.assistantFailures;
+    if (failed) { assistantFailures = new Map(assistantFailures).set(key, message); }
+    else if (assistantFailures.has(key)) { const remaining = new Map(assistantFailures); remaining.delete(key); assistantFailures = remaining; }
+    return agentPath.length === 0 ? { ...state, assistantFailures, context: claudeContextSent(state.context, message),
+      lastAssistantUuid: assistantAnchor(state.lastAssistantUuid, message) } : { ...state, assistantFailures };
+  },
   user: (state, message, root) => root && state.lastAssistantUuid !== null && contentBlocks(message).some((block) => block.type === "tool_result") ? { ...state, lastAssistantUuid: null } : state,
   result: (state, message, agentPath) => {
     const accumulated = accumulate(state, agentPath, message);
@@ -133,10 +150,13 @@ export const claudeProjectionProfile: StreamJsonProjectionProfile<ClaudeProjecti
       } });
     }
     const root = agentPath.length === 0;
-    const outcome = resultOutcome(state, message);
+    const key = pathKey(agentPath);
+    const outcome = resultOutcome(state, message, state.assistantFailures.get(key));
+    const remaining = new Map(state.assistantFailures);
+    remaining.delete(key);
     // No anchor on an aborted turn: a fork through it loses the interruption (lastAssistantUuid).
     const anchor = root && outcome.kind !== "aborted" ? state.lastAssistantUuid : null;
-    return { state: { ...(accumulated?.state ?? state), modelUsage: running.usage, context: reading, failureCategory: null, ...(root ? { lastAssistantUuid: null } : {}) },
+    return { state: { ...(accumulated?.state ?? state), modelUsage: running.usage, context: reading, assistantFailures: remaining, ...(root ? { lastAssistantUuid: null } : {}) },
       outcome, before: claudeServiceTierEvents(message), after, ...(anchor === null ? {} : { forkAnchor: anchor }) };
   },
   init: claudeServiceTierEvents,

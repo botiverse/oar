@@ -771,7 +771,7 @@ interface FrameBody {
 //   task_ended {taskId, status: completed | failed | stopped, summary?, outputFile?}
 // TurnOutcome: {kind: completed, structuredOutput?: unknown} | {kind: aborted} | FailedTurn, tagged by `failure`:
 //   {kind: failed, failure: auth, reason, status?, credential?} |
-//   {kind: failed, failure: quota, reason, status?, resetsAt?} |
+//   {kind: failed, failure: quota, reason, status?, resetsAt?, rateLimitType?} |
 //   {kind: failed, failure: <any other FailureClass>, reason, status?}
 // structuredOutput is the native value, present only on completed turns
 // when reported by Claude or Grok, never parsed from Codex text. OAR does

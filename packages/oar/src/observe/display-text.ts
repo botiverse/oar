@@ -146,6 +146,7 @@ export function failureText(failure: FailureClass, runtimeName: string, credenti
     case "input_too_large": return `The input is too large for ${runtimeName}.`;
     case "limit_reached": return `${runtimeName} stopped at the turn or budget limit set for it.`;
     case "output_schema": return `${runtimeName} could not produce output matching the output schema.`;
+    case "model_refused": return `The model used by ${runtimeName} declined to answer.`;
     case "invalid_request": return `${runtimeName} rejected the request as invalid.`;
     case "overloaded": return `${runtimeName} reported that its provider is overloaded.`;
     case "provider": return `${runtimeName} reported a provider error.`;

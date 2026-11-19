@@ -58,7 +58,7 @@ provider's echoed authentication header across live delivery and replay.
 | CLI process | One owned subprocess per OAR Session; stdio carries inputs, controls, and frames. Its exit is an `exited` response record (answering `dispose` when OAR caused it). |
 | Persistent session ID | `Session.id`, passed as `--session-id` or `--resume`. Every record carries it as `sessionId`. |
 | stream-json frame | One `Frame` record per stdout line (control traffic below and the effort read-back at open are the exceptions): `type` = `type[/subtype]`, `native` = the frame verbatim, `events` = OAR's readings (text_delta, reasoning, tool_call_started/ended, user_message, turn_ended, usage, model, task_*, compaction_started, compaction_ended). Frames OAR does not interpret (`system/thinking_tokens`, …) carry no events; nor does `rate_limit_event`, read only for a failed turn's `resetsAt` ([below](#usage-limits)). No `spanId`: claude frames carry no turn id. |
-| User turn and `result` | The `prompt` request records intent. After native `command_lifecycle queued`, its turn starts at the matching `started`; otherwise the request remains the fallback start. The root `result` frame ends it with a `turn_ended` event (`aborted` while OAR's own interrupt is outstanding, `failed` on `is_error`, else `completed`; a subscription limit's refusal is `quota` with that limit's `resetsAt`, [below](#usage-limits)) plus a `usage` event: the root's tokens from the main loop's `usage`, the session total from `modelUsage` ([tokens](#token-totals)), and the context the root's latest model call sent ([context](#models-instructions-and-context)). |
+| User turn and `result` | The `prompt` request records intent. After native `command_lifecycle queued`, its turn starts at the matching `started`; otherwise the request remains the fallback start. The root `result` frame ends it with a `turn_ended` event (`aborted` while OAR's own interrupt is outstanding, `failed` on `is_error`, else `completed`; a model refusal is `model_refused`; a subscription limit is `quota` with any reported reset, [below](#usage-limits)) plus a `usage` event: the root's tokens from the main loop's `usage`, the session total from `modelUsage` ([tokens](#token-totals)), and the context the root's latest model call sent ([context](#models-instructions-and-context)). |
 | Subagent messages (`parent_tool_use_id`) | `agentPath = [...parentPath, taskCallId]` ([details](#observation-children-and-history)); `capabilities.attribution` is `attributed`. |
 | `tool_use` / `tool_result` blocks | A streamed `content_block_start` gives `tool_call_started` (`callId`, `tool`, no input); `input_json_delta.partial_json` gives append-only `tool_call_input_delta`; the completed `tool_use` gives `tool_call_input` with the whole input. Without a partial opening, the completed block gives one `tool_call_started` carrying its input. `tool_call_ended` (`callId`, `content`, `result`): `is_error: true` is `failed`; `false` or an absent field is `ok` ([evidence](#tool-call-outcome-reporting)). |
 | `control_request` / `control_response` | OAR's interrupt is an `abort` request record whose id is the `control_request` id; claude's `control_response` becomes its `accepted`/`rejected` response. A `control_request` from claude is recorded as a Frame plus an unanswered `toApp` request: under `--dangerously-skip-permissions` no `can_use_tool` arrives, but an MCP server's `elicitation` does (2.1.292); `events()` reads it as `app_request` with the request subtype as `type`. A `control_cancel_request` (claude withdrawing a request it sent) reads as `app_request_cancelled`: on 2.1.292 an interrupt while an MCP server's `elicitation` waited was answered, then claude cancelled the elicitation under its `request_id`, then the turn's `result` followed. |
@@ -512,48 +512,27 @@ later `dispose` `accepted`
 
 ### Usage limits
 
-A claude.ai subscription's limits (the five-hour session, the weekly ones,
-paid overage) reach the stream as `rate_limit_event` frames,
-`{type, rate_limit_info, uuid, session_id}`. `rate_limit_info` is
-`{status: allowed | allowed_warning | rejected, resetsAt?, rateLimitType?,
-utilization?, overageStatus?, overageResetsAt?, isUsingOverage?, …}`, with
-`resetsAt` in unix seconds and `rateLimitType` one of `five_hour`,
-`seven_day`, `seven_day_opus`, `seven_day_sonnet`,
-`seven_day_overage_included`, `overage` ([src] Agent SDK 0.3.295
-`SDKRateLimitInfo`, "emitted when rate limit info changes"; [sym] 2.1.289
-`rate_limit_info` schema). claude reads the limits from the
-`anthropic-ratelimit-unified-*` response headers, so API-key, Bedrock and
-Vertex sessions get none. A refused request (a 429) updates the limits
-before claude writes the turn's error `assistant` frame (`error:
-"rate_limit"`, text such as "You've hit your session limit · resets 3pm")
-and the `result` (`api_error_status: 429`), and a changed view is sent at
-once ([sym] 2.1.289: the print-mode listener on the limits' change emits the
-frame; an unchanged rejection is sent again at most every 30 s, behind a
-flag that is on by default). claude also marks a subscriber's 429 that
-carries no limit headers `rejected`, with no reset, and words it a
-temporary capacity issue ([sym] 2.1.289).
+Claude Code 2.1.325 reported a weekly limit on a synthetic assistant
+frame with `error: "rate_limit"`, `api_error: "usage_limit_reached"` and
+status 429. This ends the turn as `quota`, even when
+`api_error_params` is absent or no `rate_limit_event` preceded it. When
+available, `api_error_params.rate_limit_info` supplies the native
+`rateLimitType` (for example, `seven_day`) and the blocked limit's
+`resetsAt`, converted from Unix seconds to UTC. [Captured frames](../../tests/fixtures/claude-synthetic-failures.json).
 
-**Mapped:** the frame carries no event. The projection keeps the latest
-event's reset when it says `rejected`, overage does not take the requests
-(`overageStatus` absent or `rejected`) and it names `resetsAt`, until
-another event replaces it. A turn whose error category is `rate_limit`
-then fails as `quota` with that `resetsAt` (status 429): a usage limit
-until it resets, so `failureAdvice` says `later`. Without such an event (an
-API key's throttling, a gateway, a rejection naming no reset) it stays
-`rate_limited` with no `resetsAt`. The kept time is claude's last report
-and may already be past when a later turn fails; oar reads no clock for
-it, and a host treats a past time as unknown. The reset is never read from
-the error text, from `get_usage`
-([account usage](#process-ownership-environment-installation-and-account-usage))
-or from `overageResetsAt`.
+For a generic `rate_limit`, the latest separate `rate_limit_event` can
+establish that a subscription limit is exhausted: it must report
+`status: "rejected"`, a reset, and no available paid overage. Otherwise the
+outcome is `rate_limited`. A later event replaces the earlier reading. A
+host treats a reset already in the past as unknown. [Replay tests](../../tests/claude/claude-limit-reset.test.ts).
 
-**Evidence: the SDK types and the binary only, no live run.** oar never
-deliberately triggers an error on a real account, and a subscription's
-limit is the only way to make claude send a `rejected` event; a scripted
-provider cannot stand in, because claude reads these headers only on a
-claude.ai login ([when a limit resets](../spec/runtime-matrix.md#when-a-limit-resets)).
-[Failure](../../packages/oar/src/runtimes/claude/failure.ts),
-[test](../../tests/claude/claude-limit-reset.test.ts).
+Claude-generated assistant frames marked `is_api_error_message: true` or
+`message.model: "<synthetic>"` remain in the native stream. Their diagnostic
+text supplies the failed turn's reason and stays out of model output.
+`verification_required` maps to `auth`; `overloaded` maps to `overloaded`
+even when only the result carries the HTTP status. A native
+`stop_reason: "refusal"` takes precedence over the CLI's error category
+and reports `model_refused`. [Failure evidence](../spec/runtime-matrix.md#claude).
 
 ### Observation, children, and history
 

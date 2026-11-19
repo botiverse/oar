@@ -72,6 +72,7 @@ const advice = {
   provider: { retry: "now", userAction: false },
   runtime_exited: { retry: "now", userAction: false },
   quota: { retry: "later", userAction: false },
+  model_refused: { retry: "no", userAction: false },
   invalid_request: { retry: "no", userAction: false },
   limit_reached: { retry: "no", userAction: false },
   output_schema: { retry: "no", userAction: false },

@@ -1284,7 +1284,7 @@ grok 1.0.46, antigravity ACP server 1.3.0 (2026-10-08); cursor (`@cursor/sdk`
 1.0.36) against Cursor's own service, with no key or a made-up one only.
 
 **Evidence level** of each cell: `[env]` observed in such a run; `[rec]` a
-recorded run (no failure cell has one yet); `[src]` vendor source or type
+recorded run; `[src]` vendor source or type
 declarations, `[sym]` binary symbols; `[doc]` vendor documentation. **Not
 observed** means none of these. Only `[env]` and `[rec]` cells may back a
 mapping; the others are reference. Every cell below is `[env]` unless tagged.
@@ -1310,6 +1310,13 @@ whose code names a quota or a balance (`insufficient_quota`,
 code is `rate_limited`. Matching the words is each adapter's last resort,
 named in its table below. What none of these says is `unknown`.
 
+A model that declines to answer reports `model_refused`. Claude 2.1.328
+reports `stop_reason: "refusal"` even when its synthetic assistant error is
+`invalid_request`; the stop reason takes precedence. ACP's plain
+`stopReason: "refusal"` carries the same meaning. CodeBuddy also uses this
+stop for failed tasks, so its native error category and HTTP status retain
+their more specific classifications.
+
 Two classes are the host's own settings, not the provider's: `limit_reached`
 (claude's result subtypes `error_max_turns` and `error_max_budget_usd`, from
 `--max-turns` and `--max-budget-usd`) and `output_schema` (claude's
@@ -1321,8 +1328,8 @@ its subtype followed by claude's own `errors` text when it gives any
 
 Mappings normally require `[env]` evidence. A declared value with no observed
 run stays unmapped (it falls through to the status or to `unknown`): claude's
-`oauth_org_not_allowed`, `account_on_hold`, `verification_required`,
-`overloaded`, `max_output_tokens`, `cloud_credential_error`; codex's
+`oauth_org_not_allowed`, `account_on_hold`,
+`max_output_tokens`, `cloud_credential_error`; codex's
 `badRequest`, `sessionBudgetExceeded`, `cyberPolicy` and the rest of its
 schema; Anthropic's `request_too_large` and `permission_error`; OpenAI's
 spend-limit and `slow_down` codes. Two mappings are source-backed exceptions.
@@ -1335,7 +1342,7 @@ subscription at its limit makes claude send that event, and oar never
 triggers an error on a real account.
 
 A failed turn (`FailedTurn`) is tagged by `failure`: `credential` exists
-only on `auth`, `resetsAt` only on `quota`, `status` on every class. A host
+only on `auth`, `resetsAt` and `rateLimitType` only on `quota`, `status` on every class. A host
 checks `failure` before reading either. `resetsAt` is set only where the
 runtime reports, for the failure, when the limit that refused it resets
 ([below](#when-a-limit-resets)).
@@ -1348,7 +1355,7 @@ HTTP status where the runtime reports one.
 
 Known blur, kept because the runtime does not tell the causes apart: codex's
 `usageLimitExceeded` covers a usage limit and an exhausted balance alike
-(`quota`); claude's 429 without a `rejected` `rate_limit_event` covers a
+(`quota`); claude's 429 without an explicit usage-limit code or a qualifying `rate_limit_event` covers a
 tier's monthly spend cap as well as throttling (`rate_limited`); grok's -32003 covers every 429, so only the provider's error type or Grok's free-usage code in its `data` makes one `quota` or `billing`; otherwise it is `rate_limited`.
 kimi and antigravity report most failed turns as completed, so oar does too.
 
@@ -1431,12 +1438,12 @@ by default (`CLAUDE_CODE_MAX_RETRIES`; the runs set 1).
 After a tool call the fields are the same; an oversized context first tries
 compaction (`system/status` `compacting`). [Claude 2.1.326 controls](../../experiments/claude-compaction-start/README.md)
 observed the same start on manual compaction and automatic recovery after
-a tool result. The boundary reports the trigger. Other `error` values claude 2.1.292
-declares: `oauth_org_not_allowed`, `account_on_hold`, `verification_required`,
-`overloaded`, `max_output_tokens`, `cloud_credential_error` `[sym]`; a
-subscription's limits arrive as `rate_limit_event` frames `[sym]`, not observed
-(a `rate_limit` after a rejection naming a reset is `quota` with `resetsAt`,
-[below](#when-a-limit-resets)).
+a tool result. The boundary reports the trigger. Recorded Claude 2.1 assistant/result pairs show `verification_required`
+with 403 (`auth`) and `overloaded` with 529 on the result (`overloaded`).
+A 2.1.325 weekly-limit assistant names `api_error: "usage_limit_reached"`
+(`quota`). Its optional `api_error_params.rate_limit_info` carries the
+native limit name and reset in Unix seconds. [Sanitized frames](../../tests/fixtures/claude-synthetic-failures.json).
+
 
 ### codex
 
@@ -1573,7 +1580,7 @@ has been observed ([open gaps](../runtimes/devin.md#verification-and-open-gaps))
 | invalid key | `error` + 401 | info 401 | status in text | text | prompt -32000 | `error_type: auth` | nothing | open 401 |
 | unknown model | `error` + 404 | info | open (oar) | open -32602 | open -32603 | open -32602 | open -32602 | not observed |
 | rate limited | `error` + 429 | info 429 | status in text | text | nothing | -32003 | nothing | not observed |
-| usage limit | 400 only; a subscription's: `error` + `rate_limit_event` `[sym]` | info | status in text | text | nothing | -32003 + error type or `subscription:free-usage-exhausted` | nothing | not observed |
+| usage limit | 400 spend limit; weekly `usage_limit_reached` `[rec]` | info | status in text | text | nothing | -32003 + error type or `subscription:free-usage-exhausted` | nothing | not observed |
 | billing | `error` (400 text) or 402 | info | status in text | text | nothing | -32003 + error type; 402: -32603 `data.http_status` | nothing | not observed |
 | server error | `error` + 500 | info | status in text | text | nothing | `error_type: api` | text | not observed |
 | overloaded | 529 | info | status in text | text | nothing | `error_type: api` | nothing | not observed |
@@ -1594,7 +1601,7 @@ can give a countdown in its native individual-quota notice.
 
 | runtime | what it reports | `resetsAt` |
 |---|---|---|
-| claude | `rate_limit_event` `{status, resetsAt (unix seconds), rateLimitType, overageStatus, …}` whenever its view of a claude.ai subscription's limits changes, a refused request included, before the turn's error frame (`rate_limit`, 429) and `result` `[src]` (Agent SDK 0.3.295 `SDKRateLimitInfo`) `[sym]` (2.1.289); none on an API key | a failure claude categorizes `rate_limit` while its latest event says `rejected`, overage does not take the requests (`overageStatus` absent or `rejected`) and it names `resetsAt`: `quota` with that `resetsAt`; otherwise `rate_limited` with none. From the types and the binary only, never observed ([claude](../runtimes/claude.md#usage-limits)) |
+| claude | A 2.1.325 error assistant can name `usage_limit_reached` with optional `api_error_params.rate_limit_info`. A separate `rate_limit_event` can report changes to a subscription limit. | The explicit code is `quota`, including when the params are absent; the inline report supplies `rateLimitType` and a known `resetsAt` in UTC. A generic `rate_limit` is `quota` only when the latest event names a rejected limit with a reset and no available overage. Otherwise it is `rate_limited`. [Claude usage limits](../runtimes/claude.md#usage-limits) |
 | codex | native 0.169.0/0.169.1: HTTP-400 `other` preserves the quota JSON body's numeric `error.resets_at`, also after the exact compaction prefix. Normal HTTP 429 reports `usageLimitExceeded` and a same-turn exhausted window. Unscoped account updates are used only during the observed root turn before its terminal error, cleared at turn/compaction boundaries, and disabled after child or collaboration activity. Streamed errors lose their structure and remain `unknown`; compaction drops the failure update ([native controls](../../experiments/codex-quota-errors/README.md)) | the quota body's `resets_at`, or the unique reset shared by all exhausted current-turn `codex` windows for a named quota failure; otherwise absent |
 | pi, pi-durable | the provider's error text; for a ChatGPT plan pi-ai words it "Try again in ~N min." `[src]` (pi-ai 1.1.0) | none |
 | antigravity | agy 1.5.12 individual-quota notice as the whole turn output, followed by `end_turn` without usage, or the same reset sentence in a prompt error | receipt time plus the native countdown ([observations and replay](../../experiments/antigravity-prompt-usage/README.md)) |

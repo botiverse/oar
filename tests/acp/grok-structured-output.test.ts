@@ -53,6 +53,7 @@ test("Grok forwards schema on prompt and held queue drain; an interjection carri
 });
 
 test("Grok never parses text, preserves falsey native values and prioritizes cancellation", () => {
+  expect(grokPromptOutcome({ stopReason: "refusal" })).toEqual({ kind: "failed", failure: "model_refused", reason: "refusal" });
   expect(grokPromptOutcome({ stopReason: "end_turn" })).toEqual({ kind: "completed" });
   for (const value of [null, false, 0, ""]) {
     expect(grokPromptOutcome({ stopReason: "end_turn", _meta: { structuredOutput: value } })).toEqual({ kind: "completed", structuredOutput: value });

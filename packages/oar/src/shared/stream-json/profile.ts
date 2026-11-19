@@ -26,7 +26,9 @@ export interface StreamJsonProjectionProfile<S extends StreamJsonProjectionState
   readonly partialMessageIds?: boolean;
   /** The next single-block assistant is the completed block's snapshot, even with a new id. */
   readonly assistantFollowsBlockStop?: boolean;
-  readonly assistant: (state: S, message: JsonRecord, root: boolean) => S;
+  /** CLI-generated errors have native records but no model content. */
+  readonly isAssistantError?: (message: JsonRecord) => boolean;
+  readonly assistant: (state: S, message: JsonRecord, agentPath: readonly string[]) => S;
   /** A `user` frame (tool results, replayed prompts), after the shared fold read it; absent leaves the state as is. */
   readonly user?: (state: S, message: JsonRecord, root: boolean) => S;
   readonly result: (state: S, message: JsonRecord, agentPath: readonly string[]) => {

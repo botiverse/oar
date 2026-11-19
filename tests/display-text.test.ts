@@ -101,6 +101,7 @@ const failures = {
   billing: ["billing", "Claude Code reported a billing or credit problem."],
   model_unavailable: ["model_unavailable", "Claude Code cannot use the selected model."],
   input_too_large: ["input_too_large", "The input is too large for Claude Code."],
+  model_refused: ["model_refused", "The model used by Claude Code declined to answer."],
   invalid_request: ["invalid_request", "Claude Code rejected the request as invalid."],
   overloaded: ["overloaded", "Claude Code reported that its provider is overloaded."],
   provider: ["provider", "Claude Code reported a provider error."],

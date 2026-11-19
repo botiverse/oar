@@ -17,6 +17,8 @@ export function codebuddyPromptOutcome(response: JsonRecord): TurnOutcome | null
   if (response.stopReason !== "refusal" && !(typeof outcome === "string" && outcome.startsWith("FAILED"))) { return null; }
   const raw = meta?.["codebuddy.ai/errorMessage"];
   const error = typeof raw === "string" ? asRecord(parseJson(raw)) : null;
+  // CodeBuddy also uses refusal for native task failures. Prefer its specific evidence.
+  if (response.stopReason === "refusal" && raw === undefined && !(typeof outcome === "string" && outcome.startsWith("FAILED"))) { return null; }
   const nested = asRecord(error?.error);
   const data = asRecord(error?.data);
   const nestedData = asRecord(nested?.data);
