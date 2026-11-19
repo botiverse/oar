@@ -46,7 +46,7 @@ usage *derivation* (cumulative/epoch/boundary views are consumer business).
 | [attribution.md](attribution.md) | How do records self-attribute? Why is attribution a field, not a channel? How is usage exposed? |
 | [session-graph-and-cursor.md](session-graph-and-cursor.md) | What goes in the session graph, and how does resumable reading work? |
 | [runtime-matrix.md](runtime-matrix.md) | Which attribution tier does each shipped adapter declare, on what native evidence, and what are adapters forbidden to do? |
-| [model-request.md](model-request.md) | (Designed) What the model was sent: opting in, fidelity, refusal, and why it is read rather than recorded |
+| [model-request.md](model-request.md) | (Designed) What the model was sent: opting in, refusal, main-loop scope, and why it is read rather than recorded |
 | [conversation.md](conversation.md) | Input identity, native user messages and replayable conversation projection |
 | [subagents.md](subagents.md) | Child sessions as subagents: spawn, reports, follow-ups, delivery into a parent, limits, and `oar mcp` |
 | [inventory.md](inventory.md) | Independent skills, commands, MCP and tool queries, cwd defaults, coverage and failure semantics |

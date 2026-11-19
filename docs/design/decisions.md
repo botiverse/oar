@@ -830,8 +830,9 @@ emitting each request as a record.
 **Decided:** one opt-in session option, `modelRequests: "latest"`, and one
 member, `Session.lastModelRequest()`, filled only from what the runtime
 itself exposes at request time (a native dump, extension event or plugin
-hook), with a `fidelity` of `wire` or `harness`. Runtimes without such a
-mechanism refuse the option and declare the refusal.
+hook), and only as the provider body the runtime built. Runtimes without
+such a mechanism, or that expose the request only before their provider
+adapter converts it, refuse the option and declare the refusal.
 
 A hook per runtime is the per-runtime host code OAR exists to remove. A
 transcript lacks the system prompt and tool schemas, the parts a user opens
