@@ -55,10 +55,14 @@ calls, resume semantics, and what each adapter still does not carry.
 
 ## User configuration
 
-`SessionOptions.userConfiguration` is `"include" | "exclude"`. Omission and
-`"include"` preserve the adapter's native defaults. In particular, Cursor SDK
-already loads no ambient settings by default; `"include"` does not force it
-to load layers it normally omits.
+Give `SessionOptions.userConfiguration` as `"include"`, `"exclude"`, or
+`{ exclude: [...] }` with categories `settings`, `mcp` and `instructions`.
+An omitted option, `"include"` and an empty list preserve the runtime's usual
+configuration. A list containing all three categories equals `"exclude"`.
+Order and duplicate entries have no effect. Claude accepts every subset.
+Excluding its user settings source also removes user-scope MCP. Project and
+local-scope MCP survive until `mcp` is excluded. See the
+[Claude category table](../runtimes/claude.md#user-configuration).
 
 `"exclude"` skips user-level plugins, skills, commands, agents, MCP, hooks,
 memory and settings while retaining the native login, native session data
@@ -76,7 +80,7 @@ refer to files elsewhere. Host options retain their existing refusals, so
 | Runtime | `exclude` |
 |---|---|
 | Claude | Native project/local settings, strict host MCP, disabled auto-memory and account MCP, and excluded home-directory memory; original credential and transcript locations remain. |
-| Cursor SDK | Explicit empty `local.settingSources` and `local.sandboxOptions.enabled: false`; SDK login and native store remain. Project layers are also absent, as in its default. |
+| Cursor SDK | Explicit empty `local.settingSources` and `local.sandboxOptions.enabled: false`; SDK login and native store remain. Project layers are also absent under exclusion. |
 | Codex | Refused: the temporary-home workaround leaves shared history indexes pointing at paths deleted during cleanup. |
 | Kimi | Refused: native atomic writes replace the workspace-index symlink and split the workspace catalog. |
 | Pi, Pi Durable, Grok, OpenCode v1/v2, Qwen, Qoder, Antigravity, CodeBuddy, Devin, Factory | Refused: no verified separation preserving login and history. |
@@ -84,8 +88,9 @@ refer to files elsewhere. Host options retain their existing refusals, so
 
 A refusal is `UnsupportedOptionError("userConfiguration", reason)` before
 starting a session and is declared in `Runtime.refusedSessionOptions`.
-This declaration applies only to `"exclude"`; omission and `"include"` are
-accepted. See each [runtime page](../runtimes/README.md) for native evidence.
+`userConfiguration` in this map refuses every nonempty exclusion.
+`partialUserConfiguration` refuses proper nonempty subsets, as on Cursor,
+whose SDK selects settings sources as a group. See each [runtime page](../runtimes/README.md) for native evidence.
 
 ## Session controls
 
@@ -823,7 +828,7 @@ reading the message.
 
 `Runtime.refusedSessionOptions` declares, before any session opens, the
 `SessionOptions` a runtime refuses when given (`env`, `mcpServers`, `disallowedTools`, `launchArgs`, `additionalDirectories`: a
-non-empty one; `userConfiguration`: `"exclude"`; `goals`, `endTurnProcessesOnAbort`: `true`; `fork`: any value), each with that reason. The adapter checks the same map, so
+non-empty one; `userConfiguration`: any exclusion; `partialUserConfiguration`: a proper nonempty subset; `goals`, `endTurnProcessesOnAbort`: `true`; `fork`: any value), each with that reason. The adapter checks the same map, so
 the declaration and the refusal cannot drift
 (`tests/refused-session-options.test.ts`). A host leaves a declared option
 out instead of naming runtimes. `outputSchema` is considered given even

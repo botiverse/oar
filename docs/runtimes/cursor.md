@@ -1162,7 +1162,10 @@ answer; OAR does not substitute that unrelated field or a prompt instruction.
 
 OAR passes `local.settingSources: ["project", "user"]` when
 `userConfiguration` is omitted or `"include"`, on both create and resume,
-in process and in subprocess mode. `"exclude"` passes `[]`. SDK 1.4.0
+in process and in subprocess mode. An empty exclusion list does the same.
+`"exclude"` and a list of all three categories pass `[]`. The SDK selects
+sources as a group. A proper nonempty subset is refused before opening, as
+declared by `refusedSessionOptions.partialUserConfiguration`. SDK 1.4.0
 itself defaults to no setting sources when the field is omitted. OAR selects
 the two sources explicitly so a default session uses the user's installed
 configuration, as the shared session contract requires.

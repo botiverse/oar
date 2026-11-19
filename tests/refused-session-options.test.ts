@@ -9,10 +9,13 @@ import { refuseSessionOptions } from "../packages/oar/src/shared/session-options
 import { scriptedRuntime } from "../packages/oar/src/testing/index.js";
 import { allRuntimes } from "../sea-trial/harness/runtimes.js";
 
+const refusalNames: Partial<Record<RefusableSessionOption, keyof SessionOptions>> = { partialUserConfiguration: "userConfiguration", mcpServerCredentials: "mcpServers" };
+
 const given: Readonly<Record<RefusableSessionOption, Partial<SessionOptions>>> = {
   goals: { goals: true },
   endTurnProcessesOnAbort: { endTurnProcessesOnAbort: true },
   userConfiguration: { userConfiguration: "exclude" },
+  partialUserConfiguration: { userConfiguration: { exclude: ["settings"] } },
   additionalDirectories: { additionalDirectories: ["/extra"] },
   outputSchema: { outputSchema: {} },
   serviceTier: { serviceTier: "fast" },
@@ -24,7 +27,7 @@ const given: Readonly<Record<RefusableSessionOption, Partial<SessionOptions>>> =
   mcpServerCredentials: { mcpServers: [{ name: "served", type: "http", url: "http://127.0.0.1:9/mcp", headers: { Authorization: "Bearer probe" } }] },
   launchArgs: { launchArgs: ["--probe"] },
   name: { name: "probe" },
-  fork: { resume: "source", fork: { through: "anchor" } },
+  fork: { fork: { through: "anchor" }, resume: "source" },
 };
 
 // Declared refusals are checked before anything starts, so an installation
@@ -46,13 +49,14 @@ test("every declared refusal is what session() rejects with", async () => {
   const declaring = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions !== undefined);
   assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "claude", "codebuddy", "codex", "cursor", "devin", "dsh", "factory", "grok", "kimi", "opencode", "pi", "qoder", "qwen"]);
   for (const runtime of declaring) {
-    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "goals", "endTurnProcessesOnAbort", "fork"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
+    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "partialUserConfiguration", "goals", "endTurnProcessesOnAbort", "fork"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
     for (const key of keys) {
+      const option = refusalNames[key] ?? key;
       const opening = runtime.session(nowhere(runtime.id), { cwd: "/tmp", ...given[key] });
       // oxlint-disable-next-line no-await-in-loop -- one open at a time keeps the failure attributable.
       await expect(opening, `${runtime.id} ${key}`).rejects.toBeInstanceOf(UnsupportedOptionError);
       // oxlint-disable-next-line no-await-in-loop -- the same settled open, read again.
-      await expect(opening, `${runtime.id} ${key}`).rejects.toMatchObject({ name: "UnsupportedOptionError", option: key === "mcpServerCredentials" ? "mcpServers" : key, message: refusalMessage(runtime.refusedSessionOptions?.[key], key) });
+      await expect(opening, `${runtime.id} ${key}`).rejects.toMatchObject({ name: "UnsupportedOptionError", option, message: refusalMessage(runtime.refusedSessionOptions?.[key], key) });
     }
   }
 });
@@ -64,7 +68,7 @@ test("the declarations say which options each runtime refuses", () => {
     claude: ["endTurnProcessesOnAbort", "goals"],
     codebuddy: ["additionalDirectories", "appendSystemPrompt", "endTurnProcessesOnAbort", "fork", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
     codex: ["userConfiguration"],
-    cursor: ["appendSystemPrompt", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "name", "outputSchema", "serviceTier", "systemPrompt"],
+    cursor: ["appendSystemPrompt", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "name", "outputSchema", "partialUserConfiguration", "serviceTier", "systemPrompt"],
     devin: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
     dsh: ["endTurnProcessesOnAbort", "fork", "launchArgs", "mcpServerCredentials", "outputSchema", "serviceTier", "userConfiguration"],
     factory: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
@@ -157,10 +161,27 @@ test("empty additionalDirectories is no override even on refused runtimes", () =
   }
 });
 
-test("explicit include and omission preserve existing runtime behavior", () => {
+test("empty user configuration exclusions and explicit include keep the native configuration", () => {
   for (const runtime of allRuntimes.list()) {
-    expect(() => { refuseSessionOptions(runtime.refusedSessionOptions ?? {}, { cwd: "/tmp", userConfiguration: "include" }); }).not.toThrow();
-    expect(() => { refuseSessionOptions(runtime.refusedSessionOptions ?? {}, { cwd: "/tmp" }); }).not.toThrow();
+    const refused = runtime.refusedSessionOptions ?? {};
+    expect(() => { refuseSessionOptions(refused, { cwd: "/tmp" }); }).not.toThrow();
+    for (const userConfiguration of ["include", { exclude: [] }] as const) {
+      expect(() => { refuseSessionOptions(refused, { cwd: "/tmp", userConfiguration }); }).not.toThrow();
+    }
+  }
+});
+
+test("declared user configuration refusals apply to category lists", () => {
+  for (const runtime of allRuntimes.list()) {
+    const refused = runtime.refusedSessionOptions ?? {};
+    if (refused.userConfiguration !== undefined || refused.partialUserConfiguration !== undefined) {
+      for (const exclude of [["settings"], ["mcp", "instructions"], ["settings", "settings"]] as const) {
+        expect(() => { refuseSessionOptions(refused, { cwd: "/tmp", userConfiguration: { exclude } }); }).toThrow(UnsupportedOptionError);
+      }
+    }
+    if (refused.userConfiguration !== undefined) {
+      expect(() => { refuseSessionOptions(refused, { cwd: "/tmp", userConfiguration: { exclude: ["instructions", "mcp", "settings"] } }); }).toThrow(UnsupportedOptionError);
+    }
   }
 });
 

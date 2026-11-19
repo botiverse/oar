@@ -10,12 +10,13 @@ export function configurationHook(marker: string): object {
 }
 
 /** The project lives below HOME to exercise Claude's ancestor-memory walk. */
-export async function writeClaudeConfiguration(home: string, userMcp: McpServer): Promise<void> {
+export async function writeClaudeConfiguration(home: string, userMcp: McpServer, projectMcp: McpServer): Promise<void> {
   const config = path.join(home, ".claude");
   const cwd = path.join(home, "project");
   const marketplace = path.join(home, "marketplace");
   const plugin = path.join(marketplace, "plugin");
   const { name, ...server } = userMcp;
+  const { name: project, ...projectServer } = projectMcp;
   const files = {
     [path.join(marketplace, ".claude-plugin", "marketplace.json")]: JSON.stringify({ name: "oar-local-probe", owner: { name: "OAR probe" }, plugins: [{ name: "user-probe", source: "./plugin", description: "local fixture" }] }),
     [path.join(plugin, ".claude-plugin", "plugin.json")]: JSON.stringify({ name: "user-probe", description: "local fixture", version: "1.0.0" }),
@@ -31,7 +32,9 @@ export async function writeClaudeConfiguration(home: string, userMcp: McpServer)
     [path.join(config, "skills", "user-skill", "SKILL.md")]: "---\nname: user-skill\ndescription: OAR_USER_SKILL_MARKER\n---\nUser skill instructions.",
     [path.join(config, "commands", "user-command.md")]: "---\ndescription: OAR_USER_COMMAND_MARKER\n---\nUser command instructions.",
     [path.join(config, "agents", "user-agent.md")]: "---\nname: user-agent\ndescription: OAR_USER_AGENT_MARKER\n---\nUser agent instructions.",
-    [path.join(config, ".claude.json")]: JSON.stringify({ hasCompletedOnboarding: true, mcpServers: { [name]: server } }),
+    [path.join(config, ".claude.json")]: JSON.stringify({ hasCompletedOnboarding: true, mcpServers: { [name]: server },
+      projects: { [cwd.replaceAll("\\", "/")]: { hasTrustDialogAccepted: true, enabledMcpjsonServers: [project] } } }),
+    [path.join(cwd, ".mcp.json")]: JSON.stringify({ mcpServers: { [project]: projectServer } }),
     [path.join(config, "memory-probe", "MEMORY.md")]: "OAR_AUTO_MEMORY_MARKER",
   };
   await Promise.all(Object.entries(files).map(async ([file, text]) => {

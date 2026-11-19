@@ -69,6 +69,8 @@ export async function claudeConfigurationFixture(command: string): Promise<Claud
   const home = await realpath(temporary);
   const model = await configurationModel();
   const user = await serveMcpTools({ name: "user_config_probe", tools: [tool("user_tool")] });
+  const local = await serveMcpTools({ name: "local_config_probe", tools: [tool("local_tool")] });
+  const project = await serveMcpTools({ name: "project_config_probe", tools: [tool("project_tool")] });
   const host = await serveMcpTools({ name: "host_config_probe", tools: [tool("host_tool")] });
   let oauth: Awaited<ReturnType<typeof mockRefresh>> | null = null;
   let store: Awaited<ReturnType<typeof claudeCredentialStore>> | null = null;
@@ -77,13 +79,18 @@ export async function claudeConfigurationFixture(command: string): Promise<Claud
   async function close(): Promise<void> {
     await oauth?.close();
     await user.close();
+    await local.close();
+    await project.close();
     await host.close();
     await model.close();
     await store?.close();
     await rm(home, { recursive: true, force: true });
   }
   try {
-    await writeClaudeConfiguration(home, user.server);
+    await writeClaudeConfiguration(home, user.server, project.server);
+    // Claude chooses the project key for local scope, which may be an ancestor of cwd.
+    const { name: localName, ...localServer } = local.server;
+    await checkedRun(command, ["mcp", "add-json", "--scope", "local", localName, JSON.stringify(localServer)], cwd, env);
     store = await claudeCredentialStore(home, env);
     const credentialStore = store, credentials = store.path;
     await checkedRun(command, ["plugin", "marketplace", "add", path.join(home, "marketplace")], cwd, env);
