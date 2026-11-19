@@ -14,7 +14,7 @@ redirect to `earendil-works/pi`). Live observations below are from SDK
 **0.84.2** unless they name a version or date (the bundled SDK moved to
 0.87.1 on 2026-09-29, then 0.99.1 on 09-30, 0.99.2 on 10-01, 1.0.0 on 10-02,
 1.0.2 on 10-04, 1.0.3 on 10-05, 1.0.4 on 10-06, 1.1.0 on 10-08, 1.2.0 on
-10-13, 1.3.0 on 10-16, 1.4.0 on 10-22 and 1.5.0 on 11-02): in-process runs of [`experiments/live-contract.ts pi`](../../experiments/live-contract.ts)
+10-13, 1.3.0 on 10-16, 1.4.0 on 10-22, 1.5.0 on 11-02 and 1.5.2 on 11-16): in-process runs of [`experiments/live-contract.ts pi`](../../experiments/live-contract.ts)
 and the [experiments index](../../experiments/README.md) probes against
 `openai-codex/gpt-5.3-codex-spark` (codex OAuth through pi; every assistant
 frame carries `provider: "openai-codex"`, `api: "openai-codex-responses"`) on
@@ -1175,8 +1175,9 @@ judging pi's menu layout. On 1.1.0 the registry has 42 built-in providers,
 not) and 41 with an API key, none ambient. The facade loads no extensions,
 so a provider an extension registers is not listed; `models.json` providers
 are (`modelsPath`). The list reads no credential; `status(id)` says how each
-provider is signed in. Its `subscription` is pi's `isUsingSubscription`
-computed from the `checkAuth` result, since pi's own reads an availability
+provider is signed in. Its `subscription` is true when `checkAuth` reports
+OAuth and the provider's OAuth declares `isSubscription`. OAR does not call
+pi's `isUsingSubscription`, since that reads an availability
 snapshot that the facade (`refreshOnCreate: false`) never fills, and so
 said `false` for a Claude Pro/Max login.
 

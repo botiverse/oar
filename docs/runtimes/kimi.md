@@ -706,7 +706,7 @@ descendants ([test](../../tests/session-dispose.test.ts)). See
 [host-exit cleanup and limits](../spec/record-stream.md#the-rules).
 
 [Installation detection](../../packages/oar/src/runtimes/kimi/installation.ts)
-checks `OAR_KIMI_BIN`, PATH `kimi`, `$KIMI_INSTALL_DIR/bin/kimi`,
+uses `OAR_KIMI_BIN` alone when non-empty; otherwise it checks PATH `kimi`, `$KIMI_INSTALL_DIR/bin/kimi`,
 `~/.kimi-code/bin/kimi`, and the legacy `kimi-code` name, probing
 `kimi acp --help` with 30-second timeouts; it does not prove compatibility
 with Python kimi-cli. When none is found,

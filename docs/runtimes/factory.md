@@ -42,7 +42,7 @@ and has the `@botiverse/oar/runtimes/factory` entry.
 
 ### Installation and updates
 
-OAR finds `OAR_FACTORY_BIN`, `droid` on PATH, or `~/.local/bin/droid`, and
+OAR uses `OAR_FACTORY_BIN` alone when non-empty, otherwise `droid` on PATH or `~/.local/bin/droid`, and
 requires `droid exec --help` to run. `installPlan()` describes Factory's
 script, `curl -fsSL https://app.factory.ai/cli | sh`, which downloads the
 release for this OS and CPU from `downloads.factory.ai`, checks its SHA-256 and

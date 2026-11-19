@@ -48,7 +48,7 @@ unwritable global installation directory returns `missing_tool` or
 [official installation source](https://www.codebuddy.ai/docs/cli/installation).
 The independent binary installer remains a vendor Beta and is not selected.
 
-OAR finds `OAR_CODEBUDDY_BIN`, `codebuddy` on PATH or `~/.local/bin/codebuddy`.
+OAR uses `OAR_CODEBUDDY_BIN` alone when non-empty; otherwise it finds `codebuddy` on PATH or `~/.local/bin/codebuddy`.
 If none is found and no explicit override is set, a bounded local
 `npm prefix -g` query adds npm's global bin directory to discovery. This works
 even when that directory is absent from a GUI host's PATH, honors the probe's
