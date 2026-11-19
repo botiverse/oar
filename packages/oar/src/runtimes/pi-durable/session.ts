@@ -4,7 +4,6 @@ import { type Conversation, type ConversationView, type Harness, type Submission
 import type { ControlResult, InputOptions, ResponseBody, RuntimeEventBody, Session, SessionOptions, TurnOutcome } from "../../contracts/session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
 import { sealSession } from "../../shared/seal-session.js";
-import { statusOf } from "../../observe/agent-status.js";
 import { openConversation, type DurableModels } from "./options.js";
 import { appendedEntries, foldDurableView, initialDurableProjection, liveOf, runEnded, submissionOutcome } from "./projection.js";
 
@@ -142,14 +141,14 @@ export async function piDurableSession(harness: Harness, models: DurableModels, 
     }
   };
   const inputControl = async (kind: "prompt" | "steer" | "queue", input: string, inputOptions: InputOptions = {}): Promise<ControlResult> => {
-    const wasRunning = statusOf(kernel.records(), kernel.sessionId).value.kind === "running";
+    const wasRunning = session.status().value.kind === "running";
     const result = await kernel.control({ kind, input, ...inputOptions }, async () => {
       const response = await submit(kind, input, inputOptions, wasRunning);
       return response;
     });
     return result;
   };
-  return sealSession({
+  const session = sealSession({
     id: kernel.sessionId,
     capabilities: { queue: { durable: true }, attribution: "opaque", images: false },
     prompt: async (input, inputOptions) => { const result = await inputControl("prompt", input, inputOptions); return result; },
@@ -179,6 +178,7 @@ export async function piDurableSession(harness: Harness, models: DurableModels, 
       }, () => { observation.detach(); });
     },
   });
+  return session;
 
   async function flush(): Promise<void> {
     let current = draining;
