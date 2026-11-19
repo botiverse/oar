@@ -72,7 +72,7 @@ ends the turn. The adapter declares `capabilities: { queue: { durable: true
 | Effective configuration | `model()`, `effort()` and `serviceTier()` fold the `model` / `effort` / `service_tier` events of the open reply and of `thread/settings/updated` ([models](#models-instructions-and-context)). Most native configuration has no public mutator. |
 | Server requests | Recorded as `toApp` request records (method and params verbatim, the server's own id), then answered at once: `Session` gives a host no way to answer, and an open request would hang the turn. Decisions get their native refusal (`decline`, `denied`, an empty grant or answer set, `success: false`; [table](../../packages/oar/src/runtimes/codex/runtime-requests.ts)); any other method gets JSON-RPC `-32601`. The reply is the `answered` response record, so `events()` reads `app_request` then `app_answered`; the `serverRequest/resolved {threadId, requestId}` that follows has no event. Through OAR (`approvalPolicy: never`) requests are rare: codex declines MCP elicitations itself and `request_user_input` is unavailable in Default mode. Driving 0.160.1 app-server directly, a `requestUserInput` (plan mode) and an MCP tool approval (`mcpServer/elicitation/request` under `on-request`) cut by `turn/interrupt` were each followed by `serverRequest/resolved` right after the interrupted `turn/completed`. |
 | Native children | Notifications of another thread are child-session records (`sessionId` = that thread id, a `graph()` node); a collaboration item naming `receiverThreadIds` / `agentThreadId` emits `session_linked` on that frame for the `tool_call` edge from the sender thread; without such an item no edge is fabricated ([children](#observation-children-and-history)). |
-| Process and observation lifetime | The Session owns its process; `dispose` is a request answered by the observed `exited` response (also recorded, pointing at no request, when the app-server dies on its own). The retained log backs the cursor for this process's lifetime; a resume starts a fresh stream at seq 0. |
+| Process and observation lifetime | The Session owns its process; `dispose` is a request answered by the observed `exited` response (also recorded, pointing at no request, when the app-server dies on its own). The retained log backs the cursor for this process's lifetime. See the [record-stream spec](../spec/record-stream.md#placement-and-release) for resume. |
 
 Implementation: [session adapter][oar-session], [open request and
 read-back][oar-open], [projection][oar-projection], [kernel][oar-kernel], and
@@ -143,9 +143,9 @@ gone when open rejects.
 
 The app-server talks before the thread exists ([env] 0.154.0):
 `remoteControl/status/changed { status: "disabled", serverName,
-installationId, environmentId: null }` follows the `initialize` reply in every
-run and is seq 0, the open event is seq 1, and `thread/started` (root
-`parentThreadId: null`) follows
+installationId, environmentId: null }` followed the `initialize` reply in every run. The
+`thread/start` reply arrived next, followed by `thread/started` (root
+`parentThreadId: null`)
 ([pre-open tests](../../tests/codex/codex-pre-open.test.ts)). An unknown model
 slug opens and fails only at the first turn
 ([models](#models-instructions-and-context)).
@@ -175,12 +175,10 @@ explicit `model` against the readback, and sets a differing effort afterwards
 resolved against the selected executable's runtime storage and configuration
 (`CODEX_HOME`), not a portable transcript; a resume naming another `cwd` kept
 the conversation and ran its shell there (0.160.0,
-[resume in another directory](resume-cwd.md)). The resumed session keeps the
-id and gets a fresh stream at seq 0: what the app-server said while loading
-comes first ([env] 0.154.0: `remoteControl/status/changed`, `warning`, four
-`mcpServer/startupStatus/updated`, `thread/status/changed idle`), then the
-`thread/resume` reply as the open event at seq 7, and the model recalls the
-earlier transcript (live-contract `resume`). With `excludeTurns` no history
+[resume in another directory](resume-cwd.md)). The resumed session keeps the ID. On 0.154.0 the app-server sent
+`remoteControl/status/changed`, `warning`, four `mcpServer/startupStatus/updated`
+notifications and `thread/status/changed idle` before the `thread/resume` reply.
+The model recalled the earlier transcript (live-contract `resume`). With `excludeTurns` no history
 is replayed into the stream; no cursor from the previous process is valid,
 and nothing restores observer positions or a controller lease. Resume sends
 no `experimentalRawEvents`, which would be inert there

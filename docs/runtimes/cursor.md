@@ -432,9 +432,7 @@ events.
 
 **Resume (mapped):** `Agent.resume(agentId, …)` with the same `cwd`; an
 agent is found only under the directory it was created in (`AgentNotFoundError`
-otherwise, probed; [resume in another directory](resume-cwd.md)). The
-resumed stream starts at seq 0 with only the `cursor/agent_opened` frame: the
-SDK replays no history. A resumed agent does
+otherwise, probed; [resume in another directory](resume-cwd.md)). The SDK replays no history when it attaches. See the [record-stream spec](../spec/record-stream.md#placement-and-release) for the new stream. A resumed agent does
 not restore its own model (a `send` without one is refused, probed), so
 without `SessionOptions.model` OAR reopens with the model of the agent's
 latest run (`Agent.listRuns`), or `default` when it has none. The next prompt

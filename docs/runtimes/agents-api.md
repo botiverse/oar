@@ -223,7 +223,7 @@ behavior. Rows marked *gap* need a contract decision, not just code.
 
 | Native concept | Prospective OAR counterpart |
 |---|---|
-| Session id (`sess_…`) | `Session.id`; `SessionOptions.resume` reattaches by id with a fresh stream at seq 0, which the spec already promises. No history rebuild: items are a different granularity from events, so "same record replayed twice gets the same seq" is unsatisfiable across a reattach and must not be claimed. |
+| Session id (`sess_…`) | `Session.id`; `SessionOptions.resume` reattaches by ID. Persisted items have a different granularity from streamed events, so they cannot recreate the earlier event stream. See the [record-stream spec](../spec/record-stream.md#placement-and-release). |
 | Installation | *gap*. Neither `executable` nor `bundled` fits: availability is "an API key with `api.agents.*` permissions is present". `InstallationSnapshot` needs a remote variant, or the probe reports `bundled` and auth failures surface at session start. |
 | `SessionOptions.cwd` | *gap*. Meaningless for `none` and `openai_hosted` (always `/workspace`); for `self_hosted` it is the `workspace_directory` of an executor the host runs. The environment choice is a session option OAR does not have. |
 | `prompt()` | `POST /events [input.message]` while the adapter's own fold says idle; the 202 is the `accepted` response. The ≤1-active-turn rule must be enforced locally, because the server accepts a mid-turn message with the same 202 and runs it later instead of rejecting `busy`. The root `agent.session.turn.completed` / `.failed` / `.cancelled` becomes `turn_ended` (`completed` / `failed` / `aborted`). |

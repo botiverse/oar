@@ -183,7 +183,7 @@ session has `steer`, and its native turns (Grok's own turns are turns).
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
 | Grok executable/process | One `grok agent --always-approve --no-leader stdio` subprocess per OAR Session; its exit is an `exited` response record (answering `dispose` when OAR caused it, `requestId ""` when Grok died on its own). |
-| Persistent native session | `Session.id` is the native ID; `SessionOptions.resume` attaches by that ID with a new stream starting at seq 0. Frames Grok sends during attachment appear in that stream. |
+| Persistent native session | `Session.id` is the native ID; `SessionOptions.resume` attaches by that ID. OAR retains the frames Grok sends during attachment in the new stream described by the [record-stream spec](../spec/record-stream.md#placement-and-release). |
 | Handshake answers | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model`, `session/set_config_option` answers are frame records; the model and `reasoning_effort` level they report are `model` and `effort` events, so `Session.model()` and `effort()` are folds. |
 | Prompt delivery and native execution | Controls are `toRuntime` requests answered accepted or rejected; each `session/prompt` RPC answer is a frame, the one closing the turn carrying `turn_ended` and `usage`. Each prompt carries OAR's `_meta.promptId`; Grok's `_x.ai/queue/changed` gives `input_queued`/`turn_active` with its input id. A steer is `_x.ai/interject`, not another prompt. A turn Grok runs under any other prompt id is its own: `turn_active` and `turn_ended` from its queue and `turn_completed` reports. No `spanId`. |
 | `session/update` notifications | One frame per notification delivered by the ACP SDK, under its session id. Recognized updates can carry events. The SDK validates standard updates before delivery. |
@@ -266,8 +266,7 @@ otherwise `session/load` when `loadSession === true`, otherwise rejects
 selection, not a retry after a failed resume. An optional model is applied
 afterward with `session/set_model`. The `session/resume` answer carries
 `models.currentModelId` (a `model` event), preceded by `background_tasks` and
-`model_changed` vendor pushes; the resumed session keeps the id, opens at
-seq 0, and recalls the earlier transcript (`live-contract/resume`). Grok
+`model_changed` vendor pushes; the resumed session keeps the ID and recalls the earlier transcript (`live-contract/resume`). Grok
 itself refuses a resume naming another directory than the session's own:
 `session()` rejects with its `Path not found.` (1.0.46, 2026-10-03,
 [resume in another directory](resume-cwd.md)). Native
