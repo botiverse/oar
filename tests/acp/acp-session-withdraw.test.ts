@@ -171,3 +171,33 @@ test.each(["isolated", "shared"] as const)("%s ACP records abort before a synchr
     expect(rejectedAfter.response.body).toMatchObject({ kind: "rejected", code: "disposed" });
   } finally { await session.dispose(); }
 });
+
+// oxlint-disable-next-line eslint/max-statements -- Verify prompt decides before a following queue when an earlier steer RPC is still in flight on shared ACP.
+test.each(["B", "hold"] as const)("shared ACP decides prompt before a following queue(%s) when an earlier steer RPC is in flight", async (queuedInput) => {
+  const f = await sharedFixture({}, {
+    sessionStartTimeoutMs: 15_000,
+    requestTimeoutMs: 400,
+    steerRequest: () => ({ method: "fixture/hang-steer", params: {} }),
+  });
+  const a = await f.open("a");
+  try {
+    const initial = await a.prompt("late-after-release");
+    expect(initial.kind).toBe("accepted");
+    const steering = a.steer?.("s");
+    const prompting = a.prompt("A");
+    const queueing = a.queue(queuedInput);
+    const [steered, prompted, queued] = await Promise.all([steering, prompting, queueing]);
+    expect(steered?.kind).toBe("rejected");
+    expect([prompted.kind, queued.kind]).toEqual(["accepted", "accepted"]);
+    expect(await awaitTurnEnd(a, prompted.response.seq)).toEqual({ kind: "completed" });
+    if (queuedInput === "B") {
+      const carried = a.records().findLast(record => record.kind === "request" && record.body.kind === "prompt" && record.body.carries !== undefined);
+      expect(await awaitTurnEnd(a, carried?.seq ?? queued.response.seq)).toEqual({ kind: "completed" });
+      const outputs = sharedText(a);
+      expect(outputs.indexOf("echo:A:")).toBeGreaterThan(-1);
+      expect(outputs.indexOf("echo:B:")).toBeGreaterThan(outputs.indexOf("echo:A:"));
+    } else {
+      expect(sharedText(a)).toContain("echo:A:");
+    }
+  } finally { await a.dispose(); }
+});

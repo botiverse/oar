@@ -41,14 +41,9 @@ export { createAcpSessionState, type AcpSessionState } from "./session-state.js"
 
 /*
  * ACP mapping onto the record stream (profiles carry the vendor bits):
- * - every routed `session/update` is ONE event record under its native session
- *   id. Shared connections first require explicit native ownership proof.
- * - listed vendor notifications are recorded verbatim except credential redaction.
- * - runtime→app requests (permission, terminal) are toApp request records;
- *   oar's automatic answer is the matching `answered` response (client-app.ts).
- * - prompt / steer / queue / withdraw / abort / dispose are toRuntime requests answered
- *   accepted-or-rejected; the turn's end is the runtime's own prompt answer
- *   (turns.ts) or the process exit oar observed (`exited` response).
+ * - routed `session/update` frames are event records under their native session id (explicitly owned on shared connections).
+ * - listed vendor notifications are recorded verbatim except credential redaction; runtime->app requests pair with automatic `answered` responses.
+ * - prompt / steer / queue / withdraw / abort / dispose are toRuntime requests; turns end on the runtime's prompt answer or observed `exited` response.
  */
 
 export function acpSession(profile: AcpSessionProfile): StartSession {
@@ -192,6 +187,7 @@ export function finishAcpSession(
     if (ownership === undefined) { return run(); }
     if (queued === 0) {
       const value = run();
+      // Async control callbacks are native async functions returning Promise instances, never custom thenables.
       if (value instanceof Promise) { track(value); }
       return value;
     }
@@ -200,6 +196,7 @@ export function finishAcpSession(
     track(next);
     return next;
   };
+  // Pre-dispose controls keep their call-time eligibility; on isolated sessions a prompt awaiting pendingCancellation may decide during teardown instead of answering disposed.
   const liveRefusal = (): ResponseBody | null => {
     const unreachable = kernel.unreachable();
     return unreachable !== null && unreachable.code !== "disposed" ? unreachable : null;
@@ -219,10 +216,10 @@ export function finishAcpSession(
       return value;
     })();
   }));
-  const heldControl = (body: RequestBody, decide: (request: RequestRecord) => ResponseBody): Promise<ControlResult> => kernel.control(body, (request) =>
+  const heldControl = (body: RequestBody, decide: (request: RequestRecord) => ResponseBody): Promise<ControlResult> => kernel.control(body, (request) => serial(() =>
     runtime.closed && kernel.unreachable() === null
       ? (async (): Promise<ResponseBody> => { await runtime.exited; return kernel.unreachable() ?? decide(request); })()
-      : kernel.unreachable() ?? decide(request));
+      : kernel.unreachable() ?? decide(request)));
 
   // A profile without a native steer cannot inject, so the session has no `steer`;
   // neither does one whose connection did not advertise its steer request.
