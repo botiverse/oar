@@ -79,7 +79,7 @@ export type RuntimePlatform = "linux" | "darwin" | "win32";
  * `providers`. Absent fields are unknown.
  */
 export interface RuntimeCredentials {
-  /** Variables the runtime reads a credential from, in its own order of precedence. */
+  /** Variables that supply credentials or select their source, scope or destination. Precedence applies within each native route. */
   readonly env?: readonly CredentialVariable[];
   /** Files and stores the runtime reads a credential from, in its own order of precedence, including ones the person edits (a `.env`). */
   readonly stores?: readonly CredentialStore[];
@@ -87,7 +87,8 @@ export interface RuntimeCredentials {
 
 export interface CredentialVariable {
   readonly name: string;
-  readonly purpose: "api_key" | "token" | "base_url";
+  readonly purpose: "api_key" | "token" | "base_url" | "provider_selector" | "region" | "account_scope"
+    | "model_route" | "credential_source" | "headers";
   readonly secret: boolean;
 }
 
