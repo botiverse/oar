@@ -10,7 +10,6 @@ const sdk = vi.hoisted(() => ({
   SettingsManager: { create: vi.fn((cwd: string) => ({ cwd, getTheme: () => "dark", getProjectSettings: () => ({}), getGlobalSettings: () => ({}) })) },
   initTheme: vi.fn(),
   defineTool: vi.fn((tool: unknown) => tool),
-  createBashToolDefinition: vi.fn((cwd: string, options: { spawnHook: (context: { env: NodeJS.ProcessEnv }) => { env: NodeJS.ProcessEnv } }) => ({ name: "bash", cwd, ...options })),
 }));
 vi.mock("@earendil-works/pi-coding-agent", () => sdk);
 
