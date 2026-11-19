@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, test } from "vitest";
 import { antigravityUpdateCheck } from "../packages/oar/src/runtimes/antigravity/update.js";
-import { claudeUpdateCheck } from "../packages/oar/src/runtimes/claude/update.js";
+import { claudeCheckUpdate, claudeUpdateCheck, claudeUpgrade } from "../packages/oar/src/runtimes/claude/update.js";
 import { devinReleaseSource, devinUpdateCheck } from "../packages/oar/src/runtimes/devin/update.js";
 import { kimiUpdateCheck } from "../packages/oar/src/runtimes/kimi/update.js";
 import { startReleaseServer, type ReleaseServer } from "./fixtures/update-fixtures.js";
@@ -49,6 +49,13 @@ test("claude checks the channel its settings choose, at the source its updater r
   writeFileSync(path.join(configDir, "settings.json"), JSON.stringify({ env: { DISABLE_UPDATES: "1" } }));
   const disabled = await check(executable(path.join(dir, "claude-native"), "2.1.286 (Claude Code)"));
   assert.equal(disabled.kind === "unavailable" ? disabled.reason : disabled.kind, "updates_disabled");
+});
+
+test("a Claude Desktop cache copy leaves checks and upgrades to Desktop", async () => {
+  const copy = executable(path.join(dir, "Library/Application Support/Claude/claude-code/2.1.321/cache-a/claude.app/Contents/MacOS/claude"), "2.1.321");
+  const detail = "Claude Desktop installs, verifies and updates this copy";
+  assert.deepEqual(await claudeCheckUpdate(copy), { kind: "unavailable", reason: "package_manager", detail });
+  assert.deepEqual(await claudeUpgrade(copy), { kind: "unsupported", reason: "unsupported_installation", detail });
 });
 
 function kimiHome(region: string): string {

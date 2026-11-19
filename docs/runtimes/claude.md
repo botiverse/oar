@@ -1330,6 +1330,19 @@ mapped [below](#login).
 [updater](../../packages/oar/src/runtimes/claude/update.ts),
 [installer](../../packages/oar/src/runtimes/claude/install.ts).
 
+On macOS, a host can explicitly select a Claude Desktop cache executable with
+an absolute `OAR_CLAUDE_BIN` or session `command`. On Apple Silicon, Desktop
+5.1231.2 held two signed arm64 copies in
+`~/Library/Application Support/Claude/claude-code/<version>/<build>/claude.app/Contents/MacOS/claude`.
+Both returned 2.1.321 from `--version`. The standalone CLI returned 2.1.328.
+Desktop keeps its current choice in memory. The bundled manifest identifies
+its initial candidate and a verification marker records a checked copy.
+Neither identifies which cached build Desktop currently uses, so OAR omits
+these paths from automatic discovery. Desktop can replace or remove a cached
+copy independently of its own app release. OAR leaves its updates to Desktop;
+`checkUpdate` reports `unavailable/package_manager` and `upgrade` reports
+`unsupported/unsupported_installation`. [Update regression](../../tests/update-sources.test.ts).
+
 ### Login
 
 `login`, `logout` and `authStatus` accept the same `env` overlay as sessions,

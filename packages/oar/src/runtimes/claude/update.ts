@@ -40,6 +40,9 @@ const sources: ClaudeUpdateSources = {
   globalConfig: () => path.join(process.env.CLAUDE_CONFIG_DIR ?? homedir(), ".claude.json"),
 };
 
+const DESKTOP_CACHE = /\/Library\/Application Support\/Claude\/claude-code\/[^/]+\/[^/]+\/claude\.app\/Contents\/MacOS\/claude$/u;
+const DESKTOP_OWNER = "Claude Desktop installs, verifies and updates this copy";
+
 const PACKAGE_MANAGED = ["/Caskroom/", "/Cellar/", "/mise/", "/asdf/", "/WinGet/", "/winget/"];
 
 type ClaudeInstallMethod = "native" | "npm" | "package_manager";
@@ -99,6 +102,9 @@ async function npmCheck(
 
 export function claudeUpdateCheck(from: ClaudeUpdateSources = sources): UpdateChecker {
   return async (installation: AvailableInstallation | VersionUnsupportedInstallation, options: UpdateCheckOptions = {}): Promise<UpdateCheck> => {
+    if (installation.via === "executable" && DESKTOP_CACHE.test(installedPath(installation.command))) {
+      return { kind: "unavailable", reason: "package_manager", detail: DESKTOP_OWNER };
+    }
     const update = executableUpdate(installation);
     if (update.kind === "unavailable") {
       return update.check;
@@ -126,6 +132,9 @@ export function claudeUpdateCheck(from: ClaudeUpdateSources = sources): UpdateCh
 export const claudeCheckUpdate = claudeUpdateCheck();
 
 export async function claudeUpgrade(installation: AvailableInstallation | VersionUnsupportedInstallation, options?: UpgradeOptions): Promise<UpgradeResult> {
+  if (installation.via === "executable" && DESKTOP_CACHE.test(installedPath(installation.command))) {
+    return { kind: "unsupported", reason: "unsupported_installation", detail: DESKTOP_OWNER };
+  }
   // Without the parent Claude Code session's markers, as every other claude OAR starts (environment.ts).
   const result = await upgradeExecutable(installation, { check: claudeCheckUpdate, args: ["update"], env: claudeEnv }, options);
   return result;
