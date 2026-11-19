@@ -23,6 +23,7 @@ Pi Durable SDKs before selecting live probes.
 | [Claude Code](claude.md) | CLI print mode, bidirectional `stream-json` | Persistent conversations, user turns versus model steps, input delivery, native children, usage |
 | [Codex](codex.md) | App-server v2 over stdio | Thread/turn/item identity, bidirectional requests, native queue, collaboration threads |
 | [CodeBuddy Code](codebuddy.md) | Native CLI ACP sessions; private stream-json account controls | Consecutive turns, model/effort readback, native context 0/0 and token-ledger limits |
+| [Cybion](cybion.md) | **Community runtime** (`@botiverse/oar/community`); Agent API over HTTP (`/v1/threads`) | Thread as session, polled history as the event stream, one turn at a time, mid-turn input as a native steer, cancel through the deployment's own route |
 | [Cursor](cursor.md) | Embedded `@cursor/sdk` (local agent) | Agent versus run, steer acknowledgement, subagent updates inside the task call, per-family effort parameters, the SDK's own credential |
 | [DeepSeek Harness](dsh.md) | `dsh --profile acp` with a private plugin over injected native services, no ACP | Durable log versus transient stream, native inbox, version floor and method inventory, child catalog edges, resume by saved directory |
 | [Devin](devin.md) | `devin acp`, native CLI (`3000.12.57` probed) | `bypass` mode selection, synchronous `session/set_config_option` model/effort, `session/list` resume-cwd guard, `WINDSURF_API_KEY` status boundary, `distribution` update markers |

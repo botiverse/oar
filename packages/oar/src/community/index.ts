@@ -5,3 +5,4 @@
  * `createRuntimeRegistry([...defaultRuntimes.list(), createMorphRuntime()])`.
  */
 export { createMorphRuntime, type MorphRuntime } from "./morph/index.js";
+export { createCybionRuntime, type CybionOptions, type CybionRuntime } from "./cybion/index.js";
