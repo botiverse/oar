@@ -183,10 +183,10 @@ session has `steer`, and its native turns (Grok's own turns are turns).
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
 | Grok executable/process | One `grok agent --always-approve --no-leader stdio` subprocess per OAR Session; its exit is an `exited` response record (answering `dispose` when OAR caused it, `requestId ""` when Grok died on its own). |
-| Persistent native session | `Session.id` is the native ID; `SessionOptions.resume` attaches by that ID with a fresh stream (seq 0, no history rebuild). |
+| Persistent native session | `Session.id` is the native ID; `SessionOptions.resume` attaches by that ID with a new stream starting at seq 0. Frames Grok sends during attachment appear in that stream. |
 | Handshake answers | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model`, `session/set_config_option` answers are frame records; the model and `reasoning_effort` level they report are `model` and `effort` events, so `Session.model()` and `effort()` are folds. |
 | Prompt delivery and native execution | Controls are `toRuntime` requests answered accepted or rejected; each `session/prompt` RPC answer is a frame, the one closing the turn carrying `turn_ended` and `usage`. Each prompt carries OAR's `_meta.promptId`; Grok's `_x.ai/queue/changed` gives `input_queued`/`turn_active` with its input id. A steer is `_x.ai/interject`, not another prompt. A turn Grok runs under any other prompt id is its own: `turn_active` and `turn_ended` from its queue and `turn_completed` reports. No `spanId`. |
-| `session/update` notifications | One frame per notification, for every session id; events for message/thought/tool/usage/model updates, none for unknown kinds; nothing is dropped. |
+| `session/update` notifications | One frame per notification delivered by the ACP SDK, under its session id. Recognized updates can carry events. The SDK validates standard updates before delivery. |
 | `_x.ai/*` vendor notifications | Subscribed by name (`GROK_EXTENSION_NOTIFICATIONS`), each recorded under the session id its envelope names, with MCP credential values redacted; the first frame naming a parent/child pair in this stream carries `session_linked { parent, child, via: "tool_call" }`. Later frames do not repeat the edge event. Other vendor facts stay native-only. The live and replay graph are both `graphOf(records)`. |
 | Native child sessions | A frame for another session id is a derived child-session record (its own `sessionId` on the envelope, `agentPath []`, a graph node). Attribution tier `nested`. |
 | Client-side terminal and permission duties | Every reverse request is a `toApp` request record (verbatim, under the runtime's JSON-RPC id) and OAR's automatic answer the matching `answered` response; terminals are hosted, permissions follow the fixed allow policy. `events()` reads the pair as `app_request` (method as `type`) and `app_answered`. |
@@ -284,8 +284,9 @@ newer-source details.
 Native resident attachment can report
 [`_meta['x.ai/runningPromptId']`](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/agent/mvp_agent/session_setup.rs#L1456-L1522).
 OAR starts a fresh process, ignores that field, and creates no handle for
-previous execution; it retains neither load-time transcript nor replay
-cursor. Successful attachment does not establish that an interrupted tool
+previous execution. The new stream retains frames delivered during load,
+including replayed history. A replayed terminal report stays native-only
+for usage accounting. OAR does not restore the previous stream's cursor. Successful attachment does not establish that an interrupted tool
 restarted or an old turn completed. Concurrent same-ID controllers,
 cross-process live attachment, and load-fallback code effects remain
 **unverified** through OAR.
@@ -339,10 +340,9 @@ images smaller than 8×8 pixels before sending and writes an
 image delivery without an empty text block, using a local scripted model.
 
 **Prompt (mapped):** `prompt()` records a prompt request and answers it
-`accepted` once the `session/prompt` RPC is on the wire (no deadline; cancel
-bounds its lifetime), or `rejected` (`busy` while a turn is active; the
-transport error when the process is gone). Acceptance never waits for native
-acknowledgement. The RPC answer is Grok's own turn end: a frame
+`accepted` when OAR starts the turn and schedules the RPC. It can reject
+with `busy` during an active turn or when the process is gone. The
+`session/prompt` RPC runs asynchronously and cancellation bounds its lifetime. The RPC answer is Grok's own turn end: a frame
 `session/prompt` with `native` = the answer, a `turn_ended` event
 (`stopReason: "cancelled"` → aborted, else completed) and a `usage` event
 from `_meta`. An RPC error answer is a frame `session/prompt/error` with a
@@ -416,8 +416,9 @@ then stays inside the prompt's turn.
 
 **Queue (mapped):** `queue()` is a host-memory FIFO
 (`capabilities.queue.durable: false`), drained one message per turn end; a
-drained input runs as a spontaneous turn with an answer but no prompt request
-of its own, and held input is dropped once the stream says the runtime is
+drained input gets a `prompt` request whose `carries` names the input id
+(or the original queue request id), followed by its control response and
+the native prompt reply. Held input is dropped when the runtime becomes
 unreachable (`live-contract/queue`). `withdraw(inputId)` takes an input out
 of this FIFO before it is prompted (`accepted`) and answers `not_queued`
 after; grok's own `x.ai/queue/remove` is a different queue and stays
@@ -545,9 +546,9 @@ failed prompt, above), so `retry` never appears.
 [Projection](../../packages/oar/src/shared/acp/projection.ts).
 
 **Two notification methods.** On the wire `session/update` carries only
-standard kinds (`available_commands_update`, `session_info_update`,
+standard kinds including `config_option_update`, `available_commands_update`, `session_info_update`,
 `agent_thought_chunk`, `agent_message_chunk`, `user_message_chunk`,
-`tool_call`, `tool_call_update`), for the root and each child id alike.
+`tool_call` and `tool_call_update`, for the root and each child id alike.
 `_x.ai/session_notification` is its vendor twin (same envelope
 `{sessionId, update: {sessionUpdate: <kind>, …}}`) and carries every
 non-standard kind: `model_changed`, `session_summary_generated`,
@@ -568,7 +569,8 @@ working|idle`, `removed` on close), `_x.ai/session/prompt_complete`, and the
 per-session-start connection housekeeping `_x.ai/queue/changed` (the delivery
 queue, with the prompt text), `_x.ai/models/update`, `_x.ai/settings/update`,
 `_x.ai/announcements/update`, `_x.ai/mcp/servers_updated`,
-`_x.ai/mcp/init_progress`, `_x.ai/mcp/server_status`, `_x.ai/mcp_initialized`.
+`_x.ai/mcp/init_progress`, `_x.ai/mcp/server_status`, `_x.ai/mcp_initialized`,
+and `_x.ai/session/interjection` (the echo of an accepted interjection).
 Still [sym]-only and kept registered: `_x.ai/session/update`,
 `_x.ai/task_backgrounded`, `_x.ai/task_completed`, `_x.ai/session/usage`.
 An unlisted method is a frame OAR never sees (`grok-wire-tap.ts` shows wire
@@ -719,7 +721,7 @@ for hosts ([October 13 report](../../experiments/runtime-version-checks/2026-10-
 | `systemPrompt` | Initialize override, on both new and resumed sessions; a blank value is refused. |
 | `appendSystemPrompt` | Native initialize rules, alongside the separate override when `systemPrompt` is supplied; append-only resume is refused. |
 | `env` | Child-process environment, including tools. |
-| `mcpServers` | ACP `mcpServers` on new and resumed sessions ([session MCP servers](#session-mcp-servers)). |
+| `mcpServers` | ACP `mcpServers` on `session/new`, `session/resume` and fallback `session/load` ([session MCP servers](#session-mcp-servers)). |
 | `name` | Declared refused: no verified native session name setting ([session name](../spec/runtime-matrix.md#session-name)). |
 | `goals: true` | Declared refused: no structured native goal controls. |
 | `endTurnProcessesOnAbort: true` | An aborted turn's terminals are stopped when it closes ([ending a turn's processes](#ending-a-turns-processes-on-abort)). |
@@ -874,8 +876,8 @@ filesystem methods does not disable every vendor-configured tool.
 
 ### Session MCP servers
 
-`SessionOptions.mcpServers` is ACP's `mcpServers` on `session/new` and
-`session/resume`, in ACP's `McpServer` shape (stdio `{name, command, args,
+`SessionOptions.mcpServers` is ACP's `mcpServers` on `session/new`,
+`session/resume` and fallback `session/load`, in ACP's `McpServer` shape (stdio `{name, command, args,
 env}`, http `{type: "http", name, url, headers}`, `env` and `headers` as
 `{name, value}` lists; `args`, `env` and `headers` always sent;
 [mapping](../../packages/oar/src/shared/acp/mcp-servers.ts),
