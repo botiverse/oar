@@ -162,3 +162,20 @@ test("codex's check reads doctor's JSON even when doctor exits 1", async () => {
   const check = await codexCheckUpdate(executable(command, "codex-cli 0.158.0"));
   assert.equal(check.kind === "ok" && check.updateAvailable, true);
 });
+
+test("OpenCode v2 runs upgrade without a check and re-reads the selected executable", async () => {
+  const { opencodeRuntime } = await import("../packages/oar/src/runtimes/opencode/index.js");
+  const fake = fakeRuntime("opencode-v2", { version: "2.2.7", target: "2.3.2", mode: "upgrade", bareVersion: true });
+  const stale = executable(fake.command, "1.19.6");
+  expect(opencodeRuntime.checkUpdate).toBeUndefined();
+  expect(await opencodeRuntime.upgrade(stale)).toMatchObject({ kind: "upgraded", from: "2.2.7", to: "2.3.2" });
+  expect(await opencodeRuntime.upgrade(stale)).toMatchObject({ kind: "unchanged", version: "2.3.2" });
+  expect(fake.read().updateArgs).toEqual([]);
+});
+
+test.each([["1.19.6", "unsupported"], ["unknown", "failed"]])("OpenCode refuses to update an executable reporting %s even with a cached v2 version", async (version, kind) => {
+  const { opencodeRuntime } = await import("../packages/oar/src/runtimes/opencode/index.js");
+  const fake = fakeRuntime("opencode-refused", { version, target: "2.3.2", mode: "upgrade", bareVersion: true });
+  expect(await opencodeRuntime.upgrade(executable(fake.command, "2.2.7"))).toMatchObject({ kind });
+  expect(fake.read().updateArgs).toBeUndefined();
+});

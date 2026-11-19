@@ -213,6 +213,9 @@ function handleSessionRequest(message) {
         ...modelReport(mode),
       });
       break;
+    case "session/fork":
+      result(message.id, { sessionId: process.env.FAKE_ACP_COPY_ID ?? "forked-session" });
+      break;
     case "session/resume":
     case "session/load":
       grokUsageHistory(mode, send);

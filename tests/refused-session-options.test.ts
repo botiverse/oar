@@ -70,7 +70,7 @@ test("the declarations say which options each runtime refuses", () => {
     factory: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
     grok: ["additionalDirectories", "disallowedTools", "fork", "goals", "name", "serviceTier", "userConfiguration"],
     kimi: ["appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
-    opencode: ["disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
+    opencode: ["disallowedTools", "endTurnProcessesOnAbort", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
     pi: ["additionalDirectories", "endTurnProcessesOnAbort", "fork", "goals", "launchArgs", "outputSchema", "serviceTier", "userConfiguration"],
     qoder: ["endTurnProcessesOnAbort", "fork", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
     qwen: ["endTurnProcessesOnAbort", "fork", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
@@ -164,9 +164,9 @@ test("explicit include and omission preserve existing runtime behavior", () => {
   }
 });
 
-test("only claude and codex take fork, and they refuse one without resume or with a blank anchor before anything starts", async () => {
+test("claude, codex and opencode can take fork, and they refuse one without resume or with a blank anchor before anything starts", async () => {
   const taking = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions?.fork === undefined);
-  expect(taking.map((runtime) => runtime.id).toSorted()).toEqual(["claude", "codex"]);
+  expect(taking.map((runtime) => runtime.id).toSorted()).toEqual(["claude", "codex", "opencode"]);
   for (const runtime of taking) {
     // oxlint-disable-next-line no-await-in-loop -- one open at a time keeps the failure attributable.
     await expect(runtime.session(nowhere(runtime.id), { cwd: "/tmp", fork: {} }), runtime.id).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "fork", message: "fork copies the saved session resume names; give resume with the source session id" });

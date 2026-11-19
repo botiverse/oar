@@ -2,6 +2,7 @@
 /* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
 import type { CompactionOperation } from "../manual-compaction.js";
 import type { SessionKernel } from "../session-kernel.js";
+import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { methods } from "@agentclientprotocol/sdk";
 import type { ContextUsage, RawEvent, RuntimeEventBody, SessionCapabilities, SessionOptions, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../json.js";
@@ -70,6 +71,8 @@ export interface AcpSessionProfile extends AcpDerivedSessionHooks, AcpSteerReque
    * cannot be confirmed. No list capability or missing entry is not consent.
    */
   readonly resumeKeepsSessionCwd?: boolean;
+  /** Whole-history copies via the advertised session/fork method. */
+  readonly wholeSessionFork?: boolean;
   /** A native resume/load error must positively identify a missing session. */
   readonly isResumeNotFound?: (native: JsonRecord) => boolean;
   readonly sessionMeta?: (options: SessionOptions, initialized: JsonRecord) => JsonRecord | undefined;
@@ -140,7 +143,7 @@ export interface OpenedAcpSession {
   readonly response: JsonRecord;
   readonly sessionId: string;
   /** Which native call opened the session. */
-  readonly openMethod: "session/new" | "session/resume" | "session/load";
+  readonly openMethod: "session/new" | "session/resume" | "session/load" | "session/fork";
   /** The agent advertised `session/close`. */
   readonly supportsClose: boolean;
   /** The model switch response, when a model was requested; grok reports the applied model in its `_meta`, antigravity in its `configOptions`. */
@@ -174,6 +177,30 @@ export async function closeAcpSession(process: AcpProcess, sessionId: string): P
   );
 }
 
+function savedSessionMethod(
+  options: SessionOptions, profile: AcpSessionProfile, capabilities: JsonRecord | null, sessionCapabilities: JsonRecord | null,
+): "session/fork" | "session/resume" | "session/load" {
+  if (options.fork !== undefined) {
+    if (options.fork.through !== undefined) {
+      throw new UnsupportedOptionError("fork", "ACP session/fork accepts only a whole session and cannot cut at fork.through");
+    }
+    if (profile.wholeSessionFork !== true || !hasAcpCapability(sessionCapabilities?.fork)) {
+      throw new UnsupportedOptionError("fork", "this ACP runtime has no verified, advertised session/fork method");
+    }
+    return methods.agent.session.fork;
+  }
+  if (hasAcpCapability(sessionCapabilities?.resume)) { return methods.agent.session.resume; }
+  if (capabilities?.loadSession === true) { return methods.agent.session.load; }
+  throw new Error("ACP runtime does not support session resume");
+}
+
+function openedSessionId(method: string, response: JsonRecord, source?: string): string {
+  const id = response.sessionId;
+  if (typeof id !== "string" || id.trim() === "") { throw new TypeError(`ACP ${method} returned no session id`); }
+  if (id === source) { throw new TypeError(`ACP ${method} returned the source session id`); }
+  return id;
+}
+
 async function createOrResume(
   process: AcpProcess,
   profile: AcpSessionProfile,
@@ -192,28 +219,21 @@ async function createOrResume(
   const timeoutMs = profile.requestTimeoutMs ?? 15_000;
   if (options.resume !== undefined) {
     const sessionId = options.resume;
+    const method = savedSessionMethod(options, profile, capabilities, sessionCapabilities);
     if (profile.resumeKeepsSessionCwd === true) {
       if (!hasAcpCapability(sessionCapabilities?.list)) { throw unknownResumeCwd(sessionId, options.cwd, "listing_unavailable"); }
       await refuseResumeElsewhere(process, sessionId, options.cwd, timeoutMs);
     }
     const params = { ...baseParams, sessionId };
-    let method: typeof methods.agent.session.resume | typeof methods.agent.session.load | undefined = undefined;
-    if (hasAcpCapability(sessionCapabilities?.resume)) {
-      method = methods.agent.session.resume;
-    } else if (capabilities?.loadSession === true) {
-      method = methods.agent.session.load;
-    }
-    if (method === undefined) {
-      throw new Error("ACP runtime does not support session resume");
-    }
     const resumed = await withAcpDeadline(
       process,
-      method, method === methods.agent.session.resume ? profile.sessionStartTimeoutMs ?? timeoutMs : timeoutMs,
+      method, method === methods.agent.session.load ? timeoutMs : profile.sessionStartTimeoutMs ?? timeoutMs,
       (requestOptions) => process.connection.agent.request(method, params, requestOptions),
     ).catch((error: unknown) => {
       throw acpResumeFailure(error, method, sessionId, (native) => profile.isResumeNotFound?.(native) === true, profile.openFailure);
     });
-    return { response: responseRecord(method, resumed), sessionId, openMethod: method };
+    const response = responseRecord(method, resumed);
+    return { response, sessionId: method === methods.agent.session.fork ? openedSessionId(method, response, sessionId) : sessionId, openMethod: method };
   }
 
   const method = methods.agent.session.new;
@@ -223,11 +243,7 @@ async function createOrResume(
     (requestOptions) => process.connection.agent.request(method, baseParams, requestOptions),
   );
   const response = responseRecord(method, created);
-  const sessionId = response.sessionId;
-  if (typeof sessionId !== "string" || sessionId.length === 0) {
-    throw new TypeError("ACP session/new returned no session id");
-  }
-  return { response, sessionId, openMethod: method };
+  return { response, sessionId: openedSessionId(method, response), openMethod: method };
 }
 
 export async function openAcpSession(

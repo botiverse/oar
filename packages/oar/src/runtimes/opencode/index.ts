@@ -2,21 +2,21 @@ import { runtimeBrands } from "../../brands.js";
 import { verifiedPlatforms } from "../../platforms.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { onFirstCall } from "../../shared/lazy.js";
+import { opencodeUpgrade } from "./upgrade.js";
 import { opencodeInstallation } from "./installation.js";
 import { opencodeInstall, opencodeInstallLines, opencodeInstallPlan } from "./install.js";
 import { opencodeListModels } from "./list-models.js";
-import { opencodeRefusedSessionOptions } from "./options.js";
+import { opencodeRefusedSessionOptions, opencodeSessionCapabilities } from "./options.js";
 import { opencodeSharedRefusal } from "./sharing-admission.js";
-import { parseOpencodeRelease } from "./version.js";
 
 export const opencodeRuntime = defineRuntime({
   id: "opencode",
-  // v1 always steers; v2 steers only when initialize advertises it. Images come from initialize.
-  sessionCapabilities: (installation) => (installation.via === "executable" && installation.version !== undefined && parseOpencodeRelease(installation.version)?.major === 1 ? { steer: true } : {}),
+  sessionCapabilities: opencodeSessionCapabilities,
   brand: runtimeBrands.opencode, verifiedPlatforms: verifiedPlatforms.opencode,
   refusedSessionOptions: opencodeRefusedSessionOptions,
   mcpToolsListChanged: "full",
   installation: opencodeInstallation,
+  upgrade: opencodeUpgrade,
   installPlan: opencodeInstallPlan,
   install: opencodeInstall,
   installLines: opencodeInstallLines,

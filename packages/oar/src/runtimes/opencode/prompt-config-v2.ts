@@ -5,6 +5,7 @@ import { processFailure } from "../../shared/executable/diagnostics.js";
 import { runExecutable, type ExecutableRunner } from "../../shared/executable/run.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { configContent, instructionsFile, openedAgent, validateOpenCodePrompts, type OpenCodePromptConfig } from "./prompt-config.js";
+import { opencodeV2PromptRefusals } from "./options.js";
 import { acquireOpenCodeStartup } from "./startup-gate.js";
 import type { OpencodeRelease } from "./version.js";
 
@@ -12,17 +13,6 @@ import type { OpencodeRelease } from "./version.js";
 async function gated<T>(options: SessionOptions, work: () => Promise<T>): Promise<T> {
   const release = await acquireOpenCodeStartup(options);
   try { return await work(); } finally { release(); }
-}
-
-/** First v2 releases measured to apply each part of the overlay (experiments/opencode-v2-prompts). */
-const V2_INSTRUCTIONS = { minor: 0, patch: 30, version: "2.0.30" } as const;
-const V2_AGENT_LISTING = { minor: 2, patch: 0, version: "2.2.0" } as const;
-
-/** A pre-release of the floor itself (`2.2.0-beta`) is below it: it may predate the measured behavior. */
-function atLeast(release: OpencodeRelease, floor: { readonly minor: number; readonly patch: number }): boolean {
-  if (release.minor !== floor.minor) { return release.minor > floor.minor; }
-  if (release.patch !== floor.patch) { return release.patch > floor.patch; }
-  return !/^\d+\.\d+\.\d+-/u.test(release.version);
 }
 
 /**
@@ -59,11 +49,10 @@ async function primaryAgents(command: string, options: SessionOptions, run: Exec
  */
 export async function prepareOpenCodeV2Prompts(command: string, release: OpencodeRelease, options: SessionOptions, run: ExecutableRunner = runExecutable): Promise<OpenCodePromptConfig> {
   validateOpenCodePrompts(options);
-  if (options.appendSystemPrompt !== undefined && !atLeast(release, V2_INSTRUCTIONS)) {
-    throw new UnsupportedOptionError("appendSystemPrompt", `opencode ${release.version} does not load configured instructions; ${V2_INSTRUCTIONS.version} or later does`);
-  }
-  if (options.systemPrompt !== undefined && !atLeast(release, V2_AGENT_LISTING)) {
-    throw new UnsupportedOptionError("systemPrompt", `opencode ${release.version} cannot list its agents without the shared background service; ${V2_AGENT_LISTING.version} or later can`);
+  const refused = opencodeV2PromptRefusals(release);
+  for (const option of ["appendSystemPrompt", "systemPrompt"] as const) {
+    const reason = refused[option];
+    if (options[option] !== undefined && reason !== undefined) { throw new UnsupportedOptionError(option, reason); }
   }
   const agents = options.systemPrompt === undefined ? undefined : await primaryAgents(command, options, run);
   const instructions = await instructionsFile(options.appendSystemPrompt);

@@ -88,7 +88,7 @@ instruction to run `brew upgrade`.
 | codebuddy, dsh, qwen, qoder | none: OAR exposes no `checkUpdate` for them | none |
 | pi-durable | none: `@earendil-works/pi-durable` is the host's to install | none |
 | antigravity | The native CLI platform manifest; only a newer version counts | `agy update` |
-| opencode | none yet: `opencode upgrade` picks its source by install method (npm, Homebrew, Scoop, Chocolatey or the install script) and has no check-only mode | none yet |
+| opencode | none: the native updater has no check-only mode | v2: `opencode upgrade` selects the method and release. v1 returns `unsupported_installation`. |
 | pi | none: bundled with oar, including the current subprocess installation probe | native `pi update --self` exists; OAR has not connected it to selected executable discovery yet |
 | cursor | none: `@cursor/sdk` is the host's to install and pin (OAR's optional peer dependency, 1.4.1) | none |
 

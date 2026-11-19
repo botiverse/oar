@@ -691,18 +691,19 @@ from `ViewTurn.forkAnchor` in the session view (`reduceSessionView`,
 retains no records across processes, so a host that offers a fork on an
 earlier process's turn keeps those records or the anchors itself. Only an
 anchor of a turn the source holds is meaningful; one the runtime cannot
-find fails the open with its own error. Both runtimes keep the source's
+find fails the open with its own error. Claude and Codex keep the source's
 anchors on the turns a fork copies, so an anchor read from the source also
 forks the fork.
 
 The fork's id is the runtime's own report, never assumed: claude must
-confirm the id OAR assigned at open, codex names the new thread in its reply.
+confirm the id OAR assigned at open. Codex and OpenCode name the new session in their replies.
 
 | runtime | native mapping | `through` anchor | missing anchor | token totals |
 |---|---|---|---|---|
 | claude | `--resume=<source> --fork-session --session-id=<OAR's new id>`, plus the hidden `--resume-session-at=<anchor>`; the open fails unless the private `get_status` answer reports that id | `uuid` of the turn's last root assistant message (an API-error failure's is the saved `API Error` message); none when that message holds a `tool_use` or a root `tool_result` follows it, on an aborted turn, or on one with no assistant message (a manual compaction) | `No message found with message.uuid of: <anchor>` at startup, an `Error` with that text | the fork's own, from the resume's `get_usage` baseline |
 | codex | `thread/fork { threadId: <source>, lastTurnId?, excludeTurns: true, cwd, model?, … }`; the reply's `thread.id` is `Session.id` (one naming the source fails the open); effort set afterwards as on a resume | the turn id (the records' `spanId`), on completed, failed and aborted turns, manual compaction turns and goal continuation turns | `codex thread/fork failed: turn not found: <anchor>` | unreported for the whole Session: the fork's total includes the source's turns and codex sends no re-report to baseline it |
-| every other runtime | refused (`Runtime.refusedSessionOptions.fork`) | none | | |
+| opencode v2 | Advertised ACP `session/fork` returns the copy's `sessionId`. The source remains usable. [Native controls](../../experiments/opencode-fork/README.md) | none, only whole sessions | any `through` is refused before copying | from the copy's own prompts where reported |
+| every other runtime and opencode v1 | refused | none | | |
 
 **Other options on a fork.** They behave as on a resume of the source, not
 as on a new session. A claude fork is a `--resume`, so `systemPrompt` and
@@ -830,8 +831,8 @@ and `endTurnProcessesOnAbort: true` everywhere except Codex in an isolated
 app-server and Grok ([ending a turn's processes](#ending-a-turns-processes-on-abort)),
 for want of a verified way to end one aborted turn's processes while the
 session stays usable (in the host process, no process tree of its own to
-read). `fork` is refused everywhere except Claude and Codex, for want of a
-verified native fork that opens a copy under a new id cut after a chosen turn
+read). Claude and Codex accept forks through a chosen turn. OpenCode v2
+can copy a whole session. Other adapters refuse `fork`
 ([forking a session](#forking-a-session)). The table omits all three, apart
 from Codex's shared-placement refusal.
 These refusals have one reason wherever the table lists them: `serviceTier`,

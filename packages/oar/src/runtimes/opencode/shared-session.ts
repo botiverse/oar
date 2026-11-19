@@ -47,6 +47,7 @@ function processHome(options: SessionOptions): string {
 
 /** Relative process inputs depend on the session cwd and lack the neutral-home launch evidence. */
 function launchRefusal(command: string, options: SessionOptions): string | null {
+  if (options.fork !== undefined) { return "OpenCode shared placement has no verified ownership of a forked session"; }
   if ((options.launchArgs?.length ?? 0) > 0) { return "OpenCode shared placement has no startup-directory evidence for custom launchArgs"; }
   if (!path.isAbsolute(command) && /[/\\]/u.test(command)) { return "OpenCode shared placement requires an absolute executable path or a PATH command"; }
   const env = sessionEnvironment(options.env);
