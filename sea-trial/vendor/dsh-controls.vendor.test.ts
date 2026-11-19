@@ -119,12 +119,19 @@ describe.skipIf(!dshEnabled)("DSH native controls", () => {
     });
   }, 60_000);
 
-  test.skipIf(!posix)("a process that dies mid-turn is an exited response and a failed turn", async () => {
-    await withDshFixture((request) => toolResults(request) === 0 ? { kind: "tool", name: "bash", arguments: { description: "die", command: "kill -9 $PPID" } } : say("never"), async ({ open }) => {
+  test.skipIf(!posix)("a process that dies mid-turn reports exit and its request window survives resume", async () => {
+    await withDshFixture((request) => lastInput(request).includes("die") && toolResults(request) === 0 ? { kind: "tool", name: "bash", arguments: { description: "die", command: "kill -9 $PPID" } } : say("ok"), async ({ open }) => {
       const session = await open();
+      const seed = await session.prompt("seed");
+      expect(await awaitTurnEnd(session, seed.seq)).toEqual({ kind: "completed" });
       const started = await session.prompt("die");
       expect(await awaitTurnEnd(session, started.seq)).toMatchObject({ kind: "failed", failure: "runtime_exited" });
       expect(await session.prompt("after")).toMatchObject({ kind: "rejected", code: "runtime_exited" });
+      const resumed = await open({ resume: session.id });
+      const next = await resumed.prompt("continue");
+      expect(await awaitTurnEnd(resumed, next.seq)).toEqual({ kind: "completed" });
+      expect(nativeOf(resumed, "session/event:request/context")).toHaveLength(0);
+      expect(resumed.contextUsage().value).toEqual({ tokens: 112, contextWindow: 128_000, percent: 0 });
     });
   }, 60_000);
 

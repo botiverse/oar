@@ -196,7 +196,14 @@ ${dshGoalSource}
       const explicit = request.agentOptions ?? {};
       const saved = request.route ?? defaultRoute();
       const route = await validated(explicit.provider === undefined ? { ...saved, ...explicit } : explicit, explicit);
-      const handle = await agents.resume({ resumeSessionId: request.sessionId, agentOptions: route, setup: (_ctx, agent) => configureSession(agent, request) });
+      const handle = await agents.resume({ resumeSessionId: request.sessionId, agentOptions: route, setup: (_ctx, agent) => {
+        // Read the restored log before creation hooks can start another request.
+        const last = agent.session.requestContext?.();
+        if (typeof last?.contextWindow === "number" && (explicit.provider === undefined || (last.provider === explicit.provider && last.model === explicit.model))) {
+          write({ type: "native", channel: "session/requestContext", sessionId: agent.session.id, contextWindow: last.contextWindow });
+        }
+        configureSession(agent, request);
+      } });
       // Releases with a recorded selection keep the saved route over these options unless told otherwise.
       if ((explicit.provider !== undefined || explicit.reasoningEffort !== undefined) && typeof handle.agent.model?.select === "function") { handle.agent.model.select(route); }
       return opened(handle);

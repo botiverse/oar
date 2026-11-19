@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
+import { awaitTurnEnd, promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import { dshRuntime, SessionNotFoundError, UnsupportedOptionError } from "../../packages/oar/src/index.js";
 
 import { DSH_MINIMUM_VERSION, compareSemver } from "../../packages/oar/src/runtimes/dsh/version.js";
@@ -125,6 +125,33 @@ describe.skipIf(!dshEnabled)("DSH native sessions", () => {
       expect(shellDirectory(output.text)).toBe(expectedDirectory(aimock.cwd));
       await resumed.dispose();
     });
+  }, 90_000);
+
+  test("resume restores the last native request window after an interrupted turn", async () => {
+    await withDshFixture((request) => lastInput(request).includes("HOLD") ? { kind: "hold", text: "waiting" } : say("ok"), async ({ open, provider }) => {
+      const first = await open();
+      expect(await promptAndWait(first, "seed")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
+      expect(first.contextUsage().value).toEqual({ tokens: 112, contextWindow: 128_000, percent: 0 });
+      await first.prompt("HOLD");
+      await provider.held();
+      await first.dispose();
+      provider.release();
+
+      const resumed = await open({ resume: first.id });
+      expect(nativeOf(resumed, "session/requestContext")).toEqual([{ contextWindow: 128_000 }]);
+      expect(resumed.usage().value.total).toBeNull();
+      expect(await promptAndWait(resumed, "continue")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
+      expect(nativeOf(resumed, "session/event:request/context")).toHaveLength(0);
+      expect(resumed.contextUsage().value).toEqual({ tokens: 112, contextWindow: 128_000, percent: 0 });
+      expect(resumed.usage().value.total).toEqual({ input: 100, output: 12, cacheRead: 40 });
+      await resumed.dispose();
+
+      const changed = await open({ resume: first.id, model: "aimock/other-model" });
+      expect(await promptAndWait(changed, "use the new model")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
+      expect(nativeOf(changed, "session/requestContext")).toHaveLength(0);
+      expect(nativeOf(changed, "session/event:request/context")).toMatchObject([{ data: { contextWindow: 256_000 } }]);
+      expect(changed.contextUsage().value).toEqual({ tokens: 112, contextWindow: 256_000, percent: 0 });
+    }, { models: [{ id: "aimock-model", contextWindow: 128_000, maxTokens: 4096 }, { id: "other-model", contextWindow: 256_000, maxTokens: 4096 }] });
   }, 90_000);
 
   test("a session that was never saved is SessionNotFoundError, with no provider request", async () => {
