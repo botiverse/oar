@@ -139,7 +139,7 @@ export interface SessionCapabilities {
   readonly attribution: AttributionTier;
   /** Input can carry images (`InputOptions.images`), delivered as the runtime's native image content. ACP runtimes: what `initialize` advertised (`promptCapabilities.image`). */
   readonly images: boolean;
-  /** Effective native background auto-memory state observed at session open (`"on"` or `"off"`). Absent when unreadable, unsupported by the installed version, or ambiguous. */
+  /** Effective native background auto-memory state observed at session open (`"on"` or `"off"`). Absent means unknown, never `"off"` (unreadable, unverified version, unmodeled runtime override, or requires extra open-time wait). */
   readonly nativeMemory?: "on" | "off";
 }
 

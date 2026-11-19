@@ -11,7 +11,31 @@ import { semverAtLeast } from "../../shared/semver.js";
 
 export const QWEN_DEFAULTS_PREFIX = "oar-qwen-defaults-";
 
+// Qwen 0.26.0 settings schema & Config constructor (chunk-LBEBKAXU.js, chunk-BRVCK4XV.js, chunk-YGSOH3UK.js):
+// defaults are enableManagedAutoMemory=true, enableManagedAutoDream=true, enableAutoSkill=false.
 const MEMORY_KEYS = ["enableManagedAutoMemory", "enableManagedAutoDream", "enableAutoSkill"] as const;
+
+// Qwen 0.26.0 runtime env gates that alter memory/auto-memory outside settings files:
+// - QWEN_CODE_SIMPLE (bareMode: chunk-D7XCQWP2.js isBareMode, chunk-BRVCK4XV.js)
+// - QWEN_CODE_SAFE_MODE (safeMode: chunk-YGSOH3UK.js isSafeModeEnv, chunk-BRVCK4XV.js)
+// - QWEN_SANDBOX / SANDBOX (shellExecutionSandbox: chunk-DOLUT3XC.js validateExecutionSandboxSelection, chunk-YGSOH3UK.js)
+// - QWEN_CODE_MEMORY_TEAM / QWEN_CODE_MEMORY_TEAM_SYNC / QWEN_CODE_MEMORY_STRUCTURED_RECALL (chunk-YGSOH3UK.js)
+const UNMODELED_MEMORY_ENV_VARS = [
+  "QWEN_CODE_SIMPLE",
+  "QWEN_CODE_SAFE_MODE",
+  "QWEN_SANDBOX",
+  "SANDBOX",
+  "QWEN_CODE_MEMORY_TEAM",
+  "QWEN_CODE_MEMORY_TEAM_SYNC",
+  "QWEN_CODE_MEMORY_STRUCTURED_RECALL",
+] as const;
+
+// Qwen 0.26.0 CLI flags that toggle bareMode, safeMode, or sandbox (chunk-BRVCK4XV.js).
+const UNMODELED_MEMORY_FLAGS = new Set([
+  "--bare", "--no-bare",
+  "--safe-mode", "--no-safe-mode", "--safeMode", "--no-safeMode",
+  "--sandbox", "--no-sandbox", "-s",
+]);
 
 function configDirectory(value: string | undefined, home: string): string {
   if (value === undefined || value === "") { return path.join(home, ".qwen"); }
@@ -20,6 +44,7 @@ function configDirectory(value: string | undefined, home: string): string {
     : path.resolve(value);
 }
 
+// Qwen 0.26.0 getSystemSettingsPath (chunk-PTHIQ7ZN.js).
 function defaultSystemSettingsPath(): string {
   if (process.platform === "darwin") { return "/Library/Application Support/QwenCode/settings.json"; }
   if (process.platform === "win32") { return String.raw`C:\ProgramData\qwen-code\settings.json`; }
@@ -39,6 +64,7 @@ async function readTextIfPresent(file: string): Promise<string | undefined> {
   }
 }
 
+// Qwen 0.26.0 readSettingsLayers strips UTF-8 BOM and JSONC comments (chunk-QSD5IW52.js).
 async function readJsonObjectIfPresent(file: string): Promise<JsonRecord | undefined> {
   const text = await readTextIfPresent(file);
   if (text === undefined) { return undefined; }
@@ -58,6 +84,8 @@ async function resolveQwenPaths(env: Readonly<NodeJS.ProcessEnv>): Promise<{
   const home = environmentHome(env);
   const initial = environmentValue(env, "QWEN_HOME");
   let qwenHome = configDirectory(initial, home);
+  // Qwen 0.26.0 preResolveHomeEnvOverrides (chunk-LUL25ENJ.js) + HOME_ENV_BOOTSTRAP_KEYS (chunk-CVMMNPLX.js):
+  // bootstraps QWEN_HOME from ~/.qwen/.env then ~/.env when unset in env (does not bootstrap system-settings/defaults paths).
   if (initial === undefined) {
     for (const file of [path.join(qwenHome, ".env"), path.join(home, ".env")]) {
       // oxlint-disable-next-line no-await-in-loop -- ordered bootstrap lookup.
@@ -66,6 +94,8 @@ async function resolveQwenPaths(env: Readonly<NodeJS.ProcessEnv>): Promise<{
       if (value !== undefined && value !== "") { qwenHome = configDirectory(value, home); break; }
     }
   }
+  // Qwen 0.26.0 getSystemSettingsPath & getSystemDefaultsPath (chunk-PTHIQ7ZN.js):
+  // system-defaults.json defaults to sibling of system settings path.
   const systemOverride = environmentValue(env, "QWEN_CODE_SYSTEM_SETTINGS_PATH");
   const systemSettingsPath = systemOverride === undefined || systemOverride === "" ? defaultSystemSettingsPath() : systemOverride;
   const defaultsOverride = environmentValue(env, "QWEN_CODE_SYSTEM_DEFAULTS_PATH");
@@ -86,6 +116,35 @@ export async function sweepAbandonedQwenDefaults(): Promise<void> {
   await sweepPrivateTempDirs(QWEN_DEFAULTS_PREFIX);
 }
 
+function hasUnmodeledLaunchFlag(args: readonly string[] | undefined): boolean {
+  for (const arg of args ?? []) {
+    if (arg === "--") { return false; }
+    const name = arg.startsWith("--") ? arg.slice(0, arg.includes("=") ? arg.indexOf("=") : arg.length) : arg;
+    if (UNMODELED_MEMORY_FLAGS.has(name) || (arg.startsWith("-s") && arg.length > 2 && !arg.startsWith("--"))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function hasUnmodeledEnvOrArgs(options: SessionOptions, env: Readonly<NodeJS.ProcessEnv>): boolean {
+  if (hasUnmodeledLaunchFlag(options.launchArgs)) { return true; }
+  return UNMODELED_MEMORY_ENV_VARS.some((name) => {
+    const value = environmentValue(env, name);
+    return value !== undefined && value.trim() !== "";
+  });
+}
+
+// Qwen 0.26.0 validateExecutionSandboxSelection (chunk-DOLUT3XC.js) & Config getters (chunk-YGSOH3UK.js):
+// tools.executionSandbox or tools.sandbox can disable managed auto-memory, dream and auto-skill at runtime.
+function hasSandboxSetting(layers: readonly JsonRecord[]): boolean {
+  return layers.some((layer) => {
+    const tools = asRecord(layer.tools);
+    return tools !== null && ((tools.executionSandbox !== undefined && tools.executionSandbox !== false)
+      || (tools.sandbox !== undefined && tools.sandbox !== false));
+  });
+}
+
 function effectiveBoolean(layers: readonly JsonRecord[], key: (typeof MEMORY_KEYS)[number], fallback: boolean): boolean {
   let value = fallback;
   for (const layer of layers) {
@@ -97,6 +156,7 @@ function effectiveBoolean(layers: readonly JsonRecord[], key: (typeof MEMORY_KEY
   return value;
 }
 
+// Qwen 0.26.0 isFolderTrustEnabled (chunk-TAW26O7I.js): defaults to false.
 function folderTrustEnabled(layers: readonly JsonRecord[]): boolean {
   let enabled = false;
   for (const layer of layers) {
@@ -117,6 +177,37 @@ function touchesMemoryKeys(layer: JsonRecord | undefined): boolean {
 async function canonicalPath(target: string): Promise<string> {
   try { return await realpath(path.resolve(target)); }
   catch { return path.resolve(target); }
+}
+
+async function readEffectiveNativeMemory(
+  options: SessionOptions,
+  env: Readonly<NodeJS.ProcessEnv>,
+  paths: Awaited<ReturnType<typeof resolveQwenPaths>>,
+  effectiveDefaultsPath: string,
+  effectiveDefaultsRecord: JsonRecord | undefined,
+): Promise<"on" | "off" | undefined> {
+  if (hasUnmodeledEnvOrArgs(options, env)) { return undefined; }
+  try {
+    const defaultsLayer = effectiveDefaultsRecord ?? await readJsonObjectIfPresent(effectiveDefaultsPath);
+    const userLayer = await readJsonObjectIfPresent(path.join(paths.qwenHome, "settings.json"));
+    const systemLayer = await readJsonObjectIfPresent(paths.systemSettingsPath);
+    // Qwen 0.26.0 Storage.getWorkspaceSettingsPath (chunk-EPODBRBP.js) reads only <cwd>/.qwen/settings.json (no parent search);
+    // readSettingsLayers (chunk-QSD5IW52.js) skips workspace settings when realWorkspaceDir === realHomeDir.
+    const [realCwd, realHome] = await Promise.all([canonicalPath(options.cwd), canonicalPath(paths.home)]);
+    const workspaceLayer = realCwd === realHome ? undefined : await readJsonObjectIfPresent(path.join(options.cwd, ".qwen", "settings.json"));
+    const trustInputs = [defaultsLayer, userLayer, systemLayer].filter((layer): layer is JsonRecord => layer !== undefined);
+    if (folderTrustEnabled(trustInputs) && touchesMemoryKeys(workspaceLayer)) { return undefined; }
+    // Qwen 0.26.0 mergeSettings (chunk-QSD5IW52.js): systemDefaults < user < workspace < system;
+    // WORKSPACE_RESTRICTED_SETTINGS / WORKSPACE_NON_OVERRIDING_SETTINGS do not strip the three memory enable keys.
+    const layers = [defaultsLayer, userLayer, workspaceLayer, systemLayer].filter((layer): layer is JsonRecord => layer !== undefined);
+    if (hasSandboxSetting(layers)) { return undefined; }
+    const active = effectiveBoolean(layers, "enableManagedAutoMemory", true)
+      || effectiveBoolean(layers, "enableManagedAutoDream", true)
+      || effectiveBoolean(layers, "enableAutoSkill", false);
+    return active ? "on" : "off";
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -165,29 +256,6 @@ export async function prepareQwenNativeMemory(
   if (!semverAtLeast(version, "0.26.0")) {
     return { env: childEnv, cleanup };
   }
-
-  try {
-    const defaultsLayer = effectiveDefaultsRecord ?? await readJsonObjectIfPresent(effectiveDefaultsPath);
-    const userLayer = await readJsonObjectIfPresent(path.join(paths.qwenHome, "settings.json"));
-    const systemLayer = await readJsonObjectIfPresent(paths.systemSettingsPath);
-    const [realCwd, realHome] = await Promise.all([canonicalPath(options.cwd), canonicalPath(paths.home)]);
-    const workspaceLayer = realCwd === realHome
-      ? undefined
-      : await readJsonObjectIfPresent(path.join(options.cwd, ".qwen", "settings.json"));
-
-    const trustInputs = [defaultsLayer, userLayer, systemLayer].filter((layer): layer is JsonRecord => layer !== undefined);
-    if (folderTrustEnabled(trustInputs) && touchesMemoryKeys(workspaceLayer)) {
-      // Folder trust is enabled and workspace settings toggle memory; omit rather than guessing trust.
-      return { env: childEnv, cleanup };
-    }
-
-    const layers = [defaultsLayer, userLayer, workspaceLayer, systemLayer].filter((layer): layer is JsonRecord => layer !== undefined);
-    const active = effectiveBoolean(layers, "enableManagedAutoMemory", true)
-      || effectiveBoolean(layers, "enableManagedAutoDream", true)
-      || effectiveBoolean(layers, "enableAutoSkill", false);
-    return { env: childEnv, nativeMemory: active ? "on" : "off", cleanup };
-  } catch {
-    // Unreadable or malformed settings layer: omit nativeMemory rather than guessing.
-    return { env: childEnv, cleanup };
-  }
+  const nativeMemory = await readEffectiveNativeMemory(options, childEnv, paths, effectiveDefaultsPath, effectiveDefaultsRecord);
+  return nativeMemory === undefined ? { env: childEnv, cleanup } : { env: childEnv, nativeMemory, cleanup };
 }

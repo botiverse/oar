@@ -129,3 +129,26 @@ test("sweeps abandoned defaults directories left by dead host pids", async () =>
     await rm(live, { recursive: true, force: true });
   }
 });
+
+test.each([
+  ["QWEN_CODE_SIMPLE", { QWEN_CODE_SIMPLE: "1" }, undefined],
+  ["QWEN_CODE_SAFE_MODE", { QWEN_CODE_SAFE_MODE: "true" }, undefined],
+  ["QWEN_SANDBOX", { QWEN_SANDBOX: "docker" }, undefined],
+  ["--bare", {}, ["--bare"]],
+  ["--safe-mode", {}, ["--safe-mode"]],
+  ["--sandbox", {}, ["--sandbox"]],
+  ["-s", {}, ["-s"]],
+] as const)("omits nativeMemory when an unmodeled Qwen runtime gate (%s) is present", async (_label, extraEnv, launchArgs) => {
+  const { root, cwd } = await fixture();
+  const setup = await prepareQwenNativeMemory({ cwd, ...(launchArgs === undefined ? {} : { launchArgs }) }, baseEnv(root, extraEnv), "0.26.0");
+  setup.cleanup();
+  expect(setup.nativeMemory).toBeUndefined();
+});
+
+test("omits nativeMemory when tools.executionSandbox is configured in settings", async () => {
+  const { root, cwd } = await fixture();
+  await writeJson(path.join(root, "home", ".qwen", "settings.json"), JSON.stringify({ tools: { executionSandbox: { enabled: true } } }));
+  const setup = await prepareQwenNativeMemory({ cwd }, baseEnv(root), "0.26.0");
+  setup.cleanup();
+  expect(setup.nativeMemory).toBeUndefined();
+});

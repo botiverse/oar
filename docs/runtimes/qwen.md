@@ -127,10 +127,14 @@ directories from dead host PIDs are swept on every launch. Versions below
 launch (`qwenNativeMemoryRefusal`).
 
 `Session.capabilities.nativeMemory` (`"on"` or `"off"`) evaluates the same
-four layers at open without waiting for Qwen. It is omitted below `0.26.0`,
-when any settings layer is unreadable or malformed, or when
-`security.folderTrust.enabled` is `true` and workspace settings toggle memory
-keys (so OAR does not guess trust). Live scripted-provider evidence on Linux
+four layers at open without waiting for Qwen. Absent means unknown, never
+`"off"`: it is omitted below `0.26.0`, when any settings layer is unreadable or
+malformed, when `security.folderTrust.enabled` is `true` and workspace settings
+toggle memory keys, or when an unmodeled Qwen runtime gate is present
+(`QWEN_CODE_SIMPLE`, `QWEN_CODE_SAFE_MODE`, `QWEN_SANDBOX`, `SANDBOX`,
+`QWEN_CODE_MEMORY_TEAM*`, `QWEN_CODE_MEMORY_STRUCTURED_RECALL`, `launchArgs`
+flags `--bare`/`--safe-mode`/`--sandbox`/`-s`, or `tools.executionSandbox` /
+`tools.sandbox` in settings). Live scripted-provider evidence on Linux
 `0.26.0` covers default-off suppression of auto-memory injection and background
 extraction, user-settings override reporting `"on"`, existing
 `QWEN_CODE_SYSTEM_DEFAULTS_PATH` preservation, and temporary-directory cleanup
