@@ -31,7 +31,7 @@ creates no session or prompt. Successful complete native catalogs are
 `partial:false`; malformed files skipped by Kimi remain absent. Claude
 2.1.325 already returns built-in skills with their native source. Grok
 1.0.77 returns cached bundled skills; OAR now preserves its object-shaped
-source and path. [Current mapping](../spec/inventory.md#implemented-mapping),
+source and path. [Current mapping](#what-each-runtime-actually-exposes),
 [controls and limitations](../../experiments/runtime-skills-2026-11-16/README.md).
 The remaining sections retain the September observations.
 

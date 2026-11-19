@@ -23,10 +23,11 @@ servers a session was given in `SessionOptions.mcpServers` are that
 session's, so `mcpServers()` never lists them. Inventory results never
 enter a record stream.
 
-No prompt is sent, but the runtime starts in `cwd` the way it would for a
-session: it can run that workspace's code (project extensions, a stdio MCP
-server) and connect configured MCP servers. Do not take an inventory of a
-directory you do not trust. `env` follows the
+No prompt is sent. Some readers only read skill files; others start the
+runtime in `cwd` the way a session would, and those can run that
+workspace's code (project extensions, a stdio MCP server) and connect
+configured MCP servers. Do not take an inventory of a directory you do not
+trust. `env` follows the
 [reader environment rules](orientation.md#environment).
 
 ## Results
@@ -41,16 +42,18 @@ An `ok` result says how much it covers. `view` names the source: the
 runtime's catalog of what it would load (`discovered`), its live context
 (`context`), all registered tools including inactive ones (`registered`),
 or MCP tools only (`mcp-only`, never to be shown as all tools).
-`partial: true` means the runtime reported a discovery error or an MCP
-server that had not started; a complete catalog still does not promise
-that every file on disk is valid. Enabled, active, loaded, auth and
+`partial: true` means the reader knows its coverage is incomplete, for
+example a native discovery error, an MCP server that had not started, or a
+file search that was unavailable or cut off. A result without it still
+does not promise that every file on disk is valid. Enabled, active, loaded, auth and
 connection state are separate facts and are never folded into one.
 
 ## Skill provenance
 
 `scope` is one shared category (`builtin`, `user`, `project`, `managed`,
-`other`) mapped from the runtime's own label. An absent scope means
-unknown, never a guess: OAR does not classify by a brand name in a path,
+`other`), mapped from the runtime's own label or from a verified native
+discovery root the file was loaded from. An absent scope means unknown,
+never a guess: OAR does not classify by a brand name in a path,
 and a plugin identity alone does not establish scope. `plugin` keeps the
 native plugin or package identity independently of scope.
 
