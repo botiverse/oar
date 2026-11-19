@@ -907,7 +907,8 @@ Hosts that need to display provider retries should migrate from 1.x to
 `session_info_update`. OAR reports its native attempt number, the time
 remaining until the scheduled attempt at frame arrival, and the error
 category when available. The subsequent clear produces no event.
-[Native controls](../../experiments/opencode-retry-status/README.md).
+[Native controls](../../experiments/opencode-retry-status/README.md),
+[1.19.6 investigation](../../experiments/opencode-retry-status/investigation.md).
 
 **Prompt failures (both lines):** for a JSON-RPC -32603 prompt failure, a
 known `data.errorName` decides the class before the words:
