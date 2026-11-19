@@ -122,6 +122,15 @@ test("Pi RPC's ordinary 30 second transport deadline cannot kill a compact opera
   expect(await pending).toMatchObject({ success: true });
 });
 
+test("a recorded exit decides compaction even when the caller already aborted", async () => {
+  const run = vi.fn(async () => {});
+  const f = setup(run);
+  f.kernel.processExited(1);
+  const outcome = await f.compact({ signal: AbortSignal.abort() });
+  expect(outcome).toMatchObject({ kind: "rejected", code: "runtime_exited", response: { body: { kind: "rejected", code: "runtime_exited" } } });
+  expect(run).not.toHaveBeenCalled();
+});
+
 test("an already aborted signal records refusal without creating or sending an operation", async () => {
   const run = vi.fn(async () => {}); const f = setup(run);
   const controller = new AbortController(); controller.abort();

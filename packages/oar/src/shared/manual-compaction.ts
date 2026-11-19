@@ -68,9 +68,9 @@ export function manualCompaction(kernel: SessionKernel, options: {
     admitted: () => active?.response?.body.kind === "accepted",
     compact: async (wait = {}) => {
       if (wait.timeoutMs !== undefined && (!Number.isFinite(wait.timeoutMs) || wait.timeoutMs < 0)) { throw new RangeError("compact timeoutMs must be finite and non-negative"); }
-      const blocked = wait.signal?.aborted === true
+      const blocked = kernel.unreachable() ?? (wait.signal?.aborted === true
         ? { kind: "rejected", code: "aborted", reason: "The caller's signal was already aborted; no native compaction was sent" } as const
-        : kernel.unreachable() ?? (reserved || options.busy() ? { kind: "rejected", code: "busy", reason: options.busyReason } as const : null);
+        : (reserved || options.busy() ? { kind: "rejected", code: "busy", reason: options.busyReason } as const : null));
       // Reserve before publishing: a synchronous record observer can issue another control.
       if (blocked === null) { reserved = true; }
       const request = kernel.request("toRuntime", { kind: "compact", ...(options.settledBy === undefined ? {} : { settledBy: options.settledBy }) });

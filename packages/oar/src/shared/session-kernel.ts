@@ -79,6 +79,10 @@ export interface SessionKernel {
    * rejected without consulting `decide`.
    */
   control(body: RequestBody, decide: (request: RequestRecord) => ResponseBody | Promise<ResponseBody>, at?: RecordAt): Promise<ControlResult>;
+  /** Record a single disposal and join concurrent callers. A previously observed exit is answered immediately. */
+  dispose(release: (request: RequestRecord) => void | Promise<void>, afterExit?: () => void | Promise<void>): Promise<void>;
+  /** A native process exit answers its active dispose, or stands alone after spontaneous exit. */
+  processExited(code: number | null, reason?: string): void;
   /**
    * Why a control cannot reach the runtime any more, derived from the stream
    * itself: an `exited` response (the runtime is gone), a `released` response, or a
@@ -142,6 +146,8 @@ export function createSessionKernel(sessionId: string = globalThis.crypto.random
   let released = false;
   let opened = false;
   let disposing = false;
+  let disposal: Promise<void> | undefined = undefined;
+  let disposeId = "";
 
   const append = <T extends RawEvent>(build: (envelope: {
     readonly sessionId: string;
@@ -205,6 +211,34 @@ export function createSessionKernel(sessionId: string = globalThis.crypto.random
       const issued = request("toRuntime", body, at);
       const decided = blocked ?? emptyInputRefusal(body) ?? await settle(decide, { ...issued, body });
       return { request: issued, response: respond(issued.id, decided, at) };
+    },
+    async dispose(release, afterExit) {
+      if (disposal !== undefined) { return disposal; }
+      // Reserve before publishing. An observer can call dispose from the request itself.
+      const completion = Promise.withResolvers<void>();
+      disposal = completion.promise;
+      const issued = request("toRuntime", { kind: "dispose" });
+      try {
+        if (exited) {
+          respond(issued.id, { kind: "accepted" });
+          await afterExit?.();
+        } else {
+          // An abort-released shared session can still own a lease.
+          disposeId = issued.id;
+          await release(issued);
+        }
+        completion.resolve();
+      } catch (error) {
+        if (unreachable()?.code !== "runtime_exited") {
+          respond(issued.id, { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) });
+        }
+        disposal = undefined;
+        completion.reject(error);
+      } finally { disposeId = ""; }
+      return completion.promise;
+    },
+    processExited(code, reason) {
+      if (!exited) { respond(disposeId, { kind: "exited", code, ...(reason === undefined ? {} : { reason }) }); }
     },
     unreachable,
     rawEvents(observer, cursor) {

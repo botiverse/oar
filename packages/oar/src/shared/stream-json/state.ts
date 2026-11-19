@@ -49,5 +49,4 @@ export interface StreamJsonSessionState<S extends StreamJsonProjectionState> {
   /** True while the runtime is executing a turn we did not prompt (queue drain or task notification). */
   spontaneous: boolean;
   projection: S;
-  disposed: boolean;
 }

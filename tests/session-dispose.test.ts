@@ -1,26 +1,9 @@
 import assert from "node:assert/strict";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
-import type { Session, SessionOptions } from "../packages/oar/src/contracts/session.js";
-import { claudeSession } from "../packages/oar/src/runtimes/claude/session.js";
-import { codexSession } from "../packages/oar/src/runtimes/codex/session.js";
-import { acpSession } from "../packages/oar/src/shared/acp/session.js";
 import { killGraceMs } from "../packages/oar/src/shared/executable/index.js";
-import { fixture as acpAgent, profile } from "./fixtures/acp-session-support.js";
-import { agentTreeModule, fakeAgentBinary, gone, timed, withTreeProbe } from "./fixtures/process-tree.js";
+import { eventually, gone, timed, withTreeProbe } from "./fixtures/process-tree.js";
 
-type Open = (dir: string, options: SessionOptions) => Promise<Session>;
-
-// Every adapter that owns a runtime process, driven unmodified against a
-// stand-in agent that ignores SIGTERM and has started a tool of its own:
-// fake-agent-process.mjs, or the scripted ACP agent with agent-tree.mjs preloaded.
-const runtimes: readonly (readonly [string, Open])[] = [
-  ["claude", async (dir, options) => claudeSession({ kind: "available", via: "executable", command: fakeAgentBinary(dir) }, options)],
-  ["codex", async (dir, options) => codexSession({ kind: "available", via: "executable", command: fakeAgentBinary(dir) }, options)],
-  ["acp", async (dir, options) => acpSession(profile({ args: [] }))(
-    { kind: "available", via: "executable", command: fakeAgentBinary(dir, ["--import", agentTreeModule, acpAgent, "session"]) },
-    options,
-  )],
-];
+import { piRpc, processSessions as runtimes } from "./fixtures/process-sessions.js";
 
 // POSIX: that is where the runtime process leads a process group of its own.
 describe.skipIf(process.platform === "win32").concurrent("dispose takes down the runtime's whole process group", () => {
@@ -108,3 +91,21 @@ test.skipIf(process.platform === "win32").each(runtimes)("%s records unverified 
     } finally { read.mockRestore(); await session.dispose(); }
   });
 });
+
+test.each([...runtimes, ["pi RPC", piRpc] as const])("%s answers dispose after its native process has already exited", async (_name, open) => {
+  // oxlint-disable-next-line max-statements -- Keep the native exit, concurrent calls and their correlated answer in order.
+  await withTreeProbe({ ignoreSigterm: false }, async probe => {
+    const session = await open(probe.dir, { cwd: probe.dir, env: probe.env });
+    try {
+      const tree = await probe.tree();
+      process.kill(tree.agent, "SIGKILL");
+      expect(await eventually(() => session.records().some(record => record.kind === "response" && record.requestId === "" && record.body.kind === "exited"), 10_000)).toBe(true);
+      await Promise.all([session.dispose(), session.dispose()]);
+      const requests = session.records().filter(record => record.kind === "request" && record.body.kind === "dispose");
+      expect(requests).toHaveLength(1);
+      const [request] = requests;
+      assert.ok(request?.kind === "request");
+      expect(session.records().filter(record => record.kind === "response" && record.requestId === request.id)).toMatchObject([{ body: { kind: "accepted" } }]);
+    } finally { await session.dispose(); }
+  });
+}, 20_000);

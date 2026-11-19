@@ -49,7 +49,6 @@ export function cursorSessionWith(source: CursorSdkSource): StartSession {
     let launching: Launch | null = null;
     let active: ActiveRun | null = null;
     let forceNext = options.resume !== undefined;
-    let disposeRequest: RequestRecord | null = null;
     // Adapter-held queue, drained one input per run end; withdrawable by inputId until then.
     const held: { readonly request: RequestRecord; readonly input: string; readonly inputId: string | undefined; readonly options: InputOptions; readonly images: readonly LoadedImage[]; accepted?: true }[] = [];
     let dispatching = false;
@@ -164,7 +163,7 @@ export function cursorSessionWith(source: CursorSdkSource): StartSession {
     };
 
     function drainHeld(): void {
-      if (disposeRequest !== null || kernel.unreachable() !== null || dispatching || gate.running || compaction?.busy() === true || held[0]?.accepted !== true) {
+      if (kernel.unreachable() !== null || dispatching || gate.running || compaction?.busy() === true || held[0]?.accepted !== true) {
         return;
       }
       const next = held.shift();
@@ -265,31 +264,27 @@ export function cursorSessionWith(source: CursorSdkSource): StartSession {
       records: () => kernel.records(),
       graph: () => kernel.graph(),
       dispose: async () => {
-        if (disposeRequest !== null) {
-          return;
-        }
-        held.splice(0);
-        const request = kernel.request("toRuntime", { kind: "dispose" });
-        disposeRequest = request;
-        end.disposing(request);
-        if (launching !== null) {
-          // A send still on its way: its run, if it comes, is stopped, not adopted.
-          giveUp(launching, "the session was disposed before cursor started the run");
-        }
-        const current = active;
-        if (current !== null) {
-          // The run's own `cancelled` ends the turn in the stream.
-          try {
-            await current.run.cancel();
-          } catch {
-            // The run may have ended on its own meanwhile.
+        await kernel.dispose(async request => {
+          held.splice(0);
+          if (launching !== null) {
+            // A send still on its way: its run, if it comes, is stopped, not adopted.
+            giveUp(launching, "the session was disposed before cursor started the run");
           }
-          await Promise.race([current.ended, new Promise<void>((resolve) => {
-            setTimeout(resolve, DISPOSE_SETTLE_MS).unref();
-          })]);
-        }
-        agent.close();
-        await end.disposed();
+          const current = active;
+          if (current !== null) {
+            // The run's own `cancelled` ends the turn in the stream.
+            try {
+              await current.run.cancel();
+            } catch {
+              // The run may have ended on its own meanwhile.
+            }
+            await Promise.race([current.ended, new Promise<void>((resolve) => {
+              setTimeout(resolve, DISPOSE_SETTLE_MS).unref();
+            })]);
+          }
+          agent.close();
+          await end.disposed(request);
+        });
       },
     });
     return session;

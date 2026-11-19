@@ -1,7 +1,7 @@
 import type { SessionOpenContext } from "../../contracts/placement.js";
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import { type Conversation, type ConversationView, type Harness, type SubmissionId, type SubmissionRecord, type WatchCall, type WatchEnd } from "@earendil-works/pi-durable";
-import type { ControlResult, InputOptions, RequestRecord, ResponseBody, RuntimeEventBody, Session, SessionOptions, TurnOutcome } from "../../contracts/session.js";
+import type { ControlResult, InputOptions, ResponseBody, RuntimeEventBody, Session, SessionOptions, TurnOutcome } from "../../contracts/session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { statusOf } from "../../observe/agent-status.js";
@@ -70,7 +70,6 @@ export async function piDurableSession(harness: Harness, models: DurableModels, 
   let state = initialize();
   ready = true;
   schedule();
-  let disposing: Promise<void> | undefined = undefined;
 
   async function receipts(ids: readonly SubmissionId[]): Promise<readonly (SubmissionRecord | undefined)[]> {
     const records = await Promise.all(ids.map(async id => {
@@ -173,16 +172,13 @@ export async function piDurableSession(harness: Harness, models: DurableModels, 
     records: () => kernel.records(),
     graph: () => kernel.graph(),
     dispose: async () => {
-      disposing ??= stopWatching(kernel.request("toRuntime", { kind: "dispose" }));
-      await disposing;
+      await kernel.dispose(async request => {
+        observation.detach();
+        await flush();
+        kernel.respond(request.id, { kind: "accepted" });
+      }, () => { observation.detach(); });
     },
   });
-
-  async function stopWatching(request: RequestRecord): Promise<void> {
-    observation.detach();
-    await flush();
-    kernel.respond(request.id, { kind: "accepted" });
-  }
 
   async function flush(): Promise<void> {
     let current = draining;

@@ -111,7 +111,6 @@ export function finishAcpSession(
   const { terminalHost, recorder, usageGate, tokenUsage, nativeTurns } = sessionState;
   const kernel = credentials.kernel(opened.sessionId, shared?.redact);
 
-  let disposeRequest: RequestRecord | null = null;
   const capabilities = { ...profile.capabilities, images: profile.capabilities.images ?? acpTakesImages(opened.initialized) };
   const ownership = shared;
   let compaction: ReturnType<typeof manualCompaction> | null = null;
@@ -167,7 +166,7 @@ export function finishAcpSession(
     // An outcome only oar observes: answers our dispose when we caused the
     // exit, stands alone (requestId "") when the runtime died on its own.
     const reason = cleanupFailureReason(runtime.diagnostics().cleanup);
-    kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code, ...(reason === undefined ? {} : { reason }) });
+    kernel.processExited(code, reason);
     turns.onExit();
   }); }
 
@@ -249,36 +248,22 @@ export function finishAcpSession(
         ownership.detach();
         return;
       }
-      if (disposeRequest !== null) {
-        return; // already released: the stream holds our dispose request
-      }
-      // Read BEFORE this dispose is recorded: only an observed exit can say
-      // so here, and it is the stream's word, not an adapter flag.
-      const gone = kernel.unreachable() !== null;
-      disposeRequest = kernel.request("toRuntime", { kind: "dispose" });
-      if (gone) {
-        // The exit is already recorded (an unrequested `exited` response, requestId "");
-        // nothing is left to release, so the dispose is answered here, as
-        // the claude and codex adapters do (kimi 0.42.0 kill-runtime run,
-        // 2026-09-11: the dispose request stood unanswered before this).
-        kernel.respond(disposeRequest.id, { kind: "accepted" });
+      await kernel.dispose(async () => {
+        // Native cancel can orphan tools before exit, including detached POSIX tools.
+        await runtime.prepareShutdown();
+        const state = turns.active();
+        if (state !== null && !runtime.closed) {
+          if (!state.abortRequested) { runtime.markNativeStop(); }
+          await turns.abort(state);
+        }
+        if (opened.supportsClose && !runtime.closed) {
+          runtime.markNativeStop();
+          await closeAcpSession(runtime, kernel.sessionId).catch(() => {});
+        }
+        runtime.kill();
+        await runtime.exited;
         await terminalHost.dispose();
-        return;
-      }
-      // Native cancel can orphan tools before exit, including detached POSIX tools.
-      await runtime.prepareShutdown();
-      const state = turns.active();
-      if (state !== null && !runtime.closed) {
-        if (!state.abortRequested) { runtime.markNativeStop(); }
-        await turns.abort(state);
-      }
-      if (opened.supportsClose && !runtime.closed) {
-        runtime.markNativeStop();
-        await closeAcpSession(runtime, kernel.sessionId).catch(() => {});
-      }
-      runtime.kill();
-      await runtime.exited;
-      await terminalHost.dispose();
+      }, () => terminalHost.dispose());
     }),
   }, shared?.redact);
 }

@@ -33,16 +33,11 @@ function cleanupQueue(kernel: SessionKernel, cleanup: () => Promise<void>, timeo
 
 /** Recording and process ownership; native per-session cleanup stays in the adapter. */
 export function processSessionLifecycle(kernel: SessionKernel, lease: ProcessLease<PooledProcess>, cleanup: () => Promise<void>, cleanupTimeoutMs = 1000): ProcessSessionLifecycle {
-  let exitObserved = false;
   let released: ResponseRecord | undefined = undefined;
-  let disposeRequest: RequestRecord | undefined = undefined;
-  let disposal: Promise<void> | undefined = undefined;
-  const hasExited = (): boolean => exitObserved;
+  const hasExited = (): boolean => kernel.unreachable()?.code === "runtime_exited";
   const recordExit = (code: number | null): void => {
-    if (exitObserved) { return; }
-    exitObserved = true;
     const reason = lease.process.exitReason?.();
-    kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code, ...(reason === undefined ? {} : { reason }) });
+    kernel.processExited(code, reason);
   };
   const unsubscribe = lease.onExit(recordExit);
   const clean = cleanupQueue(kernel, cleanup, cleanupTimeoutMs);
@@ -50,23 +45,14 @@ export function processSessionLifecycle(kernel: SessionKernel, lease: ProcessLea
     released ??= kernel.respond(request.id, { kind: "released", reason, nativeTurnMayContinue: true, workStartedAfterCleanupMayContinue: true });
     return released;
   };
-  const dispose = async (): Promise<void> => {
-    const request = kernel.request("toRuntime", { kind: "dispose" });
-    disposeRequest = request;
-    try {
-      if (hasExited()) { kernel.respond(request.id, { kind: "accepted" }); return; }
-      if (lease.placement === "shared") { await clean(request); }
-      const result = await lease.dispose();
-      if (result === "released" && !hasExited()) {
-        unsubscribe();
-        if (released === undefined) { release(request, "dispose"); }
-        else { kernel.respond(request.id, { kind: "accepted" }); }
-      } else { recordExit(await lease.process.exited); }
-    } catch (error) {
-      if (hasExited()) { return; }
-      kernel.respond(request.id, { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) });
-      throw error;
-    } finally { disposeRequest = undefined; }
+  const dispose = async (request: RequestRecord): Promise<void> => {
+    if (lease.placement === "shared") { await clean(request); }
+    const result = await lease.dispose();
+    if (result === "released" && !hasExited()) {
+      unsubscribe();
+      if (released === undefined) { release(request, "dispose"); }
+      else { kernel.respond(request.id, { kind: "accepted" }); }
+    } else { recordExit(await lease.process.exited); }
   };
   return {
     async abortFallback(request) {
@@ -85,11 +71,14 @@ export function processSessionLifecycle(kernel: SessionKernel, lease: ProcessLea
       }
       return { request, response };
     },
-    async dispose() {
-      disposal ??= (async (): Promise<void> => {
-        try { await dispose(); } catch (error) { disposal = undefined; throw error; }
-      })();
-      await disposal;
+    dispose: async () => {
+      await kernel.dispose(async request => {
+        try { await dispose(request); }
+        catch (error) {
+          // A concurrently observed exit already completed the lease shutdown.
+          if (!hasExited()) { throw error; }
+        }
+      }, unsubscribe);
     },
   };
 }

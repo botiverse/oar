@@ -252,14 +252,14 @@ test("fallback reuses an acknowledged abort and never retries a refused abort", 
   expect(bodies(b.session).some((body) => body.kind === "released")).toBe(false);
   await Promise.all([a.session.dispose(), b.session.dispose()]);
 });
-
 // oxlint-disable-next-line max-statements -- A stopped process must retain one failed dispose answer and one successful retry answer.
-test("failed process stop answers dispose, keeps ownership, and permits a later retry", async () => {
+test.each([false, true])("failed process stop retains ownership for a retry, including concurrent exit (%s)", async exitDuringRetry => {
   const f = fixture(); const a = await f.open();
   f.process.stop.mockImplementationOnce(() => { throw new Error("stop synthetic-test-secret"); });
   await expect(a.session.dispose()).rejects.toThrow("stop");
   expect(bodies(a.session)).toContainEqual({ kind: "rejected", code: "error", reason: "stop [redacted]" });
   expect(bodies(a.session).some((body) => body.kind === "exited")).toBe(false);
+  if (exitDuringRetry) { f.process.stop.mockImplementationOnce(() => { f.exit(0); throw new Error("already exited"); }); }
   await a.session.dispose();
   const requests = a.session.records().filter((record): record is RequestRecord => record.kind === "request" && record.body.kind === "dispose");
   expect(requests).toHaveLength(2);

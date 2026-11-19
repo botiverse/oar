@@ -31,7 +31,6 @@ export const createMockSession = (attach?: AttachMock): StartSession => async (_
   const steered: string[] = [];
   const queued: { readonly input: string; readonly inputId: string | undefined }[] = [];
   let active: { timer: NodeJS.Timeout | null; aborted: boolean } | null = null;
-  let disposed = false;
   const say = (text: string): void => {
     kernel.frame({ type: "mock/text", native: { text }, events: [{ kind: "text_delta", text }] });
   };
@@ -71,9 +70,6 @@ export const createMockSession = (attach?: AttachMock): StartSession => async (_
     prompt: async (input, inputOptions?: InputOptions) => {
       const body = { kind: "prompt" as const, input, ...inputOptions };
       const result = await kernel.control(body, () => {
-      if (disposed) {
-        return { kind: "rejected", code: "disposed", reason: "session disposed" };
-      }
       if (active !== null) {
         return { kind: "rejected", code: "busy", reason: "busy" };
       }
@@ -136,20 +132,16 @@ export const createMockSession = (attach?: AttachMock): StartSession => async (_
     records: () => kernel.records(),
     graph: () => kernel.graph(),
     dispose: async () => {
-      if (disposed) {
-        return;
-      }
-      disposed = true;
       if (attachment !== undefined) { await attachment.dispose(); return; }
-      const request = kernel.request("toRuntime", { kind: "dispose" });
-      if (active !== null) {
-        if (active.timer !== null) {
-          clearTimeout(active.timer);
+      await kernel.dispose(() => {
+        if (active !== null) {
+          if (active.timer !== null) {
+            clearTimeout(active.timer);
+          }
+          end("aborted");
         }
-        end("aborted");
-      }
-      kernel.respond(request.id, { kind: "exited", code: 0 });
-      await Promise.resolve();
+        kernel.processExited(0);
+      });
     },
   });
 };

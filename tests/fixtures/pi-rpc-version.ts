@@ -6,6 +6,7 @@ import { createInterface } from "node:readline";
 if (process.argv.includes("--version")) {
   process.stdout.write("1.5.0\n");
 } else {
+  if (process.env.OAR_FIXTURE_PIDS !== undefined) { await import(new URL("agent-tree.mjs", import.meta.url).href); }
   const directory = process.env.OAR_PI_RPC_DIRECTORY;
   if (directory === undefined) { throw new Error("Missing private fixture directory"); }
   writeFileSync(path.join(directory, "ready"), JSON.stringify({ modelRegistered: true, version: process.env.OAR_TEST_PI_READY_VERSION }));

@@ -32,9 +32,7 @@ describe("@botiverse/oar/kernel", () => {
           records: () => kernel.records(),
           graph: () => kernel.graph(),
           dispose: async () => {
-            const request = kernel.request("toRuntime", { kind: "dispose" });
-            kernel.respond(request.id, { kind: "exited", code: 0 });
-            await Promise.resolve();
+            await kernel.dispose(() => { kernel.processExited(0); });
           },
         });
       },
@@ -46,4 +44,20 @@ describe("@botiverse/oar/kernel", () => {
     expect(session.records().map((record) => record.kind)).toEqual(["request", "response", "frame"]);
     await session.dispose();
   });
+});
+
+it("joins a disposal reentered by a synchronous request observer", async () => {
+  const kernel = createSessionKernel();
+  const callers: Promise<void>[] = [];
+  let releases = 0;
+  const dispose = async (): Promise<void> => {
+    await kernel.dispose(() => { releases += 1; kernel.processExited(0); });
+  };
+  kernel.rawEvents(record => {
+    if (record.kind === "request" && record.body.kind === "dispose") { callers.push(dispose()); }
+  });
+  await dispose();
+  await Promise.all(callers);
+  expect(releases).toBe(1);
+  expect(kernel.records()).toMatchObject([{ kind: "request", body: { kind: "dispose" } }, { kind: "response", body: { kind: "exited" } }]);
 });
