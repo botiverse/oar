@@ -176,15 +176,23 @@ controlled processes with the runtime's actual projection dialect).
 | Prompt and abort | Correlated native controls and lifecycle evidence. A cancelled unstarted input becomes `input_dropped`; input-scoped waits resolve it without inventing `turn_ended`. |
 | Queue and withdrawal | OAR holds queued input until the current turn ends, so withdrawal remains possible. This queue is not durable across process loss. |
 | Steer | A user message with native `priority: next` inserts at a tool boundary or starts after a text-only turn. The user echo preserves `inputId`; acceptance only confirms the write. Native `now` aborts the active turn and is not used for steering. [Priority evidence](../../experiments/qoder-native/README.md#input-priority-2026-10-24). |
-| MCP | Native stdio and HTTP servers through a private per-process configuration file. Credentials are omitted from argv and redacted from public records. |
+| MCP | Native stdio and HTTP servers through `--mcp-config <path>`: on POSIX, a 0600 FIFO in a private 0700 directory removed as soon as Qoder reads it; where FIFOs are unavailable (Windows), a 0600 file removed as soon as `initialize` finishes. Credentials never enter argv, are redacted from public records, and were verified not to persist in Qoder's home directory on Linux 1.1.78. |
 | System and tools | Native system/append prompt files, additional-directory and disallowed-tool startup flags. Native global configuration still applies. |
 | Unsupported options | `fork`, `goals: true`, `endTurnProcessesOnAbort: true`, `serviceTier`, `outputSchema`, persisted session `name` and `userConfiguration: "exclude"` ([below](#user-configuration-selection)) are explicitly refused. Image input is refused. `launchArgs` cannot override OAR-owned protocol, session, permission, model, effort, system-prompt, name, replay or `--` flags (including `--flag=value`, attached short flags and camelCase aliases; see [options.ts](../../packages/oar/src/runtimes/qoder/options.ts)). |
 | Cleanup | EOF permits normal idle shutdown; active disposal and bounded shutdown use process-tree cleanup. Native exit is recorded. |
 
 System prompts use `--system-prompt-file` and `--append-system-prompt-file`.
-OAR writes each as a 0600 file in the same 0700 temporary directory as any MCP
-configuration, and removes the directory on process exit or failed launch.
-Prompt contents never enter argv, including empty and multiline prompts.
+OAR writes each as a 0600 file in a process-scoped 0700 temporary directory and
+removes that directory on process exit or failed launch. Session MCP servers
+use a separate private handoff (`packages/oar/src/runtimes/qoder/mcp-config.ts`):
+on POSIX a 0600 FIFO removed immediately after Qoder reads it during startup
+(verified live on Linux x64 with Qoder 1.1.78 and exercised by CI's
+`ubuntu-latest` `qoder-native` vendor suite), and where FIFOs are unavailable
+(Windows) a 0600 file removed as soon as `initialize` completes (verified via
+a Linux unlink-after-`initialize` control and unit tests, not yet observed on a
+Windows Qoder binary). Every launch also sweeps abandoned MCP handoff
+directories left by dead host processes. Prompt and MCP contents never enter
+argv, including empty and multiline prompts.
 
 Qoder 1.1.78 applies new replacement and appended prompts on resume. The native
 regression seeds a saved conversation, then reopens it separately with each
@@ -350,11 +358,8 @@ distinguish slow startup from a stuck process.
 OAR therefore gives a session's `initialize` request **60 seconds on every
 platform**, leaving room beyond the measured maximum. This deadline detects a
 stuck child; it is not a performance requirement. Later control requests still
-have their 30-second bound. `listModels()` applies one whole-query deadline
-(default 30 seconds, configurable via `timeoutMs`) across auth-status lookup,
-version probing (its own 15-second cap when version is omitted), daemon
-handshake (60-second internal control cap, bounded by the outer query deadline),
-`initialize`, and `get_models`. No automatic startup retry or cache copying is added to the adapter.
+have their 30-second bound; `listModels()` applies its whole-query deadline
+described in [Orientation query costs](#orientation-query-costs). No automatic startup retry or cache copying is added to the adapter.
 Hosts can stagger cold session starts to avoid the observed burst; this is a
 workaround, not a demonstrated resource limit or a guarantee that all starts
 will fit these deadlines. Under startup load a host can also receive an

@@ -7,36 +7,33 @@ import { rememberEnvironmentCredentials, type CredentialRedactor } from "../../s
 import { sessionEnvironment } from "../../shared/environment.js";
 import { readExecutableVersion, spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { privateTempDir } from "../../shared/private-temp.js";
-import { checkMcpServerNames, isHttpMcpServer } from "../../shared/mcp-servers.js";
+import { checkMcpServerNames, givenMcpServers } from "../../shared/mcp-servers.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
 import { resolvedAdditionalDirectories } from "../../shared/additional-directories.js";
 import { qoderDaemonSession } from "./daemon.js";
+import { handOverQoderMcpConfig, sweepAbandonedQoderMcpConfigs, type McpConfigHandoff } from "./mcp-config.js";
 import { QODER_CREDENTIAL_ENV, qoderVersionInfo, qoderStartupError } from "./protocol.js";
 import { checkQoderLaunchArgs, qoderRefusedSessionOptions } from "./options.js";
 
-/** Process-scoped files keep MCP credentials and system prompts out of argv. */
-export async function launchQoder(command: string, sessionId: string, options: SessionOptions, version?: string, query?: { readonly signal: AbortSignal; readonly own: OwnQueryProcess }, credentials?: Pick<CredentialRedactor, "add" | "redact">): Promise<LineProcess & { readonly qoderVersion: string }> {
+/** Process-scoped files and one-shot MCP handoffs keep credentials and system prompts out of argv. */
+export async function launchQoder(command: string, sessionId: string, options: SessionOptions, version?: string, query?: { readonly signal: AbortSignal; readonly own: OwnQueryProcess }, credentials?: Pick<CredentialRedactor, "add" | "redact">): Promise<LineProcess & { readonly qoderVersion: string; releaseMcpConfig?(): void }> {
   refuseSessionOptions(qoderRefusedSessionOptions, options);
   checkQoderLaunchArgs(options.launchArgs);
   const env = { ...sessionEnvironment(options.env), QODER_EXPOSE_TOKEN_USAGE: "1" };
   if (credentials !== undefined) { rememberEnvironmentCredentials(credentials, env, QODER_CREDENTIAL_ENV); }
-  const servers = options.mcpServers ?? [];
-  checkMcpServerNames(servers);
+  checkMcpServerNames(options.mcpServers ?? []);
+  const servers = givenMcpServers(options.mcpServers);
   const directories = resolvedAdditionalDirectories(options);
   const compatibility = qoderVersionInfo(version ?? await readExecutableVersion(command, 15_000, undefined, env, query?.signal));
   const { protocol } = compatibility;
-  const needsFiles = servers.length > 0 || options.systemPrompt !== undefined || options.appendSystemPrompt !== undefined;
-  const temporary = needsFiles ? await privateTempDir("oar-qoder-mcp-") : null;
+  const needsPromptFiles = options.systemPrompt !== undefined || options.appendSystemPrompt !== undefined;
+  let mcpConfig: McpConfigHandoff | null = null;
+  let temporary: Awaited<ReturnType<typeof privateTempDir>> | null = null;
   let child: LineProcess | undefined = undefined;
   try {
-    const config = temporary === null || servers.length === 0 ? null : path.join(temporary.path, "mcp.json");
-    if (config !== null) {
-      const entries = servers.map((server) => [server.name,
-        isHttpMcpServer(server) ? { type: "http", url: server.url, headers: server.headers }
-          : { type: "stdio", command: server.command, args: server.args ?? [], env: server.env }] as const);
-      const mcpServers = Object.fromEntries(entries);
-      await writeFile(config, JSON.stringify({ mcpServers }), { mode: 0o600, flag: "wx" });
-    }
+    mcpConfig = servers === null ? null : await handOverQoderMcpConfig(servers);
+    if (mcpConfig === null) { await sweepAbandonedQoderMcpConfigs(); }
+    temporary = needsPromptFiles ? await privateTempDir("oar-qoder-prompts-") : null;
     const promptArgs: string[] = [];
     if (temporary !== null) {
       for (const [flag, name, text] of [
@@ -57,7 +54,7 @@ export async function launchQoder(command: string, sessionId: string, options: S
       ...(options.effort === undefined ? [] : ["--reasoning-effort", options.effort]),
       ...promptArgs,
       ...options.launchArgs ?? [],
-      ...(config === null ? [] : ["--mcp-config", config]),
+      ...(mcpConfig === null ? [] : ["--mcp-config", mcpConfig.path]),
       ...(directories.length === 0 ? [] : ["--add-dir", ...directories]),
       ...((options.disallowedTools?.length ?? 0) === 0 ? [] : ["--disallowed-tools", options.disallowedTools?.join(",") ?? ""]),
     ];
@@ -65,11 +62,12 @@ export async function launchQoder(command: string, sessionId: string, options: S
     child = spawnLineProcess(command, protocol === "daemon" ? ["--sdk"] : args, { cwd: options.cwd,
       env: protocol === "daemon" ? { ...env, QODER_AGENT_SDK_DAEMON: "1" } : env, killTree: true });
     query?.own(child);
-    child.onExit(() => { temporary?.remove(); });
+    child.onExit(() => { mcpConfig?.end(); temporary?.remove(); });
+    mcpConfig?.start();
     await child.spawned;
     const transport = protocol === "daemon" ? await qoderDaemonSession(child, sessionId, args, path.resolve(options.cwd), env, credentials) : child;
-    return { ...transport, qoderVersion: compatibility.version };
-  } catch (error) { child?.kill(); temporary?.remove(); throw qoderStartupError(error, options.effort); }
+    return { ...transport, qoderVersion: compatibility.version, releaseMcpConfig: () => { mcpConfig?.releaseAfterRead(); } };
+  } catch (error) { child?.kill(); mcpConfig?.end(); temporary?.remove(); throw qoderStartupError(error, options.effort); }
 }
 
 /** EOF finishes the native request before process-tree cleanup enforces the bound. */
