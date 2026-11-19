@@ -75,13 +75,15 @@ describe.skipIf(!isPiBackend)("Pi native input dispositions", () => {
     try {
       const result = await promptAndWait(f.session, "/spawn", { inputId: inputId(1) });
       expect(result.kind).toBe("handled");
-      expect(await until(() => f.requests.includes("EXT"))).toBe(true);
-      expect(f.session.status().value).toMatchObject({ kind: "running" });
+      expect(await until(() => f.session.status().value.kind === "running")).toBe(true);
       expect(f.session.status().value).not.toHaveProperty("requestId");
       expect(f.session.status().value).not.toHaveProperty("inputId");
       expect(ends(f.session)).toHaveLength(0);
       expect(await f.session.prompt("C")).toMatchObject({ kind: "rejected", code: "busy" });
-      const idle = awaitIdle(f.session); f.gate("EXT").resolve(); await idle;
+      const idle = awaitIdle(f.session);
+      f.gate("EXT").resolve();
+      expect(await idle).toEqual({ kind: "completed" });
+      expect(f.requests).toEqual(["EXT"]);
       expect(ends(f.session)).toHaveLength(1);
       expect(viewOf(f.session.records()).messages.filter(message => message.kind === "turn").every(turn => turn.openedBy === undefined)).toBe(true);
     } finally { await f.close(); }
