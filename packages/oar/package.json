@@ -26,6 +26,10 @@
       "types": "./dist/forms/index.d.ts",
       "import": "./dist/forms/index.js"
     },
+    "./capabilities": {
+      "types": "./dist/capabilities.d.ts",
+      "import": "./dist/capabilities.js"
+    },
     "./testing": {
       "types": "./dist/testing/index.d.ts",
       "import": "./dist/testing/index.js"

@@ -370,7 +370,7 @@ still cannot ship.
 - `clean-install`: `pnpm run clean-install -- --mode=gate`
   ([`tests/clean-install.ts`](../tests/clean-install.ts)) on Linux. Both
   packages are packed and `npm install`ed into an empty project: without the
-  optional peers, the root entry and the `browser`, `forms`, `observe`,
+  optional peers, the root entry and the `browser`, `capabilities`, `forms`, `observe`,
   `kernel`, `brands`, `testing`, `agents` and `agents/report` entries must
   load and type-check, OAR must probe every built-in runtime, and the line
   that adds cursor must fail the host's compile; with the SDK added, cursor
