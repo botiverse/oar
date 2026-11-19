@@ -94,7 +94,7 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
       })();
     };
 
-    const released = (): void => { queueMicrotask(() => { drainHeld(); }); };
+    const released = (): void => { queueMicrotask(drainHeld); };
     const onNotification = (message: JsonRecord): void => {
       const notification = asRecord(asRecord(message.params)?.notification);
       const wasBusy = busy();
@@ -147,19 +147,6 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
       client.respond(message.id, reply);
       kernel.respond(id, { kind: "answered", native: reply });
     };
-    client.handle({ onNotification, onServerRequest, onUnmatched: (native) => { kernel.frame({ type: asRecord(native) === null ? "stdout" : "response", native, events: [] }); } });
-    client.onExit((code, reason) => {
-      disarm();
-      held.splice(0);
-      kernel.processExited(code, reason);
-      active = null;
-      spontaneous = false;
-      held.splice(0);
-    });
-
-    await confirmSettings(client, options, settings, recordReply("droid.update_session_settings"), (waiter) => { settingsWaiter = waiter; });
-    readContext();
-
     const capabilities = { queue: { durable: false }, attribution: "opaque", images: true } as const;
     const compaction = manualCompaction(kernel, {
       busy: () => busy() || dispatching || held.length > 0,
@@ -205,6 +192,19 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
         finally { dispatching = false; released(); }
       })();
     };
+
+    client.handle({ onNotification, onServerRequest, onUnmatched: (native) => { kernel.frame({ type: asRecord(native) === null ? "stdout" : "response", native, events: [] }); } });
+    client.onExit((code, reason) => {
+      disarm();
+      held.splice(0);
+      kernel.processExited(code, reason);
+      active = null;
+      spontaneous = false;
+      held.splice(0);
+    });
+
+    await confirmSettings(client, options, settings, recordReply("droid.update_session_settings"), (waiter) => { settingsWaiter = waiter; });
+    readContext();
 
     const session: Session = credentials.seal({
       id: kernel.sessionId,

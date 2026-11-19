@@ -69,6 +69,11 @@ it("an abort droid honors by handing the prompt back is disarmed, so a later tur
   expect(opened.records().some(record => record.kind === "response" && record.body.kind === "exited")).toBe(false);
 });
 
+it("opens and accepts input when a native turn end is buffered before initialization completes", async () => {
+  const opened = await session("ended-at-open");
+  expect(await opened.prompt("next")).toMatchObject({ kind: "accepted" });
+});
+
 it("sends held input after a handback even if no turn end follows", async () => {
   const opened = await session("handback", 10_000);
   await opened.prompt("initial");

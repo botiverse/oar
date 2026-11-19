@@ -67,6 +67,7 @@ input.on("line", (line) => {
       if (message.params.modelId === "no-such-model") { message.params.modelId = "gpt-6.1-sol"; }
       sessionId = message.params.sessionId ?? sessionId;
       Object.assign(settings, message.params.modelId ? { modelId: message.params.modelId } : {}, message.params.reasoningEffort ? { reasoningEffort: message.params.reasoningEffort } : {});
+      if (mode === "ended-at-open") { note({ type: "agent_turn_completed", reason: "completed", turnId: "previous" }); }
       note({ type: "settings_updated", settings });
       reply({ sessionId, session: { messages: [] }, settings, ...(message.params.cwd ? {} : { cwd: process.env.FAKE_DROID_MODE === "other-cwd" ? "/saved/elsewhere" : process.cwd() }) });
       return;
