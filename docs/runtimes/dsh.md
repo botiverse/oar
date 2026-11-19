@@ -526,9 +526,9 @@ configured servers, resume with supplied/omitted entries, failure and disposal.
 
 ## Open risks
 
-Image input, the flush timing of pending input before a crash and
-pipe backpressure with a slow host are unverified. Only the test that kills the
-process from a tool skips on Windows.
+The flush timing of pending input before a crash and pipe backpressure with a
+slow host are unverified. Only the test that kills the process from a tool
+skips on Windows.
 
 ### Updating the CLI
 
