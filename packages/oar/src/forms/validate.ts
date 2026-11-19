@@ -1,4 +1,4 @@
-import { asModelValue, isActive, isEmpty, sameModel, unknownFieldIds } from "./fields.js";
+import { activeFields, asModelValue, isEmpty, mappingConflicts, scalarIssue, sameModel, unknownFieldIds } from "./fields.js";
 import type { ConfigField, ConfigIssue, EffortField, FormValue, FormValues, ModelField, RuntimeConfigForm, SecretField, ValidationContext } from "./types.js";
 import type { ModelEntry } from "../contracts/list-models.js";
 import { listedModels } from "./listing.js";
@@ -63,6 +63,7 @@ function runningEntry(value: FormValue | undefined, models: readonly ModelEntry[
   if (model?.kind === "preset") {
     return models.find((candidate) => candidate.id === model.id);
   }
+  if (model?.kind === "custom") { return models.find(candidate => candidate.id === model.name); }
   const runsAsDefault = model?.kind === "inherit" || isEmpty(value);
   return runsAsDefault ? models.find((candidate) => candidate.default === true) : undefined;
 }
@@ -123,17 +124,7 @@ function checkScalar(field: ConfigField, check: FieldCheck): IssueCode {
   if (missing !== undefined) {
     return missing;
   }
-  if (field.kind === "boolean") {
-    return typeof check.value === "boolean" ? null : "invalid_shape";
-  }
-  if (typeof check.value !== "string") {
-    return "invalid_shape";
-  }
-  if (field.kind === "select") {
-    const { value } = check;
-    return field.options.some((option) => option.value === value) ? null : "option_not_offered";
-  }
-  return null;
+  return scalarIssue(field, check.value);
 }
 
 function checkField(field: ConfigField, check: FieldCheck): IssueCode {
@@ -161,9 +152,9 @@ export function validateConfig(form: RuntimeConfigForm, values: FormValues, cont
   const models = listedModels(context.models);
   const stored = context.mode === "edit" ? context.stored : undefined;
   const { mode } = context;
-  const fieldIssues = form.fields
-    .filter((field) => isActive(field, values))
+  const fields = activeFields(form, values);
+  const fieldIssues = fields
     .map((field) => ({ field: field.id, code: checkField(field, { value: values[field.id], values, models, stored, mode }) }))
     .filter((issue): issue is ConfigIssue => issue.code !== null);
-  return [...unknown, ...fieldIssues];
+  return [...unknown, ...mappingConflicts(fields, values), ...fieldIssues];
 }

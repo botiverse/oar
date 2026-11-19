@@ -34,7 +34,7 @@ live in `@botiverse/oar/forms`, an entry that loads no runtime SDK.
    status (`unavailable` with a reason), never an empty list, and never a
    reason to clear a value the host already saved.
 4. **No guessing.** Where a runtime does not tell OAR what a model supports,
-   the form offers nothing for it (an effort under a typed or unlisted model
+   the form offers nothing for it (an effort under a model without a matching listing entry
    is `effort_not_offered`); it does not invent options that would then be
    required.
 5. **Data and behavior are separate.** A form is plain data a host can
@@ -215,7 +215,7 @@ declare function validateConfig(
 
 An issue's `code` is a stable key a host translates: `required`,
 `invalid_shape`, `mode_not_allowed`, `model_not_listed`, `model_disabled`,
-`effort_not_offered`, `option_not_offered`, `secret_missing` or
+`effort_not_offered`, `option_not_offered`, `conflicting_fields`, `secret_missing` or
 `unknown_field` (a value whose id the form does not list).
 
 Two questions are kept apart:
@@ -233,8 +233,13 @@ Two questions are kept apart:
   [machine report](#machine-capability-reporting), and no shipped form has an
   authentication constraint.
 
+Visibility follows every controlling field, including nested branches. Only
+visible fields participate in submission and launch. Supplying two active
+values for the same model or effort option yields `conflicting_fields`.
+URL fields require an absolute URL on both submission and launch.
+
 Which listing entry a model value runs as decides the effort it offers: a
-`preset` runs as its own entry; `inherit` runs as the entry marked
+`preset` or a typed name matching a listed ID runs as that entry. `inherit` runs as the entry marked
 `default: true`, and so does an optional model left empty, which launches
 exactly like `inherit` (the runtime's default). With no entry marked
 default, the runtime's default model offers no effort. An unchanged stored
@@ -520,9 +525,7 @@ existing code. They are kept out of the migration pull requests:
 - **Migration pull requests run in `legacy` only.** Until the daemon sends
   capability reports, every machine is `legacy`, so the host serves the
   host-owned frozen baseline form, narrowed by the host ([host narrowing](#host-narrowing))
-  to what Raft serves today. That is why fixture equality (Migration, item 1)
-  can hold: no new state, outcome or error reaches a client in these pull
-  requests.
+  to what Raft serves today. The existing client protocol and stored configurations stay valid.
 - **Turning the states on is its own pull request** (daemon reporting plus
   the host's use of it), reviewed as a behavior change. It maps each new
   state onto what the v2 protocol and today's clients already show, and adds
@@ -539,26 +542,6 @@ existing code. They are kept out of the migration pull requests:
 If a row turns out to need more than a new value in an existing open set, it
 is split into its own protocol pull request with the client change, not
 folded into the activation pull request.
-
-## Migration
-
-One runtime per pull request, in this order: **Grok** (done, 0.67.0), then
-**Codex**, then **Built-in / Pi** (provider and saved connections are the
-hardest; a provider is the authentication axis, not a third selector).
-
-Every migration pull request must show:
-
-1. **No protocol change.** Raft's `packages/runtime-form/fixtures/<runtime>.form.json`
-   and `.edit.json` are byte-identical before and after. Any difference is a
-   protocol change and goes in its own reviewed pull request.
-2. **No behavior change.** Existing stored configurations produce the same
-   launch options as before (a table test over real stored shapes), and the
-   form offers no option the runtime did not offer before.
-3. **Edit, save and launch** of an existing agent round-trip.
-4. **Version skew.** Old Computer with the new server, and new Computer with
-   the old server.
-5. **Failure keeps data.** A failed probe, an empty list and an unknown
-   capability never clear a saved value and are never read as "forbidden".
 
 ## Prior art and what this refuses
 
