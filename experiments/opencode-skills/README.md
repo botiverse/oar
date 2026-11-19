@@ -161,3 +161,25 @@ passes; all three v2 versions pass success, transport failure, deadline and
 plugin-failure controls, including process and port cleanup. Public-reader
 unit controls also cover newer versions, suffixed builds, a noncanonical
 numeric spelling and version detection when installation metadata is absent.
+
+## Windows timeout and listener ownership
+
+On Windows x64, OpenCode 2.2.7 owned the skills listener directly in all five
+rounds. At startup and at the query deadline, the listener PID and creation
+time matched the `opencode.exe` OAR spawned. The first two rounds ran with
+the ordinary native cleanup suite. The other three ran the timeout case alone.
+
+One round reproduced the failing assertion. At 511 ms after the deadline the
+launcher PID was already absent, but a connection from local port 62633 to
+the announced port 62564 succeeded. The subsequent TCP table showed no
+listener. At 982 ms, after OAR's joined cleanup, the same port refused a
+connection. All five ports refused at joined cleanup. No sample identified a
+different listener. The owner at the precise instant of that successful
+connection was not sampled.
+
+The vendor test retains the TCP observation at root exit, then checks the
+port once when the owned child's `exited` promise resolves. A control keeps
+a real loopback listener open across a child's exit and verifies the same
+assertion fails. Neither assertion retries a connection.
+[Five-round Windows measurement](https://github.com/botiverse/oar/actions/runs/44573473058)
+and [selected observations](windows-timeout.json).

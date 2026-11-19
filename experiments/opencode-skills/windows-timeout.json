@@ -1,0 +1,279 @@
+{
+  "run": 44573473058,
+  "job": 135734545262,
+  "artifact": 14555536999,
+  "rounds": [
+    {
+      "round": 1,
+      "rootPid": 2776,
+      "port": 62564,
+      "snapshots": [
+        {
+          "stage": "listening",
+          "startMs": -14596,
+          "tableResultMs": -14561,
+          "listenerPids": [
+            2776
+          ],
+          "owner": {
+            "pid": 2776,
+            "ppid": 5648,
+            "name": "opencode.exe",
+            "start": "2026-11-19T17:07:18.0825190Z"
+          }
+        },
+        {
+          "stage": "deadline",
+          "startMs": 0,
+          "tableResultMs": 29,
+          "listenerPids": [
+            2776
+          ],
+          "owner": {
+            "pid": 2776,
+            "ppid": 5648,
+            "name": "opencode.exe",
+            "start": "2026-11-19T17:07:18.0825190Z"
+          }
+        },
+        {
+          "stage": "root-exited",
+          "startMs": 511,
+          "tableResultMs": 548,
+          "listenerPids": [],
+          "tcp": {
+            "connected": true,
+            "localPort": 62633,
+            "remotePort": 62564
+          }
+        },
+        {
+          "stage": "cleanup-finished",
+          "startMs": 982,
+          "tableResultMs": 1004,
+          "listenerPids": []
+        }
+      ],
+      "tcpAfterCleanup": {
+        "connected": false
+      },
+      "cleanupStatus": "observed"
+    },
+    {
+      "round": 2,
+      "rootPid": 1892,
+      "port": 62669,
+      "snapshots": [
+        {
+          "stage": "listening",
+          "startMs": -14539,
+          "tableResultMs": -14517,
+          "listenerPids": [
+            1892
+          ],
+          "owner": {
+            "pid": 1892,
+            "ppid": 4148,
+            "name": "opencode.exe",
+            "start": "2026-11-19T17:07:42.5331930Z"
+          }
+        },
+        {
+          "stage": "deadline",
+          "startMs": 0,
+          "tableResultMs": 23,
+          "listenerPids": [
+            1892
+          ],
+          "owner": {
+            "pid": 1892,
+            "ppid": 4148,
+            "name": "opencode.exe",
+            "start": "2026-11-19T17:07:42.5331930Z"
+          }
+        },
+        {
+          "stage": "root-exited",
+          "startMs": 423,
+          "tableResultMs": 446,
+          "listenerPids": [],
+          "tcp": {
+            "connected": false
+          }
+        },
+        {
+          "stage": "cleanup-finished",
+          "startMs": 779,
+          "tableResultMs": 799,
+          "listenerPids": []
+        }
+      ],
+      "tcpAfterCleanup": {
+        "connected": false
+      },
+      "cleanupStatus": "observed"
+    },
+    {
+      "round": 3,
+      "rootPid": 6196,
+      "port": 62750,
+      "snapshots": [
+        {
+          "stage": "listening",
+          "startMs": -14603,
+          "tableResultMs": -14583,
+          "listenerPids": [
+            6196
+          ],
+          "owner": {
+            "pid": 6196,
+            "ppid": 1048,
+            "name": "opencode.exe",
+            "start": "2026-11-19T17:08:02.3369970Z"
+          }
+        },
+        {
+          "stage": "deadline",
+          "startMs": 0,
+          "tableResultMs": 23,
+          "listenerPids": [
+            6196
+          ],
+          "owner": {
+            "pid": 6196,
+            "ppid": 1048,
+            "name": "opencode.exe",
+            "start": "2026-11-19T17:08:02.3369970Z"
+          }
+        },
+        {
+          "stage": "root-exited",
+          "startMs": 429,
+          "tableResultMs": 451,
+          "listenerPids": [],
+          "tcp": {
+            "connected": false
+          }
+        },
+        {
+          "stage": "cleanup-finished",
+          "startMs": 776,
+          "tableResultMs": 799,
+          "listenerPids": []
+        }
+      ],
+      "tcpAfterCleanup": {
+        "connected": false
+      },
+      "cleanupStatus": "observed"
+    },
+    {
+      "round": 4,
+      "rootPid": 5744,
+      "port": 62764,
+      "snapshots": [
+        {
+          "stage": "listening",
+          "startMs": -14621,
+          "tableResultMs": -14596,
+          "listenerPids": [
+            5744
+          ],
+          "owner": {
+            "pid": 5744,
+            "ppid": 2804,
+            "name": "opencode.exe",
+            "start": "2026-11-19T17:08:20.2121970Z"
+          }
+        },
+        {
+          "stage": "deadline",
+          "startMs": 0,
+          "tableResultMs": 24,
+          "listenerPids": [
+            5744
+          ],
+          "owner": {
+            "pid": 5744,
+            "ppid": 2804,
+            "name": "opencode.exe",
+            "start": "2026-11-19T17:08:20.2121970Z"
+          }
+        },
+        {
+          "stage": "root-exited",
+          "startMs": 480,
+          "tableResultMs": 525,
+          "listenerPids": [],
+          "tcp": {
+            "connected": false
+          }
+        },
+        {
+          "stage": "cleanup-finished",
+          "startMs": 797,
+          "tableResultMs": 823,
+          "listenerPids": []
+        }
+      ],
+      "tcpAfterCleanup": {
+        "connected": false
+      },
+      "cleanupStatus": "observed"
+    },
+    {
+      "round": 5,
+      "rootPid": 2188,
+      "port": 62773,
+      "snapshots": [
+        {
+          "stage": "listening",
+          "startMs": -14612,
+          "tableResultMs": -14589,
+          "listenerPids": [
+            2188
+          ],
+          "owner": {
+            "pid": 2188,
+            "ppid": 7344,
+            "name": "opencode.exe",
+            "start": "2026-11-19T17:08:38.1067440Z"
+          }
+        },
+        {
+          "stage": "deadline",
+          "startMs": 0,
+          "tableResultMs": 23,
+          "listenerPids": [
+            2188
+          ],
+          "owner": {
+            "pid": 2188,
+            "ppid": 7344,
+            "name": "opencode.exe",
+            "start": "2026-11-19T17:08:38.1067440Z"
+          }
+        },
+        {
+          "stage": "root-exited",
+          "startMs": 442,
+          "tableResultMs": 463,
+          "listenerPids": [],
+          "tcp": {
+            "connected": false
+          }
+        },
+        {
+          "stage": "cleanup-finished",
+          "startMs": 796,
+          "tableResultMs": 818,
+          "listenerPids": []
+        }
+      ],
+      "tcpAfterCleanup": {
+        "connected": false
+      },
+      "cleanupStatus": "observed"
+    }
+  ]
+}
