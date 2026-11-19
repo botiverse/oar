@@ -14,11 +14,12 @@ test("Claude declares provider and credential inputs as names, including potenti
   ] as const) {
     expect(byName.get(name)).toEqual({ name, purpose, secret });
   }
-  for (const absent of ["ANTHROPIC_BEDROCK_MANTLE_API_KEY", "ANTHROPIC_BEDROCK_SERVICE_TIER", "CLAUDE_CODE_USE_CCR_V2"]) {
+  for (const absent of ["ANTHROPIC_BEDROCK_MANTLE_API_KEY", "ANTHROPIC_BEDROCK_SERVICE_TIER", "CLAUDE_CODE_USE_CCR_V2", "XDG_CONFIG_HOME"]) {
     expect(byName.has(absent), absent).toBe(false);
   }
   expect(claudeRuntime.credentials.stores?.some(store => store.kind === "keychain")).toBe(process.platform === "darwin");
   expect(claudeRuntime.credentials.stores).toEqual(expect.arrayContaining([
+    { kind: "dir", directoryEnv: "ANTHROPIC_CONFIG_DIR", defaultDirectory: ".config/anthropic" },
     { kind: "file", directoryEnv: "CLAUDE_CONFIG_DIR", defaultDirectory: ".claude", path: ".credentials.json" },
   ]));
 });

@@ -192,8 +192,10 @@ or store a credential can come from, in the runtime's own precedence, with
 the variable that moves it, its default location, and whether it wins over
 the environment. A `.env` the runtime reads from the session's directory is
 listed too, since it can supply a key the host never passed. A host isolates
-one agent's credentials by setting the directory variables, and never puts
-a secret on a command line. Native login is the `login` member and
+one agent's stores by setting `stores[].directoryEnv`. It clears or supplies
+the names in `env` to control inherited credentials and provider routes.
+These lists are disjoint so credential cleanup preserves the host's storage
+isolation. Hosts keep secrets off command lines. Native login is the `login` member and
 per-provider keys are `providers`. Each runtime page states its own shape
 (for example [dsh](../runtimes/dsh.md#credentials)). `orient()` carries both
 fields in every entry, installed or not.

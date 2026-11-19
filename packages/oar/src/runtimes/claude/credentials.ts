@@ -16,10 +16,10 @@ export const claudeCredentials: RuntimeCredentials = {
     ...variables("provider_selector", "CLAUDE_CODE_USE_GATEWAY", "CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST"),
     ...variables("credential_source", "CLAUDE_CODE_API_KEY_FILE_DESCRIPTOR", "CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR",
       "CLAUDE_CODE_GATEWAY_TOKEN_FILE_DESCRIPTOR", "CLAUDE_CODE_HOST_CREDS_FILE", "CLAUDE_CODE_HOST_AUTH_ENV_VAR",
-      "CLAUDE_BG_AUTH_SNAPSHOT_PATH", "ANTHROPIC_UNIX_SOCKET", "CLAUDE_CONFIG_DIR"),
+      "CLAUDE_BG_AUTH_SNAPSHOT_PATH", "ANTHROPIC_UNIX_SOCKET"),
     ...variables("account_scope", "CLAUDE_CODE_OAUTH_CLIENT_ID", "CLAUDE_CODE_OAUTH_SCOPES"),
     // Anthropic identity profiles and federated token exchange.
-    ...variables("credential_source", "ANTHROPIC_CONFIG_DIR", "XDG_CONFIG_HOME", "ANTHROPIC_PROFILE",
+    ...variables("credential_source", "ANTHROPIC_PROFILE",
       "ANTHROPIC_IDENTITY_TOKEN_FILE", "CLAUDE_CODE_FEDERATION_CACHE_DIR"),
     ...variables("token", "ANTHROPIC_IDENTITY_TOKEN"),
     ...variables("account_scope", "ANTHROPIC_ORGANIZATION_ID", "ANTHROPIC_FEDERATION_RULE_ID", "ANTHROPIC_WORKSPACE_ID"),
@@ -70,6 +70,7 @@ export const claudeCredentials: RuntimeCredentials = {
     { kind: "file", directoryEnv: "CLAUDE_CONFIG_DIR", defaultDirectory: ".claude", path: "settings.json" },
     { kind: "file", relativeTo: "cwd", path: ".claude/settings.local.json" },
     { kind: "file", relativeTo: "cwd", path: ".claude/settings.json" },
+    // defaultDirectory is home-relative. With XDG_CONFIG_HOME set, the native fallback is XDG_CONFIG_HOME/anthropic.
     { kind: "dir", directoryEnv: "ANTHROPIC_CONFIG_DIR", defaultDirectory: ".config/anthropic" },
     { kind: "file", defaultDirectory: ".aws", path: "credentials" },
     { kind: "file", defaultDirectory: ".aws", path: "config" },

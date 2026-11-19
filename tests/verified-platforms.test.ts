@@ -59,6 +59,17 @@ test("DSH declares the key it reads and every file that can supply it, in preced
   });
 });
 
+test("credential cleanup preserves each runtime's store directory overrides", () => {
+  for (const runtime of defaultRuntimes.list()) {
+    const env = new Set(runtime.credentials?.env?.map(variable => variable.name));
+    for (const store of runtime.credentials?.stores ?? []) {
+      if (store.directoryEnv !== undefined) {
+        expect(env.has(store.directoryEnv), `${runtime.id} ${store.directoryEnv}`).toBe(false);
+      }
+    }
+  }
+});
+
 test("orient carries platforms and credentials whether or not the runtime is installed", async () => {
   const missing = { ...dshRuntime, installation: async () => ({ kind: "not_found" as const }) };
   const report = await orient(new RuntimeRegistry([missing]));

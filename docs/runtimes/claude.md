@@ -1327,7 +1327,11 @@ copy independently of its own app release. OAR leaves its updates to Desktop;
 `claudeRuntime.credentials` declares the names a host can clear when switching
 provider accounts. Claude Code 2.1.328 chooses a client first. That client
 determines which credentials, headers, signing region, model and account
-scope apply. The declaration groups the names by their native reader.
+scope apply. Hosts can set `CLAUDE_CONFIG_DIR` and `ANTHROPIC_CONFIG_DIR`
+to isolate each agent's stores. Both names appear exclusively in
+`stores[].directoryEnv`. The identity profile directory follows XDG when
+`ANTHROPIC_CONFIG_DIR` is absent, as described below. Hosts can preserve
+`XDG_CONFIG_HOME` when clearing credential variables.
 [Declaration with the individual names](../../packages/oar/src/runtimes/claude/credentials.ts).
 
 | Native reader in 2.1.328 | What it uses |

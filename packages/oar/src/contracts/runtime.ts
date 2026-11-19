@@ -79,7 +79,7 @@ export type RuntimePlatform = "linux" | "darwin" | "win32";
  * `providers`. Absent fields are unknown.
  */
 export interface RuntimeCredentials {
-  /** Variables that supply credentials or select their source, scope or destination. Precedence applies within each native route. */
+  /** Variables that supply credentials or select their source, scope or destination. Store directory overrides are declared only in `stores`. Precedence applies within each native route. */
   readonly env?: readonly CredentialVariable[];
   /** Files and stores the runtime reads a credential from, in its own order of precedence, including ones the person edits (a `.env`). */
   readonly stores?: readonly CredentialStore[];
