@@ -1173,19 +1173,22 @@ See [host-served tools](../spec/runtime-matrix.md#host-served-tools).
 - [Session MCP servers](#session-mcp-servers) ran against a scripted
   provider only, not a logged-in provider or a free `opencode/*` model. The
   vendor test and shared behavior suite run in CI (`OAR_TEST=opencode-aimock`),
-  pinned to `opencode-ai@1.19.5` on Linux and macOS. Windows runs the same
-  suites after main pushes in a separate
-  [observation workflow](../../.github/workflows/acp-windows.yml), outside
-  PR gates because intermittent startup or MCP timeouts remain unexplained.
+  pinned to `opencode-ai@1.19.5` on Linux and macOS. The
+  [Windows observation workflow](../../.github/workflows/acp-windows.yml)
+  runs these suites after main pushes or a manual dispatch, in separate jobs
+  for v1 (`opencode-aimock`, 1.19.5) and v2 (`opencode-cleanup`, 2.2.7).
+  Each retains its installed version and trial artifacts. The v2 vendor
+  suite also runs after a behavior failure. Windows ACP results are
+  observational while startup and MCP failures are investigated.
   [Scope and evidence](../../experiments/acp-ci-2026-10-29.md).
   The broken-command clash was probed, not tested.
-- The full `opencode-aimock` vendor suite is v1 only: on v2 **2.2.7**,
-  11 of its 16 cases passed and 5 failed in the November 10 Linux check.
+- The November 10 Linux check of the v1 vendor fixtures on v2 **2.2.7**
+  passed 11 of 16 cases.
   The five failures need v1 protocol (direct MCP tools in the
   provider's `tools` array, a classification from that array, or v1 prompt
   replacement)
   ([November 10 report](../../experiments/runtime-version-checks/2026-11-10.md#known-v1-vendor-boundary)).
-  v2 evidence is the boundary probe, the shared behavior suite and focused probes.
+  The Windows v2 job retains these failures alongside the shared behavior results.
 - Unexplained first-run failures, not reproduced on rerun:
   `opencode --version` over its 15-second limit during concurrent opens
   (1.19.2, [October 16 report](../../experiments/runtime-version-checks/2026-10-16.md));
