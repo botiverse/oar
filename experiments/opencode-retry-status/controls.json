@@ -1,0 +1,188 @@
+[
+  {
+    "version": "1.19.6",
+    "control": "recover",
+    "atOriginalPromptReply": 2,
+    "timeline": [
+      {
+        "stage": "provider",
+        "modelCalls": 1,
+        "ms": 0
+      },
+      {
+        "stage": "observe",
+        "modelCalls": 1,
+        "ms": 451
+      },
+      {
+        "stage": "provider",
+        "modelCalls": 2,
+        "ms": 2194
+      },
+      {
+        "stage": "outcome",
+        "modelCalls": 2,
+        "ms": 2436
+      }
+    ],
+    "frames": [
+      {
+        "type": "agent_message_chunk",
+        "stopReason": null,
+        "events": [
+          "text_delta"
+        ]
+      },
+      {
+        "type": "usage_update",
+        "stopReason": null,
+        "events": [
+          "usage"
+        ]
+      },
+      {
+        "type": "session/prompt",
+        "stopReason": "end_turn",
+        "events": [
+          "turn_ended"
+        ]
+      }
+    ],
+    "outcome": "completed",
+    "next": "completed"
+  },
+  {
+    "version": "1.19.6",
+    "control": "cancel",
+    "atOriginalPromptReply": 1,
+    "timeline": [
+      {
+        "stage": "provider",
+        "modelCalls": 1,
+        "ms": 0
+      },
+      {
+        "stage": "cancelRequested",
+        "modelCalls": 1,
+        "ms": 451
+      },
+      {
+        "stage": "outcome",
+        "modelCalls": 1,
+        "ms": 556
+      }
+    ],
+    "frames": [
+      {
+        "type": "usage_update",
+        "stopReason": null,
+        "events": [
+          "usage"
+        ]
+      },
+      {
+        "type": "session/prompt",
+        "stopReason": "end_turn",
+        "events": [
+          "turn_ended"
+        ]
+      }
+    ],
+    "outcome": "completed",
+    "next": "completed"
+  },
+  {
+    "version": "opencode v2.3.2",
+    "control": "recover",
+    "atOriginalPromptReply": 2,
+    "timeline": [
+      {
+        "stage": "provider",
+        "modelCalls": 1,
+        "ms": 0
+      },
+      {
+        "stage": "observe",
+        "modelCalls": 1,
+        "ms": 453
+      },
+      {
+        "stage": "provider",
+        "modelCalls": 2,
+        "ms": 2205
+      },
+      {
+        "stage": "outcome",
+        "modelCalls": 2,
+        "ms": 2298
+      }
+    ],
+    "frames": [
+      {
+        "type": "session_info_update",
+        "stopReason": null,
+        "events": []
+      },
+      {
+        "type": "session_info_update",
+        "stopReason": null,
+        "events": []
+      },
+      {
+        "type": "agent_message_chunk",
+        "stopReason": null,
+        "events": [
+          "text_delta"
+        ]
+      },
+      {
+        "type": "session/prompt",
+        "stopReason": "end_turn",
+        "events": [
+          "turn_ended",
+          "usage"
+        ]
+      }
+    ],
+    "outcome": "completed",
+    "next": "completed"
+  },
+  {
+    "version": "opencode v2.3.2",
+    "control": "cancel",
+    "atOriginalPromptReply": 1,
+    "timeline": [
+      {
+        "stage": "provider",
+        "modelCalls": 1,
+        "ms": 0
+      },
+      {
+        "stage": "cancelRequested",
+        "modelCalls": 1,
+        "ms": 454
+      },
+      {
+        "stage": "outcome",
+        "modelCalls": 1,
+        "ms": 551
+      }
+    ],
+    "frames": [
+      {
+        "type": "session_info_update",
+        "stopReason": null,
+        "events": []
+      },
+      {
+        "type": "session/prompt",
+        "stopReason": "cancelled",
+        "events": [
+          "turn_ended"
+        ]
+      }
+    ],
+    "outcome": "aborted",
+    "next": "completed"
+  }
+]

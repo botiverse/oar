@@ -887,10 +887,21 @@ recorded. If a steering RPC later refuses, its error frame reports
 its own outcome. Acceptance stays immediate rather than blocking until
 OpenCode becomes idle.
 
-`session/cancel` aborts the loop; the prompt answers `cancelled` about 0.1 s
-later, the running shell call is closed, and the turn ends `aborted` (abort).
+When a shell call was running, `session/cancel` closed it. The prompt answered
+`cancelled` about 0.1 s later and the turn ended `aborted`.
 After an abort the `usage_update` reports `used: 0`, since it reads the
 latest assistant message, which the abort left empty.
+
+On 1.19.6, ACP exposes no retry status while OpenCode waits to retry a
+provider call. A host can use `observeStalls` to detect prolonged silence and
+`abort()` to request cancellation. The stall itself supplies no turn outcome.
+
+Cancellation during that retry wait has a separate version boundary. In a
+local control, 1.19.6 answered the original ACP prompt with `end_turn`, so
+OAR recorded `completed`. OpenCode 2.3.2 answered `cancelled`, so OAR
+recorded `aborted`. Neither run had obtained a successful model reply before
+the cancellation. Await the native outcome after requesting a stop.
+[Native controls](../../experiments/opencode-retry-status/README.md).
 
 **Prompt failures (both lines):** for a JSON-RPC -32603 prompt failure, a
 known `data.errorName` decides the class before the words:

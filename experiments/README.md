@@ -1,5 +1,7 @@
 # experiments
 
+- [OpenCode retry visibility and cancellation](opencode-retry-status/README.md) compares native ACP outcomes while a model call is waiting to retry.
+
 - [Remembered accounts](remembered-accounts/README.md) compares what the native account readers return after expiry or logout.
 
 - [Remembered Claude account](claude-last-account/README.md) compares native status, control replies and the profile after an accepted refresh, rejected refresh and explicit logout.
