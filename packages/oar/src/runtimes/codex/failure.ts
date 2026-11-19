@@ -5,27 +5,25 @@ import { utcInstantFromDate } from "../../shared/instant.js";
 
 /*
  * A failed codex turn, classified from its `turn.error.codexErrorInfo`
- * (docs/spec/runtime-matrix.md#codex), observed on 0.160.1 and 0.165.0 against a scripted
- * provider: a named value, or a transport variant carrying the HTTP status.
- * `other` (an HTTP 400 codex does not name) carries the provider's JSON body
- * as its message, read for its code. A usage limit and an exhausted credit
- * balance are the same `usageLimitExceeded`, so both are `quota`. Declared
- * `unauthorized` is the native auth variant in the 0.167.0 generated schema;
- * unlike an HTTP transport error it carries no status or credential detail.
- * Other declared values no run produced (`badRequest`,
- * `sessionBudgetExceeded`, `cyberPolicy`, …) stay `unknown`.
+ * (docs/spec/runtime-matrix.md#failure-evidence): a named value, or a
+ * transport variant carrying the HTTP status. `other` (an HTTP 400 codex does
+ * not name) carries the provider's JSON body as its message, read for its
+ * code. A usage limit and an exhausted credit balance share `usageLimitExceeded`
+ * (`quota`). Unmapped schema variants (`badRequest`, `sessionBudgetExceeded`,
+ * `cyberPolicy`, ...) stay `unknown`.
  */
 
 const NAMED: Readonly<Partial<Record<string, Classified["failure"]>>> = {
-  unauthorized: "auth",
-  modelNotFound: "model_unavailable",
-  usageLimitExceeded: "quota",
-  rateLimitExceeded: "rate_limited",
-  serverOverloaded: "overloaded",
-  internalServerError: "provider",
-  contextWindowExceeded: "input_too_large",
+  unauthorized: "auth", // [schema] 0.167.0 generated protocol (experiments/codex-projection/README.md)
+  modelNotFound: "model_unavailable", // [env] 0.165.0 (failure-classes.vendor.test.ts)
+  usageLimitExceeded: "quota", // [env] 0.160.1 (failure-classes.vendor.test.ts)
+  rateLimitExceeded: "rate_limited", // [env] 0.160.1 (failure-classes.vendor.test.ts)
+  serverOverloaded: "overloaded", // [env] 0.160.1 (failure-classes.vendor.test.ts)
+  internalServerError: "provider", // [env] 0.160.1 (failure-classes.vendor.test.ts)
+  contextWindowExceeded: "input_too_large", // [env] 0.160.1 (failure-classes.vendor.test.ts)
 };
 
+// [env] 0.160.1 + [schema] generated protocol transport variants carrying httpStatusCode.
 const TRANSPORT = ["httpConnectionFailed", "responseStreamConnectionFailed", "responseStreamDisconnected", "responseTooManyFailedAttempts"] as const;
 
 /** What `codexErrorInfo` says: a class, and the HTTP status a transport variant carries. */

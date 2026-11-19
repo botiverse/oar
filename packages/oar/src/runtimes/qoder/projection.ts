@@ -30,6 +30,8 @@ function outcome(message: JsonRecord): TurnOutcome {
   }
   const errors = Array.isArray(message.errors) ? message.errors.filter((entry): entry is string => typeof entry === "string") : [];
   const reason = errors.length > 0 ? errors.join("\n") : (typeof message.result === "string" ? message.result : `Qoder result: ${String(message.subtype)}`);
+  // [rec] error_code 118: Qoder 1.1.78 real-account exhausted-credits fixtures (docs/runtimes/qoder.md).
+  // [src] subtype "error_max_turns": stream-json result subtype.
   return { kind: "failed", failure: message.error_code === 118 || message.error_code === "118" ? "billing"
     : (message.subtype === "error_max_turns" ? "limit_reached" : "unknown"), reason };
 }

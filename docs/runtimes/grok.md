@@ -355,7 +355,7 @@ A -32603's class is the `error_type` of the `retry_state` update that ended
 Grok's retries; Grok's generic `api` yields to the provider status it keeps
 in `data.http_status`, so a 402 is `billing` (1.0.77, sampling/error.rs
 `map_sampling_err_to_acp`), and the outcome carries that `status`
-([failure evidence](../spec/runtime-matrix.md#opencode-kimi-grok-antigravity-acp)). A process exit instead
+([failures](#failures)). A process exit instead
 is an `exited` response, classified by the folds as described below. Around each prompt Grok pushes `_x.ai/sessions/changed`
 (`working`, then `idle`) and, after `turn_completed`,
 `_x.ai/session/prompt_complete` (`promptId`, `stopReason`,
@@ -1160,3 +1160,22 @@ server/plugin/configToml → other. Tagged plugin `plugin_name` is retained as
 `plugin`; raw source type and path remain unchanged. Unknown source types do
 not gain a scope. Native `userInvocable` booleans are preserved, including false;
 missing flags remain absent. See [skill provenance](../spec/inventory.md#skill-provenance).
+
+## Failures
+
+Measured on Grok **1.0.46** and **1.0.77** against a scripted OpenAI provider
+([failure evidence](../spec/runtime-matrix.md#failure-evidence),
+[classifier](../../packages/oar/src/runtimes/grok/failure.ts)).
+
+| cause | what Grok reports | oar |
+|---|---|---|
+| missing login | open `-32000` "Authentication required", `data` "no auth method id provided" | `RuntimeFailureError` (`auth`) |
+| invalid key | `retry_state {type: failed, error_type: auth}`, `turn_completed.stop_reason: error`, prompt `-32603` | `auth` |
+| unknown model | open `-32602` "Invalid params", `data` "unknown model id" | `RuntimeFailureError` (`model_unavailable`) |
+| unentitled model (404) | `retry_state {failed, api}`, prompt `-32603` | `provider` |
+| rate limited, usage limit (429) | `retry_state {retrying, rate_limited}` then `{exhausted, is_rate_limited: true}`, `stop_reason: rate_limit`, prompt `-32003` "Rate limited", `data` "API error (status 429 ...): ..." | `quota` or `billing` when Grok's free-usage code or provider error type names one (`insufficient_quota`, `credit_balance_exhausted`), else `rate_limited`, status 429 |
+| billing (402, 1.0.77) | `retry_state {failed, api}`, prompt `-32603` with `data {message: "API error (status 402 Payment Required): ...", http_status: 402}` | `billing`, status 402 |
+| server error, overloaded | `retry_state {retrying, api}` up to `max_retries: 15`: no turn end within 150 s | none within 150 s (`api` -> `provider` once exhausted) |
+| oversized context | `retry_state {failed, context_length}`, prompt `-32603` | `input_too_large` |
+
+No `resetsAt` is reported.

@@ -2,12 +2,10 @@ import { SessionNotFoundError } from "../../contracts/session-not-found-error.js
 import { RuntimeFailureError } from "../../contracts/runtime-failure-error.js";
 
 /*
- * An open `@cursor/sdk` refused (docs/spec/runtime-matrix.md#cursor). The SDK
- * checks the key with Cursor's service when an agent is created: a key it
- * refuses is an `AuthenticationError` with `status: 401` (observed on 1.0.36
- * with a made-up `CURSOR_API_KEY`). With no key at all the open succeeds and
- * the first run fails instead. The SDK's other errors are not observed and
- * stay as they are.
+ * An open `@cursor/sdk` refused (docs/spec/runtime-matrix.md#failure-evidence):
+ * - [env] `@cursor/sdk` 1.0.36 `AuthenticationError` (status 401, made-up key): `auth` (`rejected`)
+ * - [src] `@cursor/sdk` `errors.d.ts` `agent_not_found`: `SessionNotFoundError`
+ * With no key, open succeeds and the first run fails via `cursor/projection.ts` (`[env]` prose fallback).
  */
 export function cursorOpenFailure(error: unknown): unknown {
   if (!(error instanceof Error) || error.name !== "AuthenticationError") {

@@ -269,6 +269,7 @@ export function projectAcpUpdate(state: AcpProjectionState, update: JsonRecord):
 /** The outcome an ACP prompt answer reports: `cancelled` is the runtime honoring session/cancel. */
 export function defaultAcpPromptOutcome(response: JsonRecord): TurnOutcome {
   if (response.stopReason === "cancelled") { return { kind: "aborted" }; }
+  // [schema] ACP StopReason "refusal" indicates the model declined to answer.
   if (response.stopReason === "refusal") { return { kind: "failed", failure: "model_refused", reason: "refusal" }; }
   return { kind: "completed" };
 }

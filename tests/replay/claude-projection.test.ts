@@ -277,7 +277,7 @@ test("claude assistant text names its API message id as the text's messageId", (
 });
 
 // claude 2.1.292 names a failed turn's cause on its synthetic assistant frame
-// (`error`) and the result's `api_error_status` (docs/spec/runtime-matrix.md#claude).
+// (`error`) and the result's `api_error_status` (docs/runtimes/claude.md#failures).
 test("a failed result takes the class of the turn's error frame, which the next turn forgets", () => {
   const outcomes: unknown[] = [];
   let state = claudePrompted(initialClaudeProjection);

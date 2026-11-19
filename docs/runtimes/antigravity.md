@@ -738,3 +738,21 @@ the behavior of every MCP configuration or other CLI versions.
 [Earlier native-query evidence](../../experiments/antigravity-skills/README.md)
 retains the signed-out guard, history and network controls. Commands, tools and
 MCP inventories remain unsupported on this adapter.
+
+## Failures
+
+Measured on Antigravity ACP server **1.3.0** (2026-10-08) and CLI **1.5.9** /
+**1.5.12** ([failure evidence](../spec/runtime-matrix.md#failure-evidence),
+[quota classifier](../../packages/oar/src/runtimes/antigravity/quota.ts),
+[shared ACP classifier](../../packages/oar/src/shared/acp/failure.ts)).
+
+| cause | what Antigravity reports | oar |
+|---|---|---|
+| missing login | open `-32000` "Authentication required", `data.message` "No authentication method selected..." | `RuntimeFailureError` (`auth`) |
+| unknown model | open `-32602` "Model ... is not available for the current authentication method" | `RuntimeFailureError` (`model_unavailable`); catalog mismatch is `ModelConfirmationError` |
+| signed-in individual quota (1.5.12 `[rec]`) | standalone warning text `"Individual quota reached. Please upgrade your subscription to increase your limits. Resets in ..."` followed by `end_turn` without `usage`, or wrapped in a prompt error | `quota` with `resetsAt` from receipt time plus countdown ([observations](../../experiments/antigravity-prompt-usage/README.md)) |
+| scripted Gemini API key 401, 404, 400 billing/overflow, 500 | turn completes (`end_turn`), some with warning or provider text as agent text | completed turn (no failure) |
+| scripted Gemini API key 429, 503, stalled stream | no frame within 150 s (1.3.0) / 180 s (1.5.9); 401/429/504 after tool call on 1.5.9 emit warning text then `end_turn` | completed turn or unanswered ([follow-up](../../experiments/antigravity-native-gaps-2026-11-15/README.md), [upstream #1570](https://github.com/google-antigravity/antigravity-cli/issues/1570)) |
+
+OAR infers no native idleness from `end_turn` and reads no CLI database to fill
+these provider-failure gaps.

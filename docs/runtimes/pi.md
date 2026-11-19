@@ -1467,3 +1467,23 @@ its user/project scope directly, temporary to other. When origin is package,
 `plugin` carries the native package source identifier; top-level has no plugin.
 These fields do not change RPC's partial-coverage result or supply its missing
 invocation restriction. See [skill provenance](../spec/inventory.md#skill-provenance).
+
+## Failures
+
+Measured on Pi SDK **1.0.4** against a scripted Anthropic provider
+([failure evidence](../spec/runtime-matrix.md#failure-evidence),
+[classifier](../../packages/oar/src/runtimes/pi/failure.ts)).
+
+| cause | where | what it carries | oar |
+|---|---|---|---|
+| missing key | the prompt is rejected (`runtime_refused`), no turn | "No API key found for the selected model." | (no turn) |
+| unknown model | the open fails (oar's own check against pi's registry) | `RuntimeFailureError` | `model_unavailable` |
+| every provider error | the assistant message: `stopReason: "error"`, `errorMessage` | "<status> <the provider's JSON body>"; inside a stream the body alone, no status | pi-ai's `isContextOverflow` first (`input_too_large`), then the body's `type` / `code` (Anthropic's 400 spend-limit and credit-balance wording as the last resort), then the status; `status` from the prefix |
+
+Rate limits, server errors and overload (also inside a stream) are retried
+three times, each announced by `auto_retry_start {attempt, maxAttempts, delayMs,
+errorMessage}`, ended by `auto_retry_end`; `agent_end.willRetry` says whether
+another attempt follows. pi-ai keeps the status apart (`normalizeProviderError`)
+but puts only the text on the message, and exports `isContextOverflow(message)`
+for overflow texts (`[src]`). No `resetsAt` is reported (for a ChatGPT plan
+pi-ai 1.1.0 words it "Try again in ~N min." `[src]`).

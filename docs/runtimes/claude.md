@@ -532,7 +532,7 @@ text supplies the failed turn's reason and stays out of model output.
 `verification_required` maps to `auth`; `overloaded` maps to `overloaded`
 even when only the result carries the HTTP status. A native
 `stop_reason: "refusal"` takes precedence over the CLI's error category
-and reports `model_refused`. [Failure evidence](../spec/runtime-matrix.md#claude).
+and reports `model_refused`. [Failures](#failures).
 
 ### Observation, children, and history
 
@@ -671,7 +671,7 @@ first turn's init frame (`haiku` reads back as `claude-haiku-5-5` since
 Opening with a model that does not exist succeeds; the first turn fails with
 claude's "issue with the selected model" message (`error: model_not_found`,
 `api_error_status: 404`), classified `model_unavailable`
-([failure evidence](../spec/runtime-matrix.md#claude)). `listModels` sends
+([failures](#failures)). `listModels` sends
 the token-free `list_models` control request from a process started in
 `ListModelsOptions.cwd` (the host's cwd by default); the answer preserves
 selector versus resolved ID, disabled entries, and effort choices
@@ -2050,3 +2050,46 @@ Skill provenance retains native `source` and `pluginName` (as `plugin`).
 Settings and policy classifications map to the shared `scope`; plugin identity
 alone does not override a settings scope. Missing or new classifications remain
 unknown. See [skill provenance](../spec/inventory.md#skill-provenance).
+
+## Failures
+
+Measured on Claude **2.1.292** against a scripted provider
+([failure evidence](../spec/runtime-matrix.md#failure-evidence),
+[classifier](../../packages/oar/src/runtimes/claude/failure.ts)). Every cause
+ends the turn with an `assistant` frame whose top-level `error` names a
+category (its text is the message), then a `result` with `is_error: true`,
+`api_error_status` (the HTTP status; `null` when no request was sent) and
+`terminal_reason`. A retried cause first sends `system/api_retry` frames
+`{attempt, max_retries, retry_delay_ms, error_status, error}`: 10 retries by
+default (`CLAUDE_CODE_MAX_RETRIES`; the runs set 1).
+
+| cause | `assistant.error` | `api_error_status` | retried (`api_retry.error`) | oar |
+|---|---|---|---|---|
+| missing login | `authentication_failed` ("Not logged in · Please run /login") | `null` | no | `auth`, `missing` |
+| invalid key | `authentication_failed` | 401 | yes (`authentication_failed`) | `auth`, `rejected` |
+| unknown model | `model_not_found` | 404 | no | `model_unavailable` |
+| rate limited | `rate_limit` | 429 | yes (`rate_limit`) | `rate_limited` |
+| usage limit (400) | `unknown` | 400 | no | `quota`: the words ("specified API usage limits"), the last resort |
+| billing: credit balance (400) | `billing_error` ("Credit balance is too low") | 400 | no | `billing` |
+| billing: 402 | `unknown` | 402 | no | `billing` (the status) |
+| server error | `server_error` | 500 | yes (`server_error`) | `provider` (the status) |
+| overloaded | `server_error` | 529 | yes (`overloaded`) | `overloaded` (the status) |
+| oversized context | `invalid_request`; `terminal_reason: prompt_too_long` | 400 | no | `input_too_large` |
+| inside the stream | none: claude retries the stream, then repeats the request without streaming, and that answer ends the turn | | | |
+
+After a tool call the fields are the same; an oversized context first tries
+compaction (`system/status` `compacting`).
+[Claude 2.1.326 controls](../../experiments/claude-compaction-start/README.md)
+observed the same start on manual compaction and automatic recovery after a
+tool result. Sanitized recorded Claude 2.1 assistant/result pairs show
+`verification_required` with 403 (`auth`) and `overloaded` with 529 on the
+result (`overloaded`). A recorded 2.1.325 weekly-limit assistant names
+`api_error: "usage_limit_reached"` (`quota`), with optional
+`api_error_params.rate_limit_info` carrying the native limit name and reset in
+Unix seconds ([sanitized recorded frames](../../tests/fixtures/claude-synthetic-failures.json)).
+A generic `rate_limit` is `quota` only when the latest `rate_limit_event` names
+a rejected limit with a reset and no available overage; otherwise it stays
+`rate_limited` ([when a limit resets](../spec/runtime-matrix.md#when-a-limit-resets)).
+Declared categories no run produced (`oauth_org_not_allowed`,
+`account_on_hold`, `max_output_tokens`, `cloud_credential_error`) stay unmapped
+and fall through to status.

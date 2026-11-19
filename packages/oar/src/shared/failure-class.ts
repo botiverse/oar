@@ -4,9 +4,9 @@ import { asRecord, parseJson } from "./json.js";
 /*
  * Failure classes from what a runtime reveals, most structured first
  * (docs/spec/runtime-matrix.md#failure-evidence): the runtime's own category
- * (each adapter maps its own), then the provider's error body (`type`,
- * `code`), then the HTTP status. Only causes some runtime was observed to
- * report are mapped; prose matching is each adapter's documented last resort.
+ * (each adapter maps its own, annotated inline with its evidence tier), then
+ * the provider's error body (`type`, `code`), then the HTTP status. Prose
+ * matching is each adapter's documented last resort.
  */
 
 /** A failed outcome's classification: the class, and the HTTP status where the runtime said it. */
