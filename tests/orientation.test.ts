@@ -216,3 +216,17 @@ test.each(["installation", "authStatus", "providers", "accountUsage", "listModel
   expect(result.runtimes[0]?.[field[member]]).toEqual({ kind: "unsupported" });
   expect(JSON.stringify(result)).not.toContain("sensitive");
 });
+
+test("each available installation carries its own session capabilities; a missing one carries none; the report is plain data", async () => {
+  const sessionCapabilities = vi.fn(() => ({ steer: true, refusedSessionOptions: { systemPrompt: "below the floor" } }));
+  const report = await orient(new RuntimeRegistry([
+    runtime({ id: "present", refusedSessionOptions: { fork: "static" }, sessionCapabilities }),
+    runtime({ id: "missing", installation: async () => ({ kind: "not_found" }) }),
+  ]));
+  expect(sessionCapabilities).toHaveBeenCalledWith({ kind: "available", via: "bundled" });
+  expect(report.runtimes[0]?.sessionCapabilities).toEqual({ steer: true, refusedSessionOptions: { fork: "static", systemPrompt: "below the floor" } });
+  expect(report.runtimes[1]).not.toHaveProperty("sessionCapabilities");
+  // oxlint-disable-next-line unicorn/prefer-structured-clone -- the JSON round trip is the property under test.
+  const sent: unknown = JSON.parse(JSON.stringify(report));
+  expect(sent).toEqual(report);
+});

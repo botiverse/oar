@@ -99,7 +99,7 @@ export type {
   RuntimeLogin,
   RuntimeLogout,
 } from "./login.js";
-export type { McpToolsListChanged, RefusableSessionOption, RefusedSessionOptions, ResumeOptionSemantics, ResumedSessionOptions, Runtime, SessionCapabilityDeclaration } from "./runtime.js";
+export type { CompactionEvents, McpToolsListChanged, RefusableSessionOption, RefusedSessionOptions, ResumeOptionSemantics, ResumedSessionOptions, Runtime, SessionCapabilityDeclaration } from "./runtime.js";
 export type {
   AdapterSession,
   AttributionTier,
@@ -165,7 +165,7 @@ export type {
   Unsubscribe,
   UsageReport,
 } from "./session.js";
-export { defineRuntime } from "./runtime.js";
+export { defineRuntime, installedSessionCapabilities } from "./runtime.js";
 export { UnsupportedOptionError } from "./errors.js";
 export { ModelConfirmationError } from "./model-confirmation-error.js";
 export { ResumeCwdError, type ResumeCwdReason } from "./resume-cwd-error.js";

@@ -4,6 +4,7 @@ import type { InstallationSnapshot } from "./installation.js";
 import type { ModelEntry } from "./list-models.js";
 import type { ProviderAuthStatus } from "./provider-auth.js";
 import type { RuntimeBrand } from "./brand.js";
+import type { SessionCapabilityDeclaration } from "./runtime.js";
 import type { SessionOptions } from "./session-options.js";
 
 /** Facts, including missing evidence, without an embedded selection policy. */
@@ -36,6 +37,8 @@ export interface RuntimeOrientation {
   readonly id: string;
   readonly brand: RuntimeBrand;
   readonly installation: Probe<InstallationSnapshot>;
+  /** For an available installation: what a session from it will offer (`installedSessionCapabilities`). Pure, so never a probe. */
+  readonly sessionCapabilities?: SessionCapabilityDeclaration;
   readonly auth: Probe<AuthStatus>;
   /** Local reads stored metadata without resolving credentials; account/models resolve it. */
   readonly providers?: Probe<readonly ProviderAuthStatus[]>;
