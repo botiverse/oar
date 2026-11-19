@@ -4,7 +4,7 @@
 > [hard problems 5-8](../design/hard-problems.md#the-session-and-event-model),
 > [foundations](../design/foundations.md).
 
-Control (open / prompt / steer / queue / withdraw / abort / stop_task / compact / dispose and their replies) and
+Control (open / prompt / steer / queue / withdraw / abort / stop_task / compact / goal controls / dispose and their replies) and
 facts (what the runtime actually said) are records on one stream, and
 control never decides whether a fact exists. A model that pushes both
 through control objects lets the control plane trim, synthesize, and

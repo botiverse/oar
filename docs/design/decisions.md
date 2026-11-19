@@ -342,6 +342,8 @@ this declaration; remote Codex compaction is still an evidence gap.
 session's whole `env` into its thread's configuration. A host whose agents
 each carry their own credential shares nothing otherwise.
 
+**Status:** designed, not implemented. `SessionOptions` has no `toolEnv` yet; it lands with admitted shared placement ([codex runtime page](../runtimes/codex.md)).
+
 **Refused for `env`, accepted for a tool-only scope.** Codex reads some
 variables at process level for itself (API keys, proxies, certificates,
 `CODEX_HOME`); thread configuration cannot change those, so a session's `env`
