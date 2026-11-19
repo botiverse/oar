@@ -95,7 +95,7 @@ set, status stays `unknown` and the key is untouched. [Installation evidence](in
 | Failures | A successful prompt RPC can carry `refusal` and `_meta["codebuddy.ai/outcome"]: "FAILED_MODEL_REQUEST"`. Every `FAILED*` outcome or refusal is a failure. The reason preserves the native message or outcome name. Native error category takes precedence over HTTP status: quota, authentication and provider errors are distinguished; network/internal remain unknown. Known credentials are redacted from the reason. |
 
 `env` is applied to installation selection, account helpers, model listing and
-sessions. Unsupported goals, `endTurnProcessesOnAbort`, additional directories,
+sessions. `fork`, `goals`, `endTurnProcessesOnAbort`, additional directories,
 service tier, final-output schema, session name, appended system prompt and
 `userConfiguration: "exclude"` are refused before opening
 ([declarations](../../packages/oar/src/runtimes/codebuddy/options.ts)). Omission or `include` retains the native defaults.

@@ -13,11 +13,15 @@ observed on Linux with a local scripted OpenAI provider on 2026-10-23.
 The source's `packages/cli/src/nonInteractive/session.ts` and
 `control/controllers/systemController.ts` define this interface.
 
-Current check: npm **0.27.4** on Linux, 2026-11-15. All 21 native vendor
-tests and 16 applicable behavior cases passed. The snapshot-id and
-extension-store limits below still reproduce, and all fourteen
-provider-preset credential variables remain covered by the local credential
-reader. See the [version check](../../experiments/runtime-version-checks/2026-11-15.md#qwen-0274).
+The latest Linux check used npm **0.28.0** on 2026-11-18. Qwen reported
+measured context usage on fresh and resumed turns. OAR model listing returned
+`unauthenticated` with no auth type selected and returned the native catalog
+with a settings-backed provider. See the [context usage](../../experiments/qwen-native/context-usage-2026-11-18.md)
+and [model listing](../../experiments/qwen-native/model-auth-2026-11-18.md) results.
+The [0.27.4 check](../../experiments/runtime-version-checks/2026-11-15.md#qwen-0274)
+passed 21 native vendor tests and 16 applicable behavior cases. It also covers
+the snapshot-id and extension-store limits and fourteen provider-preset
+credential variables.
 
 ## OAR mapping
 
@@ -47,7 +51,7 @@ its runtime. OAR itself requires Node 24 or newer.
 | Install | Official standalone installer on macOS/Linux, checksum verification by the vendor script, with `--method standalone --no-modify-path`. No npm fallback or shell-profile change. Windows returns unsupported with the official PowerShell instructions. |
 | Login / provider setup | No runtime `login` member or browser flow; native `qwen auth` was removed. `createQwenProviderAuth` drives native ACP provider list/connect. Environment configuration also remains available. |
 | Authentication status | Local user/system credential presence only. Configured or indeterminate sources return `unknown`; none in scope returns `logged_out` with setup guidance and a workspace caveat. No credential validation, native process, network request or write. |
-| Other surfaces | `serviceTier`, `name`, `goals` and `endTurnProcessesOnAbort` are refused ([declarations](../../packages/oar/src/runtimes/qwen/options.ts)); `launchArgs` cannot override the protocol, session identity, approval mode or output schema flags OAR owns. No account quota, command/MCP/tool inventory, updater, live configure or context breakdown mapping. Skill discovery uses the independent native query described below. |
+| Other surfaces | `fork`, `serviceTier`, `name`, `goals` and `endTurnProcessesOnAbort` are refused ([declarations](../../packages/oar/src/runtimes/qwen/options.ts)); `launchArgs` cannot override the protocol, session identity, approval mode or output schema flags OAR owns. It also rejects `--sandbox-session-id`, `--list-extensions` (`-l`) and the `--` argument separator. No account quota, command/MCP/tool inventory, updater, live configure or context breakdown mapping. Skill discovery uses the independent native query described below. |
 
 On resume, pass `systemPrompt` and `appendSystemPrompt` again to retain or
 replace them (`resumedSessionOptions`: provided `immediate`, omitted `default`).
@@ -485,14 +489,16 @@ key and provider endpoint. These are configuration instructions, not proof
 that an account or endpoint works.
 
 `authStatus()` is a local presence observation with the same inherited
-environment and explicit `env` overlay as a session. It reads user and system
-settings (`security.auth`, `settings.env`, and variables referenced by
-`modelProviders[].envKey`), native provider-key variables, and the user-level
+environment and explicit `env` overlay as a session. It reads system defaults,
+user settings and system settings (`security.auth`, `settings.env`, and variables
+referenced by `modelProviders[].envKey`), native provider-key variables, and the user-level
 `.env` files Qwen reads independently of a workspace walk: the global Qwen
 configuration directory, legacy `~/.qwen`, and the home directory. It honors
-`QWEN_HOME`, including its user `.env` bootstrap, and the native system settings
-path overrides. JSONC and dotenv are parsed without running Qwen's settings
-loader, migrations or provider setup. Existing files are not modified.
+`QWEN_HOME`, including its user `.env` bootstrap. `QWEN_CODE_SYSTEM_SETTINGS_PATH`
+overrides the system settings file. The reader looks for `system-defaults.json`
+beside that file unless `QWEN_CODE_SYSTEM_DEFAULTS_PATH` names another path.
+JSONC and dotenv are parsed without running Qwen's settings loader, migrations
+or provider setup. Existing files are not modified.
 
 Project settings, workspace `.env` files and launch arguments such as
 `--openai-api-key` are outside this machine/user observation. `AuthStatusOptions`
