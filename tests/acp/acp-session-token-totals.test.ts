@@ -9,17 +9,11 @@ import type { AcpSessionProfile } from "../../packages/oar/src/shared/acp/profil
 import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
 import { fixture } from "../fixtures/acp-session-support.js";
 
-// #161: kimi, opencode and antigravity report no token totals on their ACP
-// surface (docs/runtimes/<id>.md), so `usage()` stays null over turns and no
-// `cacheRead` / `cacheWrite` can appear. Each real profile runs against the
-// fixture mode that replays its runtime, only the launch line swapped:
-// "usage-after-response" kimi-code f9ca33376 (context-only usage_update after
-// the answer), "opencode" opencode acp 1.18.30, "antigravity" agy_acp_server
-// 1.2.1.
+// These historical ACP fixtures carry context or per-message usage only.
 const nonReporting: readonly (readonly [string, AcpSessionProfile, string])[] = [
   ["kimi", kimiAcpProfile, "usage-after-response"],
-  ["opencode", opencodeAcpProfile, "opencode"],
-  ["antigravity", antigravityAcpProfile, "antigravity"],
+  ["opencode v1", opencodeAcpProfile, "opencode"],
+  ["antigravity 1.2.1", antigravityAcpProfile, "antigravity"],
 ];
 
 async function startReplay(profile: AcpSessionProfile, mode: string): Promise<Session> {

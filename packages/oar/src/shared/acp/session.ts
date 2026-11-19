@@ -9,6 +9,7 @@ import type {
   RequestBody,
   RequestRecord,
   ResponseBody,
+  RuntimeEventBody,
   Session,
   SessionOptions,
   StartSession,
@@ -114,7 +115,8 @@ export function finishAcpSession(
   const capabilities = { ...profile.capabilities, images: profile.capabilities.images ?? acpTakesImages(opened.initialized) };
   const ownership = shared;
   let compaction: ReturnType<typeof manualCompaction> | null = null;
-  const turns = createAcpTurns({ operationBusy: () => compaction?.busy() === true, kernel, runtime, profile, usageGate, capabilities, promptMeta: profile.promptMeta?.(options), promptUsage: (result) => tokenUsage.prompt(result),
+  const promptUsage = (response: JsonRecord): RuntimeEventBody | null => tokenUsage.prompt(response, opened.initialized);
+  const turns = createAcpTurns({ operationBusy: () => compaction?.busy() === true, kernel, runtime, profile, usageGate, capabilities, promptMeta: profile.promptMeta?.(options), promptUsage,
     ...(nativeTurns === undefined ? {} : { native: { promptParams: (inputId: string | undefined): JsonRecord => ({ _meta: nativeTurns.name(inputId) }), afterClose: nativeTurns.afterOarTurn } }),
     ...(ownership === undefined ? {} : { fallback: async (request: RequestRecord): Promise<void> => { ownership.stopRequests(); await lifecycle?.abortFallback(request); } }),
   });
@@ -134,7 +136,7 @@ export function finishAcpSession(
       settledBy: "native_response",
       released: () => { queueMicrotask(() => { turns.drain(); }); },
       create: (): CompactionOperation => {
-        const operation = createCompaction(kernel, runtime, (response) => tokenUsage.prompt(response));
+        const operation = createCompaction(kernel, runtime, promptUsage);
         let state: ActiveTurn | null = null;
         const finish = (): void => { if (state !== null) { turns.finishOperation(state); state = null; } };
         return {
