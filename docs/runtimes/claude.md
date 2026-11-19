@@ -1327,6 +1327,56 @@ copy independently of its own app release. OAR leaves its updates to Desktop;
 `checkUpdate` reports `unavailable/package_manager` and `upgrade` reports
 `unsupported/unsupported_installation`. [Update regression](../../tests/update-sources.test.ts).
 
+### Credentials
+
+`claudeRuntime.credentials` declares the names a host can clear when switching
+provider accounts. Claude Code 2.1.328 chooses a client first. That client
+determines which credentials, headers, signing region, model and account
+scope apply. Hosts can set `CLAUDE_CONFIG_DIR` and `ANTHROPIC_CONFIG_DIR`
+to isolate each agent's stores. Both names appear exclusively in
+`stores[].directoryEnv`. The identity profile directory follows XDG when
+`ANTHROPIC_CONFIG_DIR` is absent, as described below. Hosts can preserve
+`XDG_CONFIG_HOME` when clearing credential variables.
+[Declaration with the individual names](../../packages/oar/src/runtimes/claude/credentials.ts).
+
+| Native reader in 2.1.328 | What it uses |
+| --- | --- |
+| Direct API and OAuth | The API client reads the API key, bearer token, base URL and custom request headers. The host-managed and OAuth readers also accept token/key descriptors, a host-selected credential variable, a host credential or background snapshot file, refresh-token settings and an OAuth endpoint. A header can contain a bearer or API key. |
+| Anthropic identity profiles | The profile loader resolves `ANTHROPIC_CONFIG_DIR`, then `XDG_CONFIG_HOME/anthropic`, then `~/.config/anthropic`. An explicitly named profile precedes `active_config`. The federation reader consumes the organization, rule and optional workspace, takes the identity token from a configured file or the environment, and caches exchanged credentials. |
+| Bedrock, Mantle and Claude Platform on AWS | Each client reads its own enable, skip-auth and endpoint variables. The clients support bearer/key auth or AWS signing. The credential chain reads access/session keys, profile and shared configuration files, web identity, or container/instance credentials. Region and inference-profile settings route requests, including the separate small-model region. |
+| Vertex AI and Claude Platform on Google Cloud | The client selects the project, account endpoint and regional deployment. Vertex consults a table of model-specific region variables before `CLOUD_ML_REGION`. Google Auth resolves application default credentials, including `GOOGLE_APPLICATION_CREDENTIALS` and metadata. |
+| Microsoft Foundry | The client reads its endpoint or resource name, explicit token/key and signing switch. The Entra credential chain reads tenant and client identity, client secret, certificate or federated token file. |
+| Model resolver | Main and small-model selectors, model-family aliases, the custom model option and subagent model selectors can point to a cloud deployment. A display label alone leaves routing unchanged. |
+
+In isolated Linux `claude auth status --json` checks, an empty home returned
+`loggedIn: false`. A dummy API key selected `api_key`. Either a direct bearer
+or OAuth token selected `oauth_token`. The Bedrock, Mantle, Vertex and Foundry
+selectors each reported their own `apiProvider`. These checks did not submit a
+model request. Endpoint, signing, profile and model selectors above were
+verified in the corresponding readers in the published 2.1.328 executable.
+[Authentication](https://code.claude.com/docs/en/authentication),
+[environment variables](https://code.claude.com/docs/en/env-vars),
+[Bedrock](https://code.claude.com/docs/en/amazon-bedrock),
+[Vertex](https://code.claude.com/docs/en/google-vertex-ai).
+
+Native sign-in can use the macOS Keychain or
+`${CLAUDE_CONFIG_DIR:-~/.claude}/.credentials.json`. The global
+`.claude.json` can carry a login-managed API key. It lives under the explicit
+configuration directory or directly under the home directory. Settings can
+supply environment values or an `apiKeyHelper`; the project settings, trust
+and policy in force matter. Cloud credential chains can also consult local
+cloud sign-in tools, well-known files and machine identities. Clearing Claude
+environment variables alone leaves those sources available.
+[OAuth store controls](#user-configuration), [AWS credential chain](https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/setting-credentials-node.html),
+[Google application default credentials](https://cloud.google.com/docs/authentication/application-default-credentials).
+
+Three names from Raft's previous isolation list have no credential routing
+entry in this declaration. Claude 2.1.328 contained no
+`ANTHROPIC_BEDROCK_MANTLE_API_KEY` reader. Mantle's client accepts a helper
+or `AWS_BEARER_TOKEN_BEDROCK`. `ANTHROPIC_BEDROCK_SERVICE_TIER` sets a
+service-tier header. `CLAUDE_CODE_USE_CCR_V2` appears in remote child
+environment handling without selecting a model provider or credential.
+
 ### Login
 
 `login`, `logout` and `authStatus` accept the same `env` overlay as sessions,

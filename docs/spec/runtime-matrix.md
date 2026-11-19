@@ -197,11 +197,29 @@ or store a credential can come from, in the runtime's own precedence, with
 the variable that moves it, its default location, and whether it wins over
 the environment. A `.env` the runtime reads from the session's directory is
 listed too, since it can supply a key the host never passed. A host isolates
-one agent's credentials by setting the directory variables, and never puts
-a secret on a command line. Native login is the `login` member and
+one agent's stores by setting `stores[].directoryEnv`. It clears or supplies
+the names in `env` to control inherited credentials and provider routes.
+These lists are disjoint so credential cleanup preserves the host's storage
+isolation. Hosts keep secrets off command lines. Native login is the `login` member and
 per-provider keys are `providers`. Each runtime page states its own shape
 (for example [dsh](../runtimes/dsh.md#credentials)). `orient()` carries both
 fields in every entry, installed or not.
+
+A declared variable's `purpose` tells the host why it participates in credential isolation.
+Clients that read different sets of variables have separate precedence rules. See the
+[Claude credential sources and provider routes](../runtimes/claude.md#credentials).
+
+| Purpose | What the native runtime reads it for |
+| --- | --- |
+| `api_key` | A provider key or signing credential. |
+| `token` | A bearer, session, identity or refresh token. |
+| `base_url` | The endpoint that receives an authenticated request. |
+| `provider_selector` | Selects a provider client or changes how it authenticates the request. |
+| `region` | Selects a signing or deployment region. |
+| `account_scope` | Selects the organization, project, resource or scope under a credential. |
+| `model_route` | Selects the model or cloud deployment that receives the request. |
+| `credential_source` | Identifies a credential provider, profile, file, directory or descriptor. |
+| `headers` | Supplies request headers that can carry credentials. These are secret. |
 
 ### Native tasks and single-task stop
 

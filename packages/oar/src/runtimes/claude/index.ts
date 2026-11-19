@@ -6,6 +6,7 @@ import { claudeCommands, claudeSkills, claudeMcpServers, claudeTools } from "./i
 import { defineRuntime } from "../../contracts/runtime.js";
 import { claudeAuthStatus, claudeLogin } from "./login.js";
 import { claudeLogout } from "./logout.js";
+import { claudeCredentials } from "./credentials.js";
 import { claudeAccountUsage } from "./account-usage.js";
 import { claudeInspectLimitResets, claudeRedeemLimitReset } from "./limit-reset/index.js";
 import { claudeInstallation } from "./installation.js";
@@ -23,6 +24,7 @@ export const claudeRuntime = defineRuntime({
     systemPrompt: { provided: "next_compaction", omitted: "saved_until_compaction" },
     appendSystemPrompt: { provided: "next_compaction", omitted: "saved_until_compaction" },
   },
+  credentials: claudeCredentials,
   brand: runtimeBrands.claude, verifiedPlatforms: verifiedPlatforms.claude,
   skills: claudeSkills,
   commands: claudeCommands,
