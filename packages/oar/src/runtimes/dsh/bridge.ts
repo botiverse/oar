@@ -94,6 +94,7 @@ export function apply(ctx, config) {
 function boot(ctx) {
   const agents = ctx.get("agents");
   const persistence = ctx.get("sessionPersistence");
+  const jobs = ctx.get("jobs");
   const handles = new Map();
   const owned = (sessionId) => {
     const handle = handles.get(sessionId);
@@ -114,6 +115,7 @@ function boot(ctx) {
     handles.set(agent.session.id, handle);
     const modelCurrent = typeof agent.model?.current === "function";
     return { sessionId: agent.session.id, header: agent.session.header, status: agent.status,
+      jobMethods: methods(jobs, ["get", "kill", "wait"]),
       methods: methods(agent, AGENT_METHODS), inboxMethods: methods(agent.inbox, INBOX_METHODS),
       pending: { nextTurn: agent.inbox?.nextTurn?.length, nextStep: agent.inbox?.nextStep?.length },
       modelCurrent, ...(modelCurrent ? { model: agent.model.current() } : {}) };
@@ -239,6 +241,19 @@ ${dshGoalSource}
       if (!agent.inbox.nextTurn.some((message) => message.id === request.messageId)) { return { removed: false }; }
       cause = "withdraw";
       try { return { removed: agent.inbox.remove(request.messageId) }; } finally { cause = undefined; }
+    },
+    async stopTask(request) {
+      const { agent } = owned(request.sessionId);
+      const owner = agent.session.id;
+      const job = jobs.get(request.taskId, owner);
+      if (job.owner !== owner || (job.kind !== "bash" && job.kind !== "pwsh")) {
+        throw refusal("unsupported_task", "DSH can stop only a shell job owned by this session");
+      }
+      const result = jobs.kill(job.id, owner, "Stopped by host");
+      if (result !== "requested") { throw refusal("job_finished", "DSH reports that this shell job already finished"); }
+      const settled = await jobs.wait(job.id, 5000, owner);
+      if (settled.status !== "killed") { throw refusal("job_not_killed", "DSH reported shell job status " + settled.status); }
+      return { jobId: settled.id, status: settled.status };
     },
     cancel(request) {
       const { agent } = owned(request.sessionId);

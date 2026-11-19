@@ -81,7 +81,7 @@ function refusalOf(error: unknown): ResponseBody {
   if (!(error instanceof DshCommandError)) { return { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) }; }
   if (error.code === "busy") { return { kind: "rejected", code: "busy", reason: "busy" }; }
   if (error.code === "no_active_turn") { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
-  if (error.code === "native_method_unavailable") { return { kind: "rejected", code: "unsupported", reason: error.message, native: error.native }; }
+  if (error.code === "native_method_unavailable" || error.code === "unsupported_task") { return { kind: "rejected", code: "unsupported", reason: error.message, native: error.native }; }
   return { kind: "rejected", code: "runtime_refused", reason: error.message, native: error.native };
 }
 
@@ -131,6 +131,7 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
   const capabilities = { queue: { durable: false }, attribution: "nested", images: false } as const;
   const methods = asRecord(opened.methods) ?? {};
   const inboxMethods = asRecord(opened.inboxMethods) ?? {};
+  const jobMethods = asRecord(opened.jobMethods);
   const send = async (method: string, payload: JsonRecord): Promise<ResponseBody> => {
     try { return { kind: "accepted", native: await control.request(method, { sessionId, ...payload }) }; }
     catch (error) { return refusalOf(error); }
@@ -157,6 +158,9 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
         return answer.kind === "accepted" && asRecord(answer.native)?.removed === false
           ? { kind: "rejected", code: "not_queued", reason: "no held input with this inputId is waiting" } : answer;
       }),
+    } : {}),
+    ...(jobMethods?.get === true && jobMethods.kill === true && jobMethods.wait === true ? {
+      stopTask: async (taskId) => kernel.control({ kind: "stop_task", taskId }, async () => send("stopTask", { taskId })),
     } : {}),
     abort: async () => kernel.control({ kind: "abort" }, async () => {
       const disarm = fallback.arm();

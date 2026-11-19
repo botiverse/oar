@@ -60,3 +60,25 @@ test.skipIf(!dshEnabled)("DSH's background shell survives the first root end, se
     }
   });
 }, 60_000);
+
+test.skipIf(!dshEnabled)("DSH stops only the selected session's shell job and records its native settlement", async () => {
+  await withDshFixture(request => lastInput(request).includes("HOLD_SHELL") && toolResults(request) === 0
+    ? { kind: "tool", name: nativeShell.tool, arguments: { command: heldCommand, description: "held shell", run_in_background: true } }
+    : say("ok"), async ({ open, aimock }) => {
+    const source = await open();
+    const peer = await open();
+    try {
+      const admitted = await source.prompt("HOLD_SHELL");
+      expect(await awaitTurnEnd(source, admitted.seq)).toEqual({ kind: "completed" });
+      const job = tasksOf(source.records()).value.find(row => row.taskType === "shell");
+      assert.ok(job !== undefined && source.stopTask !== undefined && peer.stopTask !== undefined);
+      expect(await peer.stopTask(job.taskId)).toMatchObject({ kind: "rejected" });
+      expect(tasksOf(source.records()).value.find(row => row.taskId === job.taskId)?.status).toBe("running");
+      expect(await source.stopTask(job.taskId)).toMatchObject({ kind: "accepted" });
+      expect(tasksOf(source.records()).value.find(row => row.taskId === job.taskId)?.status).toBe("stopped");
+      expect(await source.stopTask(job.taskId)).toMatchObject({ kind: "rejected" });
+    } finally {
+      await writeFile(path.join(aimock.cwd, gate), "release");
+    }
+  });
+}, 60_000);
