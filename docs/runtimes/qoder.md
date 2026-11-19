@@ -169,7 +169,7 @@ controlled processes with the runtime's actual projection dialect).
 | Steer | A user message with native `priority: next` inserts at a tool boundary or starts after a text-only turn. The user echo preserves `inputId`; acceptance only confirms the write. Native `now` aborts the active turn and is not used for steering. [Priority evidence](../../experiments/qoder-native/README.md#input-priority-2026-10-24). |
 | MCP | Native stdio and HTTP servers through a private per-process configuration file. Credentials are omitted from argv and redacted from public records. |
 | System and tools | Native system/append prompt files, additional-directory and disallowed-tool startup flags. Native global configuration still applies. |
-| Unsupported options | `goals: true`, `endTurnProcessesOnAbort: true`, `serviceTier`, `outputSchema`, persisted session `name` and `userConfiguration: "exclude"` ([below](#user-configuration-selection)) are explicitly refused. Image input is refused. `launchArgs` cannot override OAR-owned protocol, session, permission, effort, name or replay flags. |
+| Unsupported options | `fork`, `goals: true`, `endTurnProcessesOnAbort: true`, `serviceTier`, `outputSchema`, persisted session `name` and `userConfiguration: "exclude"` ([below](#user-configuration-selection)) are explicitly refused. Image input is refused. `launchArgs` cannot override OAR-owned protocol, session, permission, effort, name or replay flags. |
 | Cleanup | EOF permits normal idle shutdown; active disposal and bounded shutdown use process-tree cleanup. Native exit is recorded. |
 
 System prompts use `--system-prompt-file` and `--append-system-prompt-file`.

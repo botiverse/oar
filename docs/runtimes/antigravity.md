@@ -611,7 +611,7 @@ Omission and `"include"` retain native configuration.
 
 ## Other refused options
 
-`goals`, `endTurnProcessesOnAbort`, `serviceTier` and `name` are refused
+`fork`, `goals`, `endTurnProcessesOnAbort`, `serviceTier` and `name` are refused
 before launch: this adapter has no verified native channel for them
 ([declarations](../../packages/oar/src/runtimes/antigravity/options.ts)).
 

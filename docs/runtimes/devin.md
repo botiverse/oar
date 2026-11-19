@@ -73,9 +73,9 @@ ACP `session/new` and `session/load` accept stdio and HTTP `mcpServers` entries,
 
 ### Refused session options and launch arguments
 
-`devinRuntime.refusedSessionOptions` refuses 10 `SessionOptions` keys before spawning a process:
+`devinRuntime.refusedSessionOptions` refuses the following `SessionOptions` keys before spawning a process:
 
-`additionalDirectories`, `appendSystemPrompt`, `disallowedTools`, `endTurnProcessesOnAbort`, `goals`, `name`, `outputSchema`, `serviceTier`, `systemPrompt`, and `userConfiguration`.
+`additionalDirectories`, `appendSystemPrompt`, `disallowedTools`, `endTurnProcessesOnAbort`, `fork`, `goals`, `name`, `outputSchema`, `serviceTier`, `systemPrompt`, and `userConfiguration`.
 
 `initialize` advertises `sessionCapabilities.additionalDirectories`, and `devinRuntime.refusedSessionOptions` refuses `additionalDirectories` because OAR has not verified that primary `cwd` and tool scoping honor it.
 

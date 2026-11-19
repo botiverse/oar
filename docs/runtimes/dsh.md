@@ -254,7 +254,7 @@ session in `SessionOptions.env`: nobody sits at an approval prompt, and native r
 tools run and the native `permission/preset` frame is recorded.
 
 Refused with `UnsupportedOptionError` until an effective native mapping is verified:
-`launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`,
+`fork`, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`,
 `userConfiguration: "exclude"`, `endTurnProcessesOnAbort: true`
 ([`options.ts`](../../packages/oar/src/runtimes/dsh/options.ts)). Images are not
 sent: `capabilities.images` is false and an input with images is rejected
@@ -264,7 +264,9 @@ one probe on 0.2.1-rc.5 found the queued input still in the log: it does not run
 resume, `dsh/opened` reports it as `pending`, and it runs at the next wake, ahead of
 the prompt that woke it. Flush timing has not been established, so OAR promises
 nothing here. Login, auth status and account usage are absent. Manual compaction
-is undeclared, meaning untested. Inventories answer `unsupported`.
+is undeclared, meaning untested. DSH exposes an
+[independent skill catalog](#independent-skill-catalog). Its `commands()`,
+`mcpServers()` and `tools()` inventories return `unsupported`.
 
 ## Native goals
 

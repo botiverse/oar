@@ -216,7 +216,7 @@ reported.
 | `mcpServers` | `mcpServers` on open and resume (below) |
 | `env` | the process environment |
 | `launchArgs` | after OAR's own arguments; the protocol, session and cwd flags are refused |
-| refused | `serviceTier` (none), `outputSchema` (droid's `structuredOutputFormat` not yet verified across turns), `name` (title persistence not verified), `additionalDirectories` (none), `disallowedTools` (`disabledToolIds` not yet verified against these names), `userConfiguration: "exclude"` (no verified separation), `goals`, `endTurnProcessesOnAbort` |
+| refused | `fork`, `serviceTier` (none), `outputSchema` (droid's `structuredOutputFormat` not yet verified across turns), `name` (title persistence not verified), `additionalDirectories` (none), `disallowedTools` (`disabledToolIds` not yet verified against these names), `userConfiguration: "exclude"` (no verified separation), `goals`, `endTurnProcessesOnAbort` |
 
 #### Session MCP servers
 
