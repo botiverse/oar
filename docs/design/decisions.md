@@ -771,3 +771,40 @@ exports in spec pages; reorganizing those pages is separate work.
 cannot be expressed through the retained contracts. Review the common need
 and native evidence before adding a public entrance; an internal helper's
 existence alone is not evidence that it belongs in the API.
+
+## Runtime pages keep what the code cannot say (2026-11-19)
+
+**Considered:** keeping each runtime page as a full prose description of its
+adapter (launch arguments, timeouts, frame names, event tables, file lists,
+refused options, version floors, test counts) and correcting pages as
+audits find them out of date, or adding a test that checks pages against the
+code's declarations.
+
+**Decided:** a runtime page keeps only what the code cannot say: how the
+native tool behaves (measured, with version, date and evidence link), where
+the runtime differs from the contract and why, and what a host must know to
+use it safely (credentials, side effects, installer quirks). How the adapter
+works is read from its code and tests; what it supports is read from its
+declarations (`refusedSessionOptions` carries a reason for each refusal,
+`sessionCapabilities`, the members present). Counts and versions that change
+with the code are not written on pages; dated version check reports keep
+them.
+
+A long-running audit of the runtime pages found nearly every error in prose
+that restated the implementation: `SessionOptions.fork` was refused by 13
+adapters and named on none of their pages, two pages said a runtime had no
+inventory after a skill catalog was added, and pages named stale SDK versions,
+test counts, error names and cleanup paths. Each correction fixed one page and
+left the cause. A test comparing prose to declarations would keep the
+duplication and add upkeep; removing the duplication removes the class of
+error. Readers are increasingly agents, which read the adapter directly.
+The [Devin page](../runtimes/devin.md) is the first one written this way.
+
+The same audit found a process left running after a status read timed out,
+because each adapter bounded its one-shot native query its own way. One-shot
+native queries share one helper that stops the process tree at the deadline,
+with a contract test across runtimes.
+
+**What would reopen it:** a host that cannot get what it needs from the
+declarations, contracts and code, and needs an implementation fact on the
+page. Add the fact as a declaration where it can be one.
