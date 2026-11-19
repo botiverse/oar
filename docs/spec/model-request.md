@@ -30,9 +30,10 @@ export interface ModelRequest {
   /** When OAR captured it (ISO 8601). */
   readonly at: string;
   /**
-   * `wire`: the body sent to the provider, as the runtime built it.
+   * `wire`: the provider body as the runtime built it.
    * `harness`: the runtime's own request before its provider adapter
    * converts it (cache markers and format conversion not applied).
+   * Either way it is the whole context of that call, never a delta.
    */
   readonly fidelity: "wire" | "harness";
   /** The schema of `body`: `anthropic.messages`, `openai.responses`, `openai.chat`, `google.generate_content`, or a runtime's harness schema (`pi.context`, `dsh.request`). */
@@ -68,11 +69,23 @@ export interface ModelRequest {
   proxy of its own to read requests. A proxy would sit in the credential
   path, change what the runtime connects to, and fail for runtimes whose
   prompt is built on the vendor's server (Cursor, Devin).
+- **The whole context, never a delta.** Some runtimes send only what is new
+  since the previous call (Pi with Anthropic message threads continues a
+  server-side thread; Codex over WebSocket may send incremental requests).
+  OAR captures the complete request before that trimming, so the answer
+  always shows everything the model had for that call.
+- **Current as soon as the request is sent.** OAR replaces the kept request
+  when the runtime sends the next one, before its response, and the reading
+  is valid at any moment, including mid-turn. A host that indexes requests
+  by something it observes during a turn (a message the agent sent through
+  a tool) reads at that moment: while a tool runs, the latest request is the
+  one whose response called it. Where the native mechanism writes a file,
+  the reading takes the newest complete file at the time of the call.
 - **The latest root request, not a history.** OAR keeps one request per
   session and replaces it on the next. Requests a sub-agent sends are not
   returned; a runtime that cannot tell them apart refuses the option until
-  it can. A host that wants each request reads after `turn_ended` and stores
-  it in its own data layer
+  it can. A host that wants a history reads when it needs one and stores it
+  in its own data layer
   ([replay boundary](../design/foundations.md#replay-boundary)).
 - **Read, never recorded.** Like `contextBreakdown()`, reading changes
   nothing in the session, so it enters no record. Recording bodies would
@@ -93,12 +106,12 @@ read from binary strings or documentation, not run.
 
 | runtime | mechanism | fidelity | to verify |
 | --- | --- | --- | --- |
-| claude | `OTEL_LOG_RAW_API_BODIES=file:<dir>` writes each request body | wire | works with telemetry export off; first version; sub-agent requests distinguishable; `withheld` bodies |
-| pi | extension event `before_provider_request`, through the extension factories OAR already passes | wire | |
+| claude | `OTEL_LOG_RAW_API_BODIES=file:<dir>` writes each request body | wire | written when the request is sent, not at turn end; works with telemetry export off; first version; sub-agent requests distinguishable; `withheld` bodies |
+| pi | extension event `before_provider_request`, through the extension factories OAR already passes | wire | carries the full request, not the message-threads delta (Raft's `onPayload` relies on this) |
 | opencode 2.x | plugin hook `http.request`, through the config OAR already passes in `OPENCODE_CONFIG_CONTENT` | wire | every provider passes through the hook |
 | opencode 1.x | plugin transforms for system, messages, params and tool definitions | harness | |
 | dsh | `request/header` (config and tool schemas) plus derived messages, through OAR's in-process bridge | harness | |
-| codex | `CODEX_ROLLOUT_TRACE_ROOT` rollout trace | wire, to verify | payload shape; WebSocket requests may be deltas |
+| codex | `CODEX_ROLLOUT_TRACE_ROOT` rollout trace | wire, to verify | payload shape; whether WebSocket incremental requests leave a full body to read |
 | qwen | `--openai-logging` | wire, to verify | OpenAI-compatible providers only |
 | pi-durable | Harness `beforeProviderRequest` | wire | the host creates the Harness, so it can hook it itself; OAR refuses |
 | kimi, grok, antigravity, factory, codebuddy, qoder | transcript only | none | refuse |
