@@ -11,6 +11,7 @@ import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js"
 import { checkMcpServerNames } from "../../shared/mcp-servers.js";
 import { opencodeFailureOutcome } from "./failure.js";
 import { prepareOpenCodePrompts, validateOpenCodePrompts, verifyOpenCodeAgent } from "./prompt-config.js";
+import { prepareOpenCodeV2Prompts, verifyOpenCodeAgents } from "./prompt-config-v2.js";
 import { acquireOpenCodeStartup } from "./startup-gate.js";
 import { opencodePromptTokenUsage } from "./token-usage.js";
 import { opencodeSteering } from "./steering.js";
@@ -47,11 +48,8 @@ export const opencodeAcpProfile: AcpSessionProfile = {
 
 const directSession = acpSession(opencodeAcpProfile);
 const { steerParams: _v1SteerParams, ...commonProfile } = opencodeAcpProfile;
-export const opencodeV2RefusedSessionOptions: RefusedSessionOptions = {
-  ...opencodeRefusedSessionOptions,
-  appendSystemPrompt: "opencode v2 does not load the instructions configuration used for session-local appended prompts; ACP exposes no equivalent transient instruction channel",
-  systemPrompt: "opencode v2 uses agents.<id>.system, but ACP exposes no per-session replacement and OAR cannot yet safely resolve and override the selected agent across new sessions and resume",
-};
+/** v2 takes both prompt options through a session-local config overlay (prompt-config.ts), with per-release floors. */
+export const opencodeV2RefusedSessionOptions: RefusedSessionOptions = opencodeRefusedSessionOptions;
 export const opencodeV2AcpProfile: AcpSessionProfile = {
   ...commonProfile,
   promptTokenUsage: opencodePromptTokenUsage,
@@ -115,8 +113,27 @@ export const opencodeSession: StartSession = withSessionCredentials(async (insta
   if (installation.via !== "executable") { throw new Error("opencode requires an executable installation"); }
   const release = await opencodeRelease(installation, options);
   if (release.major === 2) {
-    const start = hasBackgroundChildUpdates(release) ? backgroundChildSession : directV2Session;
-    return start(installation, options, context);
+    const background = hasBackgroundChildUpdates(release);
+    if (options.systemPrompt === undefined && options.appendSystemPrompt === undefined) {
+      return (background ? backgroundChildSession : directV2Session)(installation, options, context);
+    }
+    const prepared = await prepareOpenCodeV2Prompts(installation.command, release, options);
+    try {
+      const session = await acpSession({
+        ...(background ? opencodeBackgroundChildProfile : opencodeV2AcpProfile),
+        // oxlint-disable-next-line typescript/promise-function-async -- Synchronous read-back through an async ACP hook.
+        configureSession: ({ response }) => {
+          if (prepared.agents !== undefined) {
+            verifyOpenCodeAgents(response, prepared.agents);
+          }
+          return Promise.resolve();
+        },
+      })(installation, prepared.options, context);
+      return withPromptCleanup(session, prepared.cleanup);
+    } catch (error) {
+      await prepared.cleanup();
+      throw error;
+    }
   }
   refuseSessionOptions(opencodeV1RefusedSessionOptions, options);
   if (options.systemPrompt === undefined && options.appendSystemPrompt === undefined) {

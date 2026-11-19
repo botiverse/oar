@@ -124,6 +124,11 @@ test("custom startup arguments fall back under auto and are refused under explic
   await expect(f.runtime.withPlacement("shared").session(installation, { cwd: f.root, env: f.env, launchArgs: ["custom-startup"] })).rejects.toMatchObject({ option: "placement" });
 });
 
+test.each(["systemPrompt", "appendSystemPrompt"] as const)("explicit shared placement refuses %s: one process cannot carry one session's prompt configuration", async option => {
+  const f = await fixture();
+  await expect(f.runtime.withPlacement("shared").session(installation, { cwd: f.root, env: f.env, [option]: "session prompt" })).rejects.toMatchObject({ name: "UnsupportedOptionError", option });
+});
+
 test.each(["2.2.4", "2.2.6", "2.2.5-dev", "opencode v2.2.5", ""])("a stale installation cannot admit an actual version %j after the last lease exits", async version => {
   const f = await fixture();
   const versionFile = path.join(f.root, "version.txt"); const traceFile = path.join(f.root, "trace.jsonl");

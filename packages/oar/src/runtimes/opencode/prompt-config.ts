@@ -10,7 +10,10 @@ import { privateTempDir } from "../../shared/private-temp.js";
 
 export interface OpenCodePromptConfig {
   readonly options: SessionOptions;
+  /** v1: the one agent whose prompt was replaced. */
   readonly agent?: string;
+  /** v2 (prompt-config-v2.ts): every primary agent whose system prompt was replaced; the session must open on one of them. */
+  readonly agents?: readonly string[];
   readonly cleanup: () => Promise<void>;
 }
 
@@ -85,12 +88,10 @@ async function activeAgent(command: string, options: SessionOptions, run: Execut
   return existingAgent(config, typeof config.default_agent === "string" && config.default_agent !== "" ? config.default_agent : "build");
 }
 
-/** Native config overlay only; never copy, merge or rewrite user config. */
-export async function prepareOpenCodePrompts(command: string, options: SessionOptions, run: ExecutableRunner = runExecutable): Promise<OpenCodePromptConfig> {
-  validateOpenCodePrompts(options);
-  const agent = options.systemPrompt === undefined ? undefined : await activeAgent(command, options, run);
+/** A session-owned instructions file, removed by `cleanup`. */
+export async function instructionsFile(text: string | undefined): Promise<{ readonly path?: string; readonly cleanup: () => Promise<void> }> {
   // privateTempDir: a host that ends without disposing leaves it to the backstops there.
-  const directory = options.appendSystemPrompt === undefined ? undefined : await privateTempDir("oar-opencode-prompt-");
+  const directory = text === undefined ? undefined : await privateTempDir("oar-opencode-prompt-");
   let removal: Promise<void> | undefined = undefined;
   const cleanup = async (): Promise<void> => {
     if (directory !== undefined) {
@@ -100,28 +101,43 @@ export async function prepareOpenCodePrompts(command: string, options: SessionOp
       directory.remove();
     }
   };
+  if (directory === undefined) { return { cleanup }; }
+  const file = path.join(directory.path, "instructions.md");
   try {
-    const instructions = directory === undefined ? undefined : path.join(directory.path, "instructions.md");
-    if (instructions !== undefined) {
-      await writeFile(instructions, options.appendSystemPrompt ?? "", { mode: 0o600 });
-    }
-    const overlay = {
-      ...(agent === undefined ? {} : { agent: { [agent]: { prompt: options.systemPrompt } } }),
-      ...(instructions === undefined ? {} : { instructions: [instructions] }),
-    };
-    // OpenCode interpolates {env:...}/{file:...} BEFORE parsing JSON. Escape
-    // only those opening braces so prompt text survives literally, unchanged.
-    const content = JSON.stringify(overlay).replaceAll(/\{(?=env:|file:)/gu, String.raw`\u007b`);
-    return { options: { ...options, env: { ...options.env, OPENCODE_CONFIG_CONTENT: content } }, ...(agent === undefined ? {} : { agent }), cleanup };
+    await writeFile(file, text ?? "", { mode: 0o600 });
   } catch (error) {
     await cleanup();
     throw error;
   }
+  return { path: file, cleanup };
 }
 
-export function verifyOpenCodeAgent(response: JsonRecord, expected: string): void {
+/** OpenCode interpolates {env:...}/{file:...} BEFORE parsing JSON. Escape only those opening braces so prompt text survives literally. */
+export function configContent(overlay: JsonRecord): string {
+  return JSON.stringify(overlay).replaceAll(/\{(?=env:|file:)/gu, String.raw`\u007b`);
+}
+
+/** Native config overlay only; never copy, merge or rewrite user config. */
+export async function prepareOpenCodePrompts(command: string, options: SessionOptions, run: ExecutableRunner = runExecutable): Promise<OpenCodePromptConfig> {
+  validateOpenCodePrompts(options);
+  const agent = options.systemPrompt === undefined ? undefined : await activeAgent(command, options, run);
+  const instructions = await instructionsFile(options.appendSystemPrompt);
+  const overlay = {
+    ...(agent === undefined ? {} : { agent: { [agent]: { prompt: options.systemPrompt } } }),
+    ...(instructions.path === undefined ? {} : { instructions: [instructions.path] }),
+  };
+  return { options: { ...options, env: { ...options.env, OPENCODE_CONFIG_CONTENT: configContent(overlay) } }, ...(agent === undefined ? {} : { agent }), cleanup: instructions.cleanup };
+}
+
+/** The agent the ACP open reports, from the mode config option or the legacy modes block. */
+export function openedAgent(response: JsonRecord): unknown {
   const config = Array.isArray(response.configOptions) ? response.configOptions.map((option) => asRecord(option)) : [];
-  const actual = config.find((option) => option?.category === "mode")?.currentValue ?? asRecord(response.modes)?.currentModeId;
+  return config.find((option) => option?.category === "mode")?.currentValue ?? asRecord(response.modes)?.currentModeId;
+}
+
+
+export function verifyOpenCodeAgent(response: JsonRecord, expected: string): void {
+  const actual = openedAgent(response);
   if (actual !== expected) {
     throw new Error(`opencode selected agent ${actual === undefined ? "<unreported>" : JSON.stringify(actual)}, but the system prompt was configured for ${JSON.stringify(expected)}`);
   }

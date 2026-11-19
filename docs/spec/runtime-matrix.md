@@ -885,9 +885,10 @@ OpenCode v1 carries prompt options through native inline configuration. An
 already-defined `OPENCODE_CONFIG_CONTENT` refuses either prompt option, and
 an empty replacement is refused because native OpenCode selects its built-in
 prompt for that value ([evidence](../runtimes/opencode.md#models-effort-instructions-and-context)).
-OpenCode v2 refuses both prompt options after checking the installed line
-(v1 supports both): there is no verified session-local injection path, and
-its instruction loader ignores the v1 `instructions` configuration.
+OpenCode v2 uses the same inline configuration with its own fields and
+refuses each prompt option below the release measured to apply it:
+`appendSystemPrompt` from 2.0.30, `systemPrompt` from 2.2.0
+([evidence](../runtimes/opencode.md#v2-prompt-options)).
 At open, OpenCode v1 also refuses a non-empty `additionalDirectories` list
 ([additional directories](#additional-directories)).
 
@@ -965,7 +966,7 @@ this declaration; that is separate from changing the system prompt.
 | Cursor, Kimi | Both refused | Not applicable | Refusals declared, no resume entries |
 | Grok | Replacement and append together apply immediately; append-only resume is refused | Saved; append-only retention also verified across native compaction (1.0.70) | Conditional; no resume entries; host rule below. [Details](../runtimes/grok.md#models-and-instructions) |
 | OpenCode v1 | Both reapplied through native inline configuration | Omission across compaction untested | Version-dependent; no resume entries. [Details](../runtimes/opencode.md#models-effort-instructions-and-context) |
-| OpenCode v2 | Both refused | Not applicable | Installed-line refusal; no resume entries |
+| OpenCode v2 | Both apply immediately, a resume included | An omitted append stays in the saved system text with a native retraction ("no longer apply"); omitted replacement untested | Version floors (2.0.30 append, 2.2.0 replacement); no resume entries. [Details](../runtimes/opencode.md#v2-prompt-options) |
 | Antigravity, `appendSystemPrompt` | Immediate when native capability is advertised | Default in the measured resume control | Capability-dependent; no resume entry. Replacement refused. [Details](../runtimes/antigravity.md#models-instructions-and-context) |
 | Qoder | Immediate (1.1.78 request-construction evidence) | Untested | No resume entries; [details](../runtimes/qoder.md#oar-mapping) |
 | DSH, both prompt options | Immediate | Native default | Declared; 0.2.1-rc.5 and 0.2.2-rc.1, Linux with local providers. Literal scoped registration; native children use their own defaults. Compaction unmeasured ([evidence](../runtimes/dsh.md#system-prompts)) |

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { access, readFile } from "node:fs/promises";
 import { afterEach, expect, test, vi } from "vitest";
 import { prepareOpenCodePrompts, validateOpenCodePrompts, verifyOpenCodeAgent } from "../../packages/oar/src/runtimes/opencode/prompt-config.js";
+import { prepareOpenCodeV2Prompts, verifyOpenCodeAgents } from "../../packages/oar/src/runtimes/opencode/prompt-config-v2.js";
 import type { ExecutableRunner } from "../../packages/oar/src/shared/executable/run.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 
@@ -105,4 +106,84 @@ test("removing inherited inline config permits prompt injection and removes it f
   expect(prepared.options.env?.OAR_ENV_REMOVE).toBeNull();
   expect(JSON.parse(prepared.options.env?.OPENCODE_CONFIG_CONTENT ?? "")).toEqual({ agent: { build: { prompt: "replacement" } } });
   expect(process.env.OPENCODE_CONFIG_CONTENT).toBe("inherited-private-config");
+});
+
+const v2 = (minor: number, patch: number) => ({ major: 2, minor, patch, version: `2.${String(minor)}.${String(patch)}` }) as const;
+const agents = (list: readonly Record<string, unknown>[]) => json(list);
+
+test("v2 replaces the system prompt of every visible primary agent, listed on a private server in the session cwd and env", async () => {
+  const run = vi.fn<ExecutableRunner>().mockResolvedValue(agents([
+    { id: "build", mode: "primary", hidden: false },
+    { id: "review", mode: "all" },
+    { id: "compaction", mode: "primary", hidden: true },
+    { id: "explore", mode: "subagent" },
+  ]));
+  const prepared = await prepareOpenCodeV2Prompts("opencode", v2(3, 2), { cwd: "/project", resume: "ses_old", systemPrompt: "literal {env:SECRET}", env: { PROBE_ENV: "yes" } }, run);
+  cleanups.push(prepared.cleanup);
+  expect(run).toHaveBeenCalledTimes(1);
+  expect(run.mock.calls[0]?.slice(0, 2)).toEqual(["opencode", ["debug", "agents", "--standalone"]]);
+  expect(run.mock.calls[0]?.[2]).toMatchObject({ cwd: "/project", env: { PROBE_ENV: "yes" }, timeoutMs: 30_000 });
+  const content = prepared.options.env?.OPENCODE_CONFIG_CONTENT ?? "";
+  expect(content).not.toContain("{env:");
+  expect(JSON.parse(content)).toEqual({ agents: { build: { system: "literal {env:SECRET}" }, review: { system: "literal {env:SECRET}" } } });
+  expect(prepared.agents).toEqual(["build", "review"]);
+});
+
+test("v2 append is one private instructions file and queries no agents", async () => {
+  const run = vi.fn<ExecutableRunner>();
+  const prepared = await prepareOpenCodeV2Prompts("opencode", v2(0, 30), { cwd: "/project", appendSystemPrompt: "appended" }, run);
+  cleanups.push(prepared.cleanup);
+  expect(run).not.toHaveBeenCalled();
+  const instructions = asRecord(JSON.parse(prepared.options.env?.OPENCODE_CONFIG_CONTENT ?? ""))?.instructions;
+  assert.ok(Array.isArray(instructions) && typeof instructions[0] === "string");
+  expect(await readFile(instructions[0], "utf8")).toBe("appended");
+  expect(prepared.agents).toBeUndefined();
+});
+
+test.each([
+  { release: v2(0, 29), option: "appendSystemPrompt", floor: "2.0.30" },
+  { release: { ...v2(0, 30), version: "2.0.30-rc.1" }, option: "appendSystemPrompt", floor: "2.0.30" },
+  { release: v2(1, 4), option: "systemPrompt", floor: "2.2.0" },
+  { release: v2(1, 99), option: "systemPrompt", floor: "2.2.0" },
+  { release: { ...v2(2, 0), version: "2.2.0-beta" }, option: "systemPrompt", floor: "2.2.0" },
+] as const)("v2 $release.version refuses $option below its measured floor before any query", async ({ release, option, floor }) => {
+  const run = vi.fn<ExecutableRunner>();
+  const refusal: unknown = await prepareOpenCodeV2Prompts("opencode", release, { cwd: "/", [option]: "text" }, run).catch((error: unknown) => error);
+  expect(refusal).toMatchObject({ name: "UnsupportedOptionError", option });
+  expect(String(refusal)).toContain(floor);
+  expect(run).not.toHaveBeenCalled();
+});
+
+test("v2 refuses when no visible primary agent exists, and when the listing is not a list", async () => {
+  const subagentsOnly = vi.fn<ExecutableRunner>().mockResolvedValue(agents([{ id: "explore", mode: "subagent" }]));
+  await expect(prepareOpenCodeV2Prompts("opencode", v2(3, 2), { cwd: "/", systemPrompt: "base" }, subagentsOnly))
+    .rejects.toMatchObject({ name: "UnsupportedOptionError", option: "systemPrompt" });
+  const malformed = vi.fn<ExecutableRunner>().mockResolvedValue({ ok: true, stdout: "private malformed content", stderr: "", exitCode: null });
+  await expect(prepareOpenCodeV2Prompts("opencode", v2(3, 2), { cwd: "/", systemPrompt: "base" }, malformed))
+    .rejects.toThrow("opencode debug agents returned no agent list while resolving the session's agents");
+});
+
+test("v2 keeps the inline-config and empty-prompt refusals", async () => {
+  const run = vi.fn<ExecutableRunner>();
+  await expect(prepareOpenCodeV2Prompts("opencode", v2(3, 2), { cwd: "/", systemPrompt: "x", env: { OPENCODE_CONFIG_CONTENT: "{}" } }, run)).rejects.toMatchObject({ name: "UnsupportedOptionError" });
+  await expect(prepareOpenCodeV2Prompts("opencode", v2(3, 2), { cwd: "/", systemPrompt: "" }, run)).rejects.toMatchObject({ name: "UnsupportedOptionError" });
+  expect(run).not.toHaveBeenCalled();
+});
+
+test("v2 read-back accepts any configured agent and rejects another or a missing one", () => {
+  expect(() => { verifyOpenCodeAgents({ configOptions: [{ category: "mode", currentValue: "review" }] }, ["build", "review"]); }).not.toThrow();
+  expect(() => { verifyOpenCodeAgents({ configOptions: [{ category: "mode", currentValue: "plan" }] }, ["build"]); }).toThrow('opened on agent "plan", but the system prompt was configured for "build"');
+  expect(() => { verifyOpenCodeAgents({}, ["build"]); }).toThrow("opened on agent <unreported>");
+});
+
+test.each([v2(0, 30), v2(1, 0), v2(2, 7), v2(3, 2), v2(10, 0), { ...v2(3, 2), version: "2.3.2-1" }])("v2 $version accepts appendSystemPrompt", async (release) => {
+  const prepared = await prepareOpenCodeV2Prompts("opencode", release, { cwd: "/", appendSystemPrompt: "text" }, vi.fn<ExecutableRunner>());
+  cleanups.push(prepared.cleanup);
+  expect(prepared.options.env?.OPENCODE_CONFIG_CONTENT).toContain("instructions");
+});
+
+test.each([v2(2, 0), v2(2, 7), v2(3, 2), v2(10, 0)])("v2 $version accepts systemPrompt", async (release) => {
+  const prepared = await prepareOpenCodeV2Prompts("opencode", release, { cwd: "/", systemPrompt: "text" }, vi.fn<ExecutableRunner>().mockResolvedValue(agents([{ id: "build", mode: "primary" }])));
+  cleanups.push(prepared.cleanup);
+  expect(prepared.agents).toEqual(["build"]);
 });

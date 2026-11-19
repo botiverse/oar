@@ -108,6 +108,56 @@ that CI runs.
 
 ## OpenCode v2
 
+### V2 prompt options
+
+`systemPrompt` sets `agents.<id>.system` and `appendSystemPrompt` adds one
+session-owned file to `instructions`, both in a fresh
+`OPENCODE_CONFIG_CONTENT` for the session's process. Native config merging
+keeps every other agent field, model, permission and instruction source.
+The v1 rules for an inherited `OPENCODE_CONFIG_CONTENT`, an empty replacement,
+literal `{env:...}` / `{file:...}` and file removal apply unchanged
+([v1](#models-effort-instructions-and-context)).
+
+The replacement goes to every agent that `debug agents --standalone` lists
+as primary or `all` and not hidden. That query runs a private server with
+the session's directory and environment, never the shared background
+service. It adds one bounded native start (30 seconds at most) to every
+open and resume with `systemPrompt`, behind the same startup gate as the ACP
+process. Subagents and hidden agents such as `compaction` keep their native
+prompts, and a disabled agent is not listed, so the open creates none. The
+prompt therefore holds on whichever of those agents a new session or a
+resume opens on, without resolving the default or the saved agent first.
+The ACP open must report one of them as its mode; otherwise opening fails
+and names both sides. OpenCode reapplies the overlay whenever it reloads
+its configuration. An agent the person disables or removes while the
+session runs is therefore recreated by the overlay with OpenCode's default
+agent settings until that process ends, as v1's single overridden agent is.
+
+Measured on Linux x64 against a loopback provider
+([controls](../../experiments/opencode-v2-prompts/README.md)):
+
+| Release | `agents.<id>.system` applied | `instructions` file applied | `debug agents --standalone` |
+| --- | --- | --- | --- |
+| 2.0.0, 2.0.22, 2.0.25, 2.0.27, 2.0.29 | yes | no | no such flag |
+| 2.0.30, 2.0.31, 2.0.32, 2.1.0, 2.1.4 | yes | yes | no such flag |
+| 2.2.0, 2.2.7, 2.3.2 | yes | yes | yes |
+
+So `appendSystemPrompt` needs 2.0.30 and `systemPrompt` needs 2.2.0; below
+them each is refused before any native query. Before 2.2.0 the agent
+listing exists only on the shared background service, which does not see
+the session's environment. The replacement takes the place of the agent's
+native prompt, and OpenCode still adds its model, environment and tool
+sections after it.
+
+On resume, a changed replacement applies to the next request directly.
+Appended instructions are different: OpenCode stores their text in the
+session and keeps the first snapshot in the system prompt, keyed by file
+path. OAR writes a new file for each process, so after a resume the earlier
+text is still sent, followed by a user `<system-update>` saying that file
+"no longer apply" and, when the resume passes `appendSystemPrompt`, the new
+file's text, even when it is the same. A resume that omits it gets only the
+retraction.
+
 ### Root prompt token usage
 
 From 2.0.22, the ACP prompt reply sums the model steps of the root turn.
@@ -553,13 +603,9 @@ covers 2.0.27.
   tested); [OAR #371](https://github.com/botiverse/oar/issues/371) keeps the
   earlier failure history. OAR adds no retry, sleep or catalog filtering for
   this behavior.
-- **Prompt options:** both `systemPrompt` and `appendSystemPrompt` are
-  refused before ACP startup, including resume. The v2 instruction loader
-  does not consume the v1 `instructions` configuration. v2 has native
-  `agents.<id>.system`, but OAR has not verified a safe session-local path
-  that resolves the actual agent on both creation and resume. This is an
-  adapter boundary, not a claim that v2 lacks system prompts; configure
-  v2's native settings directly when those settings are intended.
+- **Prompt options:** both are supported, through the same session-local
+  `OPENCODE_CONFIG_CONTENT` as v1 with v2's own fields
+  ([details](#v2-prompt-options)).
 - **Models:** queries use `models --standalone`, never `--verbose` or a
   persistent service. On 2.0.27 through 2.0.30 and on 2.0.32, cold queries
   in fresh native configurations returned a nonempty catalog, which OAR
@@ -997,8 +1043,8 @@ selection; `session/llm/request.ts` chooses the agent prompt; and
 | `fork` | Both OpenCode v1 and v2 refuse `SessionOptions.fork` ([declarations](../../packages/oar/src/runtimes/opencode/options.ts)). |
 | `model` | ACP model config option with native read-back. |
 | `effort` | ACP `thought_level` config option when the selected model has variants; otherwise refused. |
-| `systemPrompt` | Fresh inline `agent.<selected>.prompt`, verified against the ACP mode on new/resumed sessions. |
-| `appendSystemPrompt` | Fresh inline `instructions` entry for a session-owned temporary file, on new/resumed sessions. The file goes when the session ends; a host that ends without disposing leaves it to its `exit` event or the next opencode session's sweep ([private-temp](../../packages/oar/src/shared/private-temp.ts)). |
+| `systemPrompt` | v1: fresh inline `agent.<selected>.prompt`, verified against the ACP mode on new/resumed sessions. v2 from 2.2.0: `agents.<id>.system` on every visible primary agent, with the same read-back ([v2](#v2-prompt-options)). |
+| `appendSystemPrompt` | Fresh inline `instructions` entry for a session-owned temporary file, on new/resumed sessions (v2 from 2.0.30). The file goes when the session ends; a host that ends without disposing leaves it to its `exit` event or the next opencode session's sweep ([private-temp](../../packages/oar/src/shared/private-temp.ts)). |
 | `env` | Child-process environment, shared by native queries, the ACP process and its tools. |
 | `goals: true`, `endTurnProcessesOnAbort: true` | Both lines refuse these options. ACP exposes no structured goal control, and OAR has no verified way to end only the processes owned by an aborted turn. |
 | `name` | Refused with `UnsupportedOptionError` on both lines (no verified session name setting), declared in `Runtime.refusedSessionOptions` ([session name](../spec/runtime-matrix.md#session-name)). |

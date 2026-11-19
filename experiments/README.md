@@ -1,6 +1,7 @@
 # experiments
 
 - [OpenCode prompt usage](opencode-prompt-usage/README.md) compares two-step token accounting across the 2.0.22 boundary and v1.
+- [OpenCode 2.x session prompts](opencode-v2-prompts/README.md) measures which 2.x releases apply a session-local system prompt and instructions file, and the agent listing OAR needs.
 
 - [Claude compaction start](claude-compaction-start/README.md) records manual and automatic stream-json lifecycles on 2.1.326.
 

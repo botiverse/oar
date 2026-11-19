@@ -78,10 +78,12 @@ export function createOpenCodeSharedSession(diagnostic: (entry: AcpUnattributed)
     opencodeV2AcpProfile.validateOptions?.(options);
     checkMcpServerNames(options.mcpServers ?? []);
     if (installation.via !== "executable") { throw new Error("opencode requires an executable installation"); }
-    const refusal = launchRefusal(installation.command, options);
+    // Session prompts travel in the process's own OPENCODE_CONFIG_CONTENT, which a shared process cannot carry per session.
+    const prompt = options.systemPrompt !== undefined ? "systemPrompt" : (options.appendSystemPrompt !== undefined ? "appendSystemPrompt" : null);
+    const refusal = prompt === null ? launchRefusal(installation.command, options) : "OpenCode shared placement serves several sessions from one process, which cannot carry one session's prompt configuration";
     if (refusal !== null) {
       if (context.requested === "auto") { const session = await opencodeSession(installation, options, { requested: "auto", placement: "isolated" }); return session; }
-      throw new UnsupportedOptionError("placement", refusal);
+      throw new UnsupportedOptionError(prompt ?? "placement", refusal);
     }
     // Reject unreadable directories before acquiring or spawning a pooled process.
     // Reservation re-reads the identity after acquisition, then checks and claims atomically.
