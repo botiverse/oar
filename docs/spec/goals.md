@@ -45,9 +45,13 @@ interpreted as a goal state.
 creation/update semantics in charge. An omitted budget does not promise to
 clear a saved budget. A supplied budget must be a positive safe integer.
 Unknown set-option keys and statuses the adapter cannot send are recorded
-`unsupported` refusals before any RPC. Native rejections are recorded
-`runtime_refused`, with the native answer retained subject to credential
-redaction. Unreachable/disposed sessions use the ordinary control refusals.
+`unsupported` refusals before any native call. Native rejections and
+malformed or missing goal outcomes are recorded `runtime_refused` (or
+`unsupported`, `busy`, or `no_active_turn` where a runtime reports those),
+with any native answer retained subject to credential redaction. Transport,
+bridge, or unexpected adapter failures are recorded `error`.
+Unreachable, disposed, or released sessions use the ordinary control refusals
+(`runtime_exited`, `disposed`, `session_released`).
 
 ## Observations and replay
 
@@ -64,24 +68,27 @@ means the runtime reported no budget. Times are native Unix epoch seconds.
 These goal counters may span a resumed thread's life; they are separate
 from OAR's per-Session token totals.
 
-Controls record `goal_set {options}`, `goal_read`, or `goal_clear` requests.
-A native reply is recorded as a Frame at its wire position, with its
-verbatim `native` and observed `goal_changed` in `events`. Notifications
-carry the same event in their ordinary frame. The separate response only
-answers accepted or rejected; it carries no state events. Events inherit the
-containing record's attribution and sequence, so replay reads exactly the
-same facts in the same order. A reply and a following notification may
-repeat a snapshot; both observations stay. Malformed replies remain frames
-without events and are rejected without fabricating a snapshot. Rejections,
-requests and ordinary turn endings never change goal state optimistically.
+Controls record `goal_set { options }`, `goal_read`, or `goal_clear` requests.
+Observed goal snapshots arrive as `goal_changed` in frame `events`, whether
+from an explicit control observation or a spontaneous native notification; the
+exact native frame types and whether the command reply also appears on
+`response.native` belong to each runtime's wire mapping below. The control
+response itself only answers accepted or rejected and carries no
+`RuntimeEventBody` state events. Events inherit the containing record's
+attribution and sequence, so replay reads exactly the same facts in the same
+order. An explicit control observation and a following native notification may
+repeat a snapshot; both observations stay. Malformed observations remain raw
+frames without `goal_changed` events and are rejected without fabricating a
+snapshot. Rejections, requests and ordinary turn endings never change goal
+state optimistically.
 
-OAR does not synthesize turn boundaries from goal changes. Native `turn/started` and
-`turn/completed` still decide activity and completion, including spontaneous
-turns. Goal events do not add transcript messages or alter `Session.status()`.
-`set({ status: "paused" })` may interrupt a running goal turn, depending on
-the runtime: Codex leaves it running; DSH cancels it. Its native turn ending
-is recorded as `turn_ended`. Hosts must not assume that pausing only affects
-future continuation.
+OAR does not synthesize turn boundaries from goal changes. Each runtime's
+native turn-start and turn-end frames still decide activity and completion,
+including spontaneous turns. Goal events do not add transcript messages or
+alter `Session.status()`. `set({ status: "paused" })` may interrupt a running
+goal turn, depending on the runtime: Codex leaves it running; DSH cancels it.
+Its native turn ending is recorded as `turn_ended`. Hosts must not assume that
+pausing only affects future continuation.
 
 A host waiting for the goal watches its own session's goal snapshots rather
 than treating `promptAndWait` or `awaitIdle` as goal-completion helpers.
@@ -90,8 +97,12 @@ than treating `promptAndWait` or `awaitIdle` as goal-completion helpers.
 
 Codex maps these controls to `thread/goal/set`, `thread/goal/get`, and
 `thread/goal/clear`; explicit host mutations use native `origin: "user"`.
-Its two notifications are `thread/goal/updated` and `thread/goal/cleared`.
-Enabling the feature exposes three model tools even before a goal exists,
+Each native reply is recorded as a frame at its wire position (`type` set to
+the RPC method) with its verbatim `native` payload and observed `goal_changed`
+in `events`; the separate accepted response carries no `native` payload. Its
+two notifications are `thread/goal/updated` and `thread/goal/cleared`, and
+native `turn/started` and `turn/completed` frames decide turn activity and
+completion. Enabling the feature exposes three model tools even before a goal exists,
 which is why OAR requires an explicit session opt-in. A conflicting launch
 setting that leaves the feature disabled makes session opening fail.
 
@@ -111,16 +122,23 @@ that command. See the [Codex mapping](../runtimes/codex.md#native-goals) and
 
 DSH uses the bridge's native `goals` service: `get`, `create`, `edit`,
 `pause`, `resume`, `complete` and `clear`. `set` supports `active`, `paused`
-and `complete`; a requested `blocked` status is refused because DSH requires
-a structured reason absent from `GoalSetOptions`. Native blocked observations
-remain visible. A completed goal is replaced through native creation, and
-an active request rearms a goal that native resume loaded disarmed.
+and `complete`; requesting `blocked`, `usageLimited`, `budgetLimited`, or any
+other status outside those three is recorded as `rejected/unsupported` before
+any native call (DSH `blocked` requires a structured reason absent from
+`GoalSetOptions`, and DSH has no host setter for `usageLimited` or
+`budgetLimited`). Native observations of those statuses remain visible. A
+completed goal is replaced through native creation, and an active request
+rearms a goal that native resume loaded disarmed.
 
 DSH budgets count rounds. Supplying any `tokenBudget` is a recorded
 `rejected/unsupported` before a native call; snapshots omit `tokenBudget`
-and token counters. Native `goal/change` events and explicit reads report
-objective, phase and available timestamps, converted from milliseconds to
-seconds. Round counts and activation details remain in the raw frame.
+and token counters. Explicit goal commands emit a native `goal/read` frame
+carrying `goal_changed` before answering, and the command reply is retained in
+`response.native`. Durable native updates arrive on `session/event:goal/change`,
+and native `turn/start` and `turn/end` frames decide turn activity and
+completion. Observations report objective, phase and available timestamps,
+converted from milliseconds to seconds; round counts and activation details
+remain in the raw frame.
 
 Host pause cancels the running native goal turn; clear does not. Paused state
 survives a native process restart. OAR adds no continuation loop or completion
