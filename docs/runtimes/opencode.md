@@ -108,6 +108,19 @@ that CI runs.
 
 ## OpenCode v2
 
+### Root prompt token usage
+
+From 2.0.22, the ACP prompt reply sums the model steps of the root turn.
+OAR adds each reply once to the session total since open. Its input includes
+cache reads and writes. Its output includes thought tokens, also exposed as
+`reasoning` when reported. Omitted optional counts stay absent. A missing
+usage reply contributes nothing. OAR uses the version from ACP initialization
+to select this accounting.
+
+`usage_update.used` measures the latest step's context. On 2.3.2 a two-step
+turn reported 330 tokens spent and 220 tokens of context. Child context updates
+carry no independent token ledger. [Native controls and source](../../experiments/opencode-prompt-usage/README.md)
+
 ### Shared-process admission boundary
 
 `opencodeRuntime` opens an isolated process for every `auto` request and
@@ -884,10 +897,10 @@ has a `description`. The closing update carries the output in `content` and
 and `edit` with the file path, `grep` with the pattern, `glob` with the
 directory).
 
-The prompt answer's `usage` field is the last assistant message's tokens
-only, not the turn's, so OAR does not report token totals (and so no
-`cacheRead` or `cacheWrite`); context usage comes from `usage_update`
-(`used`, `size`, `cost`).
+On v1 and v2 through 2.0.21, the prompt reply reports the last assistant
+message's tokens. OAR leaves the session token total absent. Context usage
+comes from `usage_update` (`used`, `size`, `cost`).
+[Root prompt usage on newer v2 releases](#root-prompt-token-usage)
 
 A `task` subagent completed and its result reached the parent (subagent:
 `CHILD-OK-7731`), but no frame of the child session arrived: opencode's ACP

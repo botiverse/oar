@@ -12,6 +12,7 @@ import { checkMcpServerNames } from "../../shared/mcp-servers.js";
 import { opencodeFailureOutcome } from "./failure.js";
 import { prepareOpenCodePrompts, validateOpenCodePrompts, verifyOpenCodeAgent } from "./prompt-config.js";
 import { acquireOpenCodeStartup } from "./startup-gate.js";
+import { opencodePromptTokenUsage } from "./token-usage.js";
 import { opencodeSteering } from "./steering.js";
 
 export const opencodeAcpProfile: AcpSessionProfile = {
@@ -53,6 +54,7 @@ export const opencodeV2RefusedSessionOptions: RefusedSessionOptions = {
 };
 export const opencodeV2AcpProfile: AcpSessionProfile = {
   ...commonProfile,
+  promptTokenUsage: opencodePromptTokenUsage,
   compaction: opencodeCompaction, projectUpdate: opencodeCompactionEvents,
   capabilities: { queue: { durable: false }, attribution: "nested" },
   attributeUpdate: opencodeChildAttribution,

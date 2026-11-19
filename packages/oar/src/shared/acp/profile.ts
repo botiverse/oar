@@ -104,7 +104,7 @@ export interface AcpSessionProfile extends AcpDerivedSessionHooks, AcpSteerReque
    * over that prompt's model calls, not the session. The shared accumulator
    * combines them with independent vendor ledgers and emits cumulative usage.
    */
-  readonly promptTokenUsage?: (response: JsonRecord) => TokenTotals | null;
+  readonly promptTokenUsage?: (response: JsonRecord, initialized: JsonRecord) => TokenTotals | null;
   /** Independent root ledger, never overlapping promptTokenUsage: `sentByOar` names prompts whose answer already carries their tokens. The native key deduplicates delivery; replayed reports only remember that identity. Child notifications are excluded by the recorder. */
   readonly spontaneousTokenUsage?: (method: string, params: JsonRecord, sentByOar: (promptId: string) => boolean) => { readonly key: string; readonly tokens: TokenTotals; readonly replayed?: boolean } | null;
   readonly promptOutcome?: (response: JsonRecord, turnRecords: () => readonly RawEvent[]) => TurnOutcome | null;

@@ -1,0 +1,182 @@
+[
+  {
+    "version": "1.19.6",
+    "prompt": "Tool turn",
+    "steps": [
+      {
+        "input_tokens": 100,
+        "output_tokens": 10
+      },
+      {
+        "input_tokens": 200,
+        "output_tokens": 20
+      }
+    ],
+    "usage": {
+      "inputTokens": 200,
+      "outputTokens": 20,
+      "totalTokens": 220
+    },
+    "context": [
+      200
+    ],
+    "projected": null
+  },
+  {
+    "version": "1.19.6",
+    "prompt": "Next turn",
+    "steps": [
+      {
+        "input_tokens": 300,
+        "output_tokens": 30
+      }
+    ],
+    "usage": {
+      "inputTokens": 300,
+      "outputTokens": 30,
+      "totalTokens": 330
+    },
+    "context": [
+      300
+    ],
+    "projected": null
+  },
+  {
+    "version": "opencode v2.0.21",
+    "prompt": "Tool turn",
+    "steps": [
+      {
+        "input_tokens": 100,
+        "output_tokens": 10
+      },
+      {
+        "input_tokens": 200,
+        "output_tokens": 20
+      }
+    ],
+    "usage": {
+      "inputTokens": 200,
+      "outputTokens": 20,
+      "totalTokens": 220
+    },
+    "context": [
+      220
+    ],
+    "projected": null
+  },
+  {
+    "version": "opencode v2.0.21",
+    "prompt": "Next turn",
+    "steps": [
+      {
+        "input_tokens": 300,
+        "output_tokens": 30
+      }
+    ],
+    "usage": {
+      "inputTokens": 300,
+      "outputTokens": 30,
+      "totalTokens": 330
+    },
+    "context": [
+      330
+    ],
+    "projected": null
+  },
+  {
+    "version": "opencode v2.0.22",
+    "prompt": "Tool turn",
+    "steps": [
+      {
+        "input_tokens": 100,
+        "output_tokens": 10
+      },
+      {
+        "input_tokens": 200,
+        "output_tokens": 20
+      }
+    ],
+    "usage": {
+      "inputTokens": 300,
+      "outputTokens": 30,
+      "totalTokens": 330
+    },
+    "context": [
+      220
+    ],
+    "projected": {
+      "input": 300,
+      "output": 30
+    }
+  },
+  {
+    "version": "opencode v2.0.22",
+    "prompt": "Next turn",
+    "steps": [
+      {
+        "input_tokens": 300,
+        "output_tokens": 30
+      }
+    ],
+    "usage": {
+      "inputTokens": 300,
+      "outputTokens": 30,
+      "totalTokens": 330
+    },
+    "context": [
+      330
+    ],
+    "projected": {
+      "input": 600,
+      "output": 60
+    }
+  },
+  {
+    "version": "opencode v2.3.2",
+    "prompt": "Tool turn",
+    "steps": [
+      {
+        "input_tokens": 100,
+        "output_tokens": 10
+      },
+      {
+        "input_tokens": 200,
+        "output_tokens": 20
+      }
+    ],
+    "usage": {
+      "inputTokens": 300,
+      "outputTokens": 30,
+      "totalTokens": 330
+    },
+    "context": [
+      220
+    ],
+    "projected": {
+      "input": 300,
+      "output": 30
+    }
+  },
+  {
+    "version": "opencode v2.3.2",
+    "prompt": "Next turn",
+    "steps": [
+      {
+        "input_tokens": 300,
+        "output_tokens": 30
+      }
+    ],
+    "usage": {
+      "inputTokens": 300,
+      "outputTokens": 30,
+      "totalTokens": 330
+    },
+    "context": [
+      330
+    ],
+    "projected": {
+      "input": 600,
+      "output": 60
+    }
+  }
+]
