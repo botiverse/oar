@@ -1,0 +1,48 @@
+/** Native job ownership and session-scoped sandbox grants in the DSH process. */
+export const dshControlSource = String.raw`
+  const jobs = ctx.get("jobs");
+  const configureDirectories = (agent, request) => {
+    if (request.additionalDirectories?.length > 0) {
+      const policy = agent.scope.ctx.get("sandboxPolicy");
+      requireMethod(policy, "registerWritableRoot", "additionalDirectories");
+      for (const directory of request.additionalDirectories) {
+        const unregister = policy.registerWritableRoot(agent.session, directory);
+        agent.scope.ctx.effect(() => unregister);
+      }
+    }
+  };
+  const configureTools = (agent, request) => {
+    if (request.disallowedTools?.length > 0) {
+      const tools = agent.scope?.ctx?.tools;
+      requireMethod(tools, "restrict", "disallowedTools");
+      requireMethod(tools, "get", "disallowedTools");
+      requireMethod(agent.scope.ctx, "on", "disallowedTools");
+      try { tools.restrict({ deny: request.disallowedTools }); }
+      catch (error) { throw refusal("option_not_applied", String(error?.message ?? error), "disallowedTools"); }
+      agent.scope.ctx.on("agent/created", ({ agent: created }) => {
+        if (created !== agent) { return; }
+        for (const name of request.disallowedTools) {
+          if (tools.get(name, agent) !== undefined) {
+            throw refusal("option_not_applied", "The native tool remains available: " + name, "disallowedTools");
+          }
+        }
+      });
+    }
+  };
+
+  const sessionControls = {
+    async stopTask(request) {
+      const { agent } = owned(request.sessionId);
+      const owner = agent.session.id;
+      const job = jobs.get(request.taskId, owner);
+      if (job.owner !== owner || (job.kind !== "bash" && job.kind !== "pwsh")) {
+        throw refusal("unsupported_task", "DSH can stop only a shell job owned by this session");
+      }
+      const result = jobs.kill(job.id, owner, "Stopped by host");
+      if (result !== "requested") { throw refusal("job_finished", "DSH reports that this shell job already finished"); }
+      const settled = await jobs.wait(job.id, 5000, owner);
+      if (settled.status !== "killed") { throw refusal("job_not_killed", "DSH reported shell job status " + settled.status); }
+      return { jobId: settled.id, status: settled.status };
+    },
+  };
+`;

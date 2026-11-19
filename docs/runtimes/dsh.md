@@ -130,6 +130,10 @@ Durable events read: `turn/start`, `turn/end` (`turn_ended`), `agent/inbox/splic
 adds no second text. Compaction reads are from the source and unit-tested, not yet
 exercised natively.
 
+`stopTask(jobId)` stops a shell job owned by this session. DSH checks the
+owner on `jobs.get`, `kill` and `wait`; OAR confirms the `killed` result.
+The separate subagent run id has no corresponding stop operation.
+
 Job events carry their native `toolCall.callId` and label. Settlement maps
 `completed` and `failed` directly, and `killed` to `stopped`; unknown results
 remain raw. The native event does not identify background execution, so the
@@ -260,7 +264,7 @@ session in `SessionOptions.env`: nobody sits at an approval prompt, and native r
 tools run and the native `permission/preset` frame is recorded.
 
 Refused with `UnsupportedOptionError` until an effective native mapping is verified:
-`fork`, `mcpServerCredentials`, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`,
+`fork`, `mcpServerCredentials`, `launchArgs`, `serviceTier`, `outputSchema`,
 `userConfiguration: "exclude"`, `endTurnProcessesOnAbort: true`
 ([`options.ts`](../../packages/oar/src/runtimes/dsh/options.ts)). Images are not
 sent: `capabilities.images` is false and an input with images is rejected
@@ -298,12 +302,15 @@ hosts without requiring a runtime-specific assumption.
 
 The [remaining-option probes](../../experiments/dsh-option-boundaries/remaining.md)
 cover DSH 0.2.1-rc.5 and 0.2.2-rc.1 on Linux with synthetic providers. They also
-explain three retained refusals:
+explain the following boundaries:
 
 - Extra writable roots work in 0.2.2-rc.1's native sandbox policy, but the
   minimum version ignores them. A roots-only overlay replaces the whole
-  policy config and resets its mode; preserving the effective policy is
-  not yet verified, so `additionalDirectories` stays refused.
+  policy config and resets its mode. From 0.2.2-rc.3 on Linux and macOS,
+  OAR registers each requested directory on the live session at open or resume.
+  The original workspace root, configured roots and read-only mode survive.
+  Peers receive no grant. Windows lacks the matching shell guarantee.
+  [File and shell controls](../../experiments/dsh-option-boundaries/probe-session-roots.ts).
 - Default-config dumping omits user provider routes and cannot be combined
   with `--patch`. It is not a verified configuration-exclusion launch that
   preserves providers, login and history.

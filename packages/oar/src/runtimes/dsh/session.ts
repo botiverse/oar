@@ -1,5 +1,8 @@
 /* oxlint-disable import/max-dependencies -- Native launch, controls, projection and the credential boundary meet here. */
 /* oxlint-disable eslint/require-await -- Session controls return kernel promises directly. */
+import { resolvedAdditionalDirectories } from "../../shared/additional-directories.js";
+import { readExecutableVersion } from "../../shared/executable/index.js";
+import { dshVersionRefusal } from "./version.js";
 import { randomUUID } from "node:crypto";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { ResumeCwdError } from "../../contracts/resume-cwd-error.js";
@@ -15,10 +18,10 @@ import { sameDirectory } from "../../shared/same-directory.js";
 import { checkSessionName, refuseSessionOptions } from "../../shared/session-options.js";
 import { withSessionCredentials, type SessionCredentials } from "../../shared/session-credentials.js";
 import { DshCommandError, dshControl, type DshControl } from "./control.js";
-import { dshEnvironment, dshExecutableRefusal, launchDsh } from "./launch.js";
+import { dshEnvironment, launchDsh } from "./launch.js";
 import { dshGoalControl } from "./goal.js";
 import { dshMcpRows } from "./mcp.js";
-import { dshAgentOptions, dshRefusedSessionOptions, type DshAgentOptions } from "./options.js";
+import { dshAgentOptions, dshDirectoryRefusal, dshRefusedSessionOptions, type DshAgentOptions } from "./options.js";
 import { dshOpenedFrame, foldDsh, initialDshProjection } from "./projection.js";
 
 const OPEN_TIMEOUT_MS = 60_000;
@@ -30,7 +33,7 @@ function openFailure(error: unknown, sessionId: string, resuming: boolean): unkn
   if (error.native.name === "SessionPersistenceNotFoundError") {
     return new SessionNotFoundError(sessionId, `DSH has no saved session ${sessionId}`, { method: "sessionPersistence.open", native: error.native });
   }
-  if ((error.code === "native_method_unavailable" || error.code === "option_not_applied") && (error.capability === "name" || error.capability === "disallowedTools")) {
+  if ((error.code === "native_method_unavailable" || error.code === "option_not_applied") && (error.capability === "name" || error.capability === "disallowedTools" || error.capability === "additionalDirectories")) {
     return new UnsupportedOptionError(error.capability, error.message);
   }
   if (error.code === "prompt_not_applied" && (error.capability === "systemPrompt" || error.capability === "appendSystemPrompt")) {
@@ -105,6 +108,7 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
     kernel.processExited(code, reason);
   });
   const fields = { sessionId, agentOptions: { ...agentOptions },
+    ...(options.additionalDirectories === undefined ? {} : { additionalDirectories: options.additionalDirectories }),
     ...(options.disallowedTools === undefined ? {} : { disallowedTools: options.disallowedTools }),
     ...(options.systemPrompt === undefined ? {} : { systemPrompt: options.systemPrompt }),
     ...(options.appendSystemPrompt === undefined ? {} : { appendSystemPrompt: options.appendSystemPrompt }),
@@ -196,7 +200,10 @@ export const dshSession: StartSession = withSessionCredentials(async (installati
   if (installation.via !== "executable") { throw new Error("DSH requires its executable installation"); }
   const env = dshEnvironment(options.env);
   // A floor refusal names the real version, before anything starts.
-  const refusal = await dshExecutableRefusal(installation.command, installation.version, env);
+  const version = installation.version ?? await readExecutableVersion(installation.command, 15_000, undefined, env);
+  const refusal = dshVersionRefusal(version);
   if (refusal !== null) { throw new RuntimeFailureError("invalid_request", refusal); }
-  return open(installation.command, options, env, credentials, mcpRows);
+  refuseSessionOptions(dshDirectoryRefusal(version), options);
+  const directories = resolvedAdditionalDirectories(options);
+  return open(installation.command, directories.length === 0 ? options : { ...options, additionalDirectories: directories }, env, credentials, mcpRows);
 });

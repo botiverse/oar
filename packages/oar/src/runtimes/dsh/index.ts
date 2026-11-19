@@ -3,12 +3,12 @@ import { defineRuntime } from "../../contracts/runtime.js";
 import { onFirstCall } from "../../shared/lazy.js";
 import { dshInstallation } from "./installation.js";
 import { dshInstall, dshInstallPlan } from "./install.js";
-import { dshRefusedSessionOptions } from "./options.js";
+import { dshDirectoryRefusal, dshRefusedSessionOptions } from "./options.js";
 import { DSH_MINIMUM_VERSION } from "./version.js";
 
 export const dshRuntime = defineRuntime({
   id: "dsh",
-  sessionCapabilities: () => ({ images: false }), brand: runtimeBrands.dsh,
+  sessionCapabilities: (installation) => ({ images: false, refusedSessionOptions: dshDirectoryRefusal(installation.via === "executable" ? installation.version : undefined) }), brand: runtimeBrands.dsh,
   minVersion: DSH_MINIMUM_VERSION,
   refusedSessionOptions: dshRefusedSessionOptions,
   resumedSessionOptions: {

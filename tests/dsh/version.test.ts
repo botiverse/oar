@@ -50,3 +50,11 @@ test("installation is unsupported below the floor, available at it, and pins exc
   expect(await probe({ OAR_DSH_BIN: fake, FAKE_DSH_VERSION: "0.2.2-alpha.2" })).toMatchObject({ kind: "available", version: "0.2.2-alpha.2" });
   expect(await dshInstallation({ env: { OAR_DSH_BIN: path.join(dir, "missing") } })).toEqual({ kind: "not_found" });
 });
+
+test("directory grants follow the installed DSH version and platform", async () => {
+  const { dshDirectoryRefusal } = await import("../../packages/oar/src/runtimes/dsh/options.js");
+  expect(dshDirectoryRefusal("0.2.2-rc.1", "linux").additionalDirectories).toContain("0.2.2-rc.3");
+  expect(dshDirectoryRefusal("0.2.2-rc.3", "darwin")).toEqual({});
+  expect(dshDirectoryRefusal("0.2.2-rc.5", "linux")).toEqual({});
+  expect(dshDirectoryRefusal("0.2.2-rc.5", "win32").additionalDirectories).toContain("shell");
+});

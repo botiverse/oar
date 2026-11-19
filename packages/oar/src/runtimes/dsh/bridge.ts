@@ -1,3 +1,4 @@
+import { dshControlSource } from "./bridge-controls.js";
 import { dshGoalSource } from "./bridge-goal.js";
 import { dshPromptSource } from "./bridge-prompt.js";
 
@@ -94,7 +95,7 @@ export function apply(ctx, config) {
 function boot(ctx) {
   const agents = ctx.get("agents");
   const persistence = ctx.get("sessionPersistence");
-  const jobs = ctx.get("jobs");
+${dshControlSource}
   const handles = new Map();
   const owned = (sessionId) => {
     const handle = handles.get(sessionId);
@@ -136,26 +137,8 @@ function boot(ctx) {
     return typeof defaults?.currentSelection === "function" ? defaults.currentSelection() : {};
   };
 
-  const configureTools = (agent, request) => {
-    if (request.disallowedTools?.length > 0) {
-      const tools = agent.scope?.ctx?.tools;
-      requireMethod(tools, "restrict", "disallowedTools");
-      requireMethod(tools, "get", "disallowedTools");
-      requireMethod(agent.scope.ctx, "on", "disallowedTools");
-      try { tools.restrict({ deny: request.disallowedTools }); }
-      catch (error) { throw refusal("option_not_applied", String(error?.message ?? error), "disallowedTools"); }
-      agent.scope.ctx.on("agent/created", ({ agent: created }) => {
-        if (created !== agent) { return; }
-        for (const name of request.disallowedTools) {
-          if (tools.get(name, agent) !== undefined) {
-            throw refusal("option_not_applied", "The native tool remains available: " + name, "disallowedTools");
-          }
-        }
-      });
-    }
-  };
-
 ${dshPromptSource}  const configureSession = (agent, request) => {
+    configureDirectories(agent, request);
     configureTools(agent, request);
     configurePrompt(agent, request);
   };
@@ -163,6 +146,7 @@ ${dshPromptSource}  const configureSession = (agent, request) => {
 ${dshGoalSource}
   const commands = {
     ...goalCommands,
+    ...sessionControls,
     name(request) {
       const { agent } = owned(request.sessionId);
       const title = ctx.get("sessionTitle");
@@ -241,19 +225,6 @@ ${dshGoalSource}
       if (!agent.inbox.nextTurn.some((message) => message.id === request.messageId)) { return { removed: false }; }
       cause = "withdraw";
       try { return { removed: agent.inbox.remove(request.messageId) }; } finally { cause = undefined; }
-    },
-    async stopTask(request) {
-      const { agent } = owned(request.sessionId);
-      const owner = agent.session.id;
-      const job = jobs.get(request.taskId, owner);
-      if (job.owner !== owner || (job.kind !== "bash" && job.kind !== "pwsh")) {
-        throw refusal("unsupported_task", "DSH can stop only a shell job owned by this session");
-      }
-      const result = jobs.kill(job.id, owner, "Stopped by host");
-      if (result !== "requested") { throw refusal("job_finished", "DSH reports that this shell job already finished"); }
-      const settled = await jobs.wait(job.id, 5000, owner);
-      if (settled.status !== "killed") { throw refusal("job_not_killed", "DSH reported shell job status " + settled.status); }
-      return { jobId: settled.id, status: settled.status };
     },
     cancel(request) {
       const { agent } = owned(request.sessionId);
