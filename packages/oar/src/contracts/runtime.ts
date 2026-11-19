@@ -41,10 +41,27 @@ export type RefusedSessionOptions = Readonly<Partial<Record<RefusableSessionOpti
  * advertised image input, OpenCode 2's steering extension, DSH's agent); a
  * host treats absent as unknown, never as false. The opened session stays
  * authoritative.
+ *
+ * `refusedSessionOptions` and `manualCompaction` are this installation's
+ * complete answer: the Runtime's static declaration plus what this version
+ * changes (an option a release below its floor refuses). The same rule as
+ * the static map holds: a declared option is always refused at open. A
+ * refusal only the runtime can decide at open stays undeclared.
+ * `defineRuntime` and `installedSessionCapabilities` fill in the static part.
  */
 export interface SessionCapabilityDeclaration {
   readonly steer?: boolean;
   readonly images?: boolean;
+  readonly refusedSessionOptions?: RefusedSessionOptions;
+  readonly manualCompaction?: ManualCompaction;
+  /** Whether native automatic compaction reports `compaction_started` / `compaction_ended`; absent when not measured for this installation. */
+  readonly compactionEvents?: CompactionEvents;
+}
+
+/** Which compaction lifecycle events a runtime's own automatic compaction produces. */
+export interface CompactionEvents {
+  readonly started: boolean;
+  readonly ended: boolean;
 }
 
 /** Native behavior of an accepted option when reopening a saved session. */
@@ -124,8 +141,9 @@ export interface Runtime extends RuntimeInventories {
   readonly mcpToolsListChanged?: McpToolsListChanged;
   /**
    * Pure and synchronous: no process, no I/O. Takes the installation because
-   * the answer can depend on its version (OpenCode 1 vs 2). Absent member:
-   * nothing is declared (docs/spec/runtime-matrix.md#session-capabilities-before-open).
+   * the answer can depend on its version (OpenCode 1 vs 2). Runtimes built
+   * with `defineRuntime` always have it, with the static declarations merged
+   * in (docs/spec/runtime-matrix.md#session-capabilities-before-open).
    */
   readonly sessionCapabilities?: (installation: AvailableInstallation) => SessionCapabilityDeclaration;
   readonly installation?: InstallationProbe;
@@ -186,7 +204,7 @@ async function unsupported(): Promise<InventoryResult<never>> {
 }
 
 type RuntimeDefinition = Omit<Runtime, keyof RuntimeInventories | "brand" | "execution" | "placement" | "withPlacement"> & Partial<RuntimeInventories> & { readonly brand?: RuntimeBrand };
-type DefinedRuntime<T> = Omit<T, "session" | "execution" | "placement" | "withPlacement"> & Runtime;
+type DefinedRuntime<T> = Omit<T, "session" | "execution" | "placement" | "withPlacement" | "sessionCapabilities"> & Runtime & { readonly sessionCapabilities: NonNullable<Runtime["sessionCapabilities"]> };
 
 export function defineRuntime<const T extends RuntimeDefinition>(runtime: T, options: RuntimePlacementOptions = {}): DefinedRuntime<T> {
   // oxlint-disable-next-line typescript/no-unnecessary-condition -- JavaScript callers can bypass the discriminated options.
@@ -195,10 +213,39 @@ export function defineRuntime<const T extends RuntimeDefinition>(runtime: T, opt
     {
       skills: unsupported, commands: unsupported, mcpServers: unsupported, tools: unsupported,
       ...runtime, brand: runtime.brand ?? { name: runtime.id, icon: null }, placement: requested,
+      // Static declarations come from the object it is called on, so a host that spreads this runtime and
+      // replaces `refusedSessionOptions` or `manualCompaction` gets its own; a detached call uses this definition's.
+      sessionCapabilities(this: StaticDeclarations | undefined, installation: AvailableInstallation): SessionCapabilityDeclaration {
+        return withStaticDeclarations(this ?? runtime, runtime.sessionCapabilities?.(installation) ?? {});
+      },
       execution: options.execution ?? null,
       withPlacement: create,
       session: placementSession(runtime.session, requested, options),
     }
   );
   return create("auto");
+}
+
+type StaticDeclarations = Pick<Runtime, "refusedSessionOptions" | "manualCompaction">;
+
+function withStaticDeclarations(statics: StaticDeclarations, declared: SessionCapabilityDeclaration): SessionCapabilityDeclaration {
+  const refused = { ...statics.refusedSessionOptions, ...declared.refusedSessionOptions };
+  const manualCompaction = declared.manualCompaction ?? statics.manualCompaction;
+  return {
+    ...declared,
+    ...(Object.keys(refused).length === 0 ? {} : { refusedSessionOptions: refused }),
+    ...(manualCompaction === undefined ? {} : { manualCompaction }),
+  };
+}
+
+/**
+ * A runtime's answer for one installation, with its static
+ * `refusedSessionOptions` and `manualCompaction` merged under what the
+ * installation adds. Works for any `Runtime`, including one built without
+ * `defineRuntime`. A version-dependent refusal belongs only in the
+ * installation's answer: whatever the static map refuses, every version
+ * refuses.
+ */
+export function installedSessionCapabilities(runtime: StaticDeclarations & Pick<Runtime, "sessionCapabilities">, installation: AvailableInstallation): SessionCapabilityDeclaration {
+  return withStaticDeclarations(runtime, runtime.sessionCapabilities?.(installation) ?? {});
 }

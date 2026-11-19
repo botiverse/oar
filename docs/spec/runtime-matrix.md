@@ -148,8 +148,23 @@ and the opened session stays authoritative.
 | qoder | true | false |
 | qwen | false | false |
 
-A runtime without the member declares nothing. Community runtimes declare
-their own (morph: steer true, images false).
+Every runtime built with `defineRuntime` has the member; one that declares
+neither field answers with its static declarations only. Community runtimes
+declare their own (morph: steer true, images false).
+
+The same answer carries what depends on the installed version. Its
+`refusedSessionOptions` is this installation's complete set: the static
+`Runtime.refusedSessionOptions` plus refusals a release adds (an option below
+its measured floor). As for the static map, a declared option is always
+refused at open. A refusal that depends on the version belongs only in this
+answer: whatever the static map refuses, every version refuses.
+`manualCompaction` is this installation's value, and
+`compactionEvents` says whether native automatic compaction reports
+`compaction_started` and `compaction_ended`; each is absent where not
+established. `defineRuntime` and `installedSessionCapabilities(runtime,
+installation)` merge the static declarations in, so a host reads one answer
+and never branches on a runtime's name. `orient()` returns it for every
+available installation ([orientation](orientation.md#session-capabilities)).
 
 ### Native tasks and single-task stop
 

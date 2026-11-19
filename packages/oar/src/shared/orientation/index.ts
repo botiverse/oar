@@ -3,7 +3,7 @@ import type { AccountUsageSnapshot } from "../../contracts/account-usage.js";
 import type { AuthStatus } from "../../contracts/login.js";
 import type { ListModelsResult, ModelEntry } from "../../contracts/list-models.js";
 import type { OrientOptions, Orientation, Probe, RuntimeOrientation } from "../../contracts/orientation.js";
-import type { Runtime } from "../../contracts/runtime.js";
+import { installedSessionCapabilities, type Runtime } from "../../contracts/runtime.js";
 import type { RuntimeRegistry } from "../../registry.js";
 import { ProbeBudget, observedNow } from "./budget.js";
 import { ProbeSlots } from "./slots.js";
@@ -73,7 +73,7 @@ async function readRuntime(runtime: Runtime, requested: OrientOptions, until: nu
     providersReader === undefined ? undefined : budget.run(async (timeoutMs) => { const result = await providersReader(available, { resolve: options.depth === "account" || options.depth === "models", timeoutMs, ...(options.env === undefined ? {} : { env: options.env }) }); return result; }),
   ]);
   const extra = await additional(runtime, available, auth, options, budget, slots);
-  return { id: runtime.id, brand: runtime.brand, installation, auth, ...(providers === undefined ? {} : { providers }), ...extra };
+  return { id: runtime.id, brand: runtime.brand, installation, sessionCapabilities: installedSessionCapabilities(runtime, available), auth, ...(providers === undefined ? {} : { providers }), ...extra };
 }
 
 /** Combine native observations with bounded cost, without calling Runtime.session or submitting a prompt. */
