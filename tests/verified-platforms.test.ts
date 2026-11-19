@@ -53,11 +53,18 @@ function manifestPlatforms(): Map<string, RuntimePlatform[]> {
 /** Runtimes whose behavior suite runs from the SDK dependency, so the manifest has no row for them (ci-select.mjs `behavior`). */
 const sdkRuntimes: Readonly<Record<string, readonly RuntimePlatform[]>> = { pi: ["linux", "darwin", "win32"], "pi-durable": ["linux", "darwin", "win32"] };
 
-test.each(["push", "pull_request"] as const)("the %s ACP gate runs both Windows OpenCode pins against the shared suite", event => {
-  const windows = acpJobs(event).filter(job => job.os === "windows-latest");
-  expect(windows.map(job => [job.suite ?? job.backend, job.pin ?? job.backend])).toEqual([
-    ["opencode-aimock", "opencode-aimock"], ["opencode-aimock", "opencode-cleanup"],
-  ]);
+test.each(["push", "pull_request"] as const)("the %s ACP gate runs both OpenCode pins on every selected runner", event => {
+  const jobs = acpJobs(event);
+  const runners = event === "push" ? ["ubuntu-latest", "windows-latest", "macos-latest"] : ["ubuntu-latest", "windows-latest"];
+  expect(new Set(jobs.map(job => job.os))).toEqual(new Set(runners));
+  for (const os of runners) {
+    const onRunner = jobs.filter(job => job.os === os);
+    const openCode = onRunner.filter(job => (job.suite ?? job.backend) === "opencode-aimock");
+    expect(openCode.map(job => [job.backend, job.pin ?? job.backend]), os).toEqual([
+      ["opencode-aimock", "opencode-aimock"], ["opencode-v2-aimock", "opencode-cleanup"],
+    ]);
+    if (os === "windows-latest") { expect(onRunner).toEqual(openCode); }
+  }
 });
 
 test("every built-in runtime declares exactly the platforms a gating CI job runs it on, and nothing else declares any", () => {

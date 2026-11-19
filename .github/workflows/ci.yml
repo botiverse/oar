@@ -11,9 +11,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Which behavior backends and platforms this run needs (.github/scripts/ci-select.mjs):
-  # a pull request runs the backends its files can reach on Linux, plus both Windows OpenCode pins; pushes to
-  # main and dispatches run every backend on every platform before a release.
+  # The selector runs affected backends on Linux for pull requests. OpenCode's
+  # two pins also run on Windows. Main pushes and dispatches run the full matrix.
   changes:
     runs-on: ubuntu-latest
     outputs:
@@ -355,7 +354,7 @@ jobs:
           if-no-files-found: warn
 
   # Native ACP agents with a local scripted provider; no account credentials.
-  # The Windows OpenCode jobs share a suite and select separate native package pins.
+  # Both OpenCode majors share a suite and select separate native package pins.
   acp-behavior:
     needs: changes
     if: needs.changes.outputs.acp != '[]'

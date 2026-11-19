@@ -17,10 +17,11 @@ change travels.
   after verifying them herself and getting a second look.
 - **Merge.** Squash only. All CI checks report SUCCESS on the exact head
   for the jobs selected by `ci.yml`. A pull request that reaches OpenCode
-  runs both Windows pins. The separate Kimi and Grok Windows ACP observation
-  workflow runs after main pushes and retains failures. A pull request that changes only `**/*.md`, `docs/**` or
-  `assets/**` runs no CI by design and merges on the author's local check
-  plus the review. The author merges once approved:
+  runs both pins on Linux and Windows. Main adds macOS. A separate
+  workflow observes Kimi and Grok on Windows and retains failures.
+  A pull request that changes only `**/*.md`, `docs/**` or `assets/**`
+  runs no CI by design and merges on the author's local check plus the
+  review. The author merges once approved:
   `stamp pr merge N --repo botiverse/oar --auto --head SHA --base SHA`.
 - **Releases.** Only @Cindy cuts releases. Feature pull requests never bump
   package versions or push tags.

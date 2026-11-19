@@ -1170,15 +1170,16 @@ See [host-served tools](../spec/runtime-matrix.md#host-served-tools).
   runs `opencode upgrade` on the selected executable and reads its version again.
   An isolated script installation advanced from 2.2.7 to 2.3.2, and stayed
   on 2.3.2 on a second run. The v1 adapter does not drive an upgrade.
-- [Session MCP servers](#session-mcp-servers) ran against a scripted
-  provider only, not a logged-in provider or a free `opencode/*` model. The
-  vendor test and shared behavior suite run in CI (`OAR_TEST=opencode-aimock`),
-  pinned to `opencode-ai@1.19.5` on Linux and macOS. The
-  [Windows CI jobs](../../.github/workflows/ci.yml) run the shared behavior and vendor
-  suites for both v1 (`opencode-aimock`, 1.19.5) and v2 (`opencode-cleanup`,
-  2.2.7). They gate pull requests that reach OpenCode and pushes to main. Each
-  retains its installed version and trial artifacts. The v2 vendor suite also
-  runs after a behavior failure. OAR declares Windows in `verifiedPlatforms`.
+- [Session MCP servers](#session-mcp-servers) ran against a local scripted
+  provider. [CI](../../.github/workflows/ci.yml) runs shared behavior and
+  full vendor suites on both OpenCode majors. A pull request that reaches
+  OpenCode runs both on Linux and Windows. Main pushes add macOS.
+  OpenCode declares all three in `verifiedPlatforms`. Each job retains
+  its installed version and trial artifacts. The v2 vendor suite
+  also runs after a behavior failure. The
+  [runtime manifest](../../.github/runtime-versions.json) pins the two
+  installations. At the November 19 check they were v1 1.19.5
+  (`opencode-aimock`) and v2 2.2.7 (`opencode-cleanup`).
   Two Windows v1 observations traced long first prompts to native snapshots of
   the OAR checkout. The MCP fixtures now use small Git projects. First snapshots
   took 235 to 288 ms in eight vendor cases in the
@@ -1196,15 +1197,21 @@ See [host-served tools](../spec/runtime-matrix.md#host-served-tools).
   The five failures depend on direct MCP tool calls or direct tool declarations
   in the provider request, including the echo used by the prompt replacement test
   ([November 10 report](../../experiments/runtime-version-checks/2026-11-10.md#known-v1-vendor-boundary)).
-  The Windows v2 job skips only those five direct-tool protocol cases after
+  The v2 suite skips those five direct-tool protocol cases after
   checking the installed major version. The remaining vendor cases and shared
   behavior suite run on both lines, with nonzero scripted provider token
   counts so v2 can report its native context usage.
-  In the [Windows observation on November 19](https://github.com/botiverse/oar/actions/runs/44579053929),
-  each line passed 18 shared cases. The vendor suites passed 11 cases on v1
-  and 15 on v2. The [next Windows observation](https://github.com/botiverse/oar/actions/runs/44581502965)
-  again passed 18 shared cases on each pin. With the three Code Mode cases
-  included, v2 passed 18 vendor cases and v1 passed 11.
+  On Windows, the [initial v2 run](https://github.com/botiverse/oar/actions/runs/44577062329/job/135747288857)
+  failed the context assertion and those five direct-tool cases. After the
+  fixtures were corrected, four consecutive v2 jobs passed both suites on
+  the first attempt through November 19 at 19:59 UTC. Two ran on branches
+  ([fixture correction](https://github.com/botiverse/oar/actions/runs/44579053929/job/135754375348),
+  [Code Mode cases](https://github.com/botiverse/oar/actions/runs/44581502965/job/135763066495))
+  and two on main
+  ([`06862970`](https://github.com/botiverse/oar/actions/runs/44591119450/job/135797074143),
+  [`cad422e6`](https://github.com/botiverse/oar/actions/runs/44602937925/job/135838907709)).
+  The first branch run passed 18 shared and 15 vendor cases. The next
+  passed 18 shared and 18 vendor cases, including three new Code Mode cases.
   The [v2 Code Mode tests](../../sea-trial/vendor/opencode-code-mode-mcp.vendor.test.ts)
   exercise stdio and HTTP on open and resume. After a catalog change the model
   sees the added and withdrawn names, a call to the withdrawn name fails inside
