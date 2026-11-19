@@ -1,4 +1,5 @@
-import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
+import { withQueryDeadline } from "../../shared/executable/query.js";
+import type { ListModelsResult, ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { effortLevelOf, effortLevelsOf } from "../../shared/effort-levels.js";
 import { asRecord, asRecordList } from "../../shared/json.js";
@@ -29,13 +30,11 @@ export function projectFactoryModels(result: unknown): ModelEntry[] {
 
 export const factoryListModels: ModelLister = async (installation, options = {}) => {
   if (installation.via !== "executable") { return { kind: "unsupported", reason: "Factory droid lists models through its executable" }; }
-  const client = startDroidClient(installation.command, { cwd: listingCwd(options), env: sessionEnvironment(options.env) });
-  client.handle({ onNotification: () => {}, onUnmatched: () => {}, onServerRequest: (message) => { client.respond(message.id, { error: { code: -32_601, message: "not handled" } }); } });
-  try {
-    const result = await Promise.race([
-      client.request("droid.list_models", {}),
-      new Promise<never>((_resolve, reject) => { setTimeout(() => { reject(new Error("droid did not list its models in time")); }, LIST_TIMEOUT_MS).unref(); }),
-    ]);
+  const answer = await withQueryDeadline<ListModelsResult>("Factory model listing", options.timeoutMs ?? LIST_TIMEOUT_MS, async (_signal, own) => {
+    const client = own(startDroidClient(installation.command, { cwd: listingCwd(options), env: sessionEnvironment(options.env) }));
+    client.handle({ onNotification: () => {}, onUnmatched: () => {}, onServerRequest: (message) => { client.respond(message.id, { error: { code: -32_601, message: "not handled" } }); } });
+    const result = await client.request("droid.list_models", {});
     return { kind: "ok", models: projectFactoryModels(result) };
-  } finally { client.kill(); await client.exited; }
+  });
+  return answer;
 };

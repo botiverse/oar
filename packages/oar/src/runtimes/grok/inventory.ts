@@ -27,26 +27,22 @@ function reader<T>(project: (payload: JsonRecord) => T[]): InventoryReader<T> {
       return unsupportedInventory("installation_unsupported", "Grok inventory requires an executable");
     }
     const scope = workspaceScope(options);
-    const child = spawnLineProcess(installation.command, ["inspect", "--json"], { cwd: scope.cwd, env: sessionEnvironment(options.env), killTree: true });
-    let stdout = "";
-    child.stdout.on("data", (chunk: Buffer | string) => { stdout += chunk.toString(); });
-    try {
-      return await inventoryRead(async () => {
-        await child.spawned;
-        const code = await child.exited;
-        if (code !== 0) {
-          throw new Error("Grok inspect failed");
-        }
-        const payload = asRecord(parseJson(stdout));
-        if (payload === null) {
-          throw new TypeError("Invalid Grok inspect result");
-        }
-        return inventoryOk(scope, "discovered", project(payload));
-      }, options.timeoutMs);
-    } finally {
-      child.kill();
-      await child.exited;
-    }
+    const result = await inventoryRead(async (_signal, own) => {
+      const child = own(spawnLineProcess(installation.command, ["inspect", "--json"], { cwd: scope.cwd, env: sessionEnvironment(options.env), killTree: true }));
+      let stdout = "";
+      child.stdout.on("data", (chunk: Buffer | string) => { stdout += chunk.toString(); });
+      await child.spawned;
+      const code = await child.exited;
+      if (code !== 0) {
+        throw new Error("Grok inspect failed");
+      }
+      const payload = asRecord(parseJson(stdout));
+      if (payload === null) {
+        throw new TypeError("Invalid Grok inspect result");
+      }
+      return inventoryOk(scope, "discovered", project(payload));
+    }, options.timeoutMs);
+    return result;
   };
 }
 export const grokSkills = reader(projectGrokSkills);

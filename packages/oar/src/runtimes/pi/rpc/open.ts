@@ -1,3 +1,4 @@
+import type { OwnQueryProcess } from "../../../shared/executable/query.js";
 import { appendCleanupFailure, cleanupFailureReason } from "../../../shared/executable/process-cleanup.js";
 /* oxlint-disable import/max-dependencies -- Native startup composes existing session, model, credential and process helpers. */
 import { existsSync, readFileSync } from "node:fs";
@@ -45,6 +46,7 @@ export interface OpenPiRpc {
 
 interface PiRpcReadLifetime {
   readonly signal: AbortSignal;
+  readonly own: OwnQueryProcess;
   readonly noSession: true;
 }
 
@@ -100,10 +102,7 @@ export async function openPiRpc(options: SessionOptions, credentials: Credential
       ...promptArgs,
       ...((options.disallowedTools?.length ?? 0) === 0 ? [] : ["--exclude-tools", (options.disallowedTools ?? []).join(",")]),
     ], { cwd: options.cwd, env: { ...env, PI_CODING_AGENT_DIR: agentDir, OAR_PI_RPC_DIRECTORY: directory.path }, killTree: true, shutdown: "stdin", inheritStderr: false, extraPipe: true });
-    const stop = (): void => { child.kill(); };
-    signal?.addEventListener("abort", stop, { once: true });
-    child.onExit(() => { signal?.removeEventListener("abort", stop); });
-    if (signal?.aborted === true) { stop(); }
+    lifetime?.own(child);
     const keyPipe = child.extraPipe;
     if (keyPipe === undefined) { child.kill(); await child.exited; throw new Error("Pi RPC requires a private credential pipe"); }
     readPiRpcCredentials(keyPipe, credentials.add, () => { child.kill(); });

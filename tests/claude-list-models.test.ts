@@ -101,6 +101,6 @@ test("claude lister fails when the process exits before answering", async () => 
 test("claude lister kills the process on timeout", async () => {
   const fake = fakeLineProcess();
   spawnLineProcess.mockReturnValue(fake);
-  await expect(claudeListModels(installation, { timeoutMs: 20 })).rejects.toThrow(/exited before answering/u);
+  await expect(claudeListModels(installation, { timeoutMs: 20 })).rejects.toThrow(/timed out/u);
   expect(fake.killed()).toBe(true);
 });

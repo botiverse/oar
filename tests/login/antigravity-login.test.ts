@@ -2,11 +2,14 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
+import { antigravityVersionPreflight } from "../../packages/oar/src/runtimes/antigravity/version.js";
 import { antigravityRuntime } from "../../packages/oar/src/runtimes/antigravity/index.js";
 import { antigravityAuthStatus, antigravityLogin } from "../../packages/oar/src/runtimes/antigravity/auth.js";
 import { fakeLoginCli } from "../fixtures/login-fixtures.js";
 import { recordedInteraction } from "../fixtures/login-interaction.js";
+
+vi.mock("../../packages/oar/src/runtimes/antigravity/version.js", { spy: true });
 
 const directories: string[] = [];
 afterEach(async () => { await Promise.all(directories.splice(0).map(async (dir) => { await rm(dir, { recursive: true, force: true }); })); });
@@ -86,6 +89,16 @@ it("logout is agy's own ACP logout, confirmed by agy models", async () => {
   const { fake, installation } = await fixture("success", true);
   expect(await antigravityRuntime.logout(installation)).toEqual({ kind: "logged_out" });
   expect(fake.read()).toMatchObject({ calls: [["acp"], ["models"]], loggedIn: false });
+});
+
+it("successful native logout keeps its result when the confirmation version probe fails", async () => {
+  const { installation } = await fixture("success", true);
+  const probe = vi.mocked(antigravityVersionPreflight);
+  probe.mockClear().mockRejectedValueOnce(new Error("private native failure"));
+  try {
+    await expect(antigravityRuntime.logout(installation)).resolves.toEqual({ kind: "logged_out" });
+    expect(probe).toHaveBeenCalledOnce();
+  } finally { probe.mockClear(); }
 });
 
 it("logout does not claim a sign-in agy still reports is gone", async () => {

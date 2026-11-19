@@ -1,3 +1,4 @@
+import { withQueryDeadline, type OwnQueryProcess } from "../../shared/executable/query.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 /* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
 import {
@@ -86,67 +87,65 @@ export function projectGrokModels(state: unknown): ModelEntry[] {
   return entries;
 }
 
-async function readModelState(command: string, cwd: string, timeoutMs: number, env: NodeJS.ProcessEnv): Promise<JsonRecord> {
-  const runtime = startAcpProcess(
+async function readModelState(command: string, cwd: string, timeoutMs: number, env: NodeJS.ProcessEnv, own: OwnQueryProcess): Promise<JsonRecord> {
+  const runtime = own(startAcpProcess(
     command,
     ["agent", "--always-approve", "--no-leader", "stdio"],
     createClient({ name: "oar" }),
     { cwd, env },
+  ));
+  const initialize = methods.agent.initialize;
+  const response = await withAcpDeadline(
+    runtime,
+    initialize,
+    timeoutMs,
+    (requestOptions) => runtime.connection.agent.request(initialize, {
+      protocolVersion: PROTOCOL_VERSION,
+      clientCapabilities: {
+        fs: { readTextFile: false, writeTextFile: false },
+        terminal: false,
+      },
+      clientInfo: { name: "oar", version: "0.0.0" },
+      _meta: grokInitializeMeta({ cwd }),
+    }, requestOptions),
   );
-  try {
-    const initialize = methods.agent.initialize;
-    const response = await withAcpDeadline(
+  const method = selectGrokAuthMethod(asRecord(response) ?? {});
+  if (method !== undefined) {
+    const authenticate = methods.agent.authenticate;
+    await withAcpDeadline(
       runtime,
-      initialize,
+      authenticate,
       timeoutMs,
-      (requestOptions) => runtime.connection.agent.request(initialize, {
-        protocolVersion: PROTOCOL_VERSION,
-        clientCapabilities: {
-          fs: { readTextFile: false, writeTextFile: false },
-          terminal: false,
-        },
-        clientInfo: { name: "oar", version: "0.0.0" },
-        _meta: grokInitializeMeta({ cwd }),
-      }, requestOptions),
-    );
-    const method = selectGrokAuthMethod(asRecord(response) ?? {});
-    if (method !== undefined) {
-      const authenticate = methods.agent.authenticate;
-      await withAcpDeadline(
-        runtime,
+      (requestOptions) => runtime.connection.agent.request(
         authenticate,
-        timeoutMs,
-        (requestOptions) => runtime.connection.agent.request(
-          authenticate,
-          { methodId: method },
-          requestOptions,
-        ),
-      );
-    }
-    const result = await withAcpDeadline(
-      runtime,
-      "_x.ai/models/list",
-      timeoutMs,
-      (requestOptions) => runtime.connection.agent.request<JsonRecord>(
-        "_x.ai/models/list",
-        {},
+        { methodId: method },
         requestOptions,
       ),
     );
-    return grokModelState(result);
-  } finally {
-    runtime.kill();
-    await runtime.exited;
   }
+  const result = await withAcpDeadline(
+    runtime,
+    "_x.ai/models/list",
+    timeoutMs,
+    (requestOptions) => runtime.connection.agent.request<JsonRecord>(
+      "_x.ai/models/list",
+      {},
+      requestOptions,
+    ),
+  );
+  return grokModelState(result);
 }
 
 export const grokListModels: ModelLister = async (installation, options = {}) => {
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "grok model listing requires the grok executable" };
   }
+  const timeoutMs = options.timeoutMs ?? 10_000;
   try {
-    const state = await readModelState(installation.command, listingCwd(options), options.timeoutMs ?? 10_000, sessionEnvironment(options.env));
-    return { kind: "ok", models: projectGrokModels(state) };
+    return await withQueryDeadline("Grok model listing", timeoutMs, async (_signal, own) => {
+      const state = await readModelState(installation.command, listingCwd(options), timeoutMs, sessionEnvironment(options.env), own);
+      return { kind: "ok", models: projectGrokModels(state) };
+    });
   } catch (error) {
     if (error instanceof RequestError) {
       if (error.code === -32_601) {

@@ -25,5 +25,7 @@ export async function antigravityLogout(installation: AvailableInstallation, opt
   const native: NativeLogout = result === "ok" ? { kind: "done" } : {
     kind: "failed", reason: result === "timed_out" ? "timed_out" : "process_failed", detail: "agy ACP logout did not complete",
   };
-  return confirmedLogout(native, await readAntigravityAuthStatus(installation, { env: options.env, ...statusAfterLogout(startedAt, options.timeoutMs) }), "agy acp logout");
+  const status = await readAntigravityAuthStatus(installation, { env: options.env, ...statusAfterLogout(startedAt, options.timeoutMs) })
+    .catch(() => ({ kind: "unknown" as const, source: "agy models", detail: "Could not check Antigravity status after logout." }));
+  return confirmedLogout(native, status, "agy acp logout");
 }

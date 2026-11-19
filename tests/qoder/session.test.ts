@@ -8,7 +8,7 @@ import { fakeLineProcess, type FakeLineProcess } from "../fixtures/fake-line-pro
 
 const launch = vi.hoisted(() => ({ launchQoder: vi.fn(), closeQoder: vi.fn() }));
 vi.mock("../../packages/oar/src/runtimes/qoder/launch.js", () => launch);
-vi.mock("../../packages/oar/src/runtimes/qoder/auth-status.js", () => ({ qoderAuthStatus: async () => ({ kind: "logged_in" }) }));
+vi.mock("../../packages/oar/src/runtimes/qoder/auth-status.js", () => ({ readQoderAuthStatus: async () => ({ kind: "logged_in" }) }));
 afterEach(() => { vi.useRealTimers(); vi.clearAllMocks(); });
 
 const privateData = { email: "private@example.invalid", username: "private-user", org_id: "private-org", access_token: "fixture-private-token" };

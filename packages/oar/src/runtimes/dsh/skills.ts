@@ -23,29 +23,29 @@ function project(row: JsonRecord): SkillEntry {
 export const dshSkills: InventoryReader<SkillEntry> = async (installation, options = {}) => {
   if (installation.via !== "executable") { return unsupportedInventory("installation_unsupported", "DSH skill discovery requires an executable"); }
   const timeoutMs = options.timeoutMs ?? 15_000;
-  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) { throw new RangeError("timeoutMs must be positive and finite"); }
-  const env = dshEnvironment(options.env);
-  const version = installation.version ?? await readExecutableVersion(installation.command, timeoutMs, undefined, env);
-  const refusal = dshVersionUnsupported(version);
-  if (refusal !== null) { return refusal; }
-  const scope = workspaceScope(options);
-  const launched = await launchDsh(installation.command, scope.cwd, env).catch(() => null);
-  if (launched === null) { return unavailableInventory("query_failed", "Native inventory query failed"); }
-  const { child } = launched;
-  const control = dshControl(child, () => {});
-  try {
-    return await inventoryRead(async () => {
-      await control.ready;
-      let snapshot: JsonRecord = {};
-      try { snapshot = await control.request("skills", { cwd: scope.cwd }, timeoutMs); }
-      catch (error) {
-        if (error instanceof DshCommandError && error.code === "native_method_unavailable") {
-          return unsupportedInventory("native_query_unavailable", "This DSH does not expose a native skill snapshot");
-        }
-        throw error;
+  const result = await inventoryRead(async (signal, own) => {
+    const env = dshEnvironment(options.env);
+    const version = installation.version ?? await readExecutableVersion(installation.command, timeoutMs, undefined, env, signal);
+    signal.throwIfAborted();
+    const refusal = dshVersionUnsupported(version);
+    if (refusal !== null) { return refusal; }
+    const scope = workspaceScope(options);
+    const launched = await launchDsh(installation.command, scope.cwd, env).catch(() => null);
+    if (launched === null) { return unavailableInventory("query_failed", "Native inventory query failed"); }
+    const { child } = launched;
+    own(child);
+    const control = dshControl(child, () => {});
+    await control.ready;
+    let snapshot: JsonRecord = {};
+    try { snapshot = await control.request("skills", { cwd: scope.cwd }, timeoutMs); }
+    catch (error) {
+      if (error instanceof DshCommandError && error.code === "native_method_unavailable") {
+        return unsupportedInventory("native_query_unavailable", "This DSH does not expose a native skill snapshot");
       }
-      if (typeof snapshot.complete !== "boolean") { throw new TypeError("DSH skill snapshot has no completeness flag"); }
-      return inventoryOk(scope, "discovered", nativeRows(snapshot.skills).map(row => project(row)), !snapshot.complete);
-    }, timeoutMs);
-  } finally { child.kill(); await child.exited; }
+      throw error;
+    }
+    if (typeof snapshot.complete !== "boolean") { throw new TypeError("DSH skill snapshot has no completeness flag"); }
+    return inventoryOk(scope, "discovered", nativeRows(snapshot.skills).map(row => project(row)), !snapshot.complete);
+  }, timeoutMs);
+  return result;
 };

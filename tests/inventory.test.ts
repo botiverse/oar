@@ -232,7 +232,7 @@ test.each([codexSkills, claudeSkills, claudeCommands, grokSkills])("timeout rele
   expect(fake.killed()).toBe(true);
 });
 
-test.each([claudeCommands, grokSkills])("inventory timeout waits for teardown before returning", async (read) => {
+test.each([claudeCommands, grokSkills])("inventory timeout returns while the owned tree stops", async (read) => {
   vi.useFakeTimers();
   const fake = fakeLineProcess();
   const kill = vi.spyOn(fake, "kill").mockImplementation(() => {});
@@ -240,7 +240,7 @@ test.each([claudeCommands, grokSkills])("inventory timeout waits for teardown be
   const reading = observeSettlement(read(executable, { timeoutMs: 30 }));
   await vi.advanceTimersByTimeAsync(30);
   expect({ calls: kill.mock.calls.length, settled: reading.settled(), killTree: spawnLineProcess.mock.calls[0]?.[2]?.killTree })
-    .toEqual({ calls: 1, settled: false, killTree: true });
+    .toEqual({ calls: 1, settled: true, killTree: true });
   fake.end(null);
   await expect(reading.result).resolves.toMatchObject({ kind: "unavailable", code: "timeout" });
 });

@@ -1,3 +1,4 @@
+import { withQueryDeadline } from "../../shared/executable/query.js";
 import { randomUUID } from "node:crypto";
 import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import { effortLevelsOf } from "../../shared/effort-levels.js";
@@ -25,31 +26,34 @@ export function projectQwenModels(payload: unknown): ModelEntry[] {
 
 /** Native catalog query; the environment parameter also lets the native harness isolate HOME. */
 export async function readQwenModels(command: string, cwd: string, timeoutMs = QWEN_CONTROL_TIMEOUT_MS, env?: Readonly<Record<string, string | null>>): Promise<ModelEntry[]> {
-  const child = await launchQwen(command, randomUUID(), { cwd, ...(env === undefined ? {} : { env }) });
-  const control = qwenControl(child, timeoutMs);
-  const authentication = { refused: false };
-  child.onLine((line) => {
-    const value = asRecord(parseJson(line));
-    if (value === null) { return; }
-    // Native emits this terminal result before answering initialize. Match the
-    // observed root startup failure, never model text or arbitrary auth words.
-    if (value.type === "result" && value.subtype === "error_during_execution"
-      && value.is_error === true && value.num_turns === 0
-      && (value.parent_tool_use_id === undefined || value.parent_tool_use_id === null)
-      && asRecord(value.error)?.message === missingAuthType) {
-      authentication.refused = true;
-      control.end();
-    } else { control.consume(value); }
+  const result = await withQueryDeadline("Qwen model listing", timeoutMs, async (_signal, own) => {
+    const child = own(await launchQwen(command, randomUUID(), { cwd, ...(env === undefined ? {} : { env }) }));
+    const control = qwenControl(child, timeoutMs);
+    const authentication = { refused: false };
+    child.onLine((line) => {
+      const value = asRecord(parseJson(line));
+      if (value === null) { return; }
+      // Native emits this terminal result before answering initialize. Match the
+      // observed root startup failure, never model text or arbitrary auth words.
+      if (value.type === "result" && value.subtype === "error_during_execution"
+        && value.is_error === true && value.num_turns === 0
+        && (value.parent_tool_use_id === undefined || value.parent_tool_use_id === null)
+        && asRecord(value.error)?.message === missingAuthType) {
+        authentication.refused = true;
+        control.end();
+      } else { control.consume(value); }
+    });
+    child.onExit(() => { control.end(); });
+    try {
+      await control.request({ subtype: "initialize" });
+      const answer = await control.request({ subtype: "get_available_models" });
+      return projectQwenModels(asRecord(answer.response)?.response);
+    } catch (error) {
+      if (authentication.refused) { throw new QwenModelAuthenticationError("Configure a Qwen authentication type before listing models."); }
+      throw error;
+    } finally { control.end(); await closeQwen(child); }
   });
-  child.onExit(() => { control.end(); });
-  try {
-    await control.request({ subtype: "initialize" });
-    const answer = await control.request({ subtype: "get_available_models" });
-    return projectQwenModels(asRecord(answer.response)?.response);
-  } catch (error) {
-    if (authentication.refused) { throw new QwenModelAuthenticationError("Configure a Qwen authentication type before listing models."); }
-    throw error;
-  } finally { control.end(); await closeQwen(child); }
+  return result;
 }
 
 export const qwenListModels: ModelLister = async (installation, options = {}) => {

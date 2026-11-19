@@ -188,59 +188,55 @@ function reader<T>(read: (request: NativeInventoryRequest, scope: InventoryScope
       return unsupportedInventory("installation_unsupported", "Claude inventory requires an executable");
     }
     const scope = workspaceScope(options);
-    const child = spawnLineProcess(installation.command, [
-      "-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--no-session-persistence",
-    ], { cwd: scope.cwd, env: claudeEnv(options.env), killTree: true });
-    let pending: { id: string; resolve(value: JsonRecord): void; reject(error: Error): void } | null = null;
-    let closed = false;
-    child.onLine((line) => {
-      const message = asRecord(parseJson(line));
-      const response = asRecord(message?.response);
-      if (message?.type === "control_response" && response !== null && response.request_id === pending?.id && pending !== null) {
-        const waiter = pending;
-        pending = null;
-        if (response.subtype === "success") {
-          waiter.resolve(asRecord(response.response) ?? {});
-        } else if (typeof response.error === "string" && /unsupported|not supported|unknown control/iu.test(response.error)) {
-          waiter.reject(new UnsupportedControlError());
-        } else {
-          waiter.reject(new Error("Native control query failed"));
-        }
-      }
-    });
-    child.onExit(() => {
-      closed = true;
-      pending?.reject(new Error("Native process exited"));
-      pending = null;
-    });
-    const request: NativeInventoryRequest = async (method, params) => {
-      if (closed) {
-        throw new Error("Native process exited");
-      }
-      const id = randomUUID();
-      const { promise, resolve, reject } = Promise.withResolvers<JsonRecord>();
-      pending = { id, resolve, reject };
-      child.write(`${JSON.stringify({ type: "control_request", request_id: id, request: { subtype: method, ...params } })  }\n`);
-      const result = await promise;
-      return result;
-    };
-    try {
-      return await inventoryRead(async () => {
-        try {
-          await child.spawned;
-          const initialized = await request("initialize", {});
-          return await read(request, scope, initialized);
-        } catch (error) {
-          if (error instanceof UnsupportedControlError) {
-            return unsupportedInventory("native_query_unavailable", "This Claude build does not expose the inventory query");
+    const answer = await inventoryRead(async (_signal, own) => {
+      const child = own(spawnLineProcess(installation.command, [
+        "-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--no-session-persistence",
+      ], { cwd: scope.cwd, env: claudeEnv(options.env), killTree: true }));
+      let pending: { id: string; resolve(value: JsonRecord): void; reject(error: Error): void } | null = null;
+      let closed = false;
+      child.onLine((line) => {
+        const message = asRecord(parseJson(line));
+        const response = asRecord(message?.response);
+        if (message?.type === "control_response" && response !== null && response.request_id === pending?.id && pending !== null) {
+          const waiter = pending;
+          pending = null;
+          if (response.subtype === "success") {
+            waiter.resolve(asRecord(response.response) ?? {});
+          } else if (typeof response.error === "string" && /unsupported|not supported|unknown control/iu.test(response.error)) {
+            waiter.reject(new UnsupportedControlError());
+          } else {
+            waiter.reject(new Error("Native control query failed"));
           }
-          throw error;
         }
-      }, options.timeoutMs);
-    } finally {
-      child.kill();
-      await child.exited;
-    }
+      });
+      child.onExit(() => {
+        closed = true;
+        pending?.reject(new Error("Native process exited"));
+        pending = null;
+      });
+      const request: NativeInventoryRequest = async (method, params) => {
+        if (closed) {
+          throw new Error("Native process exited");
+        }
+        const id = randomUUID();
+        const { promise, resolve, reject } = Promise.withResolvers<JsonRecord>();
+        pending = { id, resolve, reject };
+        child.write(`${JSON.stringify({ type: "control_request", request_id: id, request: { subtype: method, ...params } })  }\n`);
+        const result = await promise;
+        return result;
+      };
+      try {
+        await child.spawned;
+        const initialized = await request("initialize", {});
+        return await read(request, scope, initialized);
+      } catch (error) {
+        if (error instanceof UnsupportedControlError) {
+          return unsupportedInventory("native_query_unavailable", "This Claude build does not expose the inventory query");
+        }
+        throw error;
+      }
+    }, options.timeoutMs);
+    return answer;
   };
 }
 async function readServers(request: NativeInventoryRequest): Promise<JsonRecord[]> {

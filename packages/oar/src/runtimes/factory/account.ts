@@ -1,3 +1,4 @@
+import { withQueryDeadline, type OwnQueryProcess } from "../../shared/executable/query.js";
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { AuthStatus, AuthStatusOptions, LoginOptions, LoginResult, LogoutOptions, LogoutResult } from "../../contracts/login.js";
 import type { ProviderLoginInteraction } from "../../contracts/provider-auth.js";
@@ -41,8 +42,9 @@ interface AcpCall {
 }
 
 /** One droid ACP process for one account operation, killed afterwards. Requests from droid go to `onRequest`; anything else is refused. */
-async function withDroidAcp<T>(command: string, env: NodeJS.ProcessEnv, onRequest: (method: string, params: JsonRecord) => JsonRecord | null, run: (call: AcpCall, exited: Promise<number | null>) => Promise<T>): Promise<T> {
+async function withDroidAcp<T>(command: string, env: NodeJS.ProcessEnv, onRequest: (method: string, params: JsonRecord) => JsonRecord | null, run: (call: AcpCall, exited: Promise<number | null>) => Promise<T>, own?: OwnQueryProcess): Promise<T> {
   const child: LineProcess = spawnLineProcess(command, [...ACP_ARGS], { env, inheritStderr: false, killTree: true });
+  own?.(child);
   // oxlint-disable-next-line promise/prefer-await-to-then -- spawn failure is observed through the pending requests.
   void child.spawned.catch(() => {});
   const pending = new Map<number, (reply: { readonly result?: JsonRecord; readonly error?: JsonRecord }) => void>();
@@ -75,7 +77,7 @@ async function withDroidAcp<T>(command: string, env: NodeJS.ProcessEnv, onReques
         return reply;
       },
     }, child.exited);
-  } finally { child.kill(); await child.exited; }
+  } finally { if (own === undefined) { child.kill(); await child.exited; } }
 }
 
 const initializeParams = (elicitation: boolean): JsonRecord => ({
@@ -121,15 +123,13 @@ async function bounded<T>(timeoutMs: number, fallback: T, signal: AbortSignal | 
 export async function factoryAuthStatus(installation: AvailableInstallation, options: AuthStatusOptions & { readonly signal?: AbortSignal } = {}): Promise<AuthStatus> {
   if (installation.via !== "executable") { return { kind: "unknown", detail: "not a machine-installed executable" }; }
   const timeoutMs = options.timeoutMs ?? QUERY_TIMEOUT_MS;
-  const query = (async (): Promise<AuthStatus> => {
-    try {
-      const status = await withDroidAcp(installation.command, sessionEnvironment(options.env), () => null, async (call) => { const read = await readStatus(call); return read; });
+  const timedOut: AuthStatus = { kind: "unknown", source: SOURCE, detail: "droid auth status timed out" };
+  try {
+    return await withQueryDeadline("Factory auth status", timeoutMs, async (_signal, own) => {
+      const status = await withDroidAcp(installation.command, sessionEnvironment(options.env), () => null, readStatus, own);
       return status;
-    } catch { return { kind: "unknown", source: SOURCE, detail: "droid auth status could not run" }; }
-  })();
-  // At the deadline the answer is unknown at once; stopping the process continues in the background (AuthStatusOptions.timeoutMs).
-  const status = await bounded<AuthStatus>(timeoutMs, { kind: "unknown", source: SOURCE, detail: "droid auth status timed out" }, options.signal, async () => { const read = await query; return read; });
-  return status;
+    }, timedOut, options.signal);
+  } catch { return { kind: "unknown", source: SOURCE, detail: "droid auth status could not run" }; }
 }
 
 /** Signs droid in through its device-pairing flow: the URL reaches the host as an `auth_url` event. */

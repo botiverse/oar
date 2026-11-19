@@ -1,3 +1,4 @@
+import { withQueryDeadline } from "../../shared/executable/query.js";
 import type { SessionOptions } from "../../contracts/session-options.js";
 import { randomUUID } from "node:crypto";
 import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
@@ -73,34 +74,31 @@ function controlError(inner: JsonRecord): string {
  * provider env and apiKeyHelper live there — so authentication is unaffected.
  */
 async function readListModels(command: string, cwd: string, timeoutMs: number, env: SessionOptions["env"]): Promise<ReadOutcome> {
-  const child = spawnLineProcess(command, [
-    "-p",
-    "--input-format", "stream-json",
-    "--output-format", "stream-json",
-    "--verbose",
-    "--settings", "{\"disableAllHooks\":true}",
-    "--strict-mcp-config",
-    "--mcp-config", "{\"mcpServers\":{}}",
-  ], { cwd, env: claudeEnv(env), killTree: true });
-  const requestId = `oar-list-models-${randomUUID()}`;
-  const { promise: answered, resolve } = Promise.withResolvers<JsonRecord | null>();
-  child.onLine((line) => {
-    const message = asRecord(parseJson(line));
-    if (message?.type !== "control_response") {
-      return;
-    }
-    const inner = asRecord(message.response);
-    if (inner?.request_id === requestId) {
-      resolve(inner);
-    }
-  });
-  child.onExit(() => {
-    resolve(null);
-  });
-  const timer = setTimeout(() => {
-    child.kill();
-  }, timeoutMs);
-  try {
+  const result = await withQueryDeadline<ReadOutcome>("Claude model listing", timeoutMs, async (_signal, own) => {
+    const child = own(spawnLineProcess(command, [
+      "-p",
+      "--input-format", "stream-json",
+      "--output-format", "stream-json",
+      "--verbose",
+      "--settings", "{\"disableAllHooks\":true}",
+      "--strict-mcp-config",
+      "--mcp-config", "{\"mcpServers\":{}}",
+    ], { cwd, env: claudeEnv(env), killTree: true }));
+    const requestId = `oar-list-models-${randomUUID()}`;
+    const { promise: answered, resolve } = Promise.withResolvers<JsonRecord | null>();
+    child.onLine((line) => {
+      const message = asRecord(parseJson(line));
+      if (message?.type !== "control_response") {
+        return;
+      }
+      const inner = asRecord(message.response);
+      if (inner?.request_id === requestId) {
+        resolve(inner);
+      }
+    });
+    child.onExit(() => {
+      resolve(null);
+    });
     await child.spawned;
     child.write(`${JSON.stringify({
       type: "control_request",
@@ -119,18 +117,15 @@ async function readListModels(command: string, cwd: string, timeoutMs: number, e
       return { kind: "unauthenticated", detail };
     }
     return { kind: "error", detail };
-  } finally {
-    clearTimeout(timer);
-    child.kill();
-    await child.exited;
-  }
+  });
+  return result;
 }
 
 async function readOutcome(command: string, cwd: string, timeoutMs: number, env: SessionOptions["env"]): Promise<ReadOutcome> {
   try {
     return await readListModels(command, cwd, timeoutMs, env);
   } catch (error) {
-    throw new Error("Failed to list Claude models", { cause: error });
+    throw new Error(error instanceof DOMException && error.name === "TimeoutError" ? "Failed to list Claude models: timed out" : "Failed to list Claude models", { cause: error });
   }
 }
 

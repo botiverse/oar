@@ -62,22 +62,18 @@ function reader<T>(read: (request: NativeInventoryRequest, scope: InventoryScope
       return unsupportedInventory("installation_unsupported", "Codex inventory requires an executable");
     }
     const scope = workspaceScope(options);
-    const client = startAppServerClient(installation.command, options.env, {}, scope.cwd);
-    client.handle({ onNotification: () => {}, onServerRequest: () => {} });
-    try {
-      return await inventoryRead(async () => {
-        await client.spawned;
-        await client.request("initialize", { clientInfo: { name: "oar-inventory", version: "0.0.0" }, capabilities: { experimentalApi: true } });
-        client.notify("initialized", {});
-        return read(async (method, params) => {
-          const result = await client.request(method, params);
-          return result;
-        }, scope, scope.cwd);
-      }, options.timeoutMs);
-    } finally {
-      client.kill();
-      await client.exited;
-    }
+    const answer = await inventoryRead(async (_signal, own) => {
+      const client = own(startAppServerClient(installation.command, options.env, {}, scope.cwd));
+      client.handle({ onNotification: () => {}, onServerRequest: () => {} });
+      await client.spawned;
+      await client.request("initialize", { clientInfo: { name: "oar-inventory", version: "0.0.0" }, capabilities: { experimentalApi: true } });
+      client.notify("initialized", {});
+      return read(async (method, params) => {
+        const result = await client.request(method, params);
+        return result;
+      }, scope, scope.cwd);
+    }, options.timeoutMs);
+    return answer;
   };
 }
 export const codexSkills = reader(readCodexSkills);

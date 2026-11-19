@@ -8,11 +8,11 @@ import { sessionEnvironment } from "../../shared/environment.js";
 export interface OpencodeRelease { readonly major: 1 | 2; readonly minor: number; readonly patch: number; readonly version: string }
 
 /** The two independently maintained native lines share one command name. */
-export async function opencodeRelease(installation: ExecutableInstallation, options?: Pick<SessionOptions, "cwd" | "env"> & { readonly signal?: AbortSignal }): Promise<OpencodeRelease> {
+export async function opencodeRelease(installation: ExecutableInstallation, options?: Pick<SessionOptions, "cwd" | "env"> & { readonly signal?: AbortSignal; readonly timeoutMs?: number }): Promise<OpencodeRelease> {
   let version = installation.version;
   if (version === undefined) {
     const result = await runExecutable(installation.command, ["--version"], {
-      timeoutMs: 15_000,
+      timeoutMs: options?.timeoutMs ?? 15_000,
       ...(options === undefined ? {} : { cwd: options.cwd, env: sessionEnvironment(options.env), ...(options.signal === undefined ? {} : { signal: options.signal }) }),
     });
     if (!result.ok) {

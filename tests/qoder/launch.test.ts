@@ -117,7 +117,7 @@ test.each(["1.1.81", "1.1.82", "1.1.83"])("an omitted installation version probe
   spawned.spawnLineProcess.mockReturnValue(child);
   const process = await launchQoder("qoder", "session", { cwd: tmpdir(), env: { QODER_VERSION_SCOPE: "fixture" } });
   expect(process.qoderVersion).toBe(version);
-  expect(spawned.readExecutableVersion).toHaveBeenCalledExactlyOnceWith("qoder", 15_000, undefined, expect.objectContaining({ QODER_VERSION_SCOPE: "fixture" }));
+  expect(spawned.readExecutableVersion).toHaveBeenCalledExactlyOnceWith("qoder", 15_000, undefined, expect.objectContaining({ QODER_VERSION_SCOPE: "fixture" }), undefined);
   expect(spawned.spawnLineProcess.mock.calls[0]?.[1]).toEqual(["--sdk"]);
   child.end(0);
 });

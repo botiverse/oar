@@ -11,7 +11,7 @@ import { startAcpProcess, withAcpDeadline } from "../../shared/acp/process.js";
 import { hasAcpCapability } from "../../shared/acp/profile.js";
 import { remainingMs } from "../../shared/deadline.js";
 import { sessionEnvironment } from "../../shared/environment.js";
-import { withQueryDeadline } from "../../shared/executable/query.js";
+import { withQueryDeadline, type OwnQueryProcess } from "../../shared/executable/query.js";
 import { asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
 import { listingCwd } from "../../shared/listing-cwd.js";
 import { readDevinAuthStatus } from "./auth.js";
@@ -64,62 +64,50 @@ async function readNewSession(
   deadline: number,
   signal: AbortSignal,
   env: NodeJS.ProcessEnv,
+  own: OwnQueryProcess,
 ): Promise<JsonRecord> {
-  const runtime = startAcpProcess(command, devinAcpArgs(), createClient({ name: "oar" }), { cwd, env });
-  const stop = (): void => { runtime.kill(); };
-  signal.addEventListener("abort", stop, { once: true });
-  if (signal.aborted) {
-    stop();
-  }
-  try {
-    const initialize = methods.agent.initialize;
-    const initialized = asRecord(await withAcpDeadline(
-      runtime,
-      initialize,
-      remainingMs(deadline, LISTING),
-      (requestOptions) => runtime.connection.agent.request(initialize, {
-        protocolVersion: PROTOCOL_VERSION,
-        clientCapabilities: {
-          fs: { readTextFile: false, writeTextFile: false },
-          terminal: false,
-        },
-        clientInfo: { name: "oar", version: "0.0.0" },
-      }, requestOptions),
-    ));
-    signal.throwIfAborted();
-    const newSession = methods.agent.session.new;
-    const response = await withAcpDeadline(
-      runtime,
+  const runtime = own(startAcpProcess(command, devinAcpArgs(), createClient({ name: "oar" }), { cwd, env }));
+  const initialize = methods.agent.initialize;
+  const initialized = asRecord(await withAcpDeadline(
+    runtime,
+    initialize,
+    remainingMs(deadline, LISTING),
+    (requestOptions) => runtime.connection.agent.request(initialize, {
+      protocolVersion: PROTOCOL_VERSION,
+      clientCapabilities: {
+        fs: { readTextFile: false, writeTextFile: false },
+        terminal: false,
+      },
+      clientInfo: { name: "oar", version: "0.0.0" },
+    }, requestOptions),
+  ));
+  signal.throwIfAborted();
+  const newSession = methods.agent.session.new;
+  const response = await withAcpDeadline(
+    runtime,
+    newSession,
+    remainingMs(deadline, LISTING),
+    (requestOptions) => runtime.connection.agent.request<JsonRecord>(
       newSession,
-      remainingMs(deadline, LISTING),
-      (requestOptions) => runtime.connection.agent.request<JsonRecord>(
-        newSession,
-        { cwd, mcpServers: [] },
-        requestOptions,
-      ),
-    );
-    signal.throwIfAborted();
-    const capabilities = asRecord(asRecord(initialized?.agentCapabilities)?.sessionCapabilities);
-    const cleanupMethod = hasAcpCapability(capabilities?.delete)
-      ? methods.agent.session.delete
-      : (hasAcpCapability(capabilities?.close) ? methods.agent.session.close : undefined);
-    const cleanupMs = Math.min(2000, Math.max(0, deadline - Date.now()));
-    if (typeof response.sessionId === "string" && cleanupMethod !== undefined && cleanupMs > 0) {
-      await withAcpDeadline(
-        runtime,
-        cleanupMethod,
-        cleanupMs,
-        (requestOptions) => runtime.connection.agent.request(cleanupMethod, { sessionId: response.sessionId }, requestOptions),
-      ).catch(() => {});
-    }
-    return asRecord(response) ?? {};
-  } finally {
-    signal.removeEventListener("abort", stop);
-    runtime.kill();
-    if (!signal.aborted) {
-      await runtime.exited;
-    }
+      { cwd, mcpServers: [] },
+      requestOptions,
+    ),
+  );
+  signal.throwIfAborted();
+  const capabilities = asRecord(asRecord(initialized?.agentCapabilities)?.sessionCapabilities);
+  const cleanupMethod = hasAcpCapability(capabilities?.delete)
+    ? methods.agent.session.delete
+    : (hasAcpCapability(capabilities?.close) ? methods.agent.session.close : undefined);
+  const cleanupMs = Math.min(2000, Math.max(0, deadline - Date.now()));
+  if (typeof response.sessionId === "string" && cleanupMethod !== undefined && cleanupMs > 0) {
+    await withAcpDeadline(
+      runtime,
+      cleanupMethod,
+      cleanupMs,
+      (requestOptions) => runtime.connection.agent.request(cleanupMethod, { sessionId: response.sessionId }, requestOptions),
+    ).catch(() => {});
   }
+  return asRecord(response) ?? {};
 }
 
 export const devinListModels: ModelLister = async (installation, options = {}) => {
@@ -129,13 +117,14 @@ export const devinListModels: ModelLister = async (installation, options = {}) =
   try {
     const timeoutMs = options.timeoutMs ?? 30_000;
     const deadline = Date.now() + timeoutMs;
-    return await withQueryDeadline(LISTING, timeoutMs, async (signal) => {
+    return await withQueryDeadline(LISTING, timeoutMs, async (signal, own) => {
       const response = await readNewSession(
         installation.command,
         listingCwd(options),
         deadline,
         signal,
         sessionEnvironment(options.env),
+        own,
       );
       const models = projectDevinModels(response);
       if (models === undefined) {

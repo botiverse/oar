@@ -64,7 +64,7 @@ test("native method absence is unsupported, other failures stay generic", async 
 });
 
 // oxlint-disable-next-line max-statements -- Observe the pending result across native process exit.
-test("Factory timeout kills and awaits its owned process", async () => {
+test("Factory timeout starts cleanup of its owned process", async () => {
   vi.useFakeTimers();
   child = fakeLineProcess();
   const kill = vi.spyOn(child, "kill").mockImplementation(() => {});
@@ -76,7 +76,7 @@ test("Factory timeout kills and awaits its owned process", async () => {
   })();
   await vi.advanceTimersByTimeAsync(25);
   expect(kill).toHaveBeenCalledOnce();
-  expect(settled).toBe(false);
+  expect(settled).toBe(true);
   child.end(null);
   await expect(reading).resolves.toMatchObject({ kind: "unavailable", code: "timeout" });
 });

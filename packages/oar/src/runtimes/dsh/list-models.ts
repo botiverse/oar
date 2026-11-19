@@ -1,8 +1,9 @@
-import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
+import { withQueryDeadline } from "../../shared/executable/query.js";
+import type { ListModelsResult, ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import { effortLevelsOf } from "../../shared/effort-levels.js";
 import { asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
 import { listingCwd } from "../../shared/listing-cwd.js";
-import { DshCommandError, dshControl } from "./control.js";
+import { DSH_READY_TIMEOUT_MS, DshCommandError, dshControl } from "./control.js";
 import { dshEnvironment, launchDsh } from "./launch.js";
 import { readExecutableVersion } from "../../shared/executable/index.js";
 import { dshVersionUnsupported } from "./version.js";
@@ -32,26 +33,29 @@ export function projectDshModels(catalog: JsonRecord): readonly ModelEntry[] {
 /** Native `llm.listProviders`, `listModels` and `resolveModelInfo`, in a short-lived process started the way a session is. */
 export const dshListModels: ModelLister = async (installation, options = {}) => {
   if (installation.via !== "executable") { return { kind: "unsupported", reason: "DSH model listing requires its executable" }; }
-  const env = dshEnvironment(options.env);
-  const version = installation.version ?? await readExecutableVersion(installation.command, options.timeoutMs ?? 15_000, undefined, env);
-  const refusal = dshVersionUnsupported(version);
-  if (refusal !== null) { return refusal; }
-  const { child } = await launchDsh(installation.command, listingCwd(options), env);
-  const control = dshControl(child, () => {});
-  try {
-    await control.ready;
-    const catalog = await control.request("models", {}, options.timeoutMs);
-    const models = projectDshModels(catalog);
-    if (models.length === 0) {
-      const failures = asRecordList(catalog.providers).flatMap((provider) => typeof provider.failure === "string" ? [`${String(provider.id)}: ${provider.failure}`] : []);
-      if (failures.length > 0) { return { kind: "unsupported", reason: `DSH could not list any provider's models: ${failures.join("; ")}` }; }
+  const timeoutMs = options.timeoutMs ?? DSH_READY_TIMEOUT_MS;
+  const result = await withQueryDeadline<ListModelsResult>("DSH model listing", timeoutMs, async (signal, own) => {
+    const env = dshEnvironment(options.env);
+    const version = installation.version ?? await readExecutableVersion(installation.command, options.timeoutMs ?? 15_000, undefined, env, signal);
+    signal.throwIfAborted();
+    const refusal = dshVersionUnsupported(version);
+    if (refusal !== null) { return refusal; }
+    const { child } = await launchDsh(installation.command, listingCwd(options), env);
+    own(child);
+    const control = dshControl(child, () => {});
+    try {
+      await control.ready;
+      const catalog = await control.request("models", {}, options.timeoutMs);
+      const models = projectDshModels(catalog);
+      if (models.length === 0) {
+        const failures = asRecordList(catalog.providers).flatMap((provider) => typeof provider.failure === "string" ? [`${String(provider.id)}: ${provider.failure}`] : []);
+        if (failures.length > 0) { return { kind: "unsupported", reason: `DSH could not list any provider's models: ${failures.join("; ")}` }; }
+      }
+      return { kind: "ok", models };
+    } catch (error) {
+      if (error instanceof DshCommandError && error.code === "native_method_unavailable") { return { kind: "unsupported", reason: error.message }; }
+      throw error;
     }
-    return { kind: "ok", models };
-  } catch (error) {
-    if (error instanceof DshCommandError && error.code === "native_method_unavailable") { return { kind: "unsupported", reason: error.message }; }
-    throw error;
-  } finally {
-    child.kill();
-    await child.exited;
-  }
+  });
+  return result;
 };

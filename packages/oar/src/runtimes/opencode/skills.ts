@@ -1,6 +1,6 @@
 /* oxlint-disable oxc/no-map-spread -- Project only native metadata, never skill bodies or plugin errors. */
 import { randomBytes } from "node:crypto";
-import type { InventoryReader, InventoryResult, SkillEntry } from "../../contracts/inventory.js";
+import type { InventoryReader, SkillEntry } from "../../contracts/inventory.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
@@ -62,46 +62,34 @@ async function scopedSkills(value: unknown, release: OpencodeRelease, cwd: strin
 export const opencodeSkills: InventoryReader<SkillEntry> = async (installation, options = {}) => {
   if (installation.via !== "executable") { return unsupportedInventory("installation_unsupported", "OpenCode skills require an executable"); }
   const scope = workspaceScope(options);
-  const controller = new AbortController();
-  const owned: { child?: LineProcess; legacy?: Promise<InventoryResult<SkillEntry>>; version?: ReturnType<typeof opencodeRelease> } = {};
-  try {
-    return await inventoryRead(async () => {
-      owned.version = opencodeRelease(installation, { cwd: scope.cwd, signal: controller.signal, ...(options.env === undefined ? {} : { env: options.env }) });
-      const release = await owned.version;
-      controller.signal.throwIfAborted();
-      if (release.major === 2 && (release.minor < 2 || (release.minor === 2 && release.patch < 7))) {
-        return { kind: "unsupported", code: "version_unsupported", reason: "OpenCode v2 skills require the verified plugin activation barrier in 2.2.7 or newer", requiredVersion: "2.2.7", ...(installation.version === undefined ? {} : { installedVersion: installation.version }) };
-      }
-      const env = sessionEnvironment(options.env);
-      if (release.major === 1) {
-        owned.legacy = legacySkills(installation.command, scope, env, controller.signal, async value => { const skills = await scopedSkills(value, release, scope.cwd, env); return skills; });
-        return owned.legacy;
-      }
-      const password = randomBytes(24).toString("base64url");
-      const child = spawnLineProcess(installation.command, ["serve", "--hostname", "127.0.0.1", "--port", "0"], {
-        cwd: scope.cwd, env: serveEnvironment(env, password), killTree: true, inheritStderr: false,
-      });
-      owned.child = child;
-      const ready = endpoint(child, controller.signal);
-      // Observe an early process failure before awaiting startup.
-      // oxlint-disable-next-line promise/prefer-await-to-then -- Readiness and process startup can reject independently.
-      void ready.catch(() => {});
-      await child.spawned;
-      const origin = await ready;
-      const read = async (path: string): Promise<JsonRecord[]> => { const rows = await query(origin, password, scope.cwd, controller.signal, path); return rows; };
-      // 2.2.7/2.3.0 provider.list awaits Plugin.awaitActivation; skill.list does not.
-      // A successful empty provider catalog is also a completed activation barrier.
-      await read("/api/provider");
-      const plugins = await read("/api/plugin");
-      const partial = plugins.map(plugin => pluginFailed(plugin)).some(Boolean);
-      const skills = await read("/api/skill");
-      return inventoryOk(scope, "discovered", await scopedSkills(skills, release, scope.cwd, env), partial);
-    }, options.timeoutMs);
-  } finally {
-    controller.abort();
-    owned.child?.kill();
-    await owned.child?.exited;
-    try { await owned.legacy; } catch { /* The bounded read already classified the failure. */ }
-    try { await owned.version; } catch { /* The bounded read already classified the failure. */ }
-  }
+  const result = await inventoryRead(async (signal, own) => {
+    const release = await opencodeRelease(installation, { cwd: scope.cwd, signal, ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }), ...(options.env === undefined ? {} : { env: options.env }) });
+    signal.throwIfAborted();
+    if (release.major === 2 && (release.minor < 2 || (release.minor === 2 && release.patch < 7))) {
+      return { kind: "unsupported", code: "version_unsupported", reason: "OpenCode v2 skills require the verified plugin activation barrier in 2.2.7 or newer", requiredVersion: "2.2.7", ...(installation.version === undefined ? {} : { installedVersion: installation.version }) };
+    }
+    const env = sessionEnvironment(options.env);
+    if (release.major === 1) {
+      return legacySkills(installation.command, scope, env, signal, async value => { const skills = await scopedSkills(value, release, scope.cwd, env); return skills; });
+    }
+    const password = randomBytes(24).toString("base64url");
+    const child = own(spawnLineProcess(installation.command, ["serve", "--hostname", "127.0.0.1", "--port", "0"], {
+      cwd: scope.cwd, env: serveEnvironment(env, password), killTree: true, inheritStderr: false,
+    }));
+    const ready = endpoint(child, signal);
+    // Observe an early process failure before awaiting startup.
+    // oxlint-disable-next-line promise/prefer-await-to-then -- Readiness and process startup can reject independently.
+    void ready.catch(() => {});
+    await child.spawned;
+    const origin = await ready;
+    const read = async (path: string): Promise<JsonRecord[]> => { const rows = await query(origin, password, scope.cwd, signal, path); return rows; };
+    // 2.2.7/2.3.0 provider.list awaits Plugin.awaitActivation; skill.list does not.
+    // A successful empty provider catalog is also a completed activation barrier.
+    await read("/api/provider");
+    const plugins = await read("/api/plugin");
+    const partial = plugins.map(plugin => pluginFailed(plugin)).some(Boolean);
+    const skills = await read("/api/skill");
+    return inventoryOk(scope, "discovered", await scopedSkills(skills, release, scope.cwd, env), partial);
+  }, options.timeoutMs);
+  return result;
 };

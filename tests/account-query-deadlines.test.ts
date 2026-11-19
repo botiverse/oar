@@ -14,6 +14,7 @@ import { claudeAuthStatus } from "../packages/oar/src/runtimes/claude/auth-statu
 import { codexAuthStatus, readCodexAuthStatus } from "../packages/oar/src/runtimes/codex/login.js";
 import { qoderAuthStatus } from "../packages/oar/src/runtimes/qoder/auth-status.js";
 import { codebuddyAuthStatus } from "../packages/oar/src/runtimes/codebuddy/auth-status.js";
+import { factoryAuthStatus } from "../packages/oar/src/runtimes/factory/account.js";
 import { devinAuthStatus } from "../packages/oar/src/runtimes/devin/auth.js";
 import { kimiAuthStatus } from "../packages/oar/src/runtimes/kimi/auth-status.js";
 import { fakeAgentBinary, gone, withTreeProbe } from "./fixtures/process-tree.js";
@@ -33,6 +34,8 @@ const cases: readonly { name: string; stage: string; read: Read }[] = [
   { name: "Grok billing", stage: "_x.ai/billing", read: grokAccountUsage },
   { name: "Grok optional identity", stage: "_x.ai/auth/info", read: grokAccountUsage },
   { name: "Kimi provider list", stage: "started", read: kimiAccountUsage },
+  { name: "Factory initialization status", stage: "initialize", read: factoryAuthStatus },
+  { name: "Factory authentication status", stage: "auth/status", read: factoryAuthStatus },
   { name: "Claude status", stage: "started", read: claudeAuthStatus },
   { name: "Codex status", stage: "started", read: codexAuthStatus },
   { name: "Qoder status", stage: "started", read: qoderAuthStatus },
@@ -47,7 +50,7 @@ afterEach(() => { vi.unstubAllEnvs(); });
 test.each(cases)("$name settles at its deadline while owned cleanup continues", async ({ name, stage, read }) => {
   vi.stubEnv("OAR_KILL_GRACE_MS", String(GRACE));
   // oxlint-disable-next-line max-statements -- Keep return timing, requests and eventual process liveness in one observation.
-  await withTreeProbe({ ignoreSigterm: true }, async (probe) => {
+  await withTreeProbe({ ignoreSigterm: true, detachTool: true }, async (probe) => {
     const command = fakeAgentBinary(probe.dir, [script]);
     const requests = path.join(probe.dir, "requests");
     const installation = { kind: "available", via: "executable", command } as const;
