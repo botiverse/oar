@@ -112,3 +112,38 @@ test("rules in the system prompt are not repeated in messages", async () => {
   await deliverOne(deliveries, sent);
   expect(sent.every((text) => text.startsWith("[harbor msg=1 "))).toBe(true);
 });
+
+test("a resume that loses the system prompt gets the reminder, not silence", async () => {
+  const sent: string[] = [];
+  const deliveries = recordingHarness(sent);
+  deliveries.opened(true, true);
+  await deliverOne(deliveries, sent);
+  deliveries.opened(false, false);
+  await deliverOne(deliveries, sent);
+  expect(sent[0]).toMatch(/^\[harbor msg=1 /u);
+  expect(sent[1]).toMatch(/^\(harbor: answer only with /u);
+});
+
+test("a compaction while a delivery is in flight still brings the rules back", async () => {
+  const sent: string[] = [];
+  let deliveries: Deliveries | null = null;
+  const compactingDuringDelivery = {
+    ...sessionStandIn,
+    deliver: async (text: string) => {
+      sent.push(text);
+      if (sent.length === 2) {
+        deliveries?.compacted();
+      }
+      return { landed: "steered", inputId: `input-${sent.length}` };
+    },
+  };
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion, typescript/consistent-type-assertions -- Only deliver and status are used.
+  const compacting = compactingDuringDelivery as unknown as Session;
+  deliveries = new Deliveries({ name: "a", cwd: "/work", bin: "/bin/harbor", store, current: () => compacting, finding: () => undefined });
+  deliveries.opened(true, false);
+  for (let index = 0; index < 3; index += 1) {
+    // eslint-disable-next-line no-await-in-loop -- Deliveries go one after another.
+    await deliverOne(deliveries, sent);
+  }
+  expect([sent[1]?.slice(0, 7), sent[2]?.slice(0, 9)]).toEqual(["(harbor", "You are @"]);
+});

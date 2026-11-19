@@ -36,6 +36,8 @@ export class Deliveries {
   private pumping = false;
   private needsPreamble = false;
   private rulesInPrompt = false;
+  /** Counts reported compactions, so one that lands while a delivery is in flight still brings the rules back. */
+  private compactions = 0;
   awaitingReply = false;
 
   constructor(private readonly host: DeliveriesHost) {}
@@ -61,6 +63,7 @@ export class Deliveries {
 
   /** A summary may have dropped the channel rules: the next delivery repeats them. */
   compacted(): void {
+    this.compactions += 1;
     this.needsPreamble = !this.rulesInPrompt;
   }
 
@@ -147,6 +150,7 @@ export class Deliveries {
   private async send(session: Session, batch: readonly Message[]): Promise<boolean> {
     const body = batch.map((message) => formatMessage(message)).join("\n");
     const text = this.rulesInPrompt ? body : this.withRules(body);
+    const compactions = this.compactions;
     const seqs = batch.map((message) => message.seq);
     const started = Date.now();
     const result = await session.deliver(text);
@@ -157,7 +161,9 @@ export class Deliveries {
       return false;
     }
     if (result.landed !== "rejected") {
-      this.needsPreamble = false;
+      if (this.compactions === compactions) {
+        this.needsPreamble = false;
+      }
       if (seqs.some((seq) => this.fromPeople.delete(seq))) {
         this.awaitingReply = true;
       }

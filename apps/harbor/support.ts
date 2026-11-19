@@ -1,6 +1,6 @@
 import { lstatSync, readdirSync, readlinkSync } from "node:fs";
 import { join } from "node:path";
-import type { Session } from "../../packages/oar/src/index.js";
+import { UnsupportedOptionError, type Runtime, type Session, type SessionOptions } from "../../packages/oar/src/index.js";
 import type { AgentState, Message } from "./store.js";
 
 export interface AgentOptions {
@@ -53,6 +53,27 @@ export function preamble(name: string, cwd: string, bin: string): string {
  */
 export function reminder(bin: string): string {
   return `(harbor: answer only with ${bin} send; other chat tools here, such as \`raft\`, act as the person hosting you)`;
+}
+
+/**
+ * Opens with the channel rules in the appended system prompt, as a Raft host puts its own, so compaction cannot summarize
+ * them away; given on every open, because a resume that omits it keeps the saved value only until compaction. A runtime
+ * that declares or answers a refusal opens without it (`rulesInPrompt: false`, the refusal kept for the journal), and the
+ * rules then travel in messages.
+ */
+export async function openWithRules(runtime: Runtime, installation: Parameters<Runtime["session"]>[0], base: SessionOptions, rules: string): Promise<{ session: Session; rulesInPrompt: boolean; refusal?: string }> {
+  const declared = runtime.refusedSessionOptions?.appendSystemPrompt;
+  if (declared !== undefined) {
+    return { session: await runtime.session(installation, base), rulesInPrompt: false, refusal: declared };
+  }
+  try {
+    return { session: await runtime.session(installation, { ...base, appendSystemPrompt: rules }), rulesInPrompt: true };
+  } catch (error) {
+    if (!(error instanceof UnsupportedOptionError) || error.option !== "appendSystemPrompt") {
+      throw error;
+    }
+    return { session: await runtime.session(installation, base), rulesInPrompt: false, refusal: error.message };
+  }
 }
 
 /** Linux: processes whose cwd is inside `dir`; elsewhere the check is skipped. */

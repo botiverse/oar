@@ -1,10 +1,10 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { openVoyage, UnsupportedOptionError, type Event, type Runtime, type Session, type SessionOptions, type VoyageRecorder } from "../../packages/oar/src/index.js";
+import { openVoyage, type Event, type Session, type SessionOptions, type VoyageRecorder } from "../../packages/oar/src/index.js";
 import { allRuntimes } from "../../sea-trial/harness/runtimes.js";
 import { Deliveries } from "./deliveries.js";
 import type { AgentState, Message, Store } from "./store.js";
-import { messageOf, preamble, processesIn, statusLine, type AgentOptions, type AgentStatusLine } from "./support.js";
+import { messageOf, openWithRules, preamble, processesIn, statusLine, type AgentOptions, type AgentStatusLine } from "./support.js";
 
 /**
  * One long-lived agent: an OAR session that receives channel messages the way
@@ -137,7 +137,10 @@ export class HarborAgent {
     const options = { ...(this.state.model === undefined ? {} : { model: this.state.model }), ...(this.state.effort === undefined ? {} : { effort: this.state.effort }) };
     // Only the agent's own `env`, never harbor's: cursor's in-process mode refuses one and codex's login shell reorders PATH, so agents run harbor by absolute path.
     const base: SessionOptions = { cwd: this.cwd, ...options, ...(resume === null ? {} : { resume }), ...(env === undefined ? {} : { env }) };
-    const { session, rulesInPrompt } = await this.openWithRules(runtime, installation, base);
+    const { session, rulesInPrompt, refusal } = await openWithRules(runtime, installation, base, preamble(this.name, this.cwd, this.options.bin));
+    if (refusal !== undefined) {
+      this.store.journal({ agent: this.name, kind: "rules_in_messages", refusal });
+    }
     const opens = this.state.opens + 1;
     const voyage = `agents/${this.name}/session-${opens}.voyage.jsonl`;
     const recorder = openVoyage(join(this.store.dir, voyage), { runtime: this.state.runtime, ...options, cwd: this.cwd, sessionId: session.id, startedAt, recorder: "oar-harbor" });
@@ -164,24 +167,6 @@ export class HarborAgent {
     this.onState();
     this.store.journal({ agent: this.name, kind: resume === null ? "opened" : "resumed", sessionId: session.id, ms: Date.now() - startedAt, voyage });
     this.deliveries.opened(resume === null, rulesInPrompt);
-  }
-
-  /**
-   * The channel rules go in the appended system prompt, as a Raft host puts its own, so compaction cannot summarize them
-   * away; given on every open, because a resume that omits it keeps the saved value only until compaction. A runtime that
-   * refuses an appended prompt gets them in its messages instead.
-   */
-  private async openWithRules(runtime: Runtime, installation: Parameters<Runtime["session"]>[0], base: SessionOptions): Promise<{ session: Session; rulesInPrompt: boolean }> {
-    if (runtime.refusedSessionOptions?.appendSystemPrompt === undefined) {
-      try {
-        return { session: await runtime.session(installation, { ...base, appendSystemPrompt: preamble(this.name, this.cwd, this.options.bin) }), rulesInPrompt: true };
-      } catch (error) {
-        if (!(error instanceof UnsupportedOptionError) || error.option !== "appendSystemPrompt") {
-          throw error;
-        }
-      }
-    }
-    return { session: await runtime.session(installation, base), rulesInPrompt: false };
   }
 
   private observe(event: Event): void {
