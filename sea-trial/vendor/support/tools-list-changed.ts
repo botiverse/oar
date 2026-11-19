@@ -22,11 +22,11 @@ export const ALPHA = "oar_probe_alpha";
 export const BETA = "oar_probe_beta";
 export const SERVER = "probe";
 
-const tool = (name: string): HostTool => ({
+const tool = (name: string, calls: string[]): HostTool => ({
   name,
-  description: `Probe tool ${name}, never called.`,
+  description: `Probe tool ${name}.`,
   inputSchema: { type: "object", properties: {} },
-  handler: () => name,
+  handler: () => { calls.push(name); return `handled:${name}`; },
 });
 
 /** Which probe tools a provider request defines in its `tools` array (codex nests MCP tools under a namespace entry). */
@@ -73,6 +73,8 @@ export interface ToolsListChangedRun {
   readonly turns: readonly [AimockEnv["raw"], AimockEnv["raw"]];
   /** What the runtime's MCP client sent: "GET stream", each JSON-RPC method, and "setTools" where the change happened. */
   readonly log: readonly string[];
+  /** Names the host actually handled, in call order. */
+  readonly calls: readonly string[];
   /** Whether the client listed the tools before the change: without it, "never listed again" proves nothing. */
   readonly connected: boolean;
   /** Whether the client listed the tools again after the change. */
@@ -147,7 +149,8 @@ async function poll(done: () => boolean, ms: number): Promise<void> {
 /** Run the two turns around a `setTools` on a session `open` starts with the probe server attached. */
 export async function runToolsListChanged(env: AimockEnv, open: (server: { readonly name: string; readonly type: "http"; readonly url: string }) => Promise<Session>): Promise<ToolsListChangedRun> {
   const log: string[] = [];
-  const served = await serveMcpTools({ name: SERVER, tools: [tool(ALPHA)] });
+  const calls: string[] = [];
+  const served = await serveMcpTools({ name: SERVER, tools: [tool(ALPHA, calls)] });
   const proxy = await loggingProxy(served, log);
   let phase = "opening";
   const progress = process.env.OAR_TEST_MCP_PROGRESS === "1" ? setInterval(() => {
@@ -165,7 +168,7 @@ export async function runToolsListChanged(env: AimockEnv, open: (server: { reado
       await turn(session, "first turn: reply ok");
       const afterFirst = env.raw.length;
       const connected = log.includes("tools/list");
-      served.setTools([tool(BETA)]);
+      served.setTools([tool(BETA, calls)]);
       log.push("setTools");
       phase = "changed_catalog";
       const relistedNow = (): boolean => log.slice(log.indexOf("setTools")).includes("tools/list");
@@ -173,7 +176,7 @@ export async function runToolsListChanged(env: AimockEnv, open: (server: { reado
       await poll(relistedNow, 10_000);
       phase = "second_turn";
       await turn(session, "second turn: reply ok");
-      return { turns: [env.raw.slice(0, afterFirst), env.raw.slice(afterFirst)], log: [...log], connected, relisted: relistedNow() };
+      return { turns: [env.raw.slice(0, afterFirst), env.raw.slice(afterFirst)], log: [...log], calls, connected, relisted: relistedNow() };
     } finally {
       phase = "dispose";
       await session.dispose();
