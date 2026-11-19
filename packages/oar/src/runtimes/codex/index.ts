@@ -3,6 +3,7 @@ import { runtimeBrands } from "../../brands.js";
 import { verifiedPlatforms } from "../../platforms.js";
 import { codexSkills, codexMcpServers, codexTools } from "./inventory.js";
 import { defineRuntime } from "../../contracts/runtime.js";
+import { semverAtLeast } from "../../shared/semver.js";
 import { codexAuthStatus, codexLogin } from "./login.js";
 import { codexLogout } from "./logout.js";
 import { codexAccountUsage } from "./account-usage.js";
@@ -16,7 +17,10 @@ import { codexSession } from "./session.js";
 
 export const codexRuntime = defineRuntime({
   id: "codex",
-  sessionCapabilities: () => ({ steer: true, images: true }),
+  sessionCapabilities: (installation) => ({
+    steer: true, images: true,
+    ...(installation.via === "executable" && semverAtLeast(installation.version, "0.151.0") ? { contextUsage: { tokens: true, contextWindow: true } } : {}),
+  }),
   manualCompaction: { kind: "supported", activeTurn: "reject" },
   refusedSessionOptions: codexRefusedSessionOptions,
   resumedSessionOptions: {

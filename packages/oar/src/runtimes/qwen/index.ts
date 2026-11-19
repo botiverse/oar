@@ -2,6 +2,7 @@ import { runtimeBrands } from "../../brands.js";
 import { verifiedPlatforms } from "../../platforms.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { onFirstCall } from "../../shared/lazy.js";
+import { semverAtLeast } from "../../shared/semver.js";
 import { qwenInstallation } from "./installation.js";
 import { qwenInstall, qwenInstallPlan } from "./install.js";
 import { qwenRefusedSessionOptions } from "./options.js";
@@ -11,7 +12,10 @@ export type { QwenProvider, QwenProviderAuth, QwenProviderAuthOptions, QwenProvi
 
 export const qwenRuntime = defineRuntime({
   id: "qwen",
-  sessionCapabilities: () => ({ steer: false, images: false }),
+  sessionCapabilities: (installation) => ({
+    steer: false, images: false,
+    ...(installation.via === "executable" && semverAtLeast(installation.version, "0.26.0") ? { contextUsage: { tokens: true, contextWindow: true } } : {}),
+  }),
   manualCompaction: { kind: "unsupported", reason: "stream-json has no structural compaction completion signal and a user compress command can override the native operation." }, brand: runtimeBrands.qwen, verifiedPlatforms: verifiedPlatforms.qwen,
   refusedSessionOptions: qwenRefusedSessionOptions,
   resumedSessionOptions: {

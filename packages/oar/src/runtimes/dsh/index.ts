@@ -10,7 +10,7 @@ import { DSH_MINIMUM_VERSION } from "./version.js";
 export const dshRuntime = defineRuntime({
   id: "dsh",
   manualCompaction: { kind: "supported", activeTurn: "reject" },
-  sessionCapabilities: (installation) => ({ compactionEvents: { started: true, ended: true }, refusedSessionOptions: dshDirectoryRefusal(installation.via === "executable" ? installation.version : undefined) }), brand: runtimeBrands.dsh, verifiedPlatforms: verifiedPlatforms.dsh,
+  sessionCapabilities: (installation) => ({ compactionEvents: { started: true, ended: true }, contextUsage: { tokens: true, contextWindow: true }, refusedSessionOptions: dshDirectoryRefusal(installation.via === "executable" ? installation.version : undefined) }), brand: runtimeBrands.dsh, verifiedPlatforms: verifiedPlatforms.dsh,
   minVersion: DSH_MINIMUM_VERSION,
   // The default route reads DEEPSEEK_API_KEY; a key saved through DSH's own settings wins (docs/runtimes/dsh.md#credentials).
   credentials: {

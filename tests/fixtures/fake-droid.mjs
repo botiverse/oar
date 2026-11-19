@@ -26,6 +26,7 @@ let running = null;
 /** A steer that missed its turn's end, waiting to run as its own turn. */
 let missed = null;
 let unsolicited = false;
+let contextReads = 0;
 
 function endTurn(reason = "completed") {
   if (running === null) { return; }
@@ -116,6 +117,7 @@ input.on("line", (line) => {
       endTurn("cancelled");
       return;
     case "droid.get_context_stats":
+      contextReads += 1;
       if (mode === "content-before-start" && !unsolicited) {
         unsolicited = true;
         note({ type: "assistant_text_delta", messageId: "outside", blockIndex: 0, textDelta: "outside" });
@@ -124,7 +126,12 @@ input.on("line", (line) => {
         note({ type: "agent_turn_completed", reason: "completed", turnId: "native" });
       }
       if (mode === "noisy") { write({ type: "response", id: message.id, error: { code: -32_603, message: "context unavailable" } }); return; }
-      reply({ used: 10, remaining: 90, limit: 100, accuracy: "estimated", updatedAt: new Date().toISOString() });
+      if (mode === "slow-context" && contextReads >= 2) {
+        const read = contextReads;
+        setTimeout(() => { reply({ used: read * 25, remaining: 100 - read * 25, limit: 100, accuracy: "exact", updatedAt: new Date().toISOString() }); }, Number(process.env.FAKE_DROID_CONTEXT_MS ?? "60"));
+        return;
+      }
+      reply({ used: contextReads === 1 ? 10 : contextReads * 25, remaining: 90, limit: 100, accuracy: "estimated", updatedAt: new Date().toISOString() });
       return;
     case "droid.compact_session":
       if (mode === "compact-refusal") { write({ type: "response", id: message.id, error: { code: -32602, message: "Nothing to compact" } }); return; }

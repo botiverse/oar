@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { runTurn } from "../harness/session-controls.js";
 import type { TrialCase } from "../harness/runner.js";
 
 export const sessionCapabilitiesCases: readonly TrialCase[] = [
@@ -19,6 +20,17 @@ export const sessionCapabilitiesCases: readonly TrialCase[] = [
         }
         if (declared.images !== undefined) {
           assert.equal(session.capabilities.images, declared.images, "declared images matches capabilities.images");
+        }
+        if (declared.contextUsage?.tokens === true || declared.contextUsage?.contextWindow === true) {
+          assert.deepEqual(await runTurn(session, "hello"), { kind: "completed" });
+          const context = session.contextUsage().value;
+          assert.ok(context !== null, "declared contextUsage must be non-null after a completed root turn");
+          if (declared.contextUsage.tokens) {
+            assert.equal(typeof context.tokens, "number", "declared contextUsage.tokens must be a number after a completed root turn");
+          }
+          if (declared.contextUsage.contextWindow) {
+            assert.ok(typeof context.contextWindow === "number" && context.contextWindow > 0, "declared contextUsage.contextWindow must be a positive number after a completed root turn");
+          }
         }
       } finally {
         await session.dispose();

@@ -48,9 +48,9 @@ export function opencodeSessionCapabilities(installation: AvailableInstallation)
   const release = parseOpencodeRelease(installation.version);
   if (release?.major === 1) {
     return {
-      steer: true, refusedSessionOptions: opencodeV1RefusedSessionOptions,
+      steer: true, contextUsage: { tokens: true, contextWindow: true }, refusedSessionOptions: opencodeV1RefusedSessionOptions,
       manualCompaction: { kind: "unsupported", reason: "OpenCode v1 ACP has no verified structural completion signal for /compact" },
     };
   }
-  return release?.major === 2 ? { refusedSessionOptions: opencodeV2PromptRefusals(release), manualCompaction: { kind: "supported", activeTurn: "reject" } } : {};
+  return release?.major === 2 ? { contextUsage: { tokens: true, contextWindow: true }, refusedSessionOptions: opencodeV2PromptRefusals(release), manualCompaction: { kind: "supported", activeTurn: "reject" } } : {};
 }

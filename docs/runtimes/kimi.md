@@ -539,8 +539,10 @@ sessions; OAR does not use that as a prompt override or modify user config.
 
 **Context (partial):** native ACP
 [emits context usage after the prompt response](https://github.com/MoonshotAI/kimi-code/blob/f9ca33376/packages/acp-server/src/session.ts#L907-L947)
-from an un-awaited task and may omit it when the catalog has no size for the
-model. OAR holds the `session/prompt` answer event at most 500 ms for that
+from an un-awaited task. `sessionCapabilities().contextUsage` declares
+`{ tokens: true, contextWindow: true }`, with one native exception: when Kimi's
+model catalog has no size for the active model, native ACP omits `usage_update`
+and reports no window. OAR holds the `session/prompt` answer event at most 500 ms for that
 push (`usageUpdateAfterPrompt`), then records the answer as-is; this keeps
 the usage record before the turn end but is not a freshness guarantee. Live
 the push follows the answer by about 8 ms, so `contextUsage()` at

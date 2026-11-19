@@ -133,23 +133,23 @@ that installation would open: `steer` is whether `Session.steer` exists,
 handshake at open can tell; a host treats absent as unknown, never as false,
 and the opened session stays authoritative.
 
-| runtime | `steer` | `images` |
-|---|---|---|
-| antigravity | true | absent: advertised by `initialize` |
-| claude | true | true |
-| codebuddy | false | absent: advertised by `initialize` |
-| codex | true | true |
-| cursor | true (an individual steer can still be rejected: `unsupported` with images, `runtime_refused` when the run cannot take it, as above) | true |
-| devin | false | absent: advertised by `initialize` |
-| dsh | absent: the bridge reports the agent's methods at open | absent: the selected model and native attachment store determine image support |
-| factory | true | true |
-| grok | true | true |
-| kimi | false | absent: advertised by `initialize` |
-| opencode | true on a v1 installation; absent on v2 or an unreadable version (`initialize` advertises steering) | absent: advertised by `initialize` |
-| pi | true | true |
-| pi-durable | true | false |
-| qoder | true | false |
-| qwen | false | false |
+| runtime | `steer` | `images` | `contextUsage` |
+|---|---|---|---|
+| antigravity | true | absent: advertised by `initialize` | `{ tokens: true, contextWindow: true }` |
+| claude | true | true | `{ tokens: true, contextWindow: true }` |
+| codebuddy | false | absent: advertised by `initialize` | `{ tokens: false, contextWindow: false }` (native `0/0` when model limit is unknown is not trustworthy) |
+| codex | true | true | `{ tokens: true, contextWindow: true }` on `>= 0.151.0`; absent on older or unreadable versions |
+| cursor | true (an individual steer can still be rejected: `unsupported` with images, `runtime_refused` when the run cannot take it, as above) | true | `{ tokens: true, contextWindow: false }` |
+| devin | false | absent: advertised by `initialize` | absent: live turns unverified |
+| dsh | absent: the bridge reports the agent's methods at open | absent: the selected model and native attachment store determine image support | `{ tokens: true, contextWindow: true }` |
+| factory | true | true | `{ tokens: true, contextWindow: true }` |
+| grok | true | true | `{ tokens: true, contextWindow: false }` |
+| kimi | false | absent: advertised by `initialize` | `{ tokens: true, contextWindow: true }` (except models whose catalog entry has no size) |
+| opencode | true on a v1 installation; absent on v2 or an unreadable version (`initialize` advertises steering) | absent: advertised by `initialize` | `{ tokens: true, contextWindow: true }` on readable v1/v2 versions; absent on unreadable versions |
+| pi | true | true | `{ tokens: true, contextWindow: true }` |
+| pi-durable | true | false | `{ tokens: false, contextWindow: false }` |
+| qoder | true | false | `{ tokens: false, contextWindow: false }` |
+| qwen | false | false | `{ tokens: true, contextWindow: true }` on `>= 0.26.0`; absent on older or unreadable versions |
 
 Every runtime built with `defineRuntime` has the member; one that declares
 neither field answers with its static declarations only. Community runtimes
@@ -161,10 +161,15 @@ The same answer carries what depends on the installed version. Its
 its measured floor). As for the static map, a declared option is always
 refused at open. A refusal that depends on the version belongs only in this
 answer: whatever the static map refuses, every version refuses.
-`manualCompaction` is this installation's value, and
+`manualCompaction` is this installation's value,
 `compactionEvents` says whether native automatic compaction reports
-`compaction_started` and `compaction_ended`; each is absent where not
-established. `defineRuntime` and `installedSessionCapabilities(runtime,
+`compaction_started` and `compaction_ended`, and `contextUsage` says whether
+`Session.contextUsage()` reliably reports trustworthy `tokens` and
+`contextWindow` by the end of each normally completed root turn (fresh and
+resumed sessions alike; aborted turns are not promised, and earlier readings
+are a bonus); each is absent where not established. The shared behavior suite
+asserts every `true` `contextUsage` field after a completed turn
+(`session.capabilities-match-declaration`). `defineRuntime` and `installedSessionCapabilities(runtime,
 installation)` merge the static declarations in, so a host reads one answer
 and never branches on a runtime's name. `orient()` returns it for every
 available installation ([orientation](orientation.md#session-capabilities)).

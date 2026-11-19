@@ -10,7 +10,7 @@ import { kimiRefusedSessionOptions } from "./options.js";
 
 export const kimiRuntime = defineRuntime({
   id: "kimi",
-  sessionCapabilities: () => ({ steer: false }),
+  sessionCapabilities: () => ({ steer: false, contextUsage: { tokens: true, contextWindow: true } }),
   manualCompaction: { kind: "unsupported", reason: "The ACP transport reports compaction as ordinary text, without a structural completion signal." },
   brand: runtimeBrands.kimi, verifiedPlatforms: verifiedPlatforms.kimi,
   installation: kimiInstallation,

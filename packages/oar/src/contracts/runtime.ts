@@ -7,6 +7,7 @@ import type { InventoryResult, RuntimeInventories } from "./inventory.js";
 // oxlint-disable-next-line import/consistent-type-specifier-style -- Keep types and implementation from the same contract in one import.
 import { type PlacementRequest, type RuntimePlacementOptions, placementSession } from "./placement.js";
 import type { UpdateChecker, Upgrader } from "./update.js";
+import type { ContextUsageCapability } from "./context-usage.js";
 import type { ManualCompaction } from "./compaction.js";
 import type { ModelLister } from "./list-models.js";
 import type { ProviderAuthReader } from "./provider-auth.js";
@@ -56,6 +57,8 @@ export interface SessionCapabilityDeclaration {
   readonly manualCompaction?: ManualCompaction;
   /** Whether native automatic compaction reports `compaction_started` / `compaction_ended`; absent when not measured for this installation. */
   readonly compactionEvents?: CompactionEvents;
+  /** Whether `Session.contextUsage()` reports trustworthy `tokens` and `contextWindow` by each normally completed root turn; absent when not measured for this installation. */
+  readonly contextUsage?: ContextUsageCapability;
 }
 
 /** Which compaction lifecycle events a runtime's own automatic compaction produces. */

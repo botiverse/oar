@@ -11,7 +11,7 @@ import { grokRefusedSessionOptions } from "./options.js";
 
 export const grokRuntime = defineRuntime({
   id: "grok",
-  sessionCapabilities: () => ({ steer: true, images: true }),
+  sessionCapabilities: () => ({ steer: true, images: true, contextUsage: { tokens: true, contextWindow: false } }),
   brand: runtimeBrands.grok, verifiedPlatforms: verifiedPlatforms.grok,
   manualCompaction: { kind: "supported", activeTurn: "reject" },
   refusedSessionOptions: grokRefusedSessionOptions,
