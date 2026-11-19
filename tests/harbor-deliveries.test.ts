@@ -68,3 +68,82 @@ test("a failed turn is reported once, as turn_failed, not again as no_reply", as
   await vi.advanceTimersByTimeAsync(2000);
   expect(findings).toEqual([]);
 });
+
+function recordingHarness(sent: string[]): Deliveries {
+  const recording = {
+    ...sessionStandIn,
+    deliver: async (text: string) => {
+      sent.push(text);
+      return { landed: "prompted", inputId: `input-${sent.length}` };
+    },
+  };
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion, typescript/consistent-type-assertions -- Only deliver and status are used.
+  const recorded = recording as unknown as Session;
+  return new Deliveries({ name: "a", cwd: "/work", bin: "/bin/harbor", store, current: () => recorded, finding: () => undefined });
+}
+
+async function deliverOne(deliveries: Deliveries, sent: string[]): Promise<void> {
+  const before = sent.length;
+  deliveries.add(message("qa"), true);
+  await vi.waitFor(() => {
+    expect(sent).toHaveLength(before + 1);
+  });
+}
+
+test("the channel rules come back after a compaction, and every other delivery names the way to answer", async () => {
+  const sent: string[] = [];
+  const deliveries = recordingHarness(sent);
+  deliveries.opened(true, false);
+  await deliverOne(deliveries, sent);
+  await deliverOne(deliveries, sent);
+  deliveries.compacted();
+  await deliverOne(deliveries, sent);
+  expect(sent[0]).toMatch(/^You are @a, an agent working in harbor/u);
+  expect(sent[1]).toMatch(/^\(harbor: answer only with \/bin\/harbor send; other chat tools here, such as `raft`, act as the person hosting you\)\n\[harbor msg=1 /u);
+  expect(sent[2]).toMatch(/^You are @a, an agent working in harbor[\s\S]*such as `raft`/u);
+});
+
+test("rules in the system prompt are not repeated in messages", async () => {
+  const sent: string[] = [];
+  const deliveries = recordingHarness(sent);
+  deliveries.opened(true, true);
+  await deliverOne(deliveries, sent);
+  deliveries.compacted();
+  await deliverOne(deliveries, sent);
+  expect(sent.every((text) => text.startsWith("[harbor msg=1 "))).toBe(true);
+});
+
+test("a resume that loses the system prompt gets the reminder, not silence", async () => {
+  const sent: string[] = [];
+  const deliveries = recordingHarness(sent);
+  deliveries.opened(true, true);
+  await deliverOne(deliveries, sent);
+  deliveries.opened(false, false);
+  await deliverOne(deliveries, sent);
+  expect(sent[0]).toMatch(/^\[harbor msg=1 /u);
+  expect(sent[1]).toMatch(/^\(harbor: answer only with /u);
+});
+
+test("a compaction while a delivery is in flight still brings the rules back", async () => {
+  const sent: string[] = [];
+  let deliveries: Deliveries | null = null;
+  const compactingDuringDelivery = {
+    ...sessionStandIn,
+    deliver: async (text: string) => {
+      sent.push(text);
+      if (sent.length === 2) {
+        deliveries?.compacted();
+      }
+      return { landed: "steered", inputId: `input-${sent.length}` };
+    },
+  };
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion, typescript/consistent-type-assertions -- Only deliver and status are used.
+  const compacting = compactingDuringDelivery as unknown as Session;
+  deliveries = new Deliveries({ name: "a", cwd: "/work", bin: "/bin/harbor", store, current: () => compacting, finding: () => undefined });
+  deliveries.opened(true, false);
+  for (let index = 0; index < 3; index += 1) {
+    // eslint-disable-next-line no-await-in-loop -- Deliveries go one after another.
+    await deliverOne(deliveries, sent);
+  }
+  expect([sent[1]?.slice(0, 7), sent[2]?.slice(0, 9)]).toEqual(["(harbor", "You are @"]);
+});

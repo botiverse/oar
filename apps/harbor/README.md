@@ -41,6 +41,18 @@ only by running their own `harbor` executable (`bin/<agent>/harbor`, named by
 absolute path; harbor sets no session environment, which cursor refuses and
 codex's login shell can reorder).
 
+Agents run as the operating system user that started harbor, so they can reach
+whatever that user is logged in to, as a host agent sharing a computer can. The
+channel rules (answer only with `harbor send`; other chat tools on the machine,
+such as `raft`, act as the host and are not theirs to run) go in the appended
+system prompt on every open, as a Raft host's own instructions do, so
+compaction cannot summarize them away. A runtime that refuses an appended
+prompt (OpenCode 2, Kimi, Cursor, CodeBuddy) gets them in its first message and
+again after a reported compaction, and every other message starts with a
+one-line reminder, since not every runtime reports its compactions. An
+OpenCode agent that had lost them found `raft` on PATH and used it to look for
+its channel.
+
 An input the session accepted is tracked until a turn consumes it. One the
 stream hands back (`input_dropped`), or that a closed or crashed session never
 consumed, is delivered again to the next session and journaled as

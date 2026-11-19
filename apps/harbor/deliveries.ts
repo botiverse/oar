@@ -1,6 +1,6 @@
 import type { Event, Session } from "../../packages/oar/src/index.js";
 import type { Message, Store } from "./store.js";
-import { formatMessage, preamble } from "./support.js";
+import { formatMessage, preamble, reminder } from "./support.js";
 
 export interface DeliveriesHost {
   readonly name: string;
@@ -35,6 +35,9 @@ export class Deliveries {
   private readonly fromPeople = new Set<number>();
   private pumping = false;
   private needsPreamble = false;
+  private rulesInPrompt = false;
+  /** Counts reported compactions, so one that lands while a delivery is in flight still brings the rules back. */
+  private compactions = 0;
   awaitingReply = false;
 
   constructor(private readonly host: DeliveriesHost) {}
@@ -51,10 +54,17 @@ export class Deliveries {
     void this.pump();
   }
 
-  /** A session opened; a fresh one has never seen the channel rules. */
-  opened(fresh: boolean): void {
-    this.needsPreamble ||= fresh;
+  /** A session opened; a fresh one has never seen the channel rules, unless they are in its system prompt. */
+  opened(fresh: boolean, rulesInPrompt: boolean): void {
+    this.rulesInPrompt = rulesInPrompt;
+    this.needsPreamble = !rulesInPrompt && (this.needsPreamble || fresh);
     void this.pump();
+  }
+
+  /** A summary may have dropped the channel rules: the next delivery repeats them. */
+  compacted(): void {
+    this.compactions += 1;
+    this.needsPreamble = !this.rulesInPrompt;
   }
 
   turnEnded(event: Extract<Event, { kind: "turn_ended" }>): void {
@@ -128,10 +138,19 @@ export class Deliveries {
     }
   }
 
+  /** No system prompt to carry the channel rules: the full rules when they may be lost, else a one-line reminder. */
+  private withRules(body: string): string {
+    if (this.needsPreamble) {
+      return `${preamble(this.host.name, this.host.cwd, this.host.bin)}\n\n${body}`;
+    }
+    return `${reminder(this.host.bin)}\n${body}`;
+  }
+
   /** One delivery attempt; false stops the pump until the next open or message. */
   private async send(session: Session, batch: readonly Message[]): Promise<boolean> {
     const body = batch.map((message) => formatMessage(message)).join("\n");
-    const text = this.needsPreamble ? `${preamble(this.host.name, this.host.cwd, this.host.bin)}\n\n${body}` : body;
+    const text = this.rulesInPrompt ? body : this.withRules(body);
+    const compactions = this.compactions;
     const seqs = batch.map((message) => message.seq);
     const started = Date.now();
     const result = await session.deliver(text);
@@ -142,7 +161,9 @@ export class Deliveries {
       return false;
     }
     if (result.landed !== "rejected") {
-      this.needsPreamble = false;
+      if (this.compactions === compactions) {
+        this.needsPreamble = false;
+      }
       if (seqs.some((seq) => this.fromPeople.delete(seq))) {
         this.awaitingReply = true;
       }
