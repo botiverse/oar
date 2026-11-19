@@ -96,8 +96,8 @@ for (const backend of ["claude", "codex"] as const) {
           }
         }
         const events = resumed.records().flatMap((record) => record.kind === "frame" ? record.body.events : []);
-        expect(events.filter((event) => event.kind === "compaction_started")).toHaveLength(backend === "claude" ? 0 : 1);
-        expect(events.filter((event) => event.kind === "compaction_ended")).toHaveLength(1);
+        expect(events.flatMap((event) => event.kind === "compaction_started" || event.kind === "compaction_ended" ? [event.kind] : []))
+          .toEqual(["compaction_started", "compaction_ended"]);
       } finally {
         try { for (const session of sessions) { await session.dispose(); } } finally { await f.stop(); }
       }

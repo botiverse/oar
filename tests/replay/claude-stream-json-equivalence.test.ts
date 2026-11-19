@@ -37,3 +37,19 @@ for (const fixture of fixtures) {
     await expect(`${rows.join("\n")}\n`).toMatchFileSnapshot(fileURLToPath(baseline));
   });
 }
+
+test("a compacting heartbeat starts once per agent until a clear, boundary, or terminal result", () => {
+  let state = initialClaudeProjection;
+  const status = { type: "system", subtype: "status", status: "compacting", compact_output_chars: 0 };
+  const child = { ...status, parent_tool_use_id: "child" };
+  const boundary = { type: "system", subtype: "compact_boundary", compact_metadata: { trigger: "auto" } };
+  const frames = [status, status, child, { ...status, compact_output_chars: 20 }, { ...status, status: null },
+    status, boundary, status, { type: "result", subtype: "success" }, status, child];
+  const readings = frames.map(frame => {
+    const next = foldClaudeStdout(state, frame);
+    ({ state } = next);
+    return next.commands.flatMap(command => command.kind === "frame" && command.body.events.some(event => event.kind === "compaction_started")
+      ? [command.agentPath.join("/") || "root"] : []);
+  });
+  expect(readings).toEqual([["root"], [], ["child"], [], [], ["root"], [], ["root"], [], ["root"], []]);
+});

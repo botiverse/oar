@@ -1,0 +1,252 @@
+{
+  "version": "2.1.326",
+  "platform": "linux-x64",
+  "cases": [
+    {
+      "mode": "manual",
+      "requests": [
+        "text",
+        "text",
+        "text"
+      ],
+      "frames": [
+        {
+          "type": "system/status",
+          "status": "compacting",
+          "nativeFields": [
+            "session_id",
+            "status",
+            "subtype",
+            "type",
+            "uuid"
+          ],
+          "events": [
+            {
+              "kind": "compaction_started"
+            }
+          ]
+        },
+        {
+          "type": "system/status",
+          "status": null,
+          "compactResult": "success",
+          "events": []
+        },
+        {
+          "type": "system/compact_boundary",
+          "trigger": "manual",
+          "events": [
+            {
+              "kind": "compaction_ended",
+              "outcome": "completed",
+              "trigger": "manual"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "overflow",
+      "requests": [
+        "text",
+        "tool call with 123 input tokens",
+        "HTTP 400 after tool result",
+        "text",
+        "text",
+        "text"
+      ],
+      "frames": [
+        {
+          "type": "system/status",
+          "status": "requesting",
+          "events": []
+        },
+        {
+          "type": "system/status",
+          "status": "requesting",
+          "events": []
+        },
+        {
+          "type": "system/status",
+          "status": "compacting",
+          "chars": 0,
+          "nativeFields": [
+            "compact_output_chars",
+            "session_id",
+            "status",
+            "subtype",
+            "type",
+            "uuid"
+          ],
+          "events": [
+            {
+              "kind": "compaction_started"
+            }
+          ]
+        },
+        {
+          "type": "system/status",
+          "status": null,
+          "compactResult": "success",
+          "events": []
+        },
+        {
+          "type": "system/compact_boundary",
+          "trigger": "auto",
+          "events": [
+            {
+              "kind": "compaction_ended",
+              "outcome": "completed",
+              "trigger": "auto"
+            }
+          ]
+        },
+        {
+          "type": "system/status",
+          "status": "requesting",
+          "events": []
+        }
+      ]
+    },
+    {
+      "mode": "slow-overflow",
+      "requests": [
+        "text",
+        "tool call with 123 input tokens",
+        "HTTP 400 after tool result",
+        "streamed summary",
+        "text",
+        "text"
+      ],
+      "frames": [
+        {
+          "type": "system/status",
+          "status": "requesting",
+          "events": []
+        },
+        {
+          "type": "system/status",
+          "status": "requesting",
+          "events": []
+        },
+        {
+          "type": "system/status",
+          "status": "compacting",
+          "chars": 0,
+          "nativeFields": [
+            "compact_output_chars",
+            "session_id",
+            "status",
+            "subtype",
+            "type",
+            "uuid"
+          ],
+          "events": [
+            {
+              "kind": "compaction_started"
+            }
+          ]
+        },
+        {
+          "type": "system/status",
+          "status": "compacting",
+          "chars": 0,
+          "nativeFields": [
+            "compact_output_chars",
+            "session_id",
+            "status",
+            "subtype",
+            "type",
+            "uuid"
+          ],
+          "events": []
+        },
+        {
+          "type": "system/status",
+          "status": null,
+          "compactResult": "success",
+          "events": []
+        },
+        {
+          "type": "system/compact_boundary",
+          "trigger": "auto",
+          "events": [
+            {
+              "kind": "compaction_ended",
+              "outcome": "completed",
+              "trigger": "auto"
+            }
+          ]
+        },
+        {
+          "type": "system/status",
+          "status": "requesting",
+          "events": []
+        }
+      ]
+    },
+    {
+      "mode": "manual-failure",
+      "requests": [
+        "text",
+        "HTTP 400 on summary",
+        "HTTP 400 on summary",
+        "HTTP 400 on summary",
+        "HTTP 400 on summary",
+        "HTTP 400 on summary",
+        "HTTP 400 on summary"
+      ],
+      "frames": [
+        {
+          "type": "system/status",
+          "status": "compacting",
+          "nativeFields": [
+            "session_id",
+            "status",
+            "subtype",
+            "type",
+            "uuid"
+          ],
+          "events": [
+            {
+              "kind": "compaction_started"
+            }
+          ]
+        },
+        {
+          "type": "system/status",
+          "status": null,
+          "compactResult": "failed",
+          "compactError": "Error during compaction: API Error: 400 Synthetic summary request rejected",
+          "events": [
+            {
+              "kind": "compaction_ended",
+              "outcome": "failed",
+              "reason": "Error during compaction: API Error: 400 Synthetic summary request rejected"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "high-usage",
+      "requests": [
+        "text",
+        "tool call with 195000 input tokens",
+        "text"
+      ],
+      "frames": [
+        {
+          "type": "system/status",
+          "status": "requesting",
+          "events": []
+        },
+        {
+          "type": "system/status",
+          "status": "requesting",
+          "events": []
+        }
+      ]
+    }
+  ]
+}

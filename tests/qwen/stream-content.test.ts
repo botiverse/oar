@@ -88,3 +88,8 @@ test("other stream-json dialects still require their usual message identity", ()
     { kind: "text_delta", text: "same", messageId: "different-id" },
   ]);
 });
+
+test("Qwen does not opt into the Claude and Qoder compacting status", () => {
+  const project = projector();
+  expect(project({ type: "system", subtype: "status", status: "compacting" })).toEqual([]);
+});

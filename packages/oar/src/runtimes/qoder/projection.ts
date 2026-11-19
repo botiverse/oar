@@ -35,6 +35,7 @@ function outcome(message: JsonRecord): TurnOutcome {
 }
 
 export const qoderProjectionProfile: StreamJsonProjectionProfile<QoderProjection> = {
+  compactingStatus: true,
   name: "qoder", duplicateReason: "Qoder refused the input", initStartsTurn: false, assistantAfterMessageStop: true, partialMessageIds: false,
   assistant: (state) => state,
   result: (state, message, agentPath) => {
@@ -50,7 +51,7 @@ export const qoderProjectionProfile: StreamJsonProjectionProfile<QoderProjection
     const description = events.find(event => event.kind !== "task_ended" && event.description !== undefined);
     const next = description?.kind !== "task_ended" && description?.description !== undefined && description.description !== state.taskDescriptions.get(key)
       ? { ...state, taskDescriptions: new Map([...state.taskDescriptions, [key, description.description]]) } : state;
-    return { state: next, events: [...events, ...(message.subtype === "status" && message.status === "compacting" ? [{ kind: "compaction_started" as const }] : [])] };
+    return { state: next, events };
   },
   other: (state) => ({ state, events: [] }),
 };

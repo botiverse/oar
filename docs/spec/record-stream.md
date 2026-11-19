@@ -1102,15 +1102,17 @@ Which runtimes say which kinds (runtime pages hold the evidence):
 - `compaction_started`: pi `compaction_start` (`trigger` is pi's reason:
   manual | threshold | overflow); codex `item/started` for a
   `contextCompaction` item (no trigger); cursor SDK 1.2.0 `run.stream()`
-  summary status `running` (no trigger); Qoder `system/status compacting`
+  summary status `running` (no trigger); Claude and Qoder `system/status compacting`
   (no trigger); OpenCode v2 `opencode/compaction.status: started`, with native
   reason and `messageId` as `compactionId`; DSH `compaction/start`, with its
-  native `compactionId` (no trigger). Claude has no projected start; its
-  boundary arrives after the fact.
+  native `compactionId` (no trigger). Claude can repeat the status during a slow
+  summary. Those updates are one start for that agent.
 - `compaction_ended`: pi `compaction_end` (`aborted` → aborted, an
   `errorMessage` → failed with that reason, else completed; `trigger` as
   above); claude `system/compact_boundary` → completed with `trigger` from
-  `compact_metadata.trigger` (manual | auto) [sym 2.1.272]; codex
+  `compact_metadata.trigger` (manual | auto), or Claude's explicit
+  `system/status.compact_result: "failed"` with its native reason when
+  present ([2.1.326 controls](../../experiments/claude-compaction-start/README.md)); codex
   `item/completed` for the `contextCompaction` item → completed, while the
   deprecated `thread/compacted` notification closes an open compaction only
   when the item did not already (the projection dedupes, so codex never ends

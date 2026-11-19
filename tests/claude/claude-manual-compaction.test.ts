@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { afterEach, expect, test, vi } from "vitest";
 import { claudeSession } from "../../packages/oar/src/runtimes/claude/session.js";
+import type { Session } from "../../packages/oar/src/contracts/session.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { fakeLineProcess, type FakeLineProcess } from "../fixtures/fake-line-process.js";
 
@@ -33,6 +34,8 @@ async function open(builtin = true, answer = true) {
     },
   };
 }
+const compactions = (session: Session) => session.records().flatMap(record => record.kind === "frame"
+  ? record.body.events.filter(event => event.kind === "compaction_started" || event.kind === "compaction_ended") : []);
 const boundary = { type: "system", subtype: "compact_boundary", compact_metadata: { trigger: "manual" } };
 const end = (id: string, extra = {}) => ({ type: "result", subtype: "success", is_error: false, user_message_uuid: id, ...extra });
 
@@ -110,7 +113,13 @@ test("native compaction failure wins over a successful ordinary command result",
   try {
     const waiting = f.compact();
     const id = await f.dispatch();
-    f.fake.emit(line({ type: "system", subtype: "status", compact_result: "failed", compact_error: "native failure" }));
+    const status = { type: "system", subtype: "status", status: "compacting" };
+    f.fake.emit(line(status));
+    f.fake.emit(line({ type: "system", subtype: "status", status: null, compact_result: "failed", compact_error: "native failure" }));
+    f.fake.emit(line(status));
+    expect(compactions(f.session)).toEqual([
+      { kind: "compaction_started" }, { kind: "compaction_ended", outcome: "failed", reason: "native failure" }, { kind: "compaction_started" },
+    ]);
     f.fake.emit(line(end(id)));
     expect(await waiting).toMatchObject({ kind: "failed", code: "native_failed", frame: { body: { native: { compact_result: "failed" } } } });
     expect(f.session.status().value.kind).toBe("idle");
@@ -269,4 +278,19 @@ test.each(["prompt", "queue"] as const)("Claude terminal observer %s cannot over
     } else { expect(writtenIds()).toEqual([first, second]); }
     expect(f.session.status().value.kind).toBe("idle");
   } finally { await f.session.dispose(); }
+});
+
+test("exit during compaction has no invented terminal and a fresh process can report a start", async () => {
+  const compacting = line({ type: "system", subtype: "status", status: "compacting" });
+  const first = await open();
+  first.fake.emit(compacting);
+  first.fake.end(1);
+  expect(first.session.records().at(-1)).toMatchObject({ kind: "response", body: { kind: "exited" } });
+
+  expect(compactions(first.session)).toEqual([{ kind: "compaction_started" }]);
+  const next = await open();
+  try {
+    next.fake.emit(compacting);
+    expect(compactions(next.session)).toEqual([{ kind: "compaction_started" }]);
+  } finally { await next.session.dispose(); await first.session.dispose(); }
 });

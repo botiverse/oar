@@ -1,5 +1,7 @@
 # experiments
 
+- [Claude compaction start](claude-compaction-start/README.md) records manual and automatic stream-json lifecycles on 2.1.326.
+
 - [Antigravity quota notices and prompt usage](antigravity-prompt-usage/README.md) records Gemini account observations and two isolated agy 1.5.12 token controls.
 
 - [Process-tree kill across a user boundary](cross-user-kill/README.md): under a `sudo -u` wrapper the worker's processes answer OAR's signals with EPERM and an orphan holds the runtime's pipes; EPERM is now not a failure and the pipe wait is bounded, with the holders reported.
