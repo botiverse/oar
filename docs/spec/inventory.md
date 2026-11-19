@@ -45,8 +45,9 @@ of at most 500 characters from its native command.
 
 An `ok` result says how much it covers. `view` names the source: the
 runtime's catalog of what it would load (`discovered`), its live context
-(`context`), all registered tools including inactive ones (`registered`),
-or MCP tools only (`mcp-only`, never to be shown as all tools).
+(`context`, reserved: no built-in reader reports it yet), all registered
+tools including inactive ones (`registered`), or MCP tools only
+(`mcp-only`, never to be shown as all tools).
 `partial: true` means the reader knows its coverage is incomplete, for
 example a native discovery error, an MCP server that had not started, or a
 file search that was unavailable or cut off. A result without it still

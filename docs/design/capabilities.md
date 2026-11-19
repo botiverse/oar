@@ -2,11 +2,12 @@
 
 A host picks the runtime at run time, from a user's choice or its own
 configuration, so its code cannot know which runtime it holds. Runtimes
-differ: cursor takes no environment for its tools, kimi and opencode resume
-a session only in the directory it was created in, cursor, kimi,
-antigravity, devin, dsh, opencode v2 and Pi Durable take no system prompt, and kimi,
-qwen, codebuddy, devin and opencode v2 before 2.2.7 cannot steer. The design question is how a host
-learns what it may ask for, and what happens when it asks for more.
+differ: some take no system prompt, some resume a session only in the
+directory it was created in, some cannot steer, and the answer can change
+with the installed version. Which runtime does what is data, kept in one
+place ([runtime matrix](../spec/runtime-matrix.md)); this page is about how
+a host reads it. The design question is how a host learns what it may ask
+for, and what happens when it asks for more.
 
 **The position: a host never gets something other than it asked for, never
 parses prose to learn why, and never names a runtime to decide.** Three
@@ -16,15 +17,15 @@ tools, each used only where the one before does not fit.
 
 When a runtime either can or cannot do a whole thing, the thing is an
 optional member and its presence is the capability. `Runtime.accountUsage`,
-`redeemLimitReset`, `inspectLimitResets`, `listModels`, `installPlan`, `install`, `checkUpdate`, `upgrade`, `login`,
-`logout` and `authStatus` already work this way (only the runtimes OAR signs
-out through their own logout have a `logout`, and bundled pi and cursor have
-no `install`);
-`Session` `steer`, `withdraw`, `resources` and `goal` do too: a session that cannot
-steer has no `steer`, one whose queue OAR does not hold (codex) has no
-`withdraw`, and one whose runtime runs in the host process (pi, cursor) has
-no `resources`. A session without structured native goal controls has no
-`goal`; enabling that native feature is an explicit session choice.
+`redeemLimitReset`, `inspectLimitResets`, `listModels`, `installPlan`,
+`install`, `checkUpdate`, `upgrade`, `login`, `logout`, `authStatus` and
+`providers` work this way, and so do the optional `Session` members
+(`steer`, `withdraw`, `stopTask`, `compact`, `resources`,
+`contextBreakdown`, `goal`). A session that cannot steer has no `steer`;
+one whose queue OAR does not hold has no `withdraw`; one OAR has no memory
+reader for has no `resources`. A session without structured native goal
+controls has no `goal`; enabling that native feature is an explicit session
+choice. Each member's comment in `contracts/` says where it is absent.
 TypeScript makes every caller handle the absence, and the check works the
 same for a runtime chosen at run time: it reads the member, not a name.
 
@@ -61,10 +62,26 @@ its native confirmation and matching policy. See
 Some decisions come before any call: rowrow passes `env` to every session
 and must leave it out for a runtime that refuses it; a UI shows an attach
 button only where images go. For those, the runtime declares the fact up
-front:
+front.
 
-- `Runtime.refusedSessionOptions`: the options a runtime refuses at open,
-  each with its reason.
+The answer for one installation is `installedSessionCapabilities(runtime,
+installation)` (also `Runtime.sessionCapabilities`, and the lightweight
+`@botiverse/oar/capabilities` entry, which loads no runtime SDK). It mirrors
+what a session opened from that installation will offer (whether it has
+`steer`, whether it takes `images`, whether `contextUsage()` is
+trustworthy, and so on; the contract lists the fields), plus the complete
+`refusedSessionOptions` for that version. A field is absent where only the
+native handshake can tell, and absent means unknown, never false; the
+opened session stays authoritative. A shared behavior case opens a session
+and checks every declared field against it
+([contract](../spec/runtime-matrix.md#session-capabilities-before-open)).
+
+The static declarations it is built from, and the ones that do not depend
+on the installation:
+
+- `Runtime.refusedSessionOptions`: the options a runtime refuses at open
+  on every version, each with its reason. A refusal that depends on the
+  version is only in the installation's answer above.
 - `Runtime.resumedSessionOptions`: measured timing for a different value
   supplied on resume and behavior when it is omitted. A host can decide
   whether its first input needs a reminder before a deferred system prompt
@@ -79,6 +96,9 @@ front:
   (opencode `v1`, `v2`), so a host offers the choice OAR does not make
   before it plans an install; `install` answers `line_required` from the
   same list.
+- `Runtime.minVersion`, `verifiedPlatforms`, `credentials`,
+  `manualCompaction` and `mcpToolsListChanged`: what a host checks before it
+  installs, signs in, or relies on compaction or tool-list changes.
 - `Session.capabilities`: per-session facts that are not operations
   (`images`, the `attribution` tier, whether held input is `durable`), some
   known only after the runtime's handshake.
@@ -129,11 +149,11 @@ Where it goes depends on how long it holds:
 - **For the host's lifetime** (where an SDK loads from, an executable path,
   a data directory): an argument of that runtime's own constructor,
   `createXxxRuntime(options)`, typed by that runtime alone. Constructors
-  share no shape. Two have one today, because each needs something only
-  the host has: cursor its SDK, a package the host installs
-  (`createCursorRuntime({ sdk: () => import("@cursor/sdk") })`), and Pi
-  Durable the host's open Harness and Models
-  (`createPiDurableRuntime({ harness, models })`).
+  share no shape. For example, cursor needs its SDK, a package the host
+  installs (`createCursorRuntime({ sdk: () => import("@cursor/sdk") })`),
+  and Pi Durable needs the host's open Harness and Models
+  (`createPiDurableRuntime({ harness, models })`); the full list is the
+  `create*Runtime` exports.
   A runtime gets a constructor when it first needs one; for a built-in
   runtime, calling it without arguments gives the built-in one. The process environment
   knobs `OAR_CODEX_BIN`, `OAR_CODEX_SANDBOX` and `OAR_PI_AGENT_DIR` are
@@ -141,8 +161,8 @@ Where it goes depends on how long it holds:
   them per instance.
 - **For one session**, use the smallest option for the verified capability.
   `SessionOptions.goals: true` enables structured native goals; unsupported
-  runtimes declare and refuse it. It is a shared concept even while only Codex
-  exposes it. Omission and false preserve native defaults and expose no
+  runtimes declare and refuse it. It is a shared concept even while few
+  runtimes expose it. Omission and false preserve native defaults and expose no
   `Session.goal` member. Enabling changes the model's tool set, so it is not
   implicit. No runtime-keyed `native` namespace or parallel capability flag
   is needed for this option ([contract](../spec/goals.md)).

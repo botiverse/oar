@@ -44,10 +44,10 @@ start and end, usage, model, effort, compaction start / end, retry, background
 tasks and subagents started, updated and ended, runtime→app requests and oar's
 answers, control rejections, withdrawn and natively handled inputs, the process
 exit), each carrying the `seq` and `agentPath` of the record it was read from.
-Kinds a runtime never says never appear (claude and factory have no
-compaction start; kimi, codebuddy, antigravity and devin no compaction; of the
-core runtimes only codex, factory, pi and pi-durable report retry); the
-runtime pages say which. It is a
+Kinds a runtime never says never appear (some runtimes report no
+compaction start, some no compaction, and several no retry); the
+[runtime matrix](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md)
+and the runtime pages say which. It is a
 projection over the record stream, which `session.rawEvents()` and
 `session.records()` expose (`RawEvent`: `Frame` with the native payload
 verbatim, `RequestRecord`, `ResponseRecord`) for consumers who need the
@@ -59,8 +59,8 @@ carry `elided: true`, while live observers still receive every record complete
 reports for a command it ran, absent where it reports none (claude); see
 [tool outcomes](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#tool-outcomes).
 In `session.usage()`, `TokenTotals.reasoning` is the part of `output` the
-runtime reports as reasoning (codex, grok, pi, pi-durable, cursor, dsh; absent
-elsewhere): never add it to `output` again
+runtime reports as reasoning (absent where the runtime does not report it;
+the linked section lists which do): never add it to `output` again
 ([reasoning tokens](https://github.com/botiverse/oar/blob/main/docs/spec/attribution.md#reasoning-tokens)).
 
 Tool arguments can arrive while the model is still writing them. Append
