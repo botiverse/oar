@@ -355,7 +355,7 @@ A -32603's class is the `error_type` of the `retry_state` update that ended
 Grok's retries; Grok's generic `api` yields to the provider status it keeps
 in `data.http_status`, so a 402 is `billing` (1.0.77, sampling/error.rs
 `map_sampling_err_to_acp`), and the outcome carries that `status`
-([failure evidence](../spec/runtime-matrix.md#opencode-kimi-grok-antigravity-acp)). A process exit instead
+([failure evidence](../spec/runtime-matrix.md#failure-evidence)). A process exit instead
 is an `exited` response, classified by the folds as described below. Around each prompt Grok pushes `_x.ai/sessions/changed`
 (`working`, then `idle`) and, after `turn_completed`,
 `_x.ai/session/prompt_complete` (`promptId`, `stopReason`,

@@ -5,20 +5,22 @@ import { failureFromErrorCode, failureFromStatus } from "../../shared/failure-cl
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 
 /*
- * A prompt grok answered with an error (docs/spec/runtime-matrix.md#opencode-kimi-grok-antigravity-acp),
- * observed on 1.0.46 and 1.0.77 against a scripted provider: -32003 "Rate
- * limited" for every HTTP 429, its `data` the provider's words as
- * `API error (status 429 …): <error type>: <message>`; otherwise -32603
+ * A prompt grok answered with an error (docs/spec/runtime-matrix.md#failure-evidence),
+ * [env] 1.0.46 and 1.0.77 against a scripted provider (failure-classes-acp.vendor.test.ts):
+ * -32003 "Rate limited" for every HTTP 429, its `data` the provider's words as
+ * `API error (status 429 ...): <error type>: <message>`; otherwise -32603
  * "Internal error", whose cause is the `error_type` of the `retry_state`
  * update that ended grok's retries, and whose `data.http_status` is the
- * provider's status for an API error (sampling/error.rs
+ * provider's status for an API error ([src] sampling/error.rs
  * `map_sampling_err_to_acp`, `error_data_with_status`).
  */
 
+// [env] 1.0.46 / 1.0.77 JSON-RPC code for HTTP 429.
 const RATE_LIMITED = -32_003;
-/** Grok's own code for an exhausted free allowance on a 429 (sampling/error.rs `FREE_USAGE_EXHAUSTED_ERROR_CODE`). */
+/** [src] Grok's own code for an exhausted free allowance on a 429 (sampling/error.rs `FREE_USAGE_EXHAUSTED_ERROR_CODE`). */
 const FREE_USAGE_EXHAUSTED = "subscription:free-usage-exhausted";
 
+// [env] 1.0.46 / 1.0.77 `retry_state.error_type` values (failure-classes-acp.vendor.test.ts).
 const ERROR_TYPES: Readonly<Partial<Record<string, FailureClass>>> = {
   auth: "auth",
   rate_limited: "rate_limited",

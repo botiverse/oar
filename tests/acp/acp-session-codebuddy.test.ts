@@ -51,8 +51,16 @@ test.each(["usage-never", "codebuddy-zero-context"])("CodeBuddy preserves absent
 });
 
 test("a bare ACP refusal maps to model_refused, including CodeBuddy without a provider error", () => {
-  const response = { stopReason: "refusal" };
-  expect(codebuddyPromptOutcome(response) ?? defaultAcpPromptOutcome(response)).toEqual({ kind: "failed", failure: "model_refused", reason: "refusal" });
+  for (const response of [{ stopReason: "refusal" }, { stopReason: "refusal", _meta: { "codebuddy.ai/outcome": "REFUSED_OR_BLOCKED" } }]) {
+    expect(codebuddyPromptOutcome(response) ?? defaultAcpPromptOutcome(response)).toEqual({ kind: "failed", failure: "model_refused", reason: "refusal" });
+  }
+});
+
+test("CodeBuddy refusal carrying errorMessage without category or status stays unknown and preserves plain-text reason", () => {
+  expect(codebuddyPromptOutcome({ stopReason: "refusal", _meta: { "codebuddy.ai/errorMessage": "Local command execution failed" } }))
+    .toEqual({ kind: "failed", failure: "unknown", reason: "Local command execution failed" });
+  expect(codebuddyPromptOutcome({ stopReason: "refusal", _meta: { "codebuddy.ai/errorMessage": JSON.stringify({ message: "Pre-message compact failed" }) } }))
+    .toEqual({ kind: "failed", failure: "unknown", reason: "Pre-message compact failed" });
 });
 
 test("CodeBuddy preserves the native failure reason even in a successful prompt RPC", () => {

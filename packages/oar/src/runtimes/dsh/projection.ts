@@ -35,24 +35,21 @@ export function initialDshProjection(rootId: string): DshProjection {
 }
 
 /**
- * The runtime's own machine-routing codes. Observed from a scripted provider:
- * AUTH (401), RATE_LIMIT (429), SERVER (500), INVALID_REQUEST (400), UNKNOWN_MODEL,
- * NO_ADAPTER and UNSUPPORTED_REASONING_EFFORT. The others are named constants in
- * dsh-llm 0.2.1-rc.5 not yet seen on a wire. PI_AI_ERROR (a 402, for one) and
- * UNKNOWN carry no class; the text is prose, never parsed.
+ * DSH 0.2.1-rc.5 native `LlmFailure.code` table (`dsh-llm`).
+ * `PI_AI_ERROR` (for example 402) and `UNKNOWN` carry no class; prose is never parsed.
  */
 const FAILURE_CODES: ReadonlyMap<string, FailureClass> = new Map([
-  ["AUTH", "auth"],
-  ["INVALID_CREDENTIAL", "auth"],
-  ["ACCOUNT_QUOTA", "quota"],
-  ["QUOTA", "quota"],
-  ["RATE_LIMIT", "rate_limited"],
-  ["CONTEXT_WINDOW_EXCEEDED", "input_too_large"],
-  ["UNKNOWN_MODEL", "model_unavailable"],
-  ["NO_ADAPTER", "model_unavailable"],
-  ["UNSUPPORTED_REASONING_EFFORT", "invalid_request"],
-  ["INVALID_REQUEST", "invalid_request"],
-  ["SERVER", "provider"],
+  ["AUTH", "auth"], // [env] scripted 401
+  ["INVALID_CREDENTIAL", "auth"], // [src] dsh-llm 0.2.1-rc.5 constant (not yet seen on wire)
+  ["ACCOUNT_QUOTA", "quota"], // [src] dsh-llm 0.2.1-rc.5 constant (not yet seen on wire)
+  ["QUOTA", "quota"], // [src] dsh-llm 0.2.1-rc.5 constant (not yet seen on wire)
+  ["RATE_LIMIT", "rate_limited"], // [env] scripted 429
+  ["CONTEXT_WINDOW_EXCEEDED", "input_too_large"], // [src] dsh-llm 0.2.1-rc.5 constant (not yet seen on wire)
+  ["UNKNOWN_MODEL", "model_unavailable"], // [env] scripted open/turn
+  ["NO_ADAPTER", "model_unavailable"], // [env] scripted open/turn
+  ["UNSUPPORTED_REASONING_EFFORT", "invalid_request"], // [env] scripted open/turn
+  ["INVALID_REQUEST", "invalid_request"], // [env] scripted 400
+  ["SERVER", "provider"], // [env] scripted 500
 ]);
 
 /** The class of a native `LlmFailure`: its code first, then the HTTP status where it carries one. */

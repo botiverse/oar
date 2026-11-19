@@ -15,12 +15,12 @@ import { asRecord } from "../../shared/json.js";
 const INTERNAL_ERROR = -32_603;
 
 const ERROR_NAMES: Readonly<Partial<Record<string, FailureClass>>> = {
-  "provider.free-limit": "quota",
-  "provider.go-limit": "quota",
-  "provider.budget-limit": "quota",
-  "provider.model-budget-limit": "quota",
-  "provider.quota": "quota",
-  "provider.rate-limit": "rate_limited",
+  "provider.free-limit": "quota", // [rec] live observation (PR #710) + [src] v2.2.6 to-session-error.ts
+  "provider.go-limit": "quota", // [src] v2.2.6 packages/core/src/session/to-session-error.ts
+  "provider.budget-limit": "quota", // [src] v2.2.6 packages/core/src/session/to-session-error.ts
+  "provider.model-budget-limit": "quota", // [src] v2.2.6 packages/core/src/session/to-session-error.ts
+  "provider.quota": "quota", // [src] v2.2.6 packages/core/src/session/to-session-error.ts
+  "provider.rate-limit": "rate_limited", // [env] v2.2.6 (experiments/opencode-error-names/README.md)
 };
 
 export const opencodeFailureOutcome: AcpFailureReader = (error) => {

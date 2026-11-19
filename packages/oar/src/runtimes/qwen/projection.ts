@@ -28,6 +28,7 @@ function outcome(state: QwenProjection, message: JsonRecord): TurnOutcome {
     return { kind: "completed", ...("structured_result" in message ? { structuredOutput: message.structured_result } : {}) };
   }
   const error = asRecord(message.error);
+  // [src] Qwen 0.26.0 packages/cli/src/nonInteractive/session.ts stream-json result subtype.
   return { kind: "failed", failure: message.subtype === "error_max_turns" ? "limit_reached" : "unknown",
     reason: typeof error?.message === "string" ? error.message : `Qwen result: ${String(message.subtype)}` };
 }

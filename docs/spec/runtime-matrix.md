@@ -1295,347 +1295,114 @@ native runtime is admitted to shared placement in the current release
 
 ## Failure evidence
 
-What each runtime reports when a session fails for a common cause, and the
-`FailureClass` oar maps it to ([#227](https://github.com/botiverse/oar/issues/227)):
-a failed turn's `failure`, `credential` and `status`, or the
-`RuntimeFailureError` an open rejects with. The **oar** column of each table
-is what oar gives; the [mapping rules](#the-mapping) say why.
+What OAR classifies a failed turn or failed open into (`FailureClass`,
+[#227](https://github.com/botiverse/oar/issues/227)), the precedence and
+evidence rules behind those mappings, and where each runtime's classifier
+lives.
 
-**How.** [`experiments/failure-evidence.ts`](../../experiments/failure-evidence.ts)
-opens a session on the real runtime and prompts once, with the model provider
-replaced by a scripted one (aimock, [harness](../../sea-trial/harness/aimock.ts))
-that answers every model request with the error the provider documents for the
-cause ([replies](#the-provider-replies)). A missing login is a fresh home with
-no credential instead. No real account is used and nothing is spent. Runs:
-claude 2.1.292, codex 0.160.1, pi SDK 1.0.4, opencode 1.18.30, kimi 2.1.1,
-grok 1.0.46, antigravity ACP server 1.3.0 (2026-10-08); cursor (`@cursor/sdk`
-1.0.36) against Cursor's own service, with no key or a made-up one only.
-
-**Evidence level** of each cell: `[env]` observed in such a run; `[rec]` a
-recorded run; `[src]` vendor source or type
-declarations, `[sym]` binary symbols; `[doc]` vendor documentation. **Not
-observed** means none of these. Only `[env]` and `[rec]` cells may back a
-mapping; the others are reference. Every cell below is `[env]` unless tagged.
-
-No open failed on a model request: the opens that failed did so on a check
-made before any (a login; a model the runtime, or oar for pi, does not know;
-cursor verifies its key with its service). The cells marked **open** hold
-those; pi refuses the prompt when it has no key; every other failure came
-with the turn.
+**Evidence rule.** Every failure mapping must be backed either by a live or
+recorded run (`[env]`, `[rec]`, for example via
+[`experiments/failure-evidence.ts`](../../experiments/failure-evidence.ts),
+[`failure-classes.vendor.test.ts`](../../sea-trial/vendor/failure-classes.vendor.test.ts)
+or [`failure-classes-acp.vendor.test.ts`](../../sea-trial/vendor/failure-classes-acp.vendor.test.ts))
+or by an explicit constant and meaning in the runtime's own source, generated
+schema or binary (`[src]`, `[schema]`, `[sym]`). Mappings are never invented
+from guesswork. Each mapping's evidence tier (and native version plus location
+for source/schema/symbol entries) is annotated inline in that runtime's
+classifier; this page states only the shared contract rather than restating
+per-runtime tables.
 
 ### The mapping
 
-Each adapter reads, in order: the runtime's own category for the failure
-(claude's `assistant.error`, codex's `codexErrorInfo`, grok's
-`retry_state.error_type`, ACP's -32000); then the provider's error body that
-the runtime passes on (its `code`, else its `type`: pi's `errorMessage`, a
-codex `other`); then the HTTP status the runtime reports (401 `auth`, 402
-`billing`, 404 `model_unavailable`, 429 `rate_limited`, 503 and 529
-`overloaded`, another 5xx `provider`, 400 `invalid_request`). An OpenAI 429
-whose code names a quota or a balance (`insufficient_quota`,
-`organization_usage_limit_exceeded`, `usage_limit_reached`,
-`credit_balance_exhausted`) is `quota` or `billing`; only one without such a
-code is `rate_limited`. Matching the words is each adapter's last resort,
-named in its table below. What none of these says is `unknown`.
+**Precedence order.** Each adapter reads, most structured first
+([`shared/failure-class.ts`](../../packages/oar/src/shared/failure-class.ts)):
 
-A model that declines to answer reports `model_refused`. Claude 2.1.328
-reports `stop_reason: "refusal"` even when its synthetic assistant error is
-`invalid_request`; the stop reason takes precedence. ACP's plain
-`stopReason: "refusal"` carries the same meaning. CodeBuddy also uses this
-stop for failed tasks, so its native error category and HTTP status retain
-their more specific classifications.
+1. The runtime's own error category or stop reason (for example Claude's
+   `stop_reason: "refusal"` / `assistant.error` / `terminal_reason`, Codex's
+   `codexErrorInfo`, DSH's `LlmFailure.code`, Factory's
+   `agent_turn_completed.reason`, CodeBuddy's error category, OpenCode's
+   `data.errorName`, Grok's `-32003` / `retry_state.error_type`, ACP's
+   `-32000`).
+2. The provider's JSON error body when the runtime preserves it (`error.code`,
+   else `error.type`; an OpenAI 429 carrying a quota or balance code maps to
+   `quota` or `billing` before falling back to `rate_limited`).
+3. The HTTP status code when the runtime reports one:
 
-Two classes are the host's own settings, not the provider's: `limit_reached`
-(claude's result subtypes `error_max_turns` and `error_max_budget_usd`, from
-`--max-turns` and `--max-budget-usd`) and `output_schema` (claude's
-`error_max_structured_output_retries` and grok's `structuredOutputError`, under
-`SessionOptions.outputSchema`). `failureAdvice` says not to retry either until
-the host changes the limit or the schema. A claude error result's `reason` is
-its subtype followed by claude's own `errors` text when it gives any
-(`error_max_turns: Reached maximum number of turns (2)`).
+| HTTP status | `FailureClass` |
+|---|---|
+| `400` | `invalid_request` |
+| `401` | `auth` |
+| `402` | `billing` |
+| `404` | `model_unavailable` |
+| `429` | `rate_limited` |
+| `503`, `529` | `overloaded` |
+| other `5xx` | `provider` |
 
-Mappings normally require `[env]` evidence. A declared value with no observed
-run stays unmapped (it falls through to the status or to `unknown`): claude's
-`oauth_org_not_allowed`, `account_on_hold`,
-`max_output_tokens`, `cloud_credential_error`; codex's
-`badRequest`, `sessionBudgetExceeded`, `cyberPolicy` and the rest of its
-schema; Anthropic's `request_too_large` and `permission_error`; OpenAI's
-spend-limit and `slow_down` codes. Two mappings are source-backed exceptions.
-Codex's exact `unauthorized` tag maps to `auth` from its 0.167.0 generated
-protocol, without a fabricated status or credential detail
-([evidence](../../experiments/codex-projection/README.md)). Claude's
-`rate_limit` after a `rejected` `rate_limit_event` naming a reset is `quota`,
-from `[src]` and `[sym]` alone ([below](#when-a-limit-resets)). Only a
-subscription at its limit makes claude send that event, and oar never
-triggers an error on a real account.
+4. Documented prose matching (`classifyFailure` or `anthropicLimitText`) only
+   as a last resort for runtimes whose transport drops structure. Anything none
+   of these establishes stays `unknown`.
 
-A failed turn (`FailedTurn`) is tagged by `failure`: `credential` exists
-only on `auth`, `resetsAt` and `rateLimitType` only on `quota`, `status` on every class. A host
-checks `failure` before reading either. `resetsAt` is set only where the
-runtime reports, for the failure, when the limit that refused it resets
-([below](#when-a-limit-resets)).
+**Special classes.**
+- `model_refused`: the model declined to answer (`stop_reason: "refusal"` on
+  Claude, bare ACP `stopReason: "refusal"`). Where a runtime reuses `refusal`
+  for non-model errors (CodeBuddy with `_meta["codebuddy.ai/errorMessage"]` or
+  `FAILED*` outcome), its native category/status or `unknown` takes precedence.
+- `limit_reached` and `output_schema`: host-configured turn/budget limits
+  (`error_max_turns`, `error_max_budget_usd`, `max-tokens`) and structured
+  output failures (`error_max_structured_output_retries`,
+  `structuredOutputError`, `structured_output_*`). `failureAdvice(failure)`
+  advises not to retry either until the host changes the limit or schema.
 
-`credential` is set only where the runtime makes it plain: claude's
-`authentication_failed` with no request sent (`missing`) or a 401
-(`rejected`), and cursor's `AuthenticationError` at open (`rejected`).
-ACP's -32000, a codex 401 and a pi 401 do not say which. `status` is the
-HTTP status where the runtime reports one.
+**`FailedTurn` fields.** Every failed turn carries `failure` and `reason`.
+Optional fields appear only when the runtime explicitly reports them:
+- `status`: the HTTP status code reported for the failure (any class).
+- `credential` (`"missing"` or `"rejected"`): only on `auth` when the runtime
+  makes the distinction plain.
+- `resetsAt` and `rateLimitType`: only on `quota` (see
+  [When a limit resets](#when-a-limit-resets)).
 
-Known blur, kept because the runtime does not tell the causes apart: codex's
-`usageLimitExceeded` covers a usage limit and an exhausted balance alike
-(`quota`); claude's 429 without an explicit usage-limit code or a qualifying `rate_limit_event` covers a
-tier's monthly spend cap as well as throttling (`rate_limited`); grok's -32003 covers every 429, so only the provider's error type or Grok's free-usage code in its `data` makes one `quota` or `billing`; otherwise it is `rate_limited`.
-kimi and antigravity report most failed turns as completed, so oar does too.
+**Failed opens (`RuntimeFailureError`).** An open rejects with
+`RuntimeFailureError` (`failure`, `reason`, optional `credential`, `status`,
+and stable `code` such as `project_packages_blocked`, `runtime_outdated`,
+`runtime_config_invalid`) when the adapter has a structured auth, model or
+policy refusal at open (`shared/acp/failure.ts`, `cursor/failure.ts`,
+`codex/refusal.ts`, `pi/`). Other open errors keep their own error types.
+`failureAdvice(failure)` turns any `FailureClass` into a retry policy.
 
-An open fails with a `RuntimeFailureError` (`failure`, `credential`,
-`status`, `reason`) for: ACP's -32000 on `initialize`, `authenticate`,
-`session/new` or `session/resume`, or Devin's -32603 authentication error
-(`auth`); an invalid-params answer (-32602)
-to the call that selects the model (`model_unavailable`); cursor's
-`AuthenticationError` (`auth`, `rejected`); a pi model oar does not find in
-pi's registry (`model_unavailable`). Pi's project-installation policy refusal
-uses `failure: "invalid_request"` and the stable OAR code
-`project_packages_blocked`; it never means the resumed session or cwd is
-missing. Its reason explains how to enable native offline mode or explicitly
-allow installation. Codex adds two codes, both `invalid_request`
-([refusals](../runtimes/codex.md#refusals)): `runtime_outdated` when the
-selected codex is too old for what the open sends (its message names the
-version and the first release that has it), and `runtime_config_invalid`
-when codex cannot read its `config.toml` (its message keeps codex's file,
-line and column). Other open failures keep their errors
-(kimi's unknown model is a -32603 that only its words explain).
-`failureAdvice(failure)` (observe) turns any class into one retry policy.
+**Per-runtime classifiers (authoritative mappings and inline evidence tiers):**
 
-Each mapped cell has a vendor test: [`failure-classes.vendor.test.ts`](../../sea-trial/vendor/failure-classes.vendor.test.ts)
-(claude, codex, pi, in CI) and [`failure-classes-acp.vendor.test.ts`](../../sea-trial/vendor/failure-classes-acp.vendor.test.ts)
-(the ACP runtimes, run locally like the other ACP vendor tests), which also
-pin kimi's and antigravity's completed-looking failures and opencode's
-classes by its words. The adapters' mappings are unit-tested on the observed
-facts ([test](../../tests/failure-mapping.test.ts)).
-
-### The provider replies
-
-Status and error `type` / `code` as the scripted provider sent them. The
-statuses, types and codes are the providers' documented ones `[doc]`
-([Anthropic](https://platform.claude.com/docs/en/api/errors),
-[OpenAI](https://developers.openai.com/api/docs/guides/error-codes),
-Gemini's generateContent in Google's error shape, [AIP-193](https://google.aip.dev/193));
-a message the docs do not give is illustrative. The scripted Gemini replies
-carry no `details` (Google's `ErrorInfo.reason`), which a real one does.
-
-| cause | Anthropic Messages: claude, pi, opencode | OpenAI: codex (Responses), kimi and grok (chat completions) | Gemini: antigravity |
-|---|---|---|---|
-| invalid key | 401 `authentication_error` | 401 `invalid_api_key` | 400 `INVALID_ARGUMENT` "API key not valid" |
-| unknown or unentitled model | 404 `not_found_error` | 404 `model_not_found` | 404 `NOT_FOUND` |
-| rate limited | 429 `rate_limit_error` | 429 `rate_limit_exceeded` | 429 `RESOURCE_EXHAUSTED` |
-| usage limit | 400 `invalid_request_error` "You have reached your specified API usage limits" (a spend limit the organization set) | 429 `organization_usage_limit_exceeded`; a ChatGPT plan's 429 `usage_limit_reached` (codex `[src]`) | 429 `RESOURCE_EXHAUSTED` "You exceeded your current quota" |
-| billing | 400 `invalid_request_error` "Your credit balance is too low" (claude tests for this text `[sym]`); 402 `billing_error` | 429 `credit_balance_exhausted`; the older 429 `insufficient_quota` | 400 `FAILED_PRECONDITION` "enable billing" |
-| server error | 500 `api_error` | 500 `server_error` | 500 `INTERNAL` |
-| overloaded | 529 `overloaded_error` | 503 `server_is_overloaded` | 503 `UNAVAILABLE` |
-| oversized context | 400 `invalid_request_error` "prompt is too long: 250000 tokens > 200000 maximum" | 400 `context_length_exceeded` | 400 `INVALID_ARGUMENT` "The input token count … exceeds the maximum" |
-| inside a 200 stream | an `error` event (`overloaded_error`, `api_error`) | `response.failed` with `error.code` (Responses API only) | not tried |
-
-The overflow texts are the ones pi-ai's `isContextOverflow` documents per
-provider `[src]`. Not simulated: a Claude subscription's usage limit (a 429
-whose `anthropic-ratelimit-unified-*` headers the scripted provider cannot
-send) and a tier's monthly spend cap (a 429 without `retry-after`).
-
-### claude
-
-Every cause ends the turn with an `assistant` frame whose top-level `error`
-names a category (its text is the message), then a `result` with
-`is_error: true`, `api_error_status` (the HTTP status; `null` when no request
-was sent) and `terminal_reason`. A retried cause first sends `system/api_retry`
-frames `{attempt, max_retries, retry_delay_ms, error_status, error}`: 10 retries
-by default (`CLAUDE_CODE_MAX_RETRIES`; the runs set 1).
-
-| cause | `assistant.error` | `api_error_status` | retried (`api_retry.error`) | oar |
-|---|---|---|---|---|
-| missing login | `authentication_failed` ("Not logged in · Please run /login") | `null` | no | `auth`, `missing` |
-| invalid key | `authentication_failed` | 401 | yes (`authentication_failed`) | `auth`, `rejected` |
-| unknown model | `model_not_found` | 404 | no | `model_unavailable` |
-| rate limited | `rate_limit` | 429 | yes (`rate_limit`) | `rate_limited` |
-| usage limit (400) | `unknown` | 400 | no | `quota`: the words ("specified API usage limits"), the last resort |
-| billing: credit balance (400) | `billing_error` ("Credit balance is too low") | 400 | no | `billing` |
-| billing: 402 | `unknown` | 402 | no | `billing` (the status) |
-| server error | `server_error` | 500 | yes (`server_error`) | `provider` (the status) |
-| overloaded | `server_error` | 529 | yes (`overloaded`) | `overloaded` (the status) |
-| oversized context | `invalid_request`; `terminal_reason: prompt_too_long` | 400 | no | `input_too_large` |
-| inside the stream | none: claude retries the stream, then repeats the request without streaming, and that answer ends the turn | | | |
-
-After a tool call the fields are the same; an oversized context first tries
-compaction (`system/status` `compacting`). [Claude 2.1.326 controls](../../experiments/claude-compaction-start/README.md)
-observed the same start on manual compaction and automatic recovery after
-a tool result. The boundary reports the trigger. Recorded Claude 2.1 assistant/result pairs show `verification_required`
-with 403 (`auth`) and `overloaded` with 529 on the result (`overloaded`).
-A 2.1.325 weekly-limit assistant names `api_error: "usage_limit_reached"`
-(`quota`). Its optional `api_error_params.rate_limit_info` carries the
-native limit name and reset in Unix seconds. [Sanitized frames](../../tests/fixtures/claude-synthetic-failures.json).
-
-
-### codex
-
-The turn ends with `turn/completed` (`status: failed`) whose `turn.error` is
-`{message, codexErrorInfo, additionalDetails, misalignment}`, after an `error` notification
-with `willRetry: false`. Each retry is an `error` notification with
-`willRetry: true`, `codexErrorInfo: {responseStreamDisconnected: {httpStatusCode}}`
-and the message "Reconnecting... n/5".
-
-| cause | `codexErrorInfo` | retried | oar |
-|---|---|---|---|
-| missing login (no key, the default provider: codex sent the request to api.openai.com, which answered 401) | `{httpConnectionFailed: {httpStatusCode: 401}}` | over WebSocket, then (a `warning` "Falling back from WebSockets to HTTPS transport") 5 over HTTPS: 9 notifications | `auth` (the status) |
-| invalid key | `{httpConnectionFailed: {httpStatusCode: 401}}` | 5 | `auth` (the status) |
-| unknown model | `modelNotFound` (0.165.0); 0.160.1 sent `{httpConnectionFailed: {httpStatusCode: 404}}` | 1 on 0.165.0 | `model_unavailable`; status only when native reports it |
-| rate limited | `{responseTooManyFailedAttempts: {httpStatusCode: 429}}` | no notification | `rate_limited` (the status) |
-| usage limit, plan usage limit | `usageLimitExceeded` ("Quota exceeded. Check your plan and billing details."; "You've hit your usage limit.") | no | `quota` |
-| billing (both codes) | `usageLimitExceeded` ("Quota exceeded…") | no | `quota` |
-| server error | `internalServerError` | 5 (`httpStatusCode: null`) | `provider` |
-| overloaded | `serverOverloaded` | no | `overloaded` |
-| oversized context (an HTTP 400) | `other` (the message is the provider's JSON) | no | `input_too_large` (the body's `code`) |
-| in the stream: `context_length_exceeded` | `contextWindowExceeded` | no | `input_too_large` |
-| in the stream: `server_is_overloaded` | `serverOverloaded` | no | `overloaded` |
-| in the stream: `insufficient_quota`, `usage_not_included` | `usageLimitExceeded` | no | `quota` |
-| in the stream: `rate_limit_exceeded` | `rateLimitExceeded` | 5 | `rate_limited` |
-
-The observed 401 is `httpConnectionFailed`. No account failure producing the
-declared `unauthorized` tag ([mapped](#the-mapping)) was reproduced; a provider
-SSE error named `unauthorized` produced native `other` in the local probe and
-remains `unknown`. The schema
-also declares `sessionBudgetExceeded`, `badRequest`, `cyberPolicy` and others
-`[src]` (`codex app-server generate-json-schema`). After a tool call the
-values are the same.
-
-### pi
-
-| cause | where | what it carries | oar |
-|---|---|---|---|
-| missing key | the prompt is rejected (`runtime_refused`), no turn | "No API key found for the selected model." | (no turn) |
-| unknown model | the open fails (oar's own check against pi's registry) | `RuntimeFailureError` | `model_unavailable` |
-| every provider error | the assistant message: `stopReason: "error"`, `errorMessage` | "<status> <the provider's JSON body>"; inside a stream the body alone, no status | pi-ai's `isContextOverflow` first (`input_too_large`), then the body's `type` / `code` (Anthropic's 400 spend-limit and credit-balance wording as the last resort), then the status; `status` from the prefix |
-
-Rate limits, server errors and overload (also inside a stream) are retried
-three times, each announced by `auto_retry_start {attempt, maxAttempts, delayMs,
-errorMessage}`, ended by `auto_retry_end`; `agent_end.willRetry` says whether
-another attempt follows. pi-ai keeps the status apart
-(`normalizeProviderError`) but puts only the text on the message, and exports
-`isContextOverflow(message)` for the overflow texts `[src]`.
-
-### opencode, kimi, grok, antigravity (ACP)
-
-| cause | opencode | kimi | grok | antigravity |
-|---|---|---|---|---|
-| missing login | no local check: the request goes without a key; the provider's 401 ("x-api-key header is required") comes back as prompt: -32603 "Internal error: x-api-key header is required". With no provider configured at all, opencode answered from its own hosted model: no failure | open: -32000 "Authentication required" | open: -32000 "Authentication required", `data` "no auth method id provided" | open: -32000 "Authentication required", `data.message` "No authentication method selected…" |
-| invalid key | prompt: -32603 "Internal error: invalid x-api-key", `data {service: "session", errorName: "APIError"}` | prompt: -32000 "Authentication required: 401 …" | `retry_state {type: failed, error_type: auth}`, `turn_completed.stop_reason: error`, prompt: -32603 "Internal error", `data` the provider text | turn completes (`end_turn`), no message |
-| unknown model | open: -32602 "Invalid params: model not found", `data {providerId, modelId}` | open: -32603 "Internal error", `data.details` "Model … is not configured" | open: -32602 "Invalid params", `data` "unknown model id" | open: -32602 "Model … is not available for the current authentication method", `data {modelId, availableModels}` |
-| unentitled model (provider 404) | prompt: -32603 "Internal error: model: …" | turn completes, no message | `retry_state {failed, api}`, prompt: -32603 | turn completes; the provider text as agent text |
-| rate limited, usage limit (OpenAI and Gemini: a 429; Anthropic's usage limit: a 400) | prompt: -32603 "Internal error: <provider message>" | turn completes, no message | `retry_state {retrying, rate_limited}` then `{exhausted, is_rate_limited: true}`, `stop_reason: rate_limit`, prompt: -32003 "Rate limited", `data` "API error (status 429 …): …" | no frame within 150 s |
-| billing (OpenAI: a 429; Anthropic: a 400 or 402; Gemini: a 400) | prompt: -32603 "Internal error: …" | turn completes, no message | as for the 429s above: -32003 "Rate limited"; a 402 (1.0.77): `retry_state {failed, api}`, prompt: -32603 with `data` `{message: "API error (status 402 Payment Required): …", http_status: 402}` | turn completes, no message |
-| server error, overloaded | prompt: -32603 "Internal error: …", after about 70 s of silent retries | turn completes, no message, after about 140 s | `retry_state {retrying, api}` up to `max_retries: 15`: no turn end within 150 s | 500: the provider text as agent text, then `end_turn`; 503: no frame within 150 s |
-| oversized context | no turn end within 150 s | compaction messages ("Compaction cancelled."), then `end_turn` | `retry_state {failed, context_length}`, prompt: -32603 | turn completes, no message |
-| oar | a known prompt `data.errorName` decides the class before the words (`provider.free-limit`, `provider.go-limit`, `provider.budget-limit`, `provider.model-budget-limit`, `provider.quota`: `quota`; `provider.rate-limit`: `rate_limited`; names from 2.2.6 source, evidence below); otherwise its words, the last resort (`auth`, `rate_limited`, `quota`, `billing`, `overloaded`, `provider`); an unknown model: `RuntimeFailureError` `model_unavailable` | open and prompt -32000: `auth` (at open a `RuntimeFailureError`); else a completed turn | open: `RuntimeFailureError` `auth` or `model_unavailable`; -32003: `quota` or `billing` when Grok's free-usage code or the provider's error type after `API error (status 429 …): ` names one (`insufficient_quota`, `credit_balance_exhausted`), else `rate_limited`, status 429; -32603 by the final `retry_state.error_type` (`auth`, `input_too_large`, `provider`), where Grok's generic `api` yields to `data.http_status` (402 `billing`), whose status the outcome keeps | open: `RuntimeFailureError` `auth`; a selector absent from the native catalog that cannot resolve to a unique model/effort pair: `ModelConfirmationError`; else a completed turn, or none (429, 503) |
-
-OpenCode's name table is shared by v1 and v2. [PR #710](https://github.com/botiverse/oar/pull/710)
-reports a live `provider.free-limit` observation. The
-[November 9 local-provider check](../../experiments/opencode-error-names/README.md)
-captured native 2.2.6's `provider.rate-limit`; the other four quota names
-remain source-derived and covered by synthetic tests. Missing, unknown or
-non-string names preserve the text fallback; only a listed name on -32603
-overrides it. This does not change open-time errors or add quota scope.
-
-**Known: kimi and antigravity report a failed turn as completed.** kimi
-records the failure in its own session (`wire.jsonl`: `turn.ended`
-`reason: failed`, `error {code: "provider.rate_limit", name, details.statusCode,
-retryable}`, and `turn.step.retrying`), but answers the ACP prompt `end_turn`
-with no message, so oar records `completed`. That file is kimi's private
-storage, not an interface, and oar reads only the ACP stream. antigravity
-likewise ends most failed turns `end_turn`, some with the provider's text as
-agent text. On CLI 1.5.9 ([follow-up](../../experiments/antigravity-native-gaps-2026-11-15/README.md)),
-an interrupted SSE stream and 401/429/504 failures after a tool call give
-warning text, then `end_turn`, with native retries on stream cuts, rate
-limits and 504; no `refusal` or ACP error was observed, and a stalled stream
-was still unanswered at 180 seconds (an observation bound, not a native
-timeout). These Gemini API-provider controls do not establish the signed-in
-Google provider's quota behavior. OAR records these failed turns as
-`completed`, keeping the warning text ([upstream #1570](https://github.com/google-antigravity/antigravity-cli/issues/1570)).
-The same run's unforwarded background-command completion is in the
-[landing matrix](#per-runtime-landing-matrix). OAR infers no native idleness
-from `end_turn` and reads no CLI database to fill these gaps.
-
-### cursor
-
-| cause | what it reports | evidence |
-|---|---|---|
-| missing login (no stored key, no `CURSOR_API_KEY`) | the open succeeds; the run ends `status: error`, `error.message` "[unknown] Invalid User API Key", no code. oar: `auth` from the words, the last resort | `[env]` |
-| invalid key (a made-up `CURSOR_API_KEY`) | the open rejects with `AuthenticationError {status: 401, code: "error"}`. oar: `RuntimeFailureError` `auth`, `rejected`, 401 | `[env]` |
-| the other causes | not observed: each needs an account. The SDK's errors are `AuthenticationError` (401: invalid key, not logged in), `RateLimitError` (429: too many requests, usage limits), `ConfigurationError` (400, 404: bad key, invalid model), `NetworkError` and `UnknownAgentError`, each with `code`, `status` and `isRetryable` | `[src]` (`errors.d.ts`) |
-
-### dsh
-
-`turn/end` with `reason.kind: "error"` carries a native `LlmFailure`: `code` first,
-then `status`. 401 `AUTH`, 429 `RATE_LIMIT`, 500 `SERVER` and 400 `INVALID_REQUEST`
-were observed from a scripted provider; a 402 arrives as `PI_AI_ERROR` with its status
-only in prose and stays `unknown`. An unknown model or effort is refused at open
-through `llm.resolveCallConfig`. [Table](../runtimes/dsh.md#records).
-
-### factory
-
-`agent_turn_completed.reason` is droid's own classification and decides first:
-`model_usage_exhausted` → `quota`, `model_rate_limited` → `rate_limited`,
-`model_authentication_failed` → `auth`, `model_request_rejected` and
-`prompt_rejected` → `invalid_request`, `model_provider_unreachable` and
-`model_provider_unavailable` → `provider`, `structured_output_*` →
-`output_schema`, `process_exit` → `runtime_exited`. Any other failing reason
-is classified from droid's last `error` notification of the turn, which is
-also the `reason` text. A scripted 401 ended `model_authentication_failed`
-with `error` "401 Invalid synthetic key". [Mapping](../runtimes/factory.md#failures).
-
-### devin
-
-ACP's -32000 is `auth` as for every ACP runtime (observed on a logged-out
-`session/prompt`: "Please log in to use Devin."). Any other JSON-RPC error
-(observed: -32603 at `session/new` with an invalid key) whose message says
-authentication is required, the API key is invalid or the user is not logged
-in is `auth` too: a `RuntimeFailureError` at open or model selection, a
-failed turn on `session/prompt`. `devin acp`
-speaks ConnectRPC, so aimock cannot script its provider and no other cause
-has been observed ([open gaps](../runtimes/devin.md#verification-and-open-gaps)).
-
-### Where a class can come from
-
-| cause | claude | codex | pi | opencode | kimi | grok | antigravity | cursor |
-|---|---|---|---|---|---|---|---|---|
-| missing login | `error` + null status | info 401 | prompt refusal | text | open -32000 | open -32000 | open -32000 | text |
-| invalid key | `error` + 401 | info 401 | status in text | text | prompt -32000 | `error_type: auth` | nothing | open 401 |
-| unknown model | `error` + 404 | info | open (oar) | open -32602 | open -32603 | open -32602 | open -32602 | not observed |
-| rate limited | `error` + 429 | info 429 | status in text | text | nothing | -32003 | nothing | not observed |
-| usage limit | 400 spend limit; weekly `usage_limit_reached` `[rec]` | info | status in text | text | nothing | -32003 + error type or `subscription:free-usage-exhausted` | nothing | not observed |
-| billing | `error` (400 text) or 402 | info | status in text | text | nothing | -32003 + error type; 402: -32603 `data.http_status` | nothing | not observed |
-| server error | `error` + 500 | info | status in text | text | nothing | `error_type: api` | text | not observed |
-| overloaded | 529 | info | status in text | text | nothing | `error_type: api` | nothing | not observed |
-| oversized context | `terminal_reason` | info (in stream) | `isContextOverflow` | nothing | nothing | `error_type: context_length` | nothing | not observed |
-
-"info" is `codexErrorInfo`; "text" is a message that only prose matching can
-read; "nothing" means the turn looks completed or never ends.
+- Shared helpers: [`shared/failure-class.ts`](../../packages/oar/src/shared/failure-class.ts), [`shared/acp/failure.ts`](../../packages/oar/src/shared/acp/failure.ts), [`shared/acp/projection.ts`](../../packages/oar/src/shared/acp/projection.ts)
+- Antigravity: [`runtimes/antigravity/quota.ts`](../../packages/oar/src/runtimes/antigravity/quota.ts) (plus shared ACP)
+- Claude: [`runtimes/claude/failure.ts`](../../packages/oar/src/runtimes/claude/failure.ts), [`runtimes/claude/projection.ts`](../../packages/oar/src/runtimes/claude/projection.ts)
+- CodeBuddy: [`runtimes/codebuddy/failure.ts`](../../packages/oar/src/runtimes/codebuddy/failure.ts) (plus shared ACP)
+- Codex: [`runtimes/codex/failure.ts`](../../packages/oar/src/runtimes/codex/failure.ts), [`runtimes/codex/refusal.ts`](../../packages/oar/src/runtimes/codex/refusal.ts)
+- Cursor: [`runtimes/cursor/failure.ts`](../../packages/oar/src/runtimes/cursor/failure.ts), [`runtimes/cursor/projection.ts`](../../packages/oar/src/runtimes/cursor/projection.ts)
+- Devin: [`runtimes/devin/session.ts`](../../packages/oar/src/runtimes/devin/session.ts) (plus shared ACP)
+- DSH: [`runtimes/dsh/projection.ts`](../../packages/oar/src/runtimes/dsh/projection.ts)
+- Factory: [`runtimes/factory/projection.ts`](../../packages/oar/src/runtimes/factory/projection.ts)
+- Grok: [`runtimes/grok/failure.ts`](../../packages/oar/src/runtimes/grok/failure.ts) (plus shared ACP)
+- Kimi: shared ACP (`shared/acp/failure.ts`, `shared/acp/projection.ts`; provider turn failures often end `end_turn` in ACP, see [kimi](../runtimes/kimi.md))
+- OpenCode: [`runtimes/opencode/failure.ts`](../../packages/oar/src/runtimes/opencode/failure.ts) (plus shared ACP)
+- Pi / Pi Durable: [`runtimes/pi/failure.ts`](../../packages/oar/src/runtimes/pi/failure.ts), [`runtimes/pi-durable/projection.ts`](../../packages/oar/src/runtimes/pi-durable/projection.ts)
+- Qoder: [`runtimes/qoder/projection.ts`](../../packages/oar/src/runtimes/qoder/projection.ts)
+- Qwen: [`runtimes/qwen/projection.ts`](../../packages/oar/src/runtimes/qwen/projection.ts)
+- Unit and vendor tests: [`tests/failure-mapping.test.ts`](../../tests/failure-mapping.test.ts), [`failure-classes.vendor.test.ts`](../../sea-trial/vendor/failure-classes.vendor.test.ts), [`failure-classes-acp.vendor.test.ts`](../../sea-trial/vendor/failure-classes-acp.vendor.test.ts)
 
 ### When a limit resets
 
-A `quota` failure carries `resetsAt` (a `UtcInstant`) only where the runtime
-reports, for that failure, when the limit that refused it resets: never
-derived from an account-usage read, an earlier-turn usage snapshot or a retry delay.
-The runtime's last report may predate the failure. A time already past leaves
-the reset unknown. The host decides whether to continue when the limit resets. Claude, a preserved Codex provider error body, and an
-attributable Codex current-turn exhausted window can report one. Antigravity
-can give a countdown in its native individual-quota notice.
-
-| runtime | what it reports | `resetsAt` |
-|---|---|---|
-| claude | A 2.1.325 error assistant can name `usage_limit_reached` with optional `api_error_params.rate_limit_info`. A separate `rate_limit_event` can report changes to a subscription limit. | The explicit code is `quota`, including when the params are absent; the inline report supplies `rateLimitType` and a known `resetsAt` in UTC. A generic `rate_limit` is `quota` only when the latest event names a rejected limit with a reset and no available overage. Otherwise it is `rate_limited`. [Claude usage limits](../runtimes/claude.md#usage-limits) |
-| codex | native 0.169.0/0.169.1: HTTP-400 `other` preserves the quota JSON body's numeric `error.resets_at`, also after the exact compaction prefix. Normal HTTP 429 reports `usageLimitExceeded` and a same-turn exhausted window. Unscoped account updates are used only during the observed root turn before its terminal error, cleared at turn/compaction boundaries, and disabled after child or collaboration activity. Streamed errors lose their structure and remain `unknown`; compaction drops the failure update ([native controls](../../experiments/codex-quota-errors/README.md)) | the quota body's `resets_at`, or the unique reset shared by all exhausted current-turn `codex` windows for a named quota failure; otherwise absent |
-| pi, pi-durable | the provider's error text; for a ChatGPT plan pi-ai words it "Try again in ~N min." `[src]` (pi-ai 1.1.0) | none |
-| antigravity | agy 1.5.12 individual-quota notice as the whole turn output, followed by `end_turn` without usage, or the same reset sentence in a prompt error | receipt time plus the native countdown ([observations and replay](../../experiments/antigravity-prompt-usage/README.md)) |
-| opencode, kimi, grok | nothing in the observed answers (above) | none |
-| cursor | `RateLimitError` has `code`, `status` and `isRetryable`, no time `[src]` (`errors.d.ts`, 1.0.37) | none |
-| factory, devin | nothing mapped; their limit paths are unverified without a real account | none |
+A `quota` failure carries `resetsAt` (a `UtcInstant`) only when the runtime
+reports, for that failure, when the refusing limit resets: never derived from
+an account-usage read, an earlier-turn usage snapshot or a retry delay. The
+runtime's report may predate the failure; an already-past or unparseable time
+leaves `resetsAt` absent, and the host decides whether to continue when the
+limit resets. Current implementations live in
+[`claude/failure.ts`](../../packages/oar/src/runtimes/claude/failure.ts)
+(`usage_limit_reached` inline `rate_limit_info` and rejected
+`rate_limit_event`),
+[`codex/failure.ts`](../../packages/oar/src/runtimes/codex/failure.ts) (quota
+body `resets_at` and current-turn exhausted window), and
+[`antigravity/quota.ts`](../../packages/oar/src/runtimes/antigravity/quota.ts)
+(native individual-quota countdown notice).
 
 ## Adapter red lines
 

@@ -6,29 +6,26 @@ import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 
 /*
  * A failed claude turn, classified from what claude says
- * (docs/spec/runtime-matrix.md#claude): the category on the turn's error
- * `assistant` frame (`error`), then the result's `terminal_reason` and
- * `api_error_status`. Observed on 2.1.292 against a scripted provider. The
- * declared categories no run produced (`oauth_org_not_allowed`,
- * `account_on_hold`,
- * `max_output_tokens`, `cloud_credential_error`) fall through to the status.
- * A `rate_limit` while claude's latest `rate_limit_event` says a
- * subscription limit refuses requests until a named reset is `quota` with
- * that `resetsAt` (`claudeLimitReset`); without one it stays `rate_limited`.
+ * (docs/spec/runtime-matrix.md#failure-evidence): the category on the turn's
+ * error `assistant` frame (`error`), then the result's `terminal_reason` and
+ * `api_error_status`. `server_error` is decided by status (529 -> overloaded).
+ * A `rate_limit` while claude's latest `rate_limit_event` says a subscription
+ * limit refuses requests until a named reset is `quota` with that `resetsAt`
+ * (`claudeLimitReset`); without one it stays `rate_limited`.
  */
 
-/** The categories observed, by what they mean; `server_error` is decided by its status (a 529 is overload). */
+/** Categories mapped by evidence tier; `server_error` falls through to status. */
 const CATEGORIES: Readonly<Partial<Record<string, FailureClass>>> = {
-  authentication_failed: "auth",
-  verification_required: "auth",
-  overloaded: "overloaded",
-  model_not_found: "model_unavailable",
-  rate_limit: "rate_limited",
-  billing_error: "billing",
-  invalid_request: "invalid_request",
+  authentication_failed: "auth", // [env] 2.1.292 (failure-classes.vendor.test.ts)
+  verification_required: "auth", // [rec] 2.1 (tests/fixtures/claude-synthetic-failures.json)
+  overloaded: "overloaded", // [rec] 2.1 (tests/fixtures/claude-synthetic-failures.json)
+  model_not_found: "model_unavailable", // [env] 2.1.292 (failure-classes.vendor.test.ts)
+  rate_limit: "rate_limited", // [env] 2.1.292 (failure-classes.vendor.test.ts)
+  billing_error: "billing", // [env] 2.1.292 (failure-classes.vendor.test.ts)
+  invalid_request: "invalid_request", // [env] 2.1.292 (failure-classes.vendor.test.ts)
 };
 
-/** Result subtypes for a limit or schema the host set (#339): the session's own options stopped the turn. */
+/** [env] 2.1.292 result subtypes for a limit or schema the host set (#339). */
 const SUBTYPES: Readonly<Partial<Record<string, FailureClass>>> = {
   error_max_turns: "limit_reached",
   error_max_budget_usd: "limit_reached",

@@ -5,6 +5,8 @@ import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
 import { devinRefusedSessionOptions } from "./options.js";
 
+// [env] Devin ACP: observed -32000 on logged-out session/prompt ("Please log in to use Devin.")
+// and -32603 on session/new with an invalid key; ConnectRPC prevents scripting other provider errors.
 const DEVIN_AUTH_ERROR = /authentication required|invalid api key|not logged in/iu;
 
 function isDevinAuthRpcError(error: unknown): error is Error {

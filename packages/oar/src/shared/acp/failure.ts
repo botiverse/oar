@@ -7,11 +7,11 @@ import { AcpError } from "./errors.js";
 
 /*
  * Failures an ACP agent reports as JSON-RPC errors
- * (docs/spec/runtime-matrix.md#opencode-kimi-grok-antigravity-acp). ACP's
- * `RequestError.authRequired` is -32000: an `auth` failure that does not say
- * whether the login was missing or refused. An invalid-params answer (-32602)
- * to the call that selects the model refuses the model. Anything else is the
- * profile's to read (grok's own codes) or, as the last resort, its words.
+ * (docs/spec/runtime-matrix.md#failure-evidence):
+ * - [env] -32000 (ACP `RequestError.authRequired`, kimi/grok/antigravity/devin): `auth`
+ * - [env] -32602 on model selection (opencode/grok/antigravity): `model_unavailable`
+ * - [env] process_exited: `runtime_exited`
+ * Anything else is the profile's reader or, as the last resort, `classifyFailure` prose.
  */
 
 const AUTH_REQUIRED = -32_000;

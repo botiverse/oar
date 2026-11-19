@@ -69,6 +69,7 @@ function resultOutcome(state: ClaudeProjectionState, message: JsonRecord, assist
   }
   const synthetic = assistant !== undefined && claudeSyntheticAssistant(assistant);
   const diagnostic = synthetic ? contentBlocks(assistant).flatMap(block => block.type === "text" && typeof block.text === "string" ? [block.text] : []).join("\n") : "";
+  // [env] Claude 2.1.326/2.1.328 (failure-classes.vendor.test.ts): stop_reason "refusal" precedes synthetic invalid_request.
   if (message.stop_reason === "refusal" || asRecord(assistant?.message)?.stop_reason === "refusal") {
     const reason = diagnostic || (typeof message.result === "string" && message.result.length > 0 ? message.result : "refusal");
     return { kind: "failed", failure: "model_refused", reason };

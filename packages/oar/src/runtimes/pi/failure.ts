@@ -3,10 +3,11 @@ import { failureFromErrorBody, failureFromStatus } from "../../shared/failure-cl
 
 /*
  * A failed pi run, classified from its assistant message's `errorMessage`
- * (docs/spec/runtime-matrix.md#pi), observed on SDK 1.0.4 against a scripted
- * Anthropic provider: "<status> <the provider's JSON body>", or inside a
- * stream the body alone. pi-ai's own `isContextOverflow` decides an oversized
- * context (`overflow`); then the body's code or type; then the status.
+ * (docs/spec/runtime-matrix.md#failure-evidence):
+ * - [env] SDK 1.0.4 against a scripted Anthropic provider (failure-classes.vendor.test.ts):
+ *   "<status> <provider JSON body>", or inside a stream the body alone.
+ * - [src] pi-ai `isContextOverflow` decides `input_too_large` (`overflow`), then
+ *   the body's code/type, then the status prefix.
  */
 
 /** The provider failure pi reported for a run. */

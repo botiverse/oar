@@ -3,7 +3,8 @@ import { acpErrorReason, rpcErrorCode } from "../../shared/acp/failure.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
 import type { JsonRecord } from "../../shared/json.js";
 
-// agy 1.5.12 Gemini account notice. The prompt error may wrap this sentence.
+// [rec] agy 1.5.12 Gemini individual-quota notice and countdown
+// (experiments/antigravity-prompt-usage/README.md). Prompt errors may wrap it.
 const QUOTA = /Individual quota reached\. Please upgrade your subscription to increase your limits\. Resets in (?=\d)(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?\./u;
 
 function quotaOutcome(reason: string, receivedAt: number, standalone: boolean): TurnOutcome | null {

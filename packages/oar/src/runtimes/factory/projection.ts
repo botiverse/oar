@@ -54,18 +54,19 @@ export function factoryTokens(usage: JsonRecord | null): TokenTotals | null {
   };
 }
 
+// Factory droid protocol 1.340.0 `agent_turn_completed.reason` (19-value union).
 const reasonFailure: Readonly<Record<string, FailureClass>> = {
-  model_usage_exhausted: "quota",
-  model_rate_limited: "rate_limited",
-  model_authentication_failed: "auth",
-  model_request_rejected: "invalid_request",
-  prompt_rejected: "invalid_request",
-  model_provider_unreachable: "provider",
-  model_provider_unavailable: "provider",
-  structured_output_missing: "output_schema",
-  structured_output_invalid: "output_schema",
-  structured_output_schema_invalid: "output_schema",
-  process_exit: "runtime_exited",
+  model_usage_exhausted: "quota", // [schema] droid protocol 1.340.0
+  model_rate_limited: "rate_limited", // [schema] droid protocol 1.340.0
+  model_authentication_failed: "auth", // [env] scripted 401 (factory.vendor.test.ts)
+  model_request_rejected: "invalid_request", // [schema] droid protocol 1.340.0
+  prompt_rejected: "invalid_request", // [schema] droid protocol 1.340.0
+  model_provider_unreachable: "provider", // [schema] droid protocol 1.340.0
+  model_provider_unavailable: "provider", // [schema] droid protocol 1.340.0
+  structured_output_missing: "output_schema", // [schema] droid protocol 1.340.0
+  structured_output_invalid: "output_schema", // [schema] droid protocol 1.340.0
+  structured_output_schema_invalid: "output_schema", // [schema] droid protocol 1.340.0
+  process_exit: "runtime_exited", // [schema] droid protocol 1.340.0
 };
 
 /** `agent_turn_completed.reason` (19 values in protocol 1.340.0) as an OAR outcome; the reason text is droid's last `error` of the turn. */
