@@ -268,11 +268,12 @@ status, usage numbers and content-free text checks.
 restored history and auxiliary model work. Cache reads are already included
 in input. For a fresh conversation OAR exposes that cumulative total without
 assigning all of it to the root agent. On resume, **`usage().total` remains
-null**: 0.26.0 exposes no trustworthy session total before the first new turn.
-`get_usage_info` is a global daily dashboard, and `get_context_usage` measures
-context occupancy; neither is a baseline. The raw native totals remain in the
-record stream. The first resumed result is not subtracted as a baseline,
-because that would lose the first new turn's spend.
+null for the entire resumed session**, even after new turns complete: 0.26.0
+exposes no pre-resume session-total baseline to subtract from cumulative
+`result.usage`. `get_usage_info` is a global daily dashboard, and
+`get_context_usage` measures context occupancy; neither is a baseline. The raw
+native totals remain in the record stream. The first resumed result is not
+subtracted as a baseline, because that would lose the first new turn's spend.
 
 ### Current context
 
@@ -421,10 +422,11 @@ identify a lock, CPU or I/O cause.
 The Qwen bound accommodates observed native startup instead of making the
 test fixture more permissive than the product. For comparison, OAR's CLI
 model readers use 15 seconds for Claude and Codex, 10 for Grok, and 30 for
-Kimi, Antigravity and OpenCode. Hosts can still pass
-`listModels(installation, { timeoutMs })` for a different per-control-request
-bound. A timeout closes stdin and then force-cleans an unresponsive process
-after the normal cleanup grace; it never retries.
+Kimi, Antigravity and OpenCode. Hosts can still pass `listModels(installation, { timeoutMs })` to change the
+whole-query deadline (default 30 seconds, covering launch, `initialize`, and
+`get_available_models`, with each control request capped by the same bound).
+When the deadline expires, OAR aborts the query, kills the owned process tree,
+and closes stdin in cleanup; it never retries.
 
 When no authentication type is selected, native Qwen emits a structured
 zero-turn error result before answering `initialize`, then exits. Model listing
@@ -557,8 +559,12 @@ fallback from that map on each call; the model query uses it too. See
 
 Qwen 0.26.8 emits structured task lifecycle in stream-json:
 `system/task_started` and `system/task_notification`, with fields under
-`data`. OAR maps these to the existing task events; `subagent_type` identifies
-an agent, otherwise the type is other. Task token statistics stay native;
+`data`. OAR maps `system/task_started` (with a nonempty string `data.task_id`)
+to `task_started`, where `subagent_type` identifies an agent and otherwise the
+type is `other`. For `system/task_notification`, only terminal statuses
+(`completed`, `failed`, `stopped`) emit `task_ended`; non-terminal task
+notifications (and notifications missing a nonempty `data.task_id`) remain raw
+frames and produce no task event. Task token statistics stay native;
 OAR does not infer child sessions or background flags. The local native
 control observed a background agent start and completion. Upstream source at
 `6fb74164` wires these notifications in `nonInteractiveCli.ts` and persistent

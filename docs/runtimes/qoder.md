@@ -36,14 +36,20 @@ see [Evidence and limits](#evidence-and-limits)).
 `compact()` is idle-only and sends the native built-in `/compact` with the OAR
 request id as its command UUID; Qoder 1.1.81 intercepts this built-in before
 custom commands. Results carry no input UUID, so an ordinary successful result
-cannot prove compaction. OAR requires the command's started lifecycle, a root
-manual `compact_boundary`, and its completed or cancelled lifecycle:
+cannot prove compaction. OAR records subsequent `result` and root manual
+`compact_boundary` frames only after the command's `started` lifecycle, and
+settles the operation only when the matching `command_lifecycle` reaches
+`completed` or `cancelled`, in this order:
 
-- Boundary seen: `completed`, even if cancellation arrives later. The ordinary
-  result remains its own native fact (success in the measured race).
-- Cancelled without a boundary: `aborted`. A native error result:
-  `failed / native_failed`.
-- Otherwise, including empty history: `failed / not_compacted`.
+1. A post-`started` root manual `compact_boundary` was seen: `completed`, even
+   if cancellation or an error result arrived later. The ordinary result
+   remains its own native fact (success in the measured race).
+2. Otherwise, `command_lifecycle` is `cancelled`: `aborted` (including when no
+   `started` lifecycle or an error result was seen).
+3. Otherwise (`command_lifecycle` is `completed` without a boundary), a
+   post-`started` `result` had `is_error: true`: `failed / native_failed`.
+4. Otherwise, including empty history or missing `started`:
+   `failed / not_compacted`.
 
 `queue()` is retained until the command settles. The compact request carries
 `settledBy: "native_response"`; exact `command_uuid` equality attaches
@@ -69,8 +75,11 @@ The new owned process receives `daemon.initialize` with protocol version 2,
 then `daemon.open_session` with the original worker arguments and cwd. OAR
 requires `multi_session_v2` and `daemon_queries_v1`; an incompatible handshake
 refuses opening and closes the process. Session messages and permission replies
-carry their native `session_id`. Model reads move to `daemon.get_models`, an
-account-level query without a session id, with the same catalog payload. Its
+carry their native `session_id`. Model reads rewrite `get_models` to
+`daemon.get_models`, an account-level request without a `session_id` and with
+the same catalog payload; `listModels()` still opens a temporary daemon session
+(`daemon.initialize`, `daemon.open_session`, and session `initialize`) through
+`launchQoder` before issuing it. Its
 private replies, including late duplicates, remain outside public records.
 If installation metadata omits the version, launch reads `--version` once in
 the session environment. That one stable-version decision selects both the
@@ -163,7 +172,7 @@ controlled processes with the runtime's actual projection dialect).
 | Surface | Mapping and boundary |
 | --- | --- |
 | Session | Native session UUID; `--resume` opens its saved conversation. A missing id is refused, without creating a replacement. |
-| Model and effort | `--model` accepts the catalog's `value` (`ModelEntry.id`), confirmed against init in the same process's catalog ([version-dependent rules](#model-confirmation)). The verified name is `resolvedId` when different from `id`; `model()` retains init verbatim. `--reasoning-effort` is confirmed by applied settings. A startup failure includes the requested effort as context, without claiming it caused the failure; a later model-confirmation error keeps its model-specific reason. Failure to confirm an explicit choice refuses opening. |
+| Model and effort | `--model` accepts the catalog's `value` (`ModelEntry.id`), confirmed against init in the same process's catalog ([version-dependent rules](#model-confirmation)). The verified name is `resolvedId` when different from `id`; `model()` retains init verbatim. `--reasoning-effort` is confirmed by applied settings (`get_settings`). When `effort` is requested, post-validation launch/daemon-handshake and `initialize` failures include the requested effort as context without claiming it caused the failure; pre-launch option/version refusals, later model-confirmation errors (`ModelConfirmationError`), and `get_settings` effort-confirmation errors keep their own specific reasons. Failure to confirm an explicit choice refuses opening. |
 | Prompt and abort | Correlated native controls and lifecycle evidence. A cancelled unstarted input becomes `input_dropped`; input-scoped waits resolve it without inventing `turn_ended`. |
 | Queue and withdrawal | OAR holds queued input until the current turn ends, so withdrawal remains possible. This queue is not durable across process loss. |
 | Steer | A user message with native `priority: next` inserts at a tool boundary or starts after a text-only turn. The user echo preserves `inputId`; acceptance only confirms the write. Native `now` aborts the active turn and is not used for steering. [Priority evidence](../../experiments/qoder-native/README.md#input-priority-2026-10-24). |
@@ -341,8 +350,11 @@ distinguish slow startup from a stuck process.
 OAR therefore gives a session's `initialize` request **60 seconds on every
 platform**, leaving room beyond the measured maximum. This deadline detects a
 stuck child; it is not a performance requirement. Later control requests still
-have their 30-second bound, and bounded model-list queries retain the caller's
-budget. No automatic startup retry or cache copying is added to the adapter.
+have their 30-second bound. `listModels()` applies one whole-query deadline
+(default 30 seconds, configurable via `timeoutMs`) across auth-status lookup,
+version probing (its own 15-second cap when version is omitted), daemon
+handshake (60-second internal control cap, bounded by the outer query deadline),
+`initialize`, and `get_models`. No automatic startup retry or cache copying is added to the adapter.
 Hosts can stagger cold session starts to avoid the observed burst; this is a
 workaround, not a demonstrated resource limit or a guarantee that all starts
 will fit these deadlines. Under startup load a host can also receive an
@@ -457,13 +469,15 @@ login and session history. Omission and `"include"` retain normal loading.
 
 ## Orientation query costs
 
-`listModels()` first reads native auth status, then starts a process and
-requests `initialize` and `get_models` with `fetchStrategy: live`. It can perform
-account/catalog network I/O and pays native process initialization cost. No model
-prompt is submitted. `authStatus()` has no proven no-network declaration and is
-therefore skipped by local orientation; it is available at account depth.
-On the daemon transport the catalog request is `daemon.get_models`; on the
-worker transport it remains `get_models`.
+`listModels()` runs under one whole-query deadline (default 30 seconds,
+configurable via `timeoutMs`): it first reads native auth status, then launches
+a Qoder process (on 1.1.81+ running `daemon.initialize` and opening a temporary
+session via `daemon.open_session`), sends session `initialize`, and requests
+`get_models` with `fetchStrategy: live` (rewritten to `daemon.get_models` on the
+daemon transport). It can perform account/catalog network I/O and pays native
+process and session initialization cost. No model prompt is submitted.
+`authStatus()` has no proven no-network declaration and is therefore skipped by
+local orientation; it is available at account depth.
 
 ### Model confirmation
 
