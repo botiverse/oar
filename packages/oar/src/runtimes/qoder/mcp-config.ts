@@ -6,14 +6,18 @@ import { checkMcpServerNames, isHttpMcpServer } from "../../shared/mcp-servers.j
  * SessionOptions.mcpServers reach Qoder as `--mcp-config <path>`: a path,
  * never inline JSON on argv, because `env` and `headers` values are
  * credentials. On POSIX the path is a 0600 FIFO removed as soon as Qoder reads
- * it; on Windows (where FIFOs are unavailable) it is a 0600 file removed as
- * soon as `initialize` finishes (and at the latest on process exit).
+ * it; where FIFOs are unavailable (Windows, or no `mkfifo`), it is a 0600 file
+ * removed as soon as `initialize` finishes (and at the latest on process exit).
  *
- * Verified on Qoder 1.1.78 (Linux x64) and exercised on CI's Qoder 1.1.81
- * daemon across Linux, macOS and Windows: Qoder reads the config once during
- * startup, blocks for a late FIFO writer, keeps stdio and HTTP server
- * configurations in memory after the path is gone, and writes no MCP
- * credentials to its home directory.
+ * Evidence:
+ * - Live on Qoder 1.1.78 (Linux x64): POSIX FIFO handoff (including an 800 ms
+ *   late-writer control), file-unlink-after-`initialize` control, repeated
+ *   stdio and HTTP tool calls after path removal, and zero MCP credentials in
+ *   the isolated HOME.
+ * - CI runs `sea-trial/vendor/qoder.vendor.test.ts` on `ubuntu-latest` against
+ *   its pinned Qoder daemon release (`1.1.81`). The Windows non-FIFO unlink
+ *   path is checked via the Linux unlink-after-`initialize` control and unit
+ *   tests; it has not yet been run on a Windows Qoder binary.
  */
 
 export type { McpConfigHandoff } from "../../shared/mcp-config-handoff.js";

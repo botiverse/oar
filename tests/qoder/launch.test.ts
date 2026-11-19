@@ -78,6 +78,10 @@ test("long multiline prompts use private files and MCP credentials use a one-sho
     ] });
   expect(promptDirectory).not.toBe("");
   expect(mcpPath).not.toBe("");
+  // Calling releaseMcpConfig() before a POSIX FIFO is read must not cut off the feed.
+  if (process.platform !== "win32") {
+    launched.releaseMcpConfig?.();
+  }
   expect(JSON.parse(await readFile(mcpPath, "utf8"))).toEqual({
     mcpServers: {
       fixture: { type: "stdio", command: "fixture", args: [], env: { TOKEN: "secret-token" } },

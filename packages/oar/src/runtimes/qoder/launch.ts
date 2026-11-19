@@ -66,7 +66,7 @@ export async function launchQoder(command: string, sessionId: string, options: S
     mcpConfig?.start();
     await child.spawned;
     const transport = protocol === "daemon" ? await qoderDaemonSession(child, sessionId, args, path.resolve(options.cwd), env, credentials) : child;
-    return { ...transport, qoderVersion: compatibility.version, releaseMcpConfig: () => { mcpConfig?.end(); } };
+    return { ...transport, qoderVersion: compatibility.version, releaseMcpConfig: () => { mcpConfig?.releaseAfterRead(); } };
   } catch (error) { child?.kill(); mcpConfig?.end(); temporary?.remove(); throw qoderStartupError(error, options.effort); }
 }
 
