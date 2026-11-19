@@ -594,7 +594,9 @@ and miss a command in its launch window, that `clean` also ends earlier
 background commands, and that a success reply and an empty list prove nothing.
 OAR does not call them for this.
 
-**Mapped (opt-in):** `SessionOptions.endTurnProcessesOnAbort: true`. Before each
+**Mapped for isolated placement (opt-in):** `SessionOptions.endTurnProcessesOnAbort: true`.
+Shared placement refuses this option at open because the shared app-server's
+process table cannot identify which session's turn started a process. Before each
 `turn/start` the session starts a read of the process table without waiting
 for it. `abort()` takes a snapshot before sending `turn/interrupt`, within the
 [one-second limit](../spec/record-stream.md#the-rules) of the pre-cancellation
