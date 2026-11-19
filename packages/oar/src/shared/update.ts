@@ -163,11 +163,18 @@ export async function upgradeExecutable(
     return { kind: "current", version: check.installed, check };
   }
   const before = now ?? (check.kind === "ok" ? check.installed : undefined);
+  return runNativeUpgrade(installation.command, before, updater, options);
+}
+
+/** Run the native updater and compare the very same executable with its pre-update version. */
+export async function runNativeUpgrade(
+  command: string, before: string | undefined, updater: Pick<NativeUpdater, "args" | "env">, options: UpgradeOptions = {},
+): Promise<UpgradeResult> {
   const timeoutMs = options.timeoutMs ?? UPGRADE_TIMEOUT_MS;
-  const run = await runIsolated(installation.command, updater.args, { env: updaterEnv(updater.env?.() ?? process.env), timeoutMs });
+  const run = await runIsolated(command, updater.args, { env: updaterEnv(updater.env?.() ?? process.env), timeoutMs });
   clearInstallationCache();
   const output = isolatedOutput(run, timeoutMs, "updater");
-  const after = await versionNow(installation.command);
+  const after = await versionNow(command);
   if (before !== undefined && after !== undefined && after !== before) {
     return { kind: "upgraded", from: before, to: after, output };
   }

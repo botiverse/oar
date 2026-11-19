@@ -2,6 +2,7 @@ import { runtimeBrands } from "../../brands.js";
 import { verifiedPlatforms } from "../../platforms.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { onFirstCall } from "../../shared/lazy.js";
+import { opencodeUpgrade } from "./upgrade.js";
 import { opencodeInstallation } from "./installation.js";
 import { opencodeInstall, opencodeInstallLines, opencodeInstallPlan } from "./install.js";
 import { opencodeListModels } from "./list-models.js";
@@ -17,6 +18,7 @@ export const opencodeRuntime = defineRuntime({
   refusedSessionOptions: opencodeRefusedSessionOptions,
   mcpToolsListChanged: "full",
   installation: opencodeInstallation,
+  upgrade: opencodeUpgrade,
   installPlan: opencodeInstallPlan,
   install: opencodeInstall,
   installLines: opencodeInstallLines,

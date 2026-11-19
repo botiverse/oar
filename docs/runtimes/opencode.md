@@ -1058,7 +1058,7 @@ selection; `session/llm/request.ts` chooses the agent prompt; and
 | --- | --- |
 | `cwd` | ACP directory; a resume elsewhere is refused from native `session/list`. |
 | `resume` | ACP resume, native session identity and saved agent. |
-| `fork` | Both OpenCode v1 and v2 refuse `SessionOptions.fork` ([declarations](../../packages/oar/src/runtimes/opencode/options.ts)). |
+| `fork` | On v2, `session/fork` copies the whole saved conversation when ACP advertises `fork`. Its reply names the copy. ACP has no turn selector, so OAR refuses `fork.through`. The v1 adapter refuses forks. [Native controls on 2.0.22 and 2.3.2](../../experiments/opencode-fork/README.md). |
 | `model` | ACP model config option with native read-back. |
 | `effort` | ACP `thought_level` config option when the selected model has variants; otherwise refused. |
 | `systemPrompt` | v1: fresh inline `agent.<selected>.prompt`, verified against the ACP mode on new/resumed sessions. v2 from 2.2.0: `agents.<id>.system` on every visible primary agent, with the same read-back ([v2](#v2-prompt-options)). |
@@ -1168,8 +1168,10 @@ See [host-served tools](../spec/runtime-matrix.md#host-served-tools).
   the next model step, so it waits for a running tool to finish.
 - The HTTP server would carry child sessions and a replayable event cursor;
   not integrated.
-- No update check or upgrade (`opencode upgrade` exists; OAR does not drive
-  it) and no account usage query.
+- No read-only update check or account usage query. On v2, `Runtime.upgrade`
+  runs `opencode upgrade` on the selected executable and reads its version again.
+  An isolated script installation advanced from 2.2.7 to 2.3.2, and stayed
+  on 2.3.2 on a second run. The v1 adapter does not drive an upgrade.
 - [Session MCP servers](#session-mcp-servers) ran against a scripted
   provider only, not a logged-in provider or a free `opencode/*` model. The
   vendor test and shared behavior suite run in CI (`OAR_TEST=opencode-aimock`),
