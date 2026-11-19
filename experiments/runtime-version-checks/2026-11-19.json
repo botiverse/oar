@@ -1,0 +1,1536 @@
+{
+  "checkedAt": "2026-11-19T21:09:10.722Z",
+  "sourceHead": "d895e27f9ac9965aeb818e14a971bd8d410e2425",
+  "inventory": {
+    "checkedAt": "2026-11-19T21:09:10.722Z",
+    "platform": "linux-x64",
+    "node": "v24.19.0",
+    "script": "experiments/runtime-versions.ts",
+    "results": [
+      {
+        "runtime": "antigravity",
+        "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json",
+        "latest": "1.5.12",
+        "installed": "1.5.12",
+        "installation": "available",
+        "status": "current",
+        "previous": "1.5.11",
+        "changed": true
+      },
+      {
+        "runtime": "claude",
+        "source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest",
+        "latest": "2.1.328",
+        "installed": "2.1.292",
+        "installation": "available",
+        "status": "different",
+        "previous": "2.1.327",
+        "changed": true
+      },
+      {
+        "runtime": "codex",
+        "source": "https://registry.npmjs.org/@openai/codex/latest",
+        "latest": "0.170.0",
+        "installed": "0.170.0",
+        "installation": "available",
+        "status": "current",
+        "previous": "0.170.0",
+        "changed": false
+      },
+      {
+        "runtime": "cursor",
+        "source": "https://registry.npmjs.org/@cursor/sdk/latest",
+        "latest": "1.4.2",
+        "installed": "1.4.1",
+        "installation": "available",
+        "status": "different",
+        "previous": "1.4.2",
+        "changed": false
+      },
+      {
+        "runtime": "dsh",
+        "source": "https://registry.npmjs.org/@deepseek-ai/dsh/latest",
+        "latest": "0.2.2-rc.5",
+        "installed": null,
+        "installation": "not_found",
+        "status": "unavailable",
+        "previous": "0.2.2-rc.1",
+        "changed": true
+      },
+      {
+        "runtime": "factory",
+        "source": "https://registry.npmjs.org/droid/latest",
+        "latest": "1.15.0",
+        "installed": null,
+        "installation": "not_found",
+        "status": "unavailable",
+        "previous": "1.14.0",
+        "changed": true
+      },
+      {
+        "runtime": "grok",
+        "source": "https://x.ai/cli/stable",
+        "latest": "1.0.89",
+        "installed": "1.0.89",
+        "installation": "available",
+        "status": "current",
+        "previous": "1.0.89",
+        "changed": false
+      },
+      {
+        "runtime": "kimi",
+        "source": "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest",
+        "latest": "2.7.0",
+        "installed": "2.1.1",
+        "installation": "available",
+        "status": "different",
+        "previous": "2.6.3",
+        "changed": true
+      },
+      {
+        "runtime": "opencode",
+        "line": "v1",
+        "source": "https://registry.npmjs.org/opencode-ai/latest",
+        "latest": "1.19.6",
+        "installed": "1.18.30",
+        "installation": "available",
+        "status": "different",
+        "previous": "1.19.6",
+        "changed": false
+      },
+      {
+        "runtime": "opencode",
+        "line": "v2",
+        "source": "https://registry.npmjs.org/@opencode/cli/latest",
+        "latest": "2.3.2",
+        "installed": "1.18.30",
+        "installation": "available",
+        "status": "other_release_line",
+        "previous": "2.3.2",
+        "changed": false
+      },
+      {
+        "runtime": "codebuddy",
+        "source": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest",
+        "latest": "2.185.0",
+        "installed": "2.173.0",
+        "installation": "available",
+        "status": "different",
+        "previous": "2.185.0",
+        "changed": false
+      },
+      {
+        "runtime": "qoder",
+        "source": "https://registry.npmjs.org/@qoder-ai/qodercli/latest",
+        "latest": "1.1.93",
+        "installed": "1.1.78",
+        "installation": "available",
+        "status": "different",
+        "candidateProbe": "no_offline_replay_requires_real_account",
+        "previous": "1.1.92",
+        "changed": true
+      },
+      {
+        "runtime": "qwen",
+        "source": "https://registry.npmjs.org/@qwen-code/qwen-code/latest",
+        "latest": "0.28.0",
+        "installed": "0.26.0",
+        "installation": "available",
+        "status": "different",
+        "previous": "0.28.0",
+        "changed": false
+      },
+      {
+        "runtime": "pi",
+        "source": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/latest",
+        "latest": "1.5.2",
+        "installed": "1.5.2",
+        "installation": "available",
+        "status": "current",
+        "previous": "1.5.2",
+        "changed": false
+      },
+      {
+        "runtime": "pi-durable",
+        "source": "https://registry.npmjs.org/@earendil-works/pi-durable/latest",
+        "latest": "1.5.2",
+        "installed": "1.5.2",
+        "installation": "host_supplied",
+        "status": "current",
+        "previous": "1.5.2",
+        "changed": false
+      }
+    ]
+  },
+  "candidates": {
+    "workflowRun": 44472871835,
+    "workflow": {
+      "generatedAt": "2026-11-19T06:32:17.501Z",
+      "manifestSha256": "29a519a73d8d3fc925dbd730aa3df49de7a31aa908d9e183df0717d75cea4ce0",
+      "native": {
+        "claude-aimock": {
+          "version": "2.1.328",
+          "accepted": "2.1.326"
+        },
+        "codex-aimock": {
+          "version": "0.170.0",
+          "accepted": "0.169.0"
+        },
+        "qwen-aimock": {
+          "version": "0.28.0",
+          "accepted": "0.27.4"
+        },
+        "factory-aimock": {
+          "version": "1.15.0",
+          "accepted": "1.12.1"
+        },
+        "kimi-aimock": {
+          "version": "2.6.3",
+          "accepted": "2.6.3"
+        },
+        "grok-aimock": {
+          "version": "1.0.89",
+          "accepted": "1.0.70"
+        },
+        "codebuddy-aimock": {
+          "version": "2.185.0",
+          "accepted": "2.179.3"
+        },
+        "opencode-aimock": {
+          "version": "1.19.6",
+          "accepted": "1.19.5"
+        },
+        "opencode-cleanup": {
+          "version": "2.3.2",
+          "accepted": "2.2.7"
+        },
+        "kimi-login": {
+          "version": "2.6.3",
+          "accepted": "2.6.3"
+        },
+        "kimi-skills": {
+          "version": "2.6.3",
+          "accepted": "2.6.2"
+        },
+        "antigravity-aimock": {
+          "version": "1.5.12",
+          "accepted": "1.5.11"
+        }
+      },
+      "sdk": {
+        "cursor": {
+          "@cursor/sdk": {
+            "version": "1.4.2",
+            "accepted": "1.4.1"
+          }
+        },
+        "pi": {
+          "@earendil-works/pi-coding-agent": {
+            "version": "1.5.2",
+            "accepted": "1.5.2"
+          },
+          "undici": {
+            "version": "8.12.3",
+            "accepted": "8.12.3"
+          },
+          "@earendil-works/pi-ai": {
+            "version": "1.5.2",
+            "accepted": "1.5.2"
+          },
+          "@earendil-works/pi-durable": {
+            "version": "1.5.2",
+            "accepted": "1.5.2"
+          },
+          "@earendil-works/chord": {
+            "version": "1.5.2",
+            "accepted": "1.5.2"
+          }
+        }
+      },
+      "excluded": [
+        {
+          "key": "qoder-native",
+          "policy": "replay",
+          "version": "1.1.81"
+        },
+        {
+          "key": "dsh-aimock",
+          "policy": "minimum",
+          "version": "0.2.1-rc.5"
+        },
+        {
+          "key": "grok-long-initialize",
+          "policy": "historical",
+          "version": "1.0.70"
+        },
+        {
+          "key": "pi-rpc-minimum",
+          "policy": "minimum",
+          "version": "1.4.0"
+        }
+      ]
+    },
+    "local": {
+      "generatedAt": "2026-11-19T21:09:04.931Z",
+      "manifestSha256": "29a519a73d8d3fc925dbd730aa3df49de7a31aa908d9e183df0717d75cea4ce0",
+      "native": {
+        "claude-aimock": {
+          "version": "2.1.328",
+          "accepted": "2.1.326"
+        },
+        "codex-aimock": {
+          "version": "0.170.0",
+          "accepted": "0.169.0"
+        },
+        "qwen-aimock": {
+          "version": "0.28.0",
+          "accepted": "0.27.4"
+        },
+        "factory-aimock": {
+          "version": "1.15.0",
+          "accepted": "1.12.1"
+        },
+        "kimi-aimock": {
+          "version": "2.7.0",
+          "accepted": "2.6.3"
+        },
+        "grok-aimock": {
+          "version": "1.0.89",
+          "accepted": "1.0.70"
+        },
+        "codebuddy-aimock": {
+          "version": "2.185.0",
+          "accepted": "2.179.3"
+        },
+        "opencode-aimock": {
+          "version": "1.19.6",
+          "accepted": "1.19.5"
+        },
+        "opencode-cleanup": {
+          "version": "2.3.2",
+          "accepted": "2.2.7"
+        },
+        "kimi-login": {
+          "version": "2.7.0",
+          "accepted": "2.6.3"
+        },
+        "kimi-skills": {
+          "version": "2.7.0",
+          "accepted": "2.6.2"
+        },
+        "antigravity-aimock": {
+          "version": "1.5.12",
+          "accepted": "1.5.11"
+        }
+      },
+      "sdk": {
+        "cursor": {
+          "@cursor/sdk": {
+            "version": "1.4.2",
+            "accepted": "1.4.1"
+          }
+        },
+        "pi": {
+          "@earendil-works/pi-coding-agent": {
+            "version": "1.5.2",
+            "accepted": "1.5.2"
+          },
+          "undici": {
+            "version": "8.12.3",
+            "accepted": "8.12.3"
+          },
+          "@earendil-works/pi-ai": {
+            "version": "1.5.2",
+            "accepted": "1.5.2"
+          },
+          "@earendil-works/pi-durable": {
+            "version": "1.5.2",
+            "accepted": "1.5.2"
+          },
+          "@earendil-works/chord": {
+            "version": "1.5.2",
+            "accepted": "1.5.2"
+          }
+        }
+      },
+      "excluded": [
+        {
+          "key": "qoder-native",
+          "policy": "replay",
+          "version": "1.1.81"
+        },
+        {
+          "key": "dsh-aimock",
+          "policy": "minimum",
+          "version": "0.2.1-rc.5"
+        },
+        {
+          "key": "grok-long-initialize",
+          "policy": "historical",
+          "version": "1.0.70"
+        },
+        {
+          "key": "pi-rpc-minimum",
+          "policy": "minimum",
+          "version": "1.4.0"
+        }
+      ]
+    },
+    "jobs": [
+      {
+        "name": "discover",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386316858",
+        "outcome": "success"
+      },
+      {
+        "name": "published-host",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386317164",
+        "outcome": "success"
+      },
+      {
+        "name": "codebuddy-installer (windows-latest)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386317197",
+        "outcome": "success"
+      },
+      {
+        "name": "codebuddy-installer (macos-latest)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386317290",
+        "outcome": "success"
+      },
+      {
+        "name": "codebuddy-installer (ubuntu-latest)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386317303",
+        "outcome": "success"
+      },
+      {
+        "name": "sdk (cursor, ubuntu-latest, cursor-skills, all)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386399491",
+        "outcome": "success"
+      },
+      {
+        "name": "sdk (cursor, windows-latest, cursor-skills, all)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386399597",
+        "outcome": "success"
+      },
+      {
+        "name": "sdk (cursor, macos-latest, cursor-skills, all)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386399687",
+        "outcome": "success"
+      },
+      {
+        "name": "native (claude-aimock, ubuntu-latest, behavior)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386399867",
+        "outcome": "success"
+      },
+      {
+        "name": "native (qwen-aimock, windows-latest, behavior)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386399884",
+        "outcome": "success"
+      },
+      {
+        "name": "native (grok-aimock, ubuntu-latest, acp)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386399897",
+        "outcome": "success"
+      },
+      {
+        "name": "native (codex-aimock, windows-latest, behavior)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386399912",
+        "outcome": "success"
+      },
+      {
+        "name": "native (claude-aimock, macos-latest, behavior)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386399931",
+        "outcome": "success"
+      },
+      {
+        "name": "native (claude-aimock, windows-latest, behavior)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386399938",
+        "outcome": "success"
+      },
+      {
+        "name": "native (codex-aimock, macos-latest, behavior)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386399943",
+        "outcome": "success"
+      },
+      {
+        "name": "native (factory-aimock, ubuntu-latest, behavior)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386399999",
+        "outcome": "success"
+      },
+      {
+        "name": "native (codex-aimock, ubuntu-latest, behavior)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386400026",
+        "outcome": "success"
+      },
+      {
+        "name": "native (qwen-aimock, macos-latest, behavior)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386400034",
+        "outcome": "success"
+      },
+      {
+        "name": "native (opencode-cleanup, ubuntu-latest, opencode-cleanup)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386400049",
+        "outcome": "success"
+      },
+      {
+        "name": "native (qwen-aimock, ubuntu-latest, behavior)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386400081",
+        "outcome": "success"
+      },
+      {
+        "name": "native (grok-aimock, macos-latest, acp)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386400174",
+        "outcome": "success"
+      },
+      {
+        "name": "native (opencode-aimock, ubuntu-latest, acp)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386400188",
+        "outcome": "success"
+      },
+      {
+        "name": "native (antigravity-aimock, macos-latest, acp)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386400200",
+        "outcome": "success"
+      },
+      {
+        "name": "native (opencode-aimock, windows-latest, acp)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386400208",
+        "outcome": "success"
+      },
+      {
+        "name": "native (factory-aimock, macos-latest, behavior)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386400209",
+        "outcome": "success"
+      },
+      {
+        "name": "native (opencode-aimock, macos-latest, acp)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386400239",
+        "outcome": "success"
+      },
+      {
+        "name": "native (opencode-cleanup, macos-latest, opencode-cleanup)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386400240",
+        "outcome": "success"
+      },
+      {
+        "name": "native (antigravity-aimock, ubuntu-latest, acp)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386400252",
+        "outcome": "success"
+      },
+      {
+        "name": "native (grok-aimock, windows-latest, acp)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386400256",
+        "outcome": "success"
+      },
+      {
+        "name": "native (antigravity-aimock, windows-latest, acp)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386400272",
+        "outcome": "success"
+      },
+      {
+        "name": "native (kimi-skills, ubuntu-latest, kimi-skills)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386400278",
+        "outcome": "success"
+      },
+      {
+        "name": "native (codebuddy-aimock, ubuntu-latest, acp)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386400284",
+        "outcome": "success"
+      },
+      {
+        "name": "native (opencode-cleanup, windows-latest, opencode-cleanup)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386400291",
+        "outcome": "success"
+      },
+      {
+        "name": "native (codebuddy-aimock, macos-latest, acp)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386400293",
+        "outcome": "success"
+      },
+      {
+        "name": "native (kimi-skills, windows-latest, kimi-skills)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386400329",
+        "outcome": "success"
+      },
+      {
+        "name": "native (kimi-skills, macos-latest, kimi-skills)",
+        "url": "https://github.com/botiverse/oar/actions/runs/44472871835/job/135386400393",
+        "outcome": "success"
+      }
+    ]
+  },
+  "realModelSubmissions": 0,
+  "pinsChanged": false,
+  "probes": [
+    {
+      "name": "qoder-gate",
+      "runtime": "qoder",
+      "version": "1.1.93",
+      "backend": null,
+      "exitCode": 0,
+      "timedOut": false,
+      "seconds": 5.8,
+      "log": {
+        "bytes": 93,
+        "sha256": "7d0bd9a415d6bab54a4f5bc2c79e89116c885c1a340f53ca2fe78e8d12aeb1e7"
+      }
+    },
+    {
+      "name": "claude-local-oauth",
+      "runtime": "claude",
+      "version": "2.1.328",
+      "backend": null,
+      "exitCode": 0,
+      "timedOut": false,
+      "seconds": 7.7,
+      "log": {
+        "bytes": 1052,
+        "sha256": "d39aa35fc524b894c0aa1fe7d7b42516e554ee57e6b373a6f5e9a36658cc3167"
+      }
+    },
+    {
+      "name": "factory-native",
+      "runtime": "factory",
+      "version": "1.15.0",
+      "backend": null,
+      "exitCode": 0,
+      "timedOut": false,
+      "seconds": 61.6,
+      "log": {
+        "bytes": 1894,
+        "sha256": "3adc5fc0546548ee0b90ff9be30d0a4664414dcc87b34cf90a496d65a7c37146"
+      }
+    },
+    {
+      "name": "kimi-login",
+      "runtime": "kimi",
+      "version": "2.7.0",
+      "backend": "kimi-login",
+      "exitCode": 0,
+      "timedOut": false,
+      "seconds": 139.3,
+      "log": {
+        "bytes": 1901,
+        "sha256": "19df415cc516c58eb64425a8068b53a86878eb36568839f1356120ca0531ef07"
+      },
+      "cases": {
+        "passed": 17
+      }
+    },
+    {
+      "name": "kimi-fresh-skills",
+      "runtime": "kimi",
+      "version": "2.7.0",
+      "backend": "kimi-skills",
+      "exitCode": 0,
+      "timedOut": false,
+      "seconds": 37.3,
+      "log": {
+        "bytes": 641,
+        "sha256": "6782901e66c28c223d202c33aacaf7a6681c7d946745d8d8a2f6ccf3957f9694"
+      },
+      "cases": {
+        "passed": 4
+      }
+    },
+    {
+      "name": "kimi-behavior",
+      "runtime": "kimi",
+      "version": "2.7.0",
+      "backend": "kimi-aimock",
+      "exitCode": 0,
+      "timedOut": false,
+      "seconds": 32.6,
+      "log": {
+        "bytes": 1089,
+        "sha256": "dfa52d3ff7e25477fe69b7a54fcf697219ba2c5cf23f630f840eff201514f9c7"
+      },
+      "cases": {
+        "passed": 16,
+        "skipped": 4,
+        "failed": 0
+      }
+    },
+    {
+      "name": "dsh-behavior",
+      "runtime": "dsh",
+      "version": "0.2.2-rc.5",
+      "backend": "dsh-aimock",
+      "exitCode": 0,
+      "timedOut": false,
+      "seconds": 44.1,
+      "log": {
+        "bytes": 1030,
+        "sha256": "146293aee5d573fa15587c305073205e5a4f7c02abee67ef38baa7db4a456992"
+      },
+      "cases": {
+        "passed": 19,
+        "skipped": 1,
+        "failed": 0
+      }
+    },
+    {
+      "name": "antigravity-behavior",
+      "runtime": "antigravity",
+      "version": "1.5.12",
+      "backend": "antigravity-aimock",
+      "exitCode": 0,
+      "timedOut": false,
+      "seconds": 17.2,
+      "log": {
+        "bytes": 1076,
+        "sha256": "dc5796688ee1c9d3360f9356eb2c51344b03f13f60de60af125e8bf36b470619"
+      },
+      "cases": {
+        "passed": 18,
+        "skipped": 2,
+        "failed": 0
+      }
+    },
+    {
+      "name": "factory-behavior",
+      "runtime": "factory",
+      "version": "1.15.0",
+      "backend": "factory-aimock",
+      "exitCode": 0,
+      "timedOut": false,
+      "seconds": 31.3,
+      "log": {
+        "bytes": 1018,
+        "sha256": "07513014090a3364f8ec084eb50823ed1a65999dbf246704d6a3581ec07584af"
+      },
+      "cases": {
+        "passed": 20,
+        "skipped": 0,
+        "failed": 0
+      }
+    },
+    {
+      "name": "claude-behavior",
+      "runtime": "claude",
+      "version": "2.1.328",
+      "backend": "claude-aimock",
+      "exitCode": 0,
+      "timedOut": false,
+      "seconds": 29.2,
+      "log": {
+        "bytes": 1061,
+        "sha256": "159717a7a317502c4b8d9d14e3372dda53fa592bd9ad56bdef2fe25ac08866d6"
+      },
+      "cases": {
+        "passed": 18,
+        "skipped": 2,
+        "failed": 0
+      }
+    },
+    {
+      "name": "kimi-vendor",
+      "runtime": "kimi",
+      "version": "2.7.0",
+      "backend": "kimi-aimock",
+      "exitCode": 0,
+      "timedOut": false,
+      "seconds": 159.8,
+      "log": {
+        "bytes": 12368,
+        "sha256": "e2e4cea818f1dd40819fc59d28d1b599f1703e531707187e52958cf2869f4072"
+      },
+      "cases": {
+        "passed": 18,
+        "skipped": 548
+      }
+    },
+    {
+      "name": "dsh-vendor",
+      "runtime": "dsh",
+      "version": "0.2.2-rc.5",
+      "backend": "dsh-aimock",
+      "exitCode": 0,
+      "timedOut": false,
+      "seconds": 218.7,
+      "log": {
+        "bytes": 16060,
+        "sha256": "68f8f8fa85b8ae24350c063651aa721dc51a98e85132978f5ca597581ca5ac2d"
+      },
+      "cases": {
+        "passed": 57,
+        "skipped": 509
+      }
+    },
+    {
+      "name": "antigravity-vendor",
+      "runtime": "antigravity",
+      "version": "1.5.12",
+      "backend": "antigravity-aimock",
+      "exitCode": 0,
+      "timedOut": false,
+      "seconds": 73.6,
+      "log": {
+        "bytes": 12254,
+        "sha256": "ff60088e8dc2d49f4bb023c07107c02d9b82e2f9444c9386a3e9e9905b50b0ae"
+      },
+      "cases": {
+        "passed": 17,
+        "skipped": 549
+      }
+    },
+    {
+      "name": "factory-vendor",
+      "runtime": "factory",
+      "version": "1.15.0",
+      "backend": "factory-aimock",
+      "exitCode": 0,
+      "timedOut": false,
+      "seconds": 67.3,
+      "log": {
+        "bytes": 11821,
+        "sha256": "af959d6cb873916325bf89cfd77d33c5f6f25cab115eef78b38bd16ac2a3286b"
+      },
+      "cases": {
+        "passed": 11,
+        "skipped": 555
+      }
+    },
+    {
+      "name": "claude-vendor",
+      "runtime": "claude",
+      "version": "2.1.328",
+      "backend": "claude-aimock",
+      "exitCode": 0,
+      "timedOut": false,
+      "seconds": 172.4,
+      "log": {
+        "bytes": 21099,
+        "sha256": "a6bc13916d9570a8aba4833902fd470ed67333247e7d2647815d62ece70faff4"
+      },
+      "cases": {
+        "passed": 101,
+        "skipped": 465
+      }
+    }
+  ],
+  "native": {
+    "kimiBareResumeProviderTools": [
+      [
+        "mcp__echo__echo",
+        "mcp__remote__echo"
+      ]
+    ],
+    "claudeLocalOAuth": [
+      {
+        "version": "2.1.328",
+        "mode": "default",
+        "exit": 0,
+        "verified": true,
+        "browserOpens": 1
+      },
+      {
+        "version": "2.1.328",
+        "mode": "suppressed",
+        "exit": 0,
+        "verified": true,
+        "browserOpens": 0
+      },
+      {
+        "version": "2.1.328",
+        "mode": "failing-browser",
+        "exit": 0,
+        "verified": true,
+        "browserOpens": 1
+      }
+    ],
+    "factory": {
+      "steer": {
+        "addUserMessageReply": {},
+        "turnEnds": [
+          "first"
+        ],
+        "steerQueuedAs": "end_of_turn",
+        "steerEchoed": true,
+        "lastProviderRequestHasSteer": true,
+        "endReason": "completed"
+      },
+      "compaction": {
+        "emptyConversation": {
+          "code": -32602,
+          "message": "Nothing to compact — the conversation is empty."
+        },
+        "sameSessionId": true,
+        "reportedSessionCompacted": true,
+        "removedCount": 5
+      }
+    },
+    "qoder": {
+      "version": "1.1.93",
+      "status": "no_offline_replay_requires_real_account",
+      "submittedPrompts": 0
+    },
+    "qoderBundleMarkers": [
+      {
+        "file": "qodercli.js",
+        "bytes": 34994164,
+        "sha256": "9262a69a200f6fd32816a49175c4d8986208234965f6cf181439e3979bbf6603",
+        "counts": {
+          "fake-responses <path>": 1,
+          "getNextResponse(": 1,
+          "getFakeResponseStore": 1,
+          "generateContentStream": 0
+        }
+      },
+      {
+        "file": "qoder-worker-runtime.mjs",
+        "bytes": 34906769,
+        "sha256": "8f9df923accabfdaafc39ddd5591a647f13168900fd43228f11cefc331b8382c",
+        "counts": {
+          "fake-responses <path>": 1,
+          "getNextResponse(": 1,
+          "getFakeResponseStore": 1,
+          "generateContentStream": 0
+        }
+      },
+      {
+        "file": "worker-runtime.mjs",
+        "bytes": 15154551,
+        "sha256": "9e03f17b78abf9cd7d9ed057a07ec21590dd62f645d56d4a8634cdbfd0f03de1",
+        "counts": {
+          "fake-responses <path>": 1,
+          "getNextResponse(": 1,
+          "getFakeResponseStore": 1,
+          "generateContentStream": 0
+        }
+      }
+    ]
+  },
+  "ci": {
+    "startExclusive": "2026-11-18T21:31:54.474Z",
+    "endInclusive": "2026-11-19T21:09:10.722Z",
+    "basis": "Run creation time. All pages and attempts. Unique job IDs. Job lists are separate snapshots after cutoff.",
+    "workflows": {
+      "ci.yml": {
+        "runs": 132,
+        "attempts": 137,
+        "uniqueJobs": 3683,
+        "outcomes": {
+          "success": 3405,
+          "in_progress": 10,
+          "queued": 138,
+          "skipped": 104,
+          "failure": 23,
+          "cancelled": 3
+        },
+        "zeroJobAttempts": [
+          {
+            "run": 44493810297,
+            "attempt": 1,
+            "conclusion": "failure"
+          },
+          {
+            "run": 44466979889,
+            "attempt": 1,
+            "conclusion": "failure"
+          },
+          {
+            "run": 44409299696,
+            "attempt": 1,
+            "conclusion": "failure"
+          },
+          {
+            "run": 44408949330,
+            "attempt": 1,
+            "conclusion": "failure"
+          },
+          {
+            "run": 44405734245,
+            "attempt": 1,
+            "conclusion": "failure"
+          },
+          {
+            "run": 44402815184,
+            "attempt": 1,
+            "conclusion": "failure"
+          }
+        ],
+        "windowsPiRpcVendor": {
+          "in_progress": 1,
+          "success": 47,
+          "failure": 1
+        }
+      },
+      "acp-windows.yml": {
+        "runs": 52,
+        "attempts": 52,
+        "uniqueJobs": 215,
+        "outcomes": {
+          "success": 161,
+          "skipped": 52,
+          "failure": 2
+        },
+        "zeroJobAttempts": []
+      },
+      "runtime-latest.yml": {
+        "runs": 1,
+        "attempts": 1,
+        "uniqueJobs": 36,
+        "outcomes": {
+          "success": 36
+        },
+        "zeroJobAttempts": []
+      }
+    },
+    "failedJobs": [
+      {
+        "run": 44460318279,
+        "attempt": 1,
+        "job": 135345227894,
+        "workflow": "ci.yml",
+        "name": "check (macos-latest)",
+        "head": "ad91b19d2234a488f7151249ba7cb07b48a6117d",
+        "url": "https://github.com/botiverse/oar/actions/runs/44460318279/job/135345227894",
+        "failedSteps": [
+          "Native isolated OpenCode tool cleanup"
+        ],
+        "observation": "The native OpenCode skills timeout test expected a rejection, but the query returned.",
+        "log": {
+          "bytes": 237735,
+          "sha256": "6c54e722c96301c602a7910926a3760343a61c1f066340b2e6084290fe8a1eb4"
+        }
+      },
+      {
+        "run": 44460318279,
+        "attempt": 1,
+        "job": 135345227916,
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "head": "ad91b19d2234a488f7151249ba7cb07b48a6117d",
+        "url": "https://github.com/botiverse/oar/actions/runs/44460318279/job/135345227916",
+        "failedSteps": [
+          "Run pnpm run check"
+        ],
+        "observation": "The shared startup/readiness deadline test returned after 3,366 ms against a 2,800 ms assertion.",
+        "log": {
+          "bytes": 335186,
+          "sha256": "33b443f42ec019d35a02148c5b5390123047fe1e097a7fc95ecdd7283f20e5e6"
+        }
+      },
+      {
+        "run": 44460318279,
+        "attempt": 1,
+        "job": 135345227992,
+        "workflow": "ci.yml",
+        "name": "check (ubuntu-latest)",
+        "head": "ad91b19d2234a488f7151249ba7cb07b48a6117d",
+        "url": "https://github.com/botiverse/oar/actions/runs/44460318279/job/135345227992",
+        "failedSteps": [
+          "Native isolated OpenCode tool cleanup"
+        ],
+        "observation": "The native OpenCode skills timeout test expected a rejection, but the query returned.",
+        "log": {
+          "bytes": 234179,
+          "sha256": "2fff03a88fa14fc2fb7cbb3a66009b66144bbcef0b56d5a5fa2db034b4c1f580"
+        }
+      },
+      {
+        "run": 44460318279,
+        "attempt": 1,
+        "job": 135345294826,
+        "workflow": "ci.yml",
+        "name": "behavior (ubuntu-latest, dsh-aimock)",
+        "head": "ad91b19d2234a488f7151249ba7cb07b48a6117d",
+        "url": "https://github.com/botiverse/oar/actions/runs/44460318279/job/135345294826",
+        "failedSteps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "observation": "The DSH skills provider-hang case expected a rejection, but the query returned.",
+        "log": {
+          "bytes": 63788,
+          "sha256": "230043593c89dbec6c5f97bca595824c4119e5aebc7f7fea1f89992f5cd8218f"
+        }
+      },
+      {
+        "run": 44461915707,
+        "attempt": 1,
+        "job": 135350496194,
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "head": "b60253401cba47a6bdb5cb43e8fc770c160563d2",
+        "url": "https://github.com/botiverse/oar/actions/runs/44461915707/job/135350496194",
+        "failedSteps": [
+          "Run pnpm run check"
+        ],
+        "observation": "The CodeBuddy silent-confirmation fixture saw one of two expected process markers. The OpenCode startup/readiness check also took 3,366 ms against a 2,800 ms assertion.",
+        "log": {
+          "bytes": 339031,
+          "sha256": "e884aebd20e312f85466702283d59623d287014c0a719dfb7b673738d1c0b167"
+        }
+      },
+      {
+        "run": 44475376127,
+        "attempt": 1,
+        "job": 135394580259,
+        "workflow": "ci.yml",
+        "name": "behavior (ubuntu-latest, claude-aimock)",
+        "head": "00268bdf1134dfbb64b50b5e23a48ed19971a6cb",
+        "url": "https://github.com/botiverse/oar/actions/runs/44475376127/job/135394580259",
+        "failedSteps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "observation": "Four Claude resume and system-prompt variants expected zero compaction starts and received one on an earlier head of PR 984.",
+        "log": {
+          "bytes": 71647,
+          "sha256": "985f01367f7f47d82a137f686cd8fc7cf79c59abd98ca7cfa635f5235b191c9d"
+        }
+      },
+      {
+        "run": 44485550797,
+        "attempt": 1,
+        "job": 135428048418,
+        "workflow": "ci.yml",
+        "name": "behavior (ubuntu-latest, factory-aimock)",
+        "head": "7a8132b3828d1a9325a129a0e9037558baed4f54",
+        "url": "https://github.com/botiverse/oar/actions/runs/44485550797/job/135428048418",
+        "failedSteps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "observation": "The Factory abort case expected the root turn to finish as aborted and read a null outcome.",
+        "log": {
+          "bytes": 54947,
+          "sha256": "d6e2408f389c482ea5659558b5fa0c85142d0487ef96e92e99fba98b5da94dbb"
+        }
+      },
+      {
+        "run": 44490515939,
+        "attempt": 1,
+        "job": 135444643481,
+        "workflow": "ci.yml",
+        "name": "check (macos-latest)",
+        "head": "3697b4c1c7523aa12605858925623e0308b9d499",
+        "url": "https://github.com/botiverse/oar/actions/runs/44490515939/job/135444643481",
+        "failedSteps": [
+          "Run pnpm run check"
+        ],
+        "observation": "A synthetic Codex initialize rejection waiting for app-server exit reached the 30-second test limit.",
+        "log": {
+          "bytes": 234402,
+          "sha256": "b3814c9a54a6da06c7678fa335c30624a6512b349cdf4d0698fa256dbe522654"
+        }
+      },
+      {
+        "run": 44506650742,
+        "attempt": 1,
+        "job": 135499984888,
+        "workflow": "ci.yml",
+        "name": "behavior (macos-latest, dsh-aimock)",
+        "head": "02b38db792be9837d287ea5e18f4a724841f3f3f",
+        "url": "https://github.com/botiverse/oar/actions/runs/44506650742/job/135499984888",
+        "failedSteps": [
+          "Run pnpm run sea-trial"
+        ],
+        "observation": "DSH exited during query readback. Its native readProfileManifest called JSON.parse on incomplete JSON.",
+        "log": {
+          "bytes": 32707,
+          "sha256": "c1a240f80cff2d13c6243b7e6cde43e54739cc1de28f9a216fdd5981f949c2be"
+        }
+      },
+      {
+        "run": 44508408372,
+        "attempt": 1,
+        "job": 135506035991,
+        "workflow": "ci.yml",
+        "name": "pi-rpc-windows (vendor)",
+        "head": "2b7b47edc047f7a64ecee95883a9cd8932b876ae",
+        "url": "https://github.com/botiverse/oar/actions/runs/44508408372/job/135506035991",
+        "failedSteps": [
+          "Pi RPC vendor - native Pi extensions, projects and errors"
+        ],
+        "observation": "The Pi RPC handled-input case failed its assertion about the independent extension run. The vendor job produced test results. PR 1012 added synchronization and the later Windows main vendor job passed.",
+        "log": {
+          "bytes": 82428,
+          "sha256": "ac1c46d5c57dba85dcfd3b82f04f9d480aedd5dd3e7eecdc2e4e17e04bbf593b"
+        }
+      },
+      {
+        "run": 44515016307,
+        "attempt": 1,
+        "job": 135528662904,
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "head": "f279a005aecf70166311a9cd39386f93e04393aa",
+        "url": "https://github.com/botiverse/oar/actions/runs/44515016307/job/135528662904",
+        "failedSteps": [
+          "Run pnpm run check"
+        ],
+        "observation": "The Windows Factory deadline test reported ENOTEMPTY while removing its temporary login directory.",
+        "log": {
+          "bytes": 334213,
+          "sha256": "3e2b34bcce83d2df0bda2082cc570bfa523c116f0f4972f2dfbfec13619ea5e7"
+        }
+      },
+      {
+        "run": 44517340817,
+        "attempt": 1,
+        "job": 135536737585,
+        "workflow": "ci.yml",
+        "name": "acp-behavior (ubuntu-latest, codebuddy-aimock)",
+        "head": "b1b21650da1e3897650e02b977dbd9afa07e650e",
+        "url": "https://github.com/botiverse/oar/actions/runs/44517340817/job/135536737585",
+        "failedSteps": [
+          "Run pnpm run sea-trial"
+        ],
+        "observation": "CodeBuddy behavior setup passed --model in launchArgs on this contribution head. The adapter refused the override before the affected scenarios could run.",
+        "log": {
+          "bytes": 30369,
+          "sha256": "6970002ef559e096b9a10cbdbf5949242c701ef5ae361d9ba7a6a51f724a4f97"
+        }
+      },
+      {
+        "run": 44533829762,
+        "attempt": 1,
+        "job": 135593907776,
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "head": "2a0692b5e1b1169c8c8128116293816322edf4bc",
+        "url": "https://github.com/botiverse/oar/actions/runs/44533829762/job/135593907776",
+        "failedSteps": [
+          "Native isolated OpenCode tool cleanup"
+        ],
+        "observation": "The OpenCode skills timeout fixture still connected to the loopback port after its sampled PID had exited. PR 1025 changed the fixture to check that the port refuses connections once owned cleanup finishes.",
+        "log": {
+          "bytes": 358993,
+          "sha256": "1b0ae176cc2efa9a7515b4bd2c49a1ee1e1088f8503a49cf8a41b03b6ae5431a"
+        }
+      },
+      {
+        "run": 44546586697,
+        "attempt": 1,
+        "job": 135638662834,
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "head": "935e023d75dd5b5eb1b4c98703313c2f95b05271",
+        "url": "https://github.com/botiverse/oar/actions/runs/44546586697/job/135638662834",
+        "failedSteps": [
+          "Native isolated OpenCode tool cleanup"
+        ],
+        "observation": "The OpenCode skills timeout fixture still connected to the loopback port after its sampled PID had exited. The Windows check subsequently passed on attempt 2.",
+        "log": {
+          "bytes": 355176,
+          "sha256": "cc3c1320addd88f0beb7a8902fce9191358da41f0f6637cfe77346f6f5e36af3"
+        }
+      },
+      {
+        "run": 44551458082,
+        "attempt": 1,
+        "job": 135656005974,
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "head": "25bf53771f30c7e5f17e4ca94a191bede4621e4d",
+        "url": "https://github.com/botiverse/oar/actions/runs/44551458082/job/135656005974",
+        "failedSteps": [
+          "Native isolated OpenCode tool cleanup"
+        ],
+        "observation": "The Windows OpenCode skills timeout fixture still connected to the loopback port after its sampled PID had exited.",
+        "log": {
+          "bytes": 367896,
+          "sha256": "bba0a2a8c68a9afeac324d6b33933048d465c44fcb4f4710100610fc91588c12"
+        }
+      },
+      {
+        "run": 44556309700,
+        "attempt": 1,
+        "job": 135673186498,
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "head": "73d61ad77b754554280f7bcc742e0c6c2f107b4e",
+        "url": "https://github.com/botiverse/oar/actions/runs/44556309700/job/135673186498",
+        "failedSteps": [
+          "Native isolated OpenCode tool cleanup"
+        ],
+        "observation": "The Windows OpenCode skills timeout fixture still connected to the loopback port after its sampled PID had exited.",
+        "log": {
+          "bytes": 362638,
+          "sha256": "b9d65ac52a3311ea81defc55918d416ba177f1f317f1990db2c045e1f0932228"
+        }
+      },
+      {
+        "run": 44557134041,
+        "attempt": 1,
+        "job": 135676127578,
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "head": "a83ab084fcc62d6d2c8a42f75cc8edb114480a4f",
+        "url": "https://github.com/botiverse/oar/actions/runs/44557134041/job/135676127578",
+        "failedSteps": [
+          "Run pnpm run check"
+        ],
+        "observation": "The silent CodeBuddy confirmation test expected probing the captured child PID to throw after cleanup. The call returned.",
+        "log": {
+          "bytes": 347435,
+          "sha256": "027d12c567fc9a1d982466cf54ee1a760974963a1ab46653c6c24344fd53262d"
+        }
+      },
+      {
+        "run": 44558319514,
+        "attempt": 1,
+        "job": 135690018777,
+        "workflow": "ci.yml",
+        "name": "behavior (ubuntu-latest, dsh-aimock)",
+        "head": "2c1230f748965ace6fa3eb10497f88157f39c4b3",
+        "url": "https://github.com/botiverse/oar/actions/runs/44558319514/job/135690018777",
+        "failedSteps": [
+          "Run pnpm run sea-trial"
+        ],
+        "observation": "DSH exited while loading node-addon-require-builtin-linux-x64-gnu. The missing optional native module prevented ACP behavior from starting.",
+        "log": {
+          "bytes": 455164,
+          "sha256": "c70400970f8c6383a02470438c1ac4fa9f3c675aa6a306cb200ffd30ebceafaa"
+        }
+      },
+      {
+        "run": 44562374905,
+        "attempt": 1,
+        "job": 135694839211,
+        "workflow": "acp-windows.yml",
+        "name": "acp-windows (windows-latest, kimi-aimock)",
+        "head": "76b66e1b3010af0cfad2ae2f1f59ce8134efda98",
+        "url": "https://github.com/botiverse/oar/actions/runs/44562374905/job/135694839211",
+        "failedSteps": [
+          "Run pnpm run sea-trial"
+        ],
+        "observation": "Kimi query readback failed with an internal error. Descendant exit before EOF could not be confirmed within 5,010 ms. The workflow retained its native trace.",
+        "log": {
+          "bytes": 27309,
+          "sha256": "218377e746a51f1acc08b38f463b3a2ae34bfd8d829c11f95e802ccccd517253"
+        }
+      },
+      {
+        "run": 44562374930,
+        "attempt": 1,
+        "job": 135694839948,
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "head": "76b66e1b3010af0cfad2ae2f1f59ce8134efda98",
+        "url": "https://github.com/botiverse/oar/actions/runs/44562374930/job/135694839948",
+        "failedSteps": [
+          "Native isolated OpenCode tool cleanup"
+        ],
+        "observation": "The Windows OpenCode skills timeout fixture still connected to the loopback port after its sampled PID had exited.",
+        "log": {
+          "bytes": 367132,
+          "sha256": "c2dc9c026b2539c34efcee48f34ac5cb8092a855f56f6c5626bda161b367ca35"
+        }
+      },
+      {
+        "run": 44567380785,
+        "attempt": 1,
+        "job": 135712727501,
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "head": "5150caaf7212c4d52238c9fa8301eed3c2963f99",
+        "url": "https://github.com/botiverse/oar/actions/runs/44567380785/job/135712727501",
+        "failedSteps": [
+          "Native isolated OpenCode tool cleanup"
+        ],
+        "observation": "The Windows OpenCode skills timeout fixture still connected to the loopback port after its sampled PID had exited.",
+        "log": {
+          "bytes": 365970,
+          "sha256": "27046177e14826e1735e063c75fdc5d9bc1e861fc2b0d59c7db4f05b2129e83b"
+        }
+      },
+      {
+        "run": 44572465149,
+        "attempt": 1,
+        "job": 135730965032,
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "head": "32380e3702cc8e28869e7f94d0d1c0889ecfee11",
+        "url": "https://github.com/botiverse/oar/actions/runs/44572465149/job/135730965032",
+        "failedSteps": [
+          "Native isolated OpenCode tool cleanup"
+        ],
+        "observation": "The Windows OpenCode skills timeout fixture still connected to the loopback port after its sampled PID had exited.",
+        "log": {
+          "bytes": 369263,
+          "sha256": "383746f96bf436b5d68ff6b7b79943b972679ee988239e0dff23cc3e0833516a"
+        }
+      },
+      {
+        "run": 44577062329,
+        "attempt": 1,
+        "job": 135747288857,
+        "workflow": "acp-windows.yml",
+        "name": "acp-windows (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+        "head": "9859031a8347462b0cec23bae9e068b3dd45a875",
+        "url": "https://github.com/botiverse/oar/actions/runs/44577062329/job/135747288857",
+        "failedSteps": [
+          "Run pnpm run sea-trial",
+          "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+        ],
+        "observation": "The first Windows v2 observation reported no context usage after the scripted turn. Five vendor cases also expected v1 direct MCP calls or declarations. The corrected fixtures and v2 Code Mode coverage subsequently passed.",
+        "log": {
+          "bytes": 66751,
+          "sha256": "44b913a6027fe51b31c9adb77958373ffa4269819f54aee0424933bda2308044"
+        }
+      },
+      {
+        "run": 44572465149,
+        "attempt": 2,
+        "job": 135784373882,
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "head": "32380e3702cc8e28869e7f94d0d1c0889ecfee11",
+        "url": "https://github.com/botiverse/oar/actions/runs/44572465149/job/135784373882",
+        "failedSteps": [
+          "Native isolated OpenCode tool cleanup"
+        ],
+        "observation": "The Windows OpenCode skills timeout fixture still connected to the loopback port on the second attempt of the same run.",
+        "log": {
+          "bytes": 358260,
+          "sha256": "47abf6e92b874eb86be77bb3d974dae229e255b43a9d8fa64764d113ad2145f3"
+        }
+      },
+      {
+        "run": 44602828985,
+        "attempt": 1,
+        "job": 135838523054,
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "head": "d0f05070874fb79d82e94e3dcc0695752de8de42",
+        "url": "https://github.com/botiverse/oar/actions/runs/44602828985/job/135838523054",
+        "failedSteps": [
+          "Native agy ACP vendor regressions"
+        ],
+        "observation": "The Windows native Antigravity 1.5.11 skills command succeeded with zero model requests. The catalog omitted oar-cli. The test expected that entry.",
+        "log": {
+          "bytes": 365197,
+          "sha256": "db8183d14ff1b6c6a7a7ef679387f3d386e4f93db7c103986b31ffeb70bba5be"
+        }
+      }
+    ],
+    "cancelledJobs": [
+      {
+        "run": 44451918630,
+        "attempt": 1,
+        "job": 135317682158,
+        "workflow": "ci.yml",
+        "name": "check (ubuntu-latest)",
+        "head": "340ee81854b372ebcb892229d0b9f7f679f17a84",
+        "url": "https://github.com/botiverse/oar/actions/runs/44451918630/job/135317682158"
+      },
+      {
+        "run": 44451918630,
+        "attempt": 1,
+        "job": 135317682235,
+        "workflow": "ci.yml",
+        "name": "check (macos-latest)",
+        "head": "340ee81854b372ebcb892229d0b9f7f679f17a84",
+        "url": "https://github.com/botiverse/oar/actions/runs/44451918630/job/135317682235"
+      },
+      {
+        "run": 44451918630,
+        "attempt": 1,
+        "job": 135317682248,
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "head": "340ee81854b372ebcb892229d0b9f7f679f17a84",
+        "url": "https://github.com/botiverse/oar/actions/runs/44451918630/job/135317682248"
+      }
+    ],
+    "windowsAntigravityCatalog": {
+      "version": "1.5.11",
+      "modelRequests": 0,
+      "rows": 12,
+      "requiredFixtureNamesMissing": [
+        "oar-cli"
+      ]
+    }
+  },
+  "upstream": {
+    "dsh-master": {
+      "html_url": "https://github.com/deepseek-ai/deepseek-harness/commit/2e39e70496aa02986ca6a820c5d497e816b69d7e",
+      "sha": "2e39e70496aa02986ca6a820c5d497e816b69d7e"
+    },
+    "zcode-release": {
+      "html_url": "https://github.com/zai-org/ZCode/releases/tag/v3.18.2",
+      "tag_name": "v3.18.2"
+    },
+    "zcode-main": {
+      "html_url": "https://github.com/zai-org/ZCode/commit/fec975905a2abd4c07e35c40d51fa097a2258ec9",
+      "sha": "fec975905a2abd4c07e35c40d51fa097a2258ec9"
+    },
+    "qwen-15796": {
+      "state": "open",
+      "title": "SDK stream-json: initialize replies before the extension store is ready; the first prompt waits or fails with \"Extension store is busy\"",
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15796",
+      "comments": 2
+    },
+    "qwen-15875": {
+      "state": "open",
+      "title": "SDK stream-json: text snapshot changes message id after thinking without a new message_start",
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15875",
+      "comments": 5
+    },
+    "qwen-16586": {
+      "state": "open",
+      "title": "fix(cli): keep one stream-json message id across block-type transitions",
+      "html_url": "https://github.com/QwenLM/qwen-code/pull/16586",
+      "comments": 34,
+      "merge_commit_sha": "63f254d292eca9d85f73fea4b663c86353c64a32",
+      "merged": false,
+      "merged_at": null
+    },
+    "agy-public-head": {
+      "html_url": "https://github.com/google-antigravity/antigravity-cli/commit/604f74f7472860aa0fc276b32abe2de0d4f0ef8c",
+      "sha": "604f74f7472860aa0fc276b32abe2de0d4f0ef8c"
+    },
+    "agy-1534": {
+      "state": "open",
+      "title": "ACP 1.5.0 on macOS intermittently omits preloaded MCP tools from the first prompt",
+      "html_url": "https://github.com/google-antigravity/antigravity-cli/issues/1534",
+      "comments": 0
+    },
+    "opencode-54794": {
+      "state": "closed",
+      "title": "ACP resume sometimes marks a reattached MCP tool as removed",
+      "html_url": "https://github.com/anomalyco/opencode/issues/54794",
+      "comments": 3
+    },
+    "opencode-53879": {
+      "state": "open",
+      "title": "core: concurrent first start on a new opencode.db fails with \"database is locked\" / CREATE TABLE error",
+      "html_url": "https://github.com/anomalyco/opencode/issues/53879",
+      "comments": 5
+    },
+    "kimi-2370": {
+      "state": "open",
+      "title": "Feature Request: Add Steer (⚡) button to Web UI queue panel",
+      "html_url": "https://github.com/MoonshotAI/kimi-cli/issues/2370",
+      "comments": 1
+    },
+    "kimi-resume-5036": {
+      "state": "open",
+      "title": "ACP resume advertises initial MCP tools after connections are replaced",
+      "html_url": "https://github.com/MoonshotAI/kimi-code/issues/5036",
+      "comments": 0
+    },
+    "codex-release": {
+      "html_url": "https://github.com/openai/codex/releases/tag/rust-v0.170.0",
+      "tag_name": "rust-v0.170.0"
+    }
+  },
+  "validation": {
+    "unitPassed": 5414,
+    "unitSkipped": 683,
+    "mockPassed": 19,
+    "mockSkipped": 1,
+    "fullCheck": {
+      "bytes": 5807,
+      "sha256": "2dcd36266e9841c345ac2054795da77dcfeeba08702a8612b07a98739bb0de37"
+    }
+  },
+  "retention": {
+    "files": 632,
+    "manifest": {
+      "bytes": 121448,
+      "sha256": "dc88c657c913337d192630489e671d92ecc1d83dae00025c7a1ee0566e7dffc5"
+    }
+  }
+}
