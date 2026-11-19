@@ -612,6 +612,16 @@ Further rules:
   ([claude.md](../runtimes/claude.md)); every other session has no
   `contextBreakdown` member, and `contextUsage()` stays the fold of what each
   runtime reported on its own.
+- **A turn's completion frame may be boundedly deferred to read current context.**
+  An adapter may hold a turn's native completion frame for a bounded window so
+  it can query the runtime's current context usage before `turn_ended` is
+  published. The deferred frame's content stays unchanged; its `seq` follows
+  the context-query reply frame rather than raw wire arrival order, so
+  `contextUsage()` is current when `turn_ended` becomes visible. On timeout,
+  error or exit, the turn ends without blocking indefinitely and any late reply
+  remains a raw frame without overwriting a later turn's reading. Current
+  instances: Qwen (`get_context_usage`, 1 s bound before `result`) and Factory
+  (`droid.get_context_stats`, 1 s bound before `agent_turn_completed`).
 - **A turn is a span on the stream, not a control object.** The envelope's
   optional `spanId` holds only runtime-native ids (red line in
   [runtime-matrix.md](runtime-matrix.md)); records without a native turn

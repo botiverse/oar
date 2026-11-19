@@ -829,7 +829,12 @@ window. A subagent's calls and a message claude makes up (`<synthetic>`) are
 not the root's context. After a `compact_boundary` the context is unknown
 (`tokens: null`) until the next call: claude's `post_tokens` counts the kept
 messages only. A turn that calls no model and compacts nothing (a local
-command) reports no context, and the previous reading stands.
+command) reports no context, and the previous reading stands. The same latest
+non-synthetic root `assistant` frame also supplies `UsageReport.cacheWriteByTtl`
+from `message.usage.cache_creation` (`ephemeral_5m_input_tokens` as `"5m"`,
+`ephemeral_1h_input_tokens` as `"1h"`), emitted on the turn's `result` `usage`
+event so hosts can see the most recent model call's cache-write TTL tier without
+reading native files.
 [Usage calculation](../../packages/oar/src/runtimes/claude/context-usage.ts),
 [test](../../tests/claude/claude-context-usage.test.ts),
 [native usage](https://code.claude.com/docs/en/agent-sdk/cost-tracking).

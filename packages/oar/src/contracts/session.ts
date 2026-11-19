@@ -19,6 +19,7 @@ export type { McpServer, SessionFork, SessionOptions } from "./session-options.j
 export type { CredentialProblem, FailedTurn, FailureClass } from "./failure.js";
 export type { ContextBreakdown, ContextCategory, ContextItem } from "./context-breakdown.js";
 export type {
+  CacheWriteByTtl,
   ContextUsage,
   ControlAction,
   ControlEventBody,

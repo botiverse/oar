@@ -87,13 +87,13 @@ test("a new session sends no get_usage and counts claude's running total from ze
   } finally { await session.dispose(); }
 });
 
-test("a get_usage refusal leaves the resumed session's total null, its usage events context only", async () => {
+test("a get_usage refusal leaves the resumed session's total null, its usage events last-call only", async () => {
   const fake = scripted((id) => ({ type: "control_response", response: { subtype: "error", request_id: id, error: "Unsupported control request subtype: get_usage" } }));
   const session = await claudeSession(installation, { cwd: process.cwd(), resume: "old-id" });
   try {
     await turn(session, fake, resumedProcess);
     expect(session.usage().value).toEqual({ total: null });
-    expect(lastUsageEvent(session)).toEqual({ kind: "usage", usage: { context: { tokens: 22_087, contextWindow: 200_000, percent: 11 } } });
+    expect(lastUsageEvent(session)).toEqual({ kind: "usage", usage: { context: { tokens: 22_087, contextWindow: 200_000, percent: 11 }, cacheWriteByTtl: { "5m": 0, "1h": 4111 } } });
     expect(fake.killed()).toBe(false);
   } finally { await session.dispose(); }
 });

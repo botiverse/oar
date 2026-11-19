@@ -103,6 +103,7 @@ export type { CompactionEvents, CredentialStore, CredentialVariable, McpToolsLis
 export type {
   AdapterSession,
   AttributionTier,
+  CacheWriteByTtl,
   ContextBreakdown,
   ContextCategory,
   ContextItem,

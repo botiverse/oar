@@ -329,3 +329,19 @@ reports `cacheRead` only.
 Grok's `cacheCreationTokens` was 0 in the one recorded ledger that carried
 it, so whether grok's `inputTokens` includes a nonzero cache write is
 unverified.
+
+`UsageReport.cacheWriteByTtl` (`{ "5m"?: number; "1h"?: number }`) carries this
+report's native TTL-split cache creation counts (not cumulative across turns),
+present only when the runtime explicitly reports a TTL tier:
+
+- **claude:** read from the latest non-synthetic root `assistant` frame's
+  `message.usage.cache_creation` (`ephemeral_5m_input_tokens` as `"5m"`,
+  `ephemeral_1h_input_tokens` as `"1h"`), emitted on the turn's `result`
+  `usage` event alongside `usage.context`. Subagent frames and turns without a
+  root model call (or after `compact_boundary` with no subsequent call) omit it.
+- **pi (SDK and RPC):** when an assistant `message_end` carries numeric
+  `usage.cacheWrite1h`, sets `{ "1h": usage.cacheWrite1h }` on that `usage`
+  event. `"5m"` is never derived from `cacheWrite - cacheWrite1h`.
+- **other runtimes:** absent (no verified native TTL split; Qoder's local
+  fixtures carry only zero placeholders and stay unmapped until verified with
+  real nonzero reports).

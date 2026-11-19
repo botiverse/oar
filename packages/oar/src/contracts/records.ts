@@ -108,20 +108,18 @@ export interface TokenTotals {
   /** The part of `input` written to the prompt cache. */
   readonly cacheWrite?: number;
 }
+/** Prompt-cache write tokens split by retention TTL for this report (not cumulative); only natively reported tiers are present. */
+export interface CacheWriteByTtl { readonly "5m"?: number; readonly "1h"?: number }
 /**
- * `context` is native context fullness; `tokens` is the running total for this record's
- * `agentPath` counted from when this Session opened, resolved by the adapter
- * (the authoritative figure, deduplication and what a resumed runtime had
- * already counted never cross this surface; docs/spec/attribution.md).
- * `total` is the session's own running total, counted the same way, where
- * the runtime reports one that covers more than its agents' figures (claude's
- * `modelUsage`: subagents, sidechains and compaction too); absent elsewhere,
- * where the agents' figures sum to the session's.
+ * `context`: native context fullness; `tokens`: running total for this record's `agentPath` since open (docs/spec/attribution.md);
+ * `total`: session running total where the runtime reports one covering more than its agents (claude `modelUsage`);
+ * `cacheWriteByTtl`: this report's native TTL-split cache creation counts, absent when unreported.
  */
 export interface UsageReport {
   readonly context?: ContextUsage;
   readonly tokens?: TokenTotals;
   readonly total?: TokenTotals;
+  readonly cacheWriteByTtl?: CacheWriteByTtl;
 }
 
 /**
