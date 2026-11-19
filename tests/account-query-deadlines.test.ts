@@ -16,7 +16,7 @@ import { qoderAuthStatus } from "../packages/oar/src/runtimes/qoder/auth-status.
 import { codebuddyAuthStatus } from "../packages/oar/src/runtimes/codebuddy/auth-status.js";
 import { factoryAuthStatus } from "../packages/oar/src/runtimes/factory/account.js";
 import { devinAuthStatus } from "../packages/oar/src/runtimes/devin/auth.js";
-import { kimiAuthStatus } from "../packages/oar/src/runtimes/kimi/auth-status.js";
+import { kimiAuthStatus, queryKimiAuth, readKimiAuthStatus } from "../packages/oar/src/runtimes/kimi/auth-status.js";
 import { fakeAgentBinary, gone, withTreeProbe } from "./fixtures/process-tree.js";
 
 const script = fileURLToPath(new URL("fixtures/stalled-account-query.mjs", import.meta.url));
@@ -41,6 +41,8 @@ const cases: readonly { name: string; stage: string; read: Read }[] = [
   { name: "Qoder status", stage: "started", read: qoderAuthStatus },
   { name: "CodeBuddy status", stage: "initialize", read: codebuddyAuthStatus },
   { name: "Devin status", stage: "started", read: devinAuthStatus },
+  { name: "Kimi initialize status", stage: "initialize", read: readKimiAuthStatus },
+  { name: "Kimi ACP authenticate status", stage: "authenticate", read: readKimiAuthStatus },
   { name: "Kimi status", stage: "authenticate", read: kimiAuthStatus },
 ];
 afterEach(() => { vi.unstubAllEnvs(); });
@@ -98,6 +100,21 @@ test.skipIf(process.platform === "win32")("login/logout's internal status reader
     });
     const tree = await probe.tree();
     expect(await result).toMatchObject({ kind: "unknown" });
+    expect(performance.now() - started).toBeGreaterThanOrEqual(TIMEOUT + GRACE - 50);
+    expect(await gone(tree.agent, 0)).toBe(true);
+    expect(await gone(tree.grandchild)).toBe(true);
+  });
+});
+
+test.skipIf(process.platform === "win32").each(["authenticate", "logout"] as const)("Kimi mutation waits for the %s query's process tree", async method => {
+  vi.stubEnv("OAR_KILL_GRACE_MS", String(GRACE));
+  await withTreeProbe({ ignoreSigterm: true, detachTool: true }, async probe => {
+    const command = fakeAgentBinary(probe.dir, [script]);
+    const started = performance.now();
+    const result = queryKimiAuth(command, method, { timeoutMs: TIMEOUT, joinCleanup: method === "authenticate",
+      env: { ...probe.env, OAR_QUERY_STAGE: method, OAR_QUERY_REQUESTS: path.join(probe.dir, "requests") } });
+    const tree = await probe.tree();
+    expect(await result).toBe("timed_out");
     expect(performance.now() - started).toBeGreaterThanOrEqual(TIMEOUT + GRACE - 50);
     expect(await gone(tree.agent, 0)).toBe(true);
     expect(await gone(tree.grandchild)).toBe(true);

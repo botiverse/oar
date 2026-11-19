@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { readFile, readdir, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { dshRuntime } from "../../packages/oar/src/runtimes/dsh/index.js";
 import { nativeRows } from "../../packages/oar/src/shared/inventory.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
@@ -55,7 +55,9 @@ describe.skipIf(!dshEnabled)("DSH native skill discovery", () => {
       await writeFile(config, JSON.stringify([...rows, ...await dshSkillProvider(f, mode)]));
       const result = await dshRuntime.skills(f.installation, { cwd: f.aimock.cwd, env, timeoutMs: 15_000 });
       const pid = Number(await readFile(path.join(f.aimock.home, "provider-entered"), "utf8"));
-      expect(() => process.kill(pid, 0)).toThrow();
+      const exited = (): void => { expect(() => process.kill(pid, 0)).toThrow(expect.objectContaining({ code: "ESRCH" })); };
+      if (mode === "hang") { await vi.waitFor(exited, { timeout: 15_000 }); }
+      else { exited(); }
       if (mode === "failure") {
         assert.equal(result.kind, "ok");
         expect(result.partial).toBe(true);

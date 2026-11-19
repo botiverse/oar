@@ -15,5 +15,5 @@ export async function kimiLogout(installation: AvailableInstallation, options: L
   const native: NativeLogout = result === "ok" ? { kind: "done" } : {
     kind: "failed", reason: result === "timed_out" ? "timed_out" : "process_failed", detail: "Kimi ACP logout did not complete",
   };
-  return confirmedLogout(native, await readKimiAuthStatus(installation, { env: options.env, ...statusAfterLogout(startedAt, options.timeoutMs) }), "kimi acp logout");
+  return confirmedLogout(native, await readKimiAuthStatus(installation, { joinCleanup: true, env: options.env, ...statusAfterLogout(startedAt, options.timeoutMs) }), "kimi acp logout");
 }

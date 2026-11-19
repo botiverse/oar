@@ -68,7 +68,7 @@ async function runKimiLogin(command: string, interaction: ProviderLoginInteracti
     process.stop(); await process.exited;
     if (!state.success) { return result; }
     if (interaction.signal?.aborted === true) { return { kind: "logged_in" }; }
-    const status = await queryKimiAuth(command, "authenticate", { env: options.env, ...(interaction.signal === undefined ? {} : { signal: interaction.signal }) }).catch(() => "failed");
+    const status = await queryKimiAuth(command, "authenticate", { joinCleanup: true, env: options.env, ...(interaction.signal === undefined ? {} : { signal: interaction.signal }) }).catch(() => "failed");
     return status === "auth_required"
       ? { kind: "failed", reason: "not_logged_in", detail: "Kimi reported login success but its authentication check still requires login" }
       : { kind: "logged_in" };

@@ -6,6 +6,10 @@ interface QueryProcess {
 
 export type OwnQueryProcess = <P extends QueryProcess>(process: P) => P;
 
+export function assertQueryTimeout(timeoutMs: number): void {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) { throw new RangeError("timeoutMs must be positive and finite"); }
+}
+
 /**
  * Bound a read from startup through cleanup. Register freshly launched children
  * with own(), even when startup resumes after the deadline. On timeout the
@@ -20,7 +24,7 @@ export async function withQueryDeadline<T>(
   timeoutResult?: T,
   signal?: AbortSignal,
 ): Promise<T> {
-  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) { throw new RangeError("timeoutMs must be positive and finite"); }
+  assertQueryTimeout(timeoutMs);
   const controller = new AbortController();
   const deadline = Promise.withResolvers<T>();
   const children = new Set<QueryProcess>();

@@ -1,4 +1,4 @@
-import { withQueryDeadline, type OwnQueryProcess } from "./executable/query.js";
+import { assertQueryTimeout, withQueryDeadline, type OwnQueryProcess } from "./executable/query.js";
 import { resolve as resolvePath } from "node:path";
 import type { InventoryOptions, InventoryResult, InventoryScope, SkillEntry } from "../contracts/inventory.js";
 import { asRecord, type JsonRecord } from "./json.js";
@@ -47,9 +47,7 @@ export function skillScope(value: unknown, mapping: Readonly<Record<string, NonN
 }
 /** Bound and classify discovery, including cleanup of any registered native children. */
 export async function inventoryRead<T>(read: (signal: AbortSignal, own: OwnQueryProcess) => Promise<InventoryResult<T>>, timeoutMs = 15_000): Promise<InventoryResult<T>> {
-  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
-    throw new RangeError("timeoutMs must be positive and finite");
-  }
+  assertQueryTimeout(timeoutMs);
   try {
     return await withQueryDeadline("Native inventory query", timeoutMs, read, unavailableInventory("timeout", "Native inventory query timed out"));
   } catch {
