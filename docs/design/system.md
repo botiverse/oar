@@ -88,7 +88,8 @@ while its readiness projection leaves selection and freshness policy to hosts.
 - **Actionability:** outcomes say whether input was accepted, whether retry is
   sensible, and who owns the next decision. Never infer this from silence.
 - **Composability:** shared mechanisms carry no runtime identity; runtime
-  policy stays local; projections consume contracts only.
+  policy stays local; projections consume contracts and Node-free shared
+  helpers, never a runtime.
 - **Boundedness:** controls are bounded and explicit; rejected input remains
   caller-owned; disposal and handoff are observable. A control may race with
   runtime progress and is not implicitly reversible.

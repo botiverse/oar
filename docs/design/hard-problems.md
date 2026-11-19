@@ -47,8 +47,9 @@ subject of [foundations.md](foundations.md).
 ## Attribution: the most underestimated part
 
 9. **Sub-agent association.** Runtimes span a spectrum: opaque (kimi's own
-   ACP adapter literally drops sub-agent events), attributed (claude/codex
-   via `parent_tool_use_id`), fully nested child sessions (grok). Every
+   ACP adapter literally drops sub-agent events), attributed within one
+   stream (claude, via `parent_tool_use_id`), fully nested child sessions
+   (codex threads, grok). Every
    application privately reinvents association, and the protocol must never
    fabricate structure a runtime doesn't expose.
 10. **Token/usage accounting.** Cumulative vs delta, child usage billed to
@@ -69,9 +70,10 @@ subject of [foundations.md](foundations.md).
     tell you this; only conformance tests against real behavior pin it down
     (see [`../../experiments/README.md`](../../experiments/README.md)).
 13. **Cancellation and steering.** Abort, steer and queue differ per
-    runtime: claude, codex, pi, cursor and grok (`_x.ai/interject`) absorb a
-    steer at the next step boundary, grok's other path (`send_now`) cancels
-    the running turn and starts a new one, and kimi, qwen, codebuddy, devin and opencode v2 before 2.2.7 cannot steer at all. Each interacts with the
+    runtime: claude, codex, pi, cursor, antigravity, qoder, factory and grok
+    (`_x.ai/interject`) absorb a steer at the next step boundary, grok's
+    other native path (`_meta.sendNow`, which OAR does not use) cancels the
+    running turn and starts a new one, and kimi, qwen, codebuddy, devin and opencode v2 before 2.2.7 cannot steer at all. Each interacts with the
     event stream differently.
 
 ## Beyond a single local process

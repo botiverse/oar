@@ -57,9 +57,11 @@ The design answer is to make death observable in the record stream itself:
 ## The honest limit
 
 oar cannot force a runtime to explain a hang. When the runtime is silent, we
-report observables (process state, last event, cursor position) and
-declare the rest unknown, rather than synthesizing a heartbeat. A fake
-"healthy" is worse than an honest "no signal since seq N".
+report what is observable: how long the running turn has been silent and
+the last record it produced (`observeStalls`), and the recorded exit or
+release when there is one. The rest is unknown, and OAR does not
+synthesize a heartbeat. A fake "healthy" is worse than an honest "silent
+for N minutes; the last record was a tool result".
 
 ## Liveness in the agent loop
 

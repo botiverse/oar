@@ -194,7 +194,11 @@ in-process `bundled` installation for the kill case), never by runtime name.
   type-erased Rust `Operator` cannot lose a method per service. TypeScript
   members can be absent, so OAR keeps the table for options only.
 - **A static declaration of what only the runtime knows at open.** ACP
-  image support comes from `initialize`, so it lives on the session.
+  image support comes from `initialize`, so it lives on the session. The
+  one exception is evidence against the native flag: grok's `initialize`
+  says `promptCapabilities.image: false` while its agent hands image blocks
+  to the model, so the grok adapter declares images from that observation
+  ([grok session](../../packages/oar/src/runtimes/grok/session.ts)).
 - **Asking before trying, as a requirement.** A host that does not need to
   decide early just calls; the typed refusal is enough.
 
