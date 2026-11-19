@@ -138,7 +138,7 @@ and the opened session stays authoritative.
 | codex | true | true |
 | cursor | true (an individual steer can still be rejected: `unsupported` with images, `runtime_refused` when the run cannot take it, as above) | true |
 | devin | false | absent: advertised by `initialize` |
-| dsh | absent: the bridge reports the agent's methods at open | false |
+| dsh | absent: the bridge reports the agent's methods at open | absent: the selected model and native attachment store determine image support |
 | factory | true | true |
 | grok | true | true |
 | kimi | false | absent: advertised by `initialize` |

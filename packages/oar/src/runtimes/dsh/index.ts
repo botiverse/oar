@@ -8,7 +8,8 @@ import { DSH_MINIMUM_VERSION } from "./version.js";
 
 export const dshRuntime = defineRuntime({
   id: "dsh",
-  sessionCapabilities: (installation) => ({ images: false, refusedSessionOptions: dshDirectoryRefusal(installation.via === "executable" ? installation.version : undefined) }), brand: runtimeBrands.dsh,
+  manualCompaction: { kind: "supported", activeTurn: "reject" },
+  sessionCapabilities: (installation) => ({ compactionEvents: { started: true, ended: true }, refusedSessionOptions: dshDirectoryRefusal(installation.via === "executable" ? installation.version : undefined) }), brand: runtimeBrands.dsh,
   minVersion: DSH_MINIMUM_VERSION,
   refusedSessionOptions: dshRefusedSessionOptions,
   resumedSessionOptions: {

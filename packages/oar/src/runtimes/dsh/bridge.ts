@@ -1,3 +1,4 @@
+import { dshInputSource } from "./bridge-input.js";
 import { dshControlSource } from "./bridge-controls.js";
 import { dshGoalSource } from "./bridge-goal.js";
 import { dshPromptSource } from "./bridge-prompt.js";
@@ -61,10 +62,7 @@ function requireMethod(target, key, capability) {
   }
 }
 
-function userMessage(text, inputId) {
-  const id = inputId ?? randomUUID();
-  return Object.freeze({ id, role: "user", content: Object.freeze([Object.freeze({ type: "text", text })]), source: Object.freeze({ kind: "user" }) });
-}
+
 
 export function apply(ctx, config) {
   const loader = ctx.get("loader");
@@ -111,11 +109,13 @@ ${dshControlSource}
   ctx.on("agent/error", ({ agent, turn, step, error }) => { write({ type: "native", channel: "agent/error", sessionId: agent.session.id, turn, step, error: structured(error) }); });
   for (const channel of ["subagent/start", "subagent/end"]) { ctx.on(channel, (info) => { write({ type: "native", channel, info }); }); }
 
-  const opened = (handle) => {
+${dshInputSource}
+  const opened = async (handle, route) => {
     const { agent } = handle;
     handles.set(agent.session.id, handle);
+    routes.set(agent, route);
     const modelCurrent = typeof agent.model?.current === "function";
-    return { sessionId: agent.session.id, header: agent.session.header, status: agent.status,
+    return { compact: typeof ctx.get("compaction")?.compactNow === "function", imageTypes: await imageTypes(agent), sessionId: agent.session.id, header: agent.session.header, status: agent.status,
       jobMethods: methods(jobs, ["get", "kill", "wait"]),
       methods: methods(agent, AGENT_METHODS), inboxMethods: methods(agent.inbox, INBOX_METHODS),
       pending: { nextTurn: agent.inbox?.nextTurn?.length, nextStep: agent.inbox?.nextStep?.length },
@@ -162,7 +162,7 @@ ${dshGoalSource}
       requireMethod(agents, "create", "opening a session");
       const explicit = request.agentOptions ?? {};
       const route = await validated(explicit.provider === undefined ? { ...defaultRoute(), ...explicit } : explicit, explicit);
-      return opened(await agents.create({ sessionId: request.sessionId, meta: { cwd: request.cwd }, agentOptions: route, setup: (_ctx, agent) => configureSession(agent, request) }));
+      return opened(await agents.create({ sessionId: request.sessionId, meta: { cwd: request.cwd }, agentOptions: route, setup: (_ctx, agent) => configureSession(agent, request) }), route);
     },
     // The saved header and route, read without taking the session over.
     async peek(request) {
@@ -192,32 +192,11 @@ ${dshGoalSource}
       } });
       // Releases with a recorded selection keep the saved route over these options unless told otherwise.
       if ((explicit.provider !== undefined || explicit.reasoningEffort !== undefined) && typeof handle.agent.model?.select === "function") { handle.agent.model.select(route); }
-      return opened(handle);
+      return opened(handle, route);
     },
-    prompt(request) {
-      const { agent } = owned(request.sessionId);
-      requireMethod(agent, "followup", "prompt");
-      if (agent.status !== "idle") { throw refusal("busy", "busy"); }
-      const message = userMessage(request.text, request.inputId);
-      cause = "prompt";
-      try { agent.followup(message); } finally { cause = undefined; }
-      return { messageId: message.id };
-    },
-    queue(request) {
-      const { agent } = owned(request.sessionId);
-      requireMethod(agent, "followup", "queue");
-      const message = userMessage(request.text, request.inputId);
-      agent.followup(message);
-      return { messageId: message.id };
-    },
-    steer(request) {
-      const { agent } = owned(request.sessionId);
-      requireMethod(agent, "steer", "steer");
-      if (agent.status === "idle") { throw refusal("no_active_turn", "no active turn"); }
-      const message = userMessage(request.text, request.inputId);
-      agent.steer(message);
-      return { messageId: message.id };
-    },
+    prompt: request => admitInput("prompt", request),
+    queue: request => admitInput("queue", request),
+    steer: request => admitInput("steer", request),
     withdraw(request) {
       const { agent } = owned(request.sessionId);
       requireMethod(agent.inbox, "remove", "withdraw");

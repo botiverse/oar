@@ -30,7 +30,25 @@ export const dshControlSource = String.raw`
     }
   };
 
+  const compacting = new Map();
   const sessionControls = {
+    async compact(request) {
+      const { agent } = owned(request.sessionId);
+      const service = ctx.get("compaction");
+      requireMethod(service, "compactNow", "manual compaction");
+      if (agent.status !== "idle" || agent.inbox?.nextTurn?.length || admissions.has(agent) || compacting.has(agent)) throw refusal("busy", "DSH has pending input or an active operation");
+      const controller = new AbortController();
+      compacting.set(agent, controller);
+      try { return { result: await service.compactNow(agent, controller.signal, request.commandId) }; }
+      finally { compacting.delete(agent); }
+    },
+    cancelCompaction(request) {
+      const { agent } = owned(request.sessionId);
+      const controller = compacting.get(agent);
+      if (!controller) throw refusal("busy", "No live native compaction target");
+      controller.abort();
+      return {};
+    },
     async stopTask(request) {
       const { agent } = owned(request.sessionId);
       const owner = agent.session.id;
