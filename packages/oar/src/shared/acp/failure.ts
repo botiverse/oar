@@ -76,7 +76,7 @@ export async function acpOpenStep<T>(step: Promise<T>, kind: "open" | "model", r
 }
 
 /** Reads a failed prompt the generic rules do not: grok's codes and its retry notifications. */
-export type AcpFailureReader = (error: unknown, turnFrames: readonly FrameBody[]) => TurnOutcome | null;
+export type AcpFailureReader = (error: unknown, turnFrames: readonly FrameBody[], receivedAt?: number) => TurnOutcome | null;
 
 /** An RPC error's words: its message, and its `data` when that is text (grok puts the provider's answer there). */
 export function acpErrorReason(error: unknown): string {
@@ -88,7 +88,7 @@ export function acpErrorReason(error: unknown): string {
 }
 
 /** The outcome a rejected prompt request reports (an RPC error answer). */
-export function acpFailureOutcome(error: unknown, turnFrames: readonly FrameBody[] = [], reader?: AcpFailureReader): TurnOutcome {
+export function acpFailureOutcome(error: unknown, turnFrames: readonly FrameBody[] = [], reader?: AcpFailureReader, receivedAt = Date.now()): TurnOutcome {
   const reason = acpErrorReason(error);
   if (error instanceof AcpError && error.kind === "process_exited") {
     return { kind: "failed", reason, failure: "runtime_exited" };
@@ -96,5 +96,5 @@ export function acpFailureOutcome(error: unknown, turnFrames: readonly FrameBody
   if (rpcErrorCode(error) === AUTH_REQUIRED) {
     return { kind: "failed", reason, failure: "auth" };
   }
-  return reader?.(error, turnFrames) ?? { kind: "failed", reason, failure: classifyFailure(reason) };
+  return reader?.(error, turnFrames, receivedAt) ?? { kind: "failed", reason, failure: classifyFailure(reason) };
 }

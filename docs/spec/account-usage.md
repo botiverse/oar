@@ -97,7 +97,9 @@ currently supplies it from its default `codex` bucket (or the legacy unnamed
 account view), never by adding model buckets' balances. A host can display
 the full subscription window alongside remaining credits. Usable credits
 clear that bucket's limit flag even when the window remains full; a separate
-model bucket can still report its own refusal.
+model bucket can still report its own refusal. Antigravity supplies the numeric
+`remaining_credits` as a decimal string when all model groups are exhausted
+and its separate `/credits` call returns a balance.
 
 ## Limit resets
 
@@ -397,9 +399,10 @@ used-up bucket and agy's own `/credits` answer (`-p "/credits" --output-format j
 `command.data.remaining_credits`, recorded from the same signed-in 1.5.7)
 reports none left (AI credits
 can carry a model past its quota where the account turned them on). Only
-then is `/credits` asked; when it ends without a readable balance,
-`rateLimited` stays false, and when it hangs, the read rejects at its
-deadline like any other stalled query. One used-up group shows in its windows, not in `rateLimited`.
+when all groups are exhausted does OAR ask for `/credits`. A positive balance
+sets `credits.available` to true. Zero yields `{ available: false, balance: "0" }`.
+When the reply lacks a numeric balance, OAR omits `credits` and leaves
+`rateLimited` false. A stalled query rejects at its deadline. One used-up group shows in its windows, not in `rateLimited`.
 
 Factory account usage is droid's own usage screen's `GET
 <api>/api/billing/limits` (droid 1.12.1 bundle), sent with the credential

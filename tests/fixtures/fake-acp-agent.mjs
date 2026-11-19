@@ -96,7 +96,7 @@ function handleSessionPrompt(message) {
   if (refusePrompt({ text, pending: pendingPrompts, id: message.id, result, error })) {
     return;
   }
-  if (antigravity && replacingPrompt(text, message, { pendingPrompts, result, error })) { return; }
+  if (antigravity && replacingPrompt(text, message, { pendingPrompts, result, error, update })) { return; }
   if (mergedOpencodePrompt(mode, { text, message, pendingPrompts, update, result })) { return; }
   if (text === "hold" || text === "hold-idle" || text === "steer-base" || text === "grok-steer-base") {
     pendingPrompts.set(message.id, text);

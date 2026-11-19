@@ -91,7 +91,10 @@ export function projectAntigravityCredits(payload: unknown): number | null {
  */
 export function projectAntigravityUsage(payload: unknown, remainingCredits?: number | null): AccountUsageSnapshot {
   const reading = readUsage(payload);
-  return { kind: "available", rateLimited: reading.everyGroupExhausted && remainingCredits === 0, windows: reading.windows };
+  return {
+    kind: "available", rateLimited: reading.everyGroupExhausted && remainingCredits === 0, windows: reading.windows,
+    ...(remainingCredits === undefined || remainingCredits === null ? {} : { credits: { available: remainingCredits > 0, balance: String(remainingCredits) } }),
+  };
 }
 
 /** Quota through agy's own `/usage` answer, after its login check; no credential read, no HTTP call of OAR's. */

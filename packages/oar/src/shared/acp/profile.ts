@@ -3,7 +3,7 @@
 import type { CompactionOperation } from "../manual-compaction.js";
 import type { SessionKernel } from "../session-kernel.js";
 import { methods } from "@agentclientprotocol/sdk";
-import type { ContextUsage, RuntimeEventBody, SessionCapabilities, SessionOptions, TokenTotals, TurnOutcome } from "../../contracts/session.js";
+import type { ContextUsage, RawEvent, RuntimeEventBody, SessionCapabilities, SessionOptions, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import { initializeAcpConnection } from "./initialize.js";
 import type { AcpDerivedSessionHooks } from "./derived-sessions.js";
@@ -107,7 +107,7 @@ export interface AcpSessionProfile extends AcpDerivedSessionHooks, AcpSteerReque
   readonly promptTokenUsage?: (response: JsonRecord) => TokenTotals | null;
   /** Independent root ledger, never overlapping promptTokenUsage: `sentByOar` names prompts whose answer already carries their tokens. The native key deduplicates delivery; replayed reports only remember that identity. Child notifications are excluded by the recorder. */
   readonly spontaneousTokenUsage?: (method: string, params: JsonRecord, sentByOar: (promptId: string) => boolean) => { readonly key: string; readonly tokens: TokenTotals; readonly replayed?: boolean } | null;
-  readonly promptOutcome?: (response: JsonRecord) => TurnOutcome | null;
+  readonly promptOutcome?: (response: JsonRecord, turnRecords: () => readonly RawEvent[]) => TurnOutcome | null;
   /** Classify a rejected open or model-selection RPC; null leaves it to the generic rules (failure.ts). */
   readonly openFailure?: AcpOpenFailureReader;
   /** Classify a prompt the agent answered with an error, from the error and the turn's frames; null leaves it to the generic rules (failure.ts). */

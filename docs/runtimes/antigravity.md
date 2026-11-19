@@ -61,6 +61,26 @@ Implementation: [profile](../../packages/oar/src/runtimes/antigravity/session.ts
 [turn handling](../../packages/oar/src/shared/acp/turns.ts) and
 [projection](../../packages/oar/src/shared/acp/projection.ts).
 
+## Gemini quota notices and whole-turn usage
+
+agy 1.5.12 can end a refused turn with a normal `end_turn`. OAR reports
+`failure: "quota"` when the entire output is agy's exact “Individual quota
+reached” notice with its reset countdown and the prompt response omits
+`usage`. The native notice has no structured failure code. Its countdown
+starts at receipt of the last notice chunk. A prompt RPC error carrying the
+same reset sentence also supplies `resetsAt`. The estimate has the precision
+of the smallest unit agy prints. For example, `4h12m` can put the estimate
+up to a minute early, and an hours-only countdown up to an hour early.
+A retry at that time can still meet the same limit. Other text, tool
+activity, or a reply with usage leaves an ordinary `end_turn` completed.
+
+Gemini's prompt response reports spend across the turn's model calls. OAR
+accumulates `totalTokens - outputTokens` as input, including cache reads,
+and counts `thoughtTokens` within output. Each reported zero cache-write
+count stays zero. Nonzero cache writes have no verified accounting on this
+path. Context updates remain independent of these totals.
+[Native counts, local controls and replay](../../experiments/antigravity-prompt-usage/README.md).
+
 ## Unsolicited activity in CLI 1.5.10 and 1.5.11
 
 [Isolated local-provider controls](../../experiments/antigravity-active-turns/README.md)
@@ -83,8 +103,9 @@ Google-login account tests:
 - **Failed turns look completed.** After a successful MCP call, injected
   401 `invalid_token`, 429 quota/rate-limit, HTTP 504 and cut SSE responses
   produce warning text followed by `end_turn`. OAR records `completed` and
-  retains the original warning in its records. It does not classify text
-  warnings or map an unobserved `refusal` to quota. Tracked upstream in
+  retains the original warning in its records. For the account-level notice,
+  see [Gemini quota notices](#gemini-quota-notices-and-whole-turn-usage).
+  The provider failures are tracked in
   [antigravity-cli#1570](https://github.com/google-antigravity/antigravity-cli/issues/1570).
 - **Background completion is absent from the observed ACP stream.** A
   `run_command` outlived `end_turn`, finished, and triggered another model
