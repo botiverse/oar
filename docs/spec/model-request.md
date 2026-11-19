@@ -19,11 +19,11 @@ OAR offers one surface for it: a session opened with `modelRequests:
 
 ```ts
 // SessionOptions
-/** Keep the most recent model request for `Session.lastModelRequest()`. Refused where the runtime exposes no request (`refusedSessionOptions.modelRequests`). */
+/** Keep the most recent model request for `Session.lastModelRequest()`. Refused where the runtime exposes no request (`refusedSessionOptions.modelRequests`, a new `RefusableSessionOption`). */
 readonly modelRequests?: "latest";
 
 // Session, present only on a session opened with modelRequests
-/** The most recent main-loop request the root agent sent to its model in this open; null before the first one, from the start of a dispose, and once the process has exited. */
+/** The most recent main-loop request the root agent sent to its model in this open; null before the first one, from the start of a dispose, and once the process has exited; rejects when a main-loop response arrived without its body. */
 lastModelRequest?(): Promise<ModelRequest | null>;
 
 export interface ModelRequest {
@@ -104,13 +104,23 @@ export interface ModelRequest {
   grow the stream with the square of the conversation length. Reading must
   not block the session's control channel: a runtime in a child process
   keeps the body there or in its file until it is read.
-- **One session per capture.** `modelRequests` with `placement: "shared"` is
-  refused unless the runtime attributes each request to its session; a
-  process-wide switch (an environment variable, a startup flag) is never set
-  for a shared process.
-- **Body only.** OAR never captures transport headers. Credentials OAR knows
-  of (the ones it redacts elsewhere) are redacted from string values before
-  the body is returned.
+- **One session per capture.** A process-wide switch (an environment
+  variable, a startup flag) is never set for a shared process. Unless the
+  runtime attributes each request to its session, a session opened with
+  `modelRequests` runs in its own process: `placement: "auto"` selects
+  isolated, and `placement: "shared"` is refused as a placement
+  (`UnsupportedOptionError` naming `placement`). The option's own refusal
+  stays a per-installation declaration that does not depend on placement.
+- **Checked, never assumed.** Where the user's or the project's
+  configuration can redirect or disable the mechanism, OAR sets it at the
+  highest precedence it controls without writing user configuration. A
+  main-loop response that completes with no body where OAR pointed the
+  runtime makes `lastModelRequest()` reject with the cause, rather than
+  return an older request or `null`.
+- **Body only.** OAR never captures transport headers. The body passes
+  through the session's credential redactor
+  ([`shared/credential-redactor.ts`](../../packages/oar/src/shared/credential-redactor.ts))
+  before it is returned, as every other value OAR returns does.
 - **OAR cleans up what it enables.** Where a runtime dumps bodies to files,
   OAR points it at a directory it creates for that session, readable only by
   the user (0700) and outside the session's working directory, removes older
@@ -127,8 +137,8 @@ been run; each "to verify" item must be checked live before the runtime ships.
 
 | runtime | mechanism | to verify |
 | --- | --- | --- |
-| claude | `OTEL_LOG_RAW_API_BODIES=file:<dir>` (`[sym]`). Each request writes `<uuid>.request.json` when the request is built, before the response, with no rename, so a reader can meet it half written. After the response claude writes `<request_id>.response.json` and appends one line to `index.jsonl` naming the request file, `session_id` and `query_source`. The request file itself carries no source. Main loop: `query_source` `repl_main_thread*` or `sdk`; sub-agents `agent:*`; auxiliary calls name their own source (`compact`, `generate_session_title`, classifiers, memory extraction and others). File mode needs no telemetry exporter. Thinking text is replaced with `<REDACTED>`; memory operations and a summary with account memory are withheld whole. Claude creates a missing directory with default permissions and never deletes files. Any other truthy value selects inline mode, which puts bodies in the telemetry event; OAR never uses it | the main-loop source under OAR's stream-json launch (`sdk` expected); that a settings `env` entry cannot override OAR's value (the variable is in claude's settings-env lists); the disabling `diskless` launch gate; first version (2.1.304 and 2.1.322 have the same code; 2.1.292 not checked) |
-| pi | extension event `before_provider_request` (`[src]` pi-coding-agent `extensions/runner.js`), wired as the Agent's `onPayload`. Every provider adapter calls it with its built request, and the Anthropic adapter calls it before `prepareThreadRequest` trims to a thread delta. A handler's return value replaces the body, so OAR's handler returns nothing. Cache warming and compaction call the model directly, without the Agent's `onPayload` | whether `buildParams` with message threads already shapes a partial history; that no title or summary call reaches `onPayload`. In RPC mode the event runs in the pi child, and the JSON-line stdout carries every control response, so a body must leave through a side channel (a file or a separate pipe), never that line |
+| claude | `OTEL_LOG_RAW_API_BODIES=file:<dir>` (`[sym]`). Each request writes `<uuid>.request.json` when the request is built, before the response, with no rename, so a reader can meet it half written. After the response claude writes `<request_id>.response.json` and appends one line to `index.jsonl` naming the request file, `session_id` and `query_source`. The request file itself carries no source. Main loop: `query_source` `sdk` under OAR's stream-json launch (`repl_main_thread*` in the interactive REPL), the two claude itself classifies as main; sub-agents `agent:builtin:<type>`, `agent:custom:<type>`, `agent:default` and `hook_agent`; auxiliary calls name their own source (`compact`, `generate_session_title`, classifiers, memory extraction and others). File mode needs no telemetry exporter. Thinking text is replaced with `<REDACTED>`; memory operations and a summary with account memory are withheld whole. Claude creates a missing directory with default permissions and never deletes files. Settings `env` entries are written over the launch environment, so a user's or trusted project's settings would replace a value OAR put in the process environment; OAR passes the variable in the `env` of the `--settings` it already sends, which ranks above user, project and local settings (`[doc]`), leaving managed policy as the only override. The gate that disables the mechanism is `diskless`, which only an embedding claude-code-server sets; a CLI launch is never diskless. Any other truthy value selects inline mode, which puts bodies in the telemetry event; OAR never uses it | that the `--settings` `env` entry wins over project and local settings in the binary's source order, not only in the docs; first version (2.1.304 and 2.1.322 have the same code; 2.1.292 not checked) |
+| pi | extension event `before_provider_request` (`[src]` pi-coding-agent `extensions/runner.js`), wired as the Agent's `onPayload`. Every provider adapter calls it with its built request. The Anthropic adapter builds the full history, system prompt and tools whether or not message threads are on (the flag only adds a beta header), calls the hook, and only then lets `prepareThreadRequest` trim to a thread delta. A handler's return value replaces the body, so OAR's handler returns nothing. Only the main loop passes `onPayload`: compaction and branch summaries build their options without it, cache warming calls the model runtime directly, and 1.5.2 makes no title call. In RPC mode the event runs in the pi child, and the JSON-line stdout carries every control response, so a body leaves through a side channel (a file or a separate pipe), never that line | a live run: one hook call per main-loop request and none for compaction (`[env]`) |
 | opencode 2.x | plugin hook `http.request`, through the config OAR already passes in `OPENCODE_CONFIG_CONTENT` | every provider passes through the hook; auxiliary calls (titles, summaries) distinguishable; how a large body leaves the server process |
 | codex | `CODEX_ROLLOUT_TRACE_ROOT` rollout trace | payload shape; whether WebSocket incremental requests leave a full body to read; auxiliary calls distinguishable |
 | qwen | `--openai-logging` | OpenAI-compatible providers only; whether the log directory can be per session; whether background memory extraction lands in the same log |
