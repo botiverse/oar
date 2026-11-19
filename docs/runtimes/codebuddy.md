@@ -100,7 +100,9 @@ sessions. `fork`, `goals`, `endTurnProcessesOnAbort`, additional directories,
 service tier, final-output schema, session name, appended system prompt and
 `userConfiguration: "exclude"` are refused before opening
 ([declarations](../../packages/oar/src/runtimes/codebuddy/options.ts)). Omission or `include` retains the native defaults.
-Transport, permission and session-identity flags cannot override OAR through
+Transport, permission, session-identity, model, system-prompt and `--` flags
+(including `--flag=value`, attached short flags and camelCase aliases; see
+[options.ts](../../packages/oar/src/runtimes/codebuddy/options.ts)) cannot override OAR through
 `launchArgs`. Other native launch arguments keep their native semantics.
 `manualCompaction` is declared `unsupported`: the published compact method is not
 implemented by the tested CLI, and slash-command completion is unverified.

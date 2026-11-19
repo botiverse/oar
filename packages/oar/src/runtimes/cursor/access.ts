@@ -1,8 +1,8 @@
 import type { OwnQueryProcess } from "../../shared/executable/query.js";
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type { SessionOptions } from "../../contracts/session.js";
-import { sessionCredentialRedactor } from "../../shared/credential-redactor.js";
-import { environmentValue, sessionEnvironment } from "../../shared/environment.js";
+import { readEnvironmentCredential, rememberEnvironmentCredentials, sessionCredentialRedactor } from "../../shared/credential-redactor.js";
+import { sessionEnvironment } from "../../shared/environment.js";
 import { cursorRefusedSessionOptions, cursorSubprocessRefusedSessionOptions } from "./model.js";
 import { cursorSdkLoader, type CursorSdk } from "./sdk.js";
 import { openCursorChannel, type CursorChildExit } from "./subprocess/channel.js";
@@ -83,7 +83,7 @@ export function subprocessAccess(sdkModule: string, envBase: "inherit" | "clean"
     environment,
     async lease(overlay, use, own) {
       const env = environment(overlay);
-      const apiKey = environmentValue(env, "CURSOR_API_KEY");
+      const apiKey = readEnvironmentCredential(env, "CURSOR_API_KEY");
       const childEnv = apiKey === undefined ? env : sessionEnvironment({ CURSOR_API_KEY: null }, env);
       const channel = await openCursorChannel(sdkModule, childEnv, use === "session", own);
       return { sdk: proxySdk(channel, apiKey), env, child: channel, release: async () => { const exit = await channel.stop(); return exit; } };
@@ -95,13 +95,17 @@ export function cursorSdkAccess(source: CursorSdkSource): CursorSdkAccess {
   return typeof source === "function" ? inProcessAccess(source) : source;
 }
 
+export const CURSOR_CREDENTIAL_ENV = ["CURSOR_API_KEY"] as const;
+
 /**
  * Redaction for one model listing, login, logout or status call: the
- * credentials in that call's `env` (`CURSOR_API_KEY` among them, whatever
- * its shape), the same rules sessions apply to `SessionOptions.env`.
+ * credentials in that call's `env` (`CURSOR_API_KEY` among them, including
+ * when inherited by the access mode), the same rules sessions apply.
  */
-export function callRedaction(env: SessionOptions["env"]): <T>(value: T) => T {
-  return sessionCredentialRedactor(env === undefined ? {} : { env }).redactValue;
+export function callRedaction(env: SessionOptions["env"], effectiveEnv: Readonly<NodeJS.ProcessEnv> = sessionEnvironment(env)): <T>(value: T) => T {
+  const redactor = sessionCredentialRedactor(env === undefined ? {} : { env });
+  rememberEnvironmentCredentials(redactor, effectiveEnv, CURSOR_CREDENTIAL_ENV);
+  return redactor.redactValue;
 }
 
 /** Use a lease and release it; a lease that cannot be had is `{ failed }` with its reason. */

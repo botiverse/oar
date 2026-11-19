@@ -3,11 +3,12 @@ import { withQueryDeadline, type OwnQueryProcess } from "../../shared/executable
 import { randomUUID } from "node:crypto";
 import type { ListModelsResult, ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import type { SessionOptions } from "../../contracts/session.js";
+import { sessionCredentialRedactor } from "../../shared/credential-redactor.js";
 import { effortLevelsOf } from "../../shared/effort-levels.js";
 import { asRecord, asRecordList, parseJson, type JsonRecord } from "../../shared/json.js";
 import { listingCwd } from "../../shared/listing-cwd.js";
 import { launchQoder, closeQoder } from "./launch.js";
-import { qoderControl } from "./control.js";
+import { qoderControl, rememberQoderSecrets } from "./control.js";
 import { readQoderAuthStatus } from "./auth-status.js";
 import { qoderVersionInfo } from "./protocol.js";
 
@@ -51,15 +52,18 @@ export async function readQoderModels(command: string, options: SessionOptions, 
 }
 
 async function readModels(command: string, options: SessionOptions, timeoutMs: number, version: string | undefined, signal: AbortSignal, own: OwnQueryProcess): Promise<ModelEntry[]> {
-  const child = await launchQoder(command, randomUUID(), options, version, { signal, own });
-  const control = qoderControl(child, () => {}, timeoutMs);
-  child.onLine((line) => { const message = asRecord(parseJson(line)); if (message !== null) { control.consume(message); } });
-  child.onExit(control.end);
+  const credentials = sessionCredentialRedactor(options);
   try {
-    await control.request({ subtype: "initialize" });
-    const answer = await control.request({ subtype: "get_models", fetchStrategy: "live" });
-    return projectQoderModels(asRecord(answer.response)?.response, child.qoderVersion);
-  } finally { control.end(); await closeQoder(child); }
+    const child = await launchQoder(command, randomUUID(), options, version, { signal, own }, credentials);
+    const control = qoderControl(child, (value) => { rememberQoderSecrets(value, credentials.add); }, timeoutMs);
+    child.onLine((line) => { const message = asRecord(parseJson(line)); if (message !== null) { control.consume(message); } });
+    child.onExit(control.end);
+    try {
+      await control.request({ subtype: "initialize" });
+      const answer = await control.request({ subtype: "get_models", fetchStrategy: "live" });
+      return projectQoderModels(asRecord(answer.response)?.response, child.qoderVersion);
+    } finally { control.end(); await closeQoder(child); }
+  } catch (error) { throw credentials.redactValue(error); }
 }
 
 export const qoderListModels: ModelLister = async (installation, options = {}) => {

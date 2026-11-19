@@ -45,7 +45,7 @@ export function cursorListModelsWith(source: CursorSdkSource): ModelLister {
       return { kind: "unsupported", reason: "cursor model listing needs the bundled @cursor/sdk" };
     }
     // Its answer and errors (with their cause, and a child's stderr tail) go through the call's credentials.
-    const clean = callRedaction(options.env);
+    const clean = callRedaction(options.env, access.environment(options.env));
     try {
       return await withQueryDeadline("Cursor model listing", options.timeoutMs ?? 15_000, async (signal, own) => {
         const lease = await access.lease(options.env, "call", own);

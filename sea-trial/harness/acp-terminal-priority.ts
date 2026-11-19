@@ -55,7 +55,7 @@ export async function probeTerminalPriority(id: RuntimeId): Promise<{ runtime: R
     const wrapper = path.join(home, "agent-wrapper.sh");
     await writeFile(wrapper, `#!/bin/sh\nprintf '%s\\n' ${String(agentScore)} > /proc/self/oom_score_adj || exit 1\nprintf '%s\\n' "$$" > ${quote(agentFile)}\nexec ${quote(installation.command)} "$@"\n`);
     await chmod(wrapper, 0o700);
-    session = await runtime.session({ ...installation, command: wrapper }, { cwd: home, env: provider.env, ...(id === "codebuddy" ? { launchArgs: ["--model", "deepseek-flash"] } : {}) });
+    session = await runtime.session({ ...installation, command: wrapper }, { cwd: home, env: provider.env, ...(id === "codebuddy" ? { model: "deepseek-flash" } : {}) });
     const agentPid = Number((await readFile(agentFile, "utf8")).trim());
     const actualAgentScore = Number((await readFile(`/proc/${String(agentPid)}/oom_score_adj`, "utf8")).trim());
     const outcome = await promptAndWait(session, "ACP_PRIORITY_PROBE", { timeoutMs: 45_000 });

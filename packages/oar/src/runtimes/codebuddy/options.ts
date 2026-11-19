@@ -1,6 +1,6 @@
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type { SessionOptions } from "../../contracts/session.js";
-import { UnsupportedOptionError } from "../../contracts/errors.js";
+import { checkManagedLaunchArgs } from "../../shared/launch-args.js";
 
 export const codebuddyRefusedSessionOptions: RefusedSessionOptions = {
   fork: "OAR has not verified a native CodeBuddy fork that opens a copy of a saved session under a new id, cut after a chosen turn",
@@ -14,11 +14,13 @@ export const codebuddyRefusedSessionOptions: RefusedSessionOptions = {
   additionalDirectories: "CodeBuddy ACP does not advertise additionalDirectories",
 };
 
+const CODEBUDDY_MANAGED_LAUNCH_ARGS = new Set([
+  "--acp", "--acp-transport", "--serve", "--print", "-p", "--input-format", "--output-format",
+  "--resume", "-r", "--continue", "-c", "--session-id", "--fork-session",
+  "--permission-mode", "--permission-mode-before-plan",
+  "--model", "-m", "--system-prompt", "--system-prompt-file", "--append-system-prompt", "--append-system-prompt-file", "--",
+]);
+
 export function checkCodebuddyLaunchArgs(args: SessionOptions["launchArgs"]): void {
-  const managed = new Set(["--acp", "--acp-transport", "--serve", "--print", "-p", "--input-format", "--output-format",
-    "--resume", "-r", "--continue", "-c", "--session-id", "--fork-session", "--permission-mode", "--permission-mode-before-plan", "--system-prompt", "--system-prompt-file", "--"]);
-  for (const arg of args ?? []) {
-    const flag = arg.split("=", 1)[0] ?? arg;
-    if (managed.has(flag)) { throw new UnsupportedOptionError("launchArgs", `CodeBuddy launchArgs cannot override ${flag}; OAR owns the protocol and session identity`); }
-  }
+  checkManagedLaunchArgs(args, CODEBUDDY_MANAGED_LAUNCH_ARGS, (flag) => `CodeBuddy launchArgs cannot override ${flag}; OAR owns the protocol, session identity, model and system prompt`, { camelCase: true });
 }

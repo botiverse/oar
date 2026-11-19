@@ -201,6 +201,6 @@ export function cursorLoginWith(source: CursorSdkSource): RuntimeLogin {
       return login;
     });
     // Details can carry the SDK's or the child's words: redacted with the call's credentials too.
-    return callRedaction(options.env)("failed" in result ? { kind: "failed", reason: "process_failed", detail: new LoginSecrets().line(result.failed) } : result);
+    return callRedaction(options.env, access.environment(options.env))("failed" in result ? { kind: "failed", reason: "process_failed", detail: new LoginSecrets().line(result.failed) } : result);
   };
 }

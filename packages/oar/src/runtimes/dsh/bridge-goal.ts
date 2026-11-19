@@ -7,20 +7,20 @@ export const dshGoalSource = String.raw`
     }
     return goals;
   };
-  const observeGoal = (agent, goals) => {
+  const observeGoal = (agent, goals, operation) => {
     const goal = goals.get(agent) ?? null;
-    write({ type: "native", channel: "goal/read", sessionId: agent.session.id, goal });
+    write({ type: "native", channel: "goal/read", operation, sessionId: agent.session.id, goal });
     return { goal };
   };
   const goalCommands = {
     goalConfirm() { goalService(); return {}; },
-    goalRead(request) { return observeGoal(owned(request.sessionId).agent, goalService()); },
+    goalRead(request) { return observeGoal(owned(request.sessionId).agent, goalService(), "read"); },
     goalClear(request) {
       const { agent } = owned(request.sessionId);
       const goals = goalService();
       const current = goals.get(agent);
       if (current !== undefined) { goals.clear(agent, current); }
-      return observeGoal(agent, goals);
+      return observeGoal(agent, goals, "clear");
     },
     goalSet(request) {
       const { agent } = owned(request.sessionId);
@@ -32,10 +32,14 @@ export const dshGoalSource = String.raw`
       } else if (current.objective !== options.objective) {
         current = goals.edit(agent, current, { objective: options.objective });
       }
+      if (current === undefined || current === null) {
+        observeGoal(agent, goals, "set");
+        throw refusal("runtime_refused", "DSH did not report a valid goal observation");
+      }
       if (options.status === "active" && (current.phase !== "active" || current.activation !== "armed")) { goals.resume(agent, current); }
       if (options.status === "paused" && current.phase !== "paused") { goals.pause(agent, current); }
       if (options.status === "complete" && current.phase !== "complete") { goals.complete(agent, current); }
-      return observeGoal(agent, goals);
+      return observeGoal(agent, goals, "set");
     },
   };
 `;

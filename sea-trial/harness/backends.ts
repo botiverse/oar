@@ -140,8 +140,8 @@ export async function selectBackend(target: string): Promise<Backend> {
         },
         session: async (installation, options) => {
           const session = await codebuddyRuntime.session(installation, {
-          ...options, cwd: aimock.cwd, env: { ...options.env, ...aimock.env },
-          launchArgs: ["--model", "deepseek-flash", ...options.launchArgs ?? []],
+            ...options, cwd: aimock.cwd, env: { ...options.env, ...aimock.env },
+            model: options.model ?? "deepseek-flash",
           });
           return session;
         },

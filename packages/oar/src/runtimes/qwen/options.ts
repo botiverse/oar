@@ -1,5 +1,5 @@
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
-import { UnsupportedOptionError } from "../../contracts/errors.js";
+import { checkManagedLaunchArgs } from "../../shared/launch-args.js";
 
 export const qwenRefusedSessionOptions: RefusedSessionOptions = {
   fork: "OAR has not verified a native Qwen fork that opens a copy of a saved session under a new id, cut after a chosen turn",
@@ -11,22 +11,17 @@ export const qwenRefusedSessionOptions: RefusedSessionOptions = {
   name: "Qwen's stream-json interface does not expose a session-name readback",
 };
 
+const QWEN_MANAGED_LAUNCH_ARGS = new Set([
+  "--input-format", "--output-format", "--channel", "--approval-mode", "--yolo", "-y",
+  "--include-partial-messages", "--no-include-partial-messages",
+  "--session-id", "--resume", "-r", "--continue", "-c", "--fork-session", "--acp",
+  "--prompt", "-p", "--json-schema", "-o", "--prompt-interactive", "-i",
+  "--model", "-m", "--system-prompt", "--append-system-prompt",
+  "--experimental-acp", "--json-fd", "--json-file", "--input-file",
+  "--sandbox-session-id", "--list-extensions", "-l", "--",
+]);
+
 /** A second protocol, identity, or approval selector would invalidate the session OAR opens. */
 export function checkQwenLaunchArgs(args: readonly string[] | undefined): void {
-  const managed = new Set([
-    "--input-format", "--output-format", "--channel", "--approval-mode", "--yolo", "-y",
-    "--session-id", "--resume", "-r", "--continue", "-c", "--fork-session", "--acp",
-    "--prompt", "-p", "--json-schema", "-o", "--prompt-interactive", "-i",
-    "--experimental-acp", "--json-fd", "--json-file", "--input-file",
-    "--sandbox-session-id", "--list-extensions", "-l", "--",
-  ]);
-  for (const arg of args ?? []) {
-    const name = arg.split("=", 1)[0] ?? arg;
-    const flag = name.startsWith("--")
-      ? name.replaceAll(/[A-Z]/gu, (letter) => `-${letter.toLowerCase()}`)
-      : name.slice(0, 2);
-    if (managed.has(flag)) {
-      throw new UnsupportedOptionError("launchArgs", `Qwen launchArgs cannot override ${flag}; OAR owns the stream-json protocol, session identity, approval mode and output schema`);
-    }
-  }
+  checkManagedLaunchArgs(args, QWEN_MANAGED_LAUNCH_ARGS, (flag) => `Qwen launchArgs cannot override ${flag}; OAR owns the stream-json protocol, session identity, approval mode, model, system prompts and output schema`, { camelCase: true });
 }

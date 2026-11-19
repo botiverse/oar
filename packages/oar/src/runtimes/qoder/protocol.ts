@@ -1,3 +1,4 @@
+import { readEnvironmentCredential, type CredentialRedactor } from "../../shared/credential-redactor.js";
 import type { LineProcess } from "../../shared/executable/index.js";
 
 /** One stable-version decision owns native transport and catalog identity. */
@@ -14,11 +15,13 @@ export function qoderVersionInfo(version: string | undefined): { readonly versio
 /** 1.1.81 removed the SDK worker from the ordinary headless stream. */
 export function qoderProtocol(version: string | undefined): "worker" | "daemon" { return qoderVersionInfo(version).protocol; }
 
+export const QODER_CREDENTIAL_ENV = ["QODER_PERSONAL_ACCESS_TOKEN", "QODER_SERVICE_ACCOUNT_KEY", "QODER_JOB_TOKEN"] as const;
+
 /** Preserve the CLI's explicit environment credentials before local login. */
-export function qoderDaemonAuth(env: NodeJS.ProcessEnv): Record<string, string> {
-  const accessToken = env.QODER_PERSONAL_ACCESS_TOKEN ?? "";
-  const serviceAccountKey = env.QODER_SERVICE_ACCOUNT_KEY ?? "";
-  const jobToken = env.QODER_JOB_TOKEN ?? "";
+export function qoderDaemonAuth(env: NodeJS.ProcessEnv, credentials?: Pick<CredentialRedactor, "add">): Record<string, string> {
+  const accessToken = readEnvironmentCredential(env, "QODER_PERSONAL_ACCESS_TOKEN", credentials) ?? "";
+  const serviceAccountKey = readEnvironmentCredential(env, "QODER_SERVICE_ACCOUNT_KEY", credentials) ?? "";
+  const jobToken = readEnvironmentCredential(env, "QODER_JOB_TOKEN", credentials) ?? "";
   if (serviceAccountKey.length > 0 && (accessToken.length > 0 || jobToken.length > 0)) { throw new Error("Qoder service-account credentials cannot be combined with another explicit authentication credential"); }
   if (jobToken.length > 0 && accessToken.length === 0) { throw new Error("Qoder daemon job-token authentication requires a host callback and is not supported by OAR"); }
   if (accessToken.length > 0) { return { type: "accessToken", accessToken }; }

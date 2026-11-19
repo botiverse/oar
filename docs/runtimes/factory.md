@@ -217,7 +217,7 @@ reported.
 | `appendSystemPrompt` | `systemPrompt: { type: "preset", preset: "droid", append }`; with `systemPrompt`, appended to it; refused on resume |
 | `mcpServers` | `mcpServers` on open and resume (below) |
 | `env` | the process environment |
-| `launchArgs` | after OAR's own arguments; OAR reserves the protocol, session, fork, cwd and file flags (including `-f` and `--file`) |
+| `launchArgs` | after OAR's own arguments; OAR reserves the protocol, session, fork, cwd, file (`-f`/`--file`) and `--` flags (including `--flag=value` and attached short flags; see [options.ts](../../packages/oar/src/runtimes/factory/options.ts)) |
 | refused | `fork`, `serviceTier` (none), `outputSchema` (droid's `structuredOutputFormat` not yet verified across turns), `name` (title persistence not verified), `additionalDirectories` (none), `disallowedTools` (`disabledToolIds` not yet verified against these names), `userConfiguration: "exclude"` (no verified separation), `goals`, `endTurnProcessesOnAbort` |
 
 #### Session MCP servers

@@ -1,12 +1,13 @@
 import { PassThrough, Writable } from "node:stream";
+import type { CredentialRedactor } from "../../shared/credential-redactor.js";
 import type { LineProcess } from "../../shared/executable/index.js";
 import { asRecord, parseJson } from "../../shared/json.js";
 import { qoderDaemonAuth } from "./protocol.js";
-import { qoderControl, qoderInitializeTimeoutMs } from "./control.js";
+import { qoderControl, qoderInitializeTimeoutMs, rememberQoderSecrets } from "./control.js";
 
 /** The official SDK's daemon transport, owned by exactly one OAR session. */
-export async function qoderDaemonSession(child: LineProcess, sessionId: string, workerArgs: readonly string[], cwd: string, env: NodeJS.ProcessEnv): Promise<LineProcess> {
-  const controls = qoderControl(child, () => {}, qoderInitializeTimeoutMs);
+export async function qoderDaemonSession(child: LineProcess, sessionId: string, workerArgs: readonly string[], cwd: string, env: NodeJS.ProcessEnv, credentials?: Pick<CredentialRedactor, "add">): Promise<LineProcess> {
+  const controls = qoderControl(child, (value) => { if (credentials !== undefined) { rememberQoderSecrets(value, credentials.add); } }, qoderInitializeTimeoutMs);
   const handlers: ((line: string) => void)[] = [];
   const buffered: string[] = [];
   const failure: { error?: Error } = {};
@@ -57,7 +58,7 @@ export async function qoderDaemonSession(child: LineProcess, sessionId: string, 
   stdin.on("error", () => { child.kill(); });
   try {
     const initialized = await controls.request({ type: "daemon.initialize", daemon_protocol_version: 2,
-      sdk_version: "oar", capabilities: ["multi_session_v2", "daemon_queries_v1"], auth: qoderDaemonAuth(env) });
+      sdk_version: "oar", capabilities: ["multi_session_v2", "daemon_queries_v1"], auth: qoderDaemonAuth(env, credentials) });
     const result = asRecord(asRecord(initialized.response)?.response);
     const capabilities = result?.capabilities;
     if (result?.daemon_protocol_version !== 2 || !Array.isArray(capabilities) || !["multi_session_v2", "daemon_queries_v1"].every((capability) => capabilities.includes(capability))) {
