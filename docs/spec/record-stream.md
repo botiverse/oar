@@ -1145,12 +1145,15 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   override `/compress`, so even a command sent by OAR would not prove
   compression occurred
   ([native controls](../../experiments/qwen-compaction-attribution/README.md)).
-- `retry`: pi `auto_retry_start` and `summarization_retry_scheduled` (Pi
-  Durable: `auto_retry_start`); codex
-  `error` with `willRetry: true`, whose `attempt` OAR counts within the turn;
-  factory `llm_retry` with its native `attempt` and `reason`. No
-  other built-in runtime exposes a retry (claude retries silently); the
-  community Morph adapter reads its own retry notice.
+- A `retry` event reports a native decision to try again. OpenCode 2.0.15
+  and later supply the attempt number and scheduled time in
+  `opencode/retry` metadata. See the
+  [native control](../../experiments/opencode-retry-status/README.md).
+  Pi and Pi Durable report `auto_retry_start`, and Pi also reports
+  `summarization_retry_scheduled`. Codex reports an error with
+  `willRetry: true`, which OAR counts within the turn. Factory reports
+  `llm_retry` with its native attempt and reason. The community Morph
+  adapter reads its own retry notice.
 - `task_started` / `task_updated` / `task_ended`: work the runtime tracks
   beside the turn that started it. claude `system/task_started`,
   `task_updated` (its `patch`) and `task_notification` [env 2.1.284]:

@@ -25,7 +25,7 @@ export interface AcpSessionProfile extends AcpDerivedSessionHooks, AcpSteerReque
   /** Vendor facts on an extension notification; its envelope retains native attribution. */
   readonly projectExtension?: (method: string, params: JsonRecord) => readonly RuntimeEventBody[];
   /** Additional vendor facts on a session update; attribution remains the recorder's responsibility. */
-  readonly projectUpdate?: (update: JsonRecord) => readonly RuntimeEventBody[];
+  readonly projectUpdate?: (update: JsonRecord, receivedAt: number) => readonly RuntimeEventBody[];
   /** Vendor attribution for forwarded updates. The original notification is always recorded verbatim. */
   readonly attributeUpdate?: (notification: unknown) => { readonly sessionId: string; readonly parent: string } | null;
   readonly args: readonly string[] | ((options: SessionOptions) => readonly string[]);

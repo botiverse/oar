@@ -24,3 +24,20 @@ the runtime supplied.
 [Retry policy](https://github.com/anomalyco/opencode/blob/f4e363c8295fa90a03dddc451882fffe8fbce357/packages/opencode/src/session/retry.ts),
 [ACP event handling](https://github.com/anomalyco/opencode/blob/f4e363c8295fa90a03dddc451882fffe8fbce357/packages/opencode/src/acp/event.ts),
 [ACP prompt outcome](https://github.com/anomalyco/opencode/blob/f4e363c8295fa90a03dddc451882fffe8fbce357/packages/opencode/src/acp/service.ts).
+
+## Scheduled retry metadata on 2.x
+
+Released tags 2.0.0 through 2.0.14 omit `opencode/retry` in the ACP
+translator. The first release with the scheduled notification and clear
+is 2.0.15. The metadata may also appear on a prompt result. OAR emits
+one event on the scheduled notification.
+[2.0.14 ACP source](https://github.com/anomalyco/opencode/blob/v2.0.14/packages/cli/src/acp/event.ts),
+[2.0.15 ACP source](https://github.com/anomalyco/opencode/blob/v2.0.15/packages/cli/src/acp/event.ts),
+[2.3.2 ACP source](https://github.com/anomalyco/opencode/blob/v2.3.2/packages/cli/src/acp/translate.ts).
+
+A separate 2.3.2 run recorded attempt 2, scheduled 1,601 ms after the
+frame arrived, with category `provider.internal`. The clear emitted no
+event. The retry succeeded, the turn completed, and the session accepted
+another prompt. The [observed frames](projected.json) keep the timestamps
+used to compute the delay. The [replay](../../tests/opencode/retry.test.ts)
+also covers a notification buffered before the session opens.

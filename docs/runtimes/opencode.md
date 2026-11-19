@@ -901,6 +901,12 @@ local control, 1.19.6 answered the original ACP prompt with `end_turn`, so
 OAR recorded `completed`. OpenCode 2.3.2 answered `cancelled`, so OAR
 recorded `aborted`. Neither run had obtained a successful model reply before
 the cancellation. Await the native outcome after requesting a stop.
+
+Hosts that need to display provider retries should migrate from 1.x to
+2.x. Starting in 2.0.15, ACP announces a scheduled retry in
+`session_info_update`. OAR reports its native attempt number, the time
+remaining until the scheduled attempt at frame arrival, and the error
+category when available. The subsequent clear produces no event.
 [Native controls](../../experiments/opencode-retry-status/README.md).
 
 **Prompt failures (both lines):** for a JSON-RPC -32603 prompt failure, a
