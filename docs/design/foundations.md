@@ -126,3 +126,25 @@ what it makes impossible to get wrong later. This is why the design
 discipline applies specifically to the foundation list: every design point
 must state its necessity with empirical evidence (a real runtime that breaks
 without it), not taste.
+
+## Fix the class, not the instance
+
+A found bug or stale sentence is evidence about the shape that allowed it.
+Before fixing the instance, ask what let it happen and whether it recurs
+elsewhere; fix that, and the instance with it.
+
+- **One source per fact.** A fact the code declares (a refusal and its
+  reason, a capability, a version floor) lives in the declaration. Prose that
+  restates it drifts the first time the code changes; delete the copy rather
+  than add a check that keeps it in step
+  ([decision](decisions.md#runtime-pages-keep-what-the-code-cannot-say-2026-11-19)).
+- **One shape per obligation.** When adapters each implement the same
+  obligation (bound a native query, stop its process, confirm a setting),
+  one of them gets it wrong. Give the obligation one shared implementation
+  and one test that runs against every runtime.
+- **Rules where they cannot be lost.** An instruction a session must keep
+  goes where the runtime keeps it (the system prompt), not where compaction
+  can summarize it away.
+
+A local patch is right only when the cause is truly local. Say which it is
+when the fix is proposed.
