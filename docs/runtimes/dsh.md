@@ -415,7 +415,7 @@ never answered because no native evidence for it exists yet.
 
 ## Installation and configuration
 
-`installation` uses `OAR_DSH_BIN` alone when set, otherwise `dsh` on PATH. `installPlan` and
+`installation` uses `OAR_DSH_BIN` alone when non-empty, otherwise `dsh` on PATH. `installPlan` and
 `install` run `npm install -g @deepseek-ai/dsh` (the package declares Node 24.9 or later; OAR does not check it). DSH's
 default route is `deepseek-official`, with an API key (see the real-provider run
 above). Any other route goes in the user's own patch, for example

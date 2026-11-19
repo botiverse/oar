@@ -1288,7 +1288,7 @@ Windows runner, [#410](https://github.com/botiverse/oar/pull/410),
 [shim reader](../../packages/oar/src/shared/executable/windows-shim.ts)). Any
 other `.cmd` launcher starts as before.
 
-Installation uses `OAR_CLAUDE_BIN` alone when set; otherwise it checks PATH, then the native installer's
+Installation uses `OAR_CLAUDE_BIN` alone when non-empty; otherwise it checks PATH, then the native installer's
 launcher `~/.local/bin/claude` (`%USERPROFILE%\.local\bin\claude.exe` on
 Windows), which a GUI or service process's PATH can miss. When none is
 found, `install` runs Anthropic's native installer,

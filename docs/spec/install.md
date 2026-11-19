@@ -176,5 +176,5 @@ Grok links itself into `~/.local/bin` or `/usr/local/bin` when one is on
 PATH and writable; kimi renames an older Python `kimi-cli` it finds first on
 PATH to `kimi-legacy`.
 
-With an `OAR_<RUNTIME>_BIN` variable set, the probe looks only there, so an
+With an `OAR_<RUNTIME>_BIN` variable set to a non-empty value, the probe looks only there, so an
 install elsewhere ends `failed`.
