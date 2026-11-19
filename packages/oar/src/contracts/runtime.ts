@@ -64,6 +64,45 @@ export interface CompactionEvents {
   readonly ended: boolean;
 }
 
+/** `process.platform` values a runtime can be verified on. */
+export type RuntimePlatform = "linux" | "darwin" | "win32";
+
+/**
+ * The shape of the credentials a runtime reads on its own, never a value.
+ * A host fills these from its own store; a variable marked `secret` never
+ * goes on a command line. Every listed store is a place a credential can
+ * come from, so a host that wants none supplied must account for each. Native login and logout are the `login` and
+ * `logout` members; per-provider keys of a multi-provider runtime are
+ * `providers`. Absent fields are unknown.
+ */
+export interface RuntimeCredentials {
+  /** Variables the runtime reads a credential from, in its own order of precedence. */
+  readonly env?: readonly CredentialVariable[];
+  /** Files and stores the runtime reads a credential from, in its own order of precedence, including ones the person edits (a `.env`). */
+  readonly stores?: readonly CredentialStore[];
+}
+
+export interface CredentialVariable {
+  readonly name: string;
+  readonly purpose: "api_key" | "token" | "base_url";
+  readonly secret: boolean;
+}
+
+/** A file or store the runtime reads credentials from; OAR neither reads nor writes the values. */
+export interface CredentialStore {
+  readonly kind: "file" | "dir" | "keychain";
+  /** The variable that moves the directory holding the store (`DSH_HOME`); a host gives each agent its own by setting it. */
+  readonly directoryEnv?: string;
+  /** The directory under the person's home when `directoryEnv` is unset (`.dsh`). */
+  readonly defaultDirectory?: string;
+  /** The store inside that directory (`.credentials.yaml`); absent for `keychain`. */
+  readonly path?: string;
+  /** `cwd`: `path` is relative to the session's working directory instead (a project `.env`). */
+  readonly relativeTo?: "cwd";
+  /** Whether a credential found here wins over the same one in the environment. */
+  readonly overridesEnv?: boolean;
+}
+
 /** Native behavior of an accepted option when reopening a saved session. */
 export interface ResumeOptionSemantics {
   /** When a supplied value DIFFERENT from the saved value takes effect. */
@@ -107,6 +146,9 @@ export interface Runtime extends RuntimeInventories {
   /** Minimum native version required by this adapter, when it has a numeric floor. Individual capabilities may require newer versions. Absence means no declared floor, not support for every version. */
   readonly minVersion?: string;
   readonly brand: RuntimeBrand;
+  /** Operating systems where OAR's behavior suite ran this runtime's real binary or SDK. Absent: not verified in CI, which is unknown, not unsupported. */
+  readonly verifiedPlatforms?: readonly RuntimePlatform[];
+  readonly credentials?: RuntimeCredentials;
   readonly session: StartSession; // the core capability: a runtime without sessions is not usable
   /**
    * Declared before any session opens, so a host leaves a refused option out

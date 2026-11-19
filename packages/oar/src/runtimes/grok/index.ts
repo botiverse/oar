@@ -1,4 +1,5 @@
 import { runtimeBrands } from "../../brands.js";
+import { verifiedPlatforms } from "../../platforms.js";
 import { grokSkills, grokMcpServers } from "./inventory.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { onFirstCall } from "../../shared/lazy.js";
@@ -11,7 +12,7 @@ import { grokRefusedSessionOptions } from "./options.js";
 export const grokRuntime = defineRuntime({
   id: "grok",
   sessionCapabilities: () => ({ steer: true, images: true }),
-  brand: runtimeBrands.grok,
+  brand: runtimeBrands.grok, verifiedPlatforms: verifiedPlatforms.grok,
   manualCompaction: { kind: "supported", activeTurn: "reject" },
   refusedSessionOptions: grokRefusedSessionOptions,
   mcpToolsListChanged: "none",

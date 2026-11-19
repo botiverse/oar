@@ -7,6 +7,7 @@ import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { SessionOptions } from "../../contracts/session.js";
 import { defineRuntime, type Runtime } from "../../contracts/runtime.js";
 import { runtimeBrands } from "../../brands.js";
+import { verifiedPlatforms } from "../../platforms.js";
 import { projectPiModels } from "../pi/model-projection.js";
 import { piDurableRefusedSessionOptions, type DurableModels } from "./options.js";
 import { piDurableSession } from "./session.js";
@@ -24,7 +25,7 @@ export function createPiDurableRuntime({ harness, models }: PiDurableRuntimeOpti
   const runtime = defineRuntime({
     id: "pi-durable",
     sessionCapabilities: () => ({ steer: true, images: false }),
-    brand: runtimeBrands["pi-durable"],
+    brand: runtimeBrands["pi-durable"], verifiedPlatforms: verifiedPlatforms["pi-durable"],
     refusedSessionOptions: piDurableRefusedSessionOptions,
     resumedSessionOptions: {
       appendSystemPrompt: { provided: "immediate", omitted: "saved" },

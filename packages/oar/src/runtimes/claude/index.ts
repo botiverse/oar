@@ -1,6 +1,7 @@
 import { claudeRefusedSessionOptions } from "./options.js";
 /* oxlint-disable import/max-dependencies -- The runtime declaration imports one module per capability. */
 import { runtimeBrands } from "../../brands.js";
+import { verifiedPlatforms } from "../../platforms.js";
 import { claudeCommands, claudeSkills, claudeMcpServers, claudeTools } from "./inventory.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { claudeAuthStatus, claudeLogin } from "./login.js";
@@ -22,7 +23,7 @@ export const claudeRuntime = defineRuntime({
     systemPrompt: { provided: "next_compaction", omitted: "saved_until_compaction" },
     appendSystemPrompt: { provided: "next_compaction", omitted: "saved_until_compaction" },
   },
-  brand: runtimeBrands.claude,
+  brand: runtimeBrands.claude, verifiedPlatforms: verifiedPlatforms.claude,
   skills: claudeSkills,
   commands: claudeCommands,
   mcpServers: claudeMcpServers,

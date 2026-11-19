@@ -1,4 +1,5 @@
 import { runtimeBrands } from "../../brands.js";
+import { verifiedPlatforms } from "../../platforms.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { onFirstCall } from "../../shared/lazy.js";
 import { dshInstallation } from "./installation.js";
@@ -9,8 +10,17 @@ import { DSH_MINIMUM_VERSION } from "./version.js";
 export const dshRuntime = defineRuntime({
   id: "dsh",
   manualCompaction: { kind: "supported", activeTurn: "reject" },
-  sessionCapabilities: (installation) => ({ compactionEvents: { started: true, ended: true }, refusedSessionOptions: dshDirectoryRefusal(installation.via === "executable" ? installation.version : undefined) }), brand: runtimeBrands.dsh,
+  sessionCapabilities: (installation) => ({ compactionEvents: { started: true, ended: true }, refusedSessionOptions: dshDirectoryRefusal(installation.via === "executable" ? installation.version : undefined) }), brand: runtimeBrands.dsh, verifiedPlatforms: verifiedPlatforms.dsh,
   minVersion: DSH_MINIMUM_VERSION,
+  // The default route reads DEEPSEEK_API_KEY; a key saved through DSH's own settings wins (docs/runtimes/dsh.md#credentials).
+  credentials: {
+    env: [{ name: "DEEPSEEK_API_KEY", purpose: "api_key", secret: true }],
+    stores: [
+      { kind: "file", directoryEnv: "DSH_HOME", defaultDirectory: ".dsh", path: ".credentials.yaml", overridesEnv: true },
+      { kind: "file", relativeTo: "cwd", path: ".env", overridesEnv: false },
+      { kind: "file", directoryEnv: "DSH_HOME", defaultDirectory: ".dsh", path: ".env", overridesEnv: false },
+    ],
+  },
   refusedSessionOptions: dshRefusedSessionOptions,
   resumedSessionOptions: {
     systemPrompt: { provided: "immediate", omitted: "default" },

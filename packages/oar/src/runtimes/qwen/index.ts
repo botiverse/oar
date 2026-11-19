@@ -1,4 +1,5 @@
 import { runtimeBrands } from "../../brands.js";
+import { verifiedPlatforms } from "../../platforms.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { onFirstCall } from "../../shared/lazy.js";
 import { qwenInstallation } from "./installation.js";
@@ -11,7 +12,7 @@ export type { QwenProvider, QwenProviderAuth, QwenProviderAuthOptions, QwenProvi
 export const qwenRuntime = defineRuntime({
   id: "qwen",
   sessionCapabilities: () => ({ steer: false, images: false }),
-  manualCompaction: { kind: "unsupported", reason: "stream-json has no structural compaction completion signal and a user compress command can override the native operation." }, brand: runtimeBrands.qwen,
+  manualCompaction: { kind: "unsupported", reason: "stream-json has no structural compaction completion signal and a user compress command can override the native operation." }, brand: runtimeBrands.qwen, verifiedPlatforms: verifiedPlatforms.qwen,
   refusedSessionOptions: qwenRefusedSessionOptions,
   resumedSessionOptions: {
     systemPrompt: { provided: "immediate", omitted: "default" },

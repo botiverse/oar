@@ -1,5 +1,6 @@
 /* oxlint-disable import/max-dependencies -- The runtime declaration imports one module per capability. */
 import { runtimeBrands } from "../../brands.js";
+import { verifiedPlatforms } from "../../platforms.js";
 import type { ProviderAuthReader } from "../../contracts/provider-auth.js";
 import { createPiInventories } from "./inventory.js";
 import { defineRuntime, type Runtime } from "../../contracts/runtime.js";
@@ -43,7 +44,7 @@ export function createPiRuntime(options: PiRuntimeOptions = {}): Runtime & { rea
     sessionCapabilities: () => ({ steer: true, images: true }),
     ...(subprocess ? { minVersion: PI_RPC_MINIMUM_VERSION } : {}),
     manualCompaction: { kind: "supported", activeTurn: "reject" },
-    brand: runtimeBrands.pi,
+    brand: runtimeBrands.pi, verifiedPlatforms: verifiedPlatforms.pi,
     refusedSessionOptions: subprocess ? piRpcRefusedSessionOptions : piRefusedSessionOptions,
     resumedSessionOptions: {
       systemPrompt: { provided: "immediate", omitted: "default" },
