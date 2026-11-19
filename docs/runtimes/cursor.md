@@ -571,7 +571,7 @@ the first run with `[unknown] Invalid User API Key`, read as `auth`; probed).
 A made-up `CURSOR_API_KEY` fails the open instead: `Agent.create` checks the
 key with Cursor's service and rejects with `AuthenticationError` (401), which
 `session()` rejects as a `RuntimeFailureError` (`auth`, `rejected`;
-[failure evidence](../spec/runtime-matrix.md#cursor)). A `run.wait()` that
+[failures](#failures)). A `run.wait()` that
 throws instead records `cursor/run_failed` with the message, which ends the
 turn.
 
@@ -1268,3 +1268,17 @@ inferred. An empty, successfully scanned catalog is complete. See the
 [source inventory, limitations and native parity test](../../experiments/cursor-skills/README.md).
 That test runs the real SDK loader against the same fixture and must stay green
 when updating the pinned SDK; OAR never uses its test observer in production.
+
+## Failures
+
+Measured on `@cursor/sdk` **1.0.36** against Cursor's service with no key or a
+made-up key only
+([failure evidence](../spec/runtime-matrix.md#failure-evidence),
+[open classifier](../../packages/oar/src/runtimes/cursor/failure.ts),
+[run projection](../../packages/oar/src/runtimes/cursor/projection.ts)).
+
+| cause | what it reports | evidence |
+|---|---|---|
+| missing login (no stored key, no `CURSOR_API_KEY`) | the open succeeds; the run ends `status: error`, `error.message` "[unknown] Invalid User API Key", no code. oar: `auth` from the words, the last resort | `[env]` |
+| invalid key (a made-up `CURSOR_API_KEY`) | the open rejects with `AuthenticationError {status: 401, code: "error"}`. oar: `RuntimeFailureError` `auth`, `rejected`, 401 | `[env]` |
+| the other causes | not observed: each needs an account. The SDK's errors are `AuthenticationError` (401: invalid key, not logged in), `RateLimitError` (429: too many requests, usage limits; no reset time), `ConfigurationError` (400, 404: bad key, invalid model), `NetworkError` and `UnknownAgentError`, each with `code`, `status` and `isRetryable` | `[src]` (`errors.d.ts`, 1.0.37) |

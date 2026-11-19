@@ -1296,21 +1296,33 @@ native runtime is admitted to shared placement in the current release
 ## Failure evidence
 
 What OAR classifies a failed turn or failed open into (`FailureClass`,
-[#227](https://github.com/botiverse/oar/issues/227)), the precedence and
-evidence rules behind those mappings, and where each runtime's classifier
-lives.
+[#227](https://github.com/botiverse/oar/issues/227)), how failure evidence is
+collected, which causes each runtime can report, and where each runtime's
+classifier and per-cause observations live.
+
+**How.** [`experiments/failure-evidence.ts`](../../experiments/failure-evidence.ts)
+opens a session on the real runtime and prompts once, with the model provider
+replaced by a scripted one (`aimock`, [harness](../../sea-trial/harness/aimock.ts))
+that answers every model request with the error the provider documents for the
+cause ([provider replies](#the-provider-replies)). A missing login is a fresh
+home with no credential instead. No real account is used and nothing is spent.
+Runs: claude 2.1.292, codex 0.160.1, pi SDK 1.0.4, opencode 1.18.30, kimi
+2.1.1, grok 1.0.46, antigravity ACP server 1.3.0 (2026-10-08); cursor
+(`@cursor/sdk` 1.0.36) against Cursor's own service, with no key or a made-up
+one only. No open failed on a model request: open failures came from pre-turn
+checks (login, unknown model, Cursor key check); pi rejects the prompt when it
+has no key; every other failure came with the turn.
 
 **Evidence rule.** Every failure mapping must be backed either by a live or
-recorded run (`[env]`, `[rec]`, for example via
-[`experiments/failure-evidence.ts`](../../experiments/failure-evidence.ts),
-[`failure-classes.vendor.test.ts`](../../sea-trial/vendor/failure-classes.vendor.test.ts)
-or [`failure-classes-acp.vendor.test.ts`](../../sea-trial/vendor/failure-classes-acp.vendor.test.ts))
-or by an explicit constant and meaning in the runtime's own source, generated
-schema or binary (`[src]`, `[schema]`, `[sym]`). Mappings are never invented
-from guesswork. Each mapping's evidence tier (and native version plus location
-for source/schema/symbol entries) is annotated inline in that runtime's
-classifier; this page states only the shared contract rather than restating
-per-runtime tables.
+recorded run (`[env]`, `[rec]`) or by an explicit named native constant and
+meaning from the runtime's own source, generated schema or binary (`[src]`,
+`[schema]`, `[sym]`), annotated inline with its native version and location.
+Mappings are never invented from guesswork, and a later live observation
+(`[env]`/`[rec]`) that disagrees with a source/schema/symbol mapping wins.
+Tags: `[env]` observed in a scripted-provider or isolated-home run; `[rec]` a
+sanitized recorded run; `[src]` vendor source or type declarations; `[schema]`
+generated native protocol schema; `[sym]` binary symbols; `[doc]` vendor
+documentation.
 
 ### The mapping
 
@@ -1369,24 +1381,67 @@ policy refusal at open (`shared/acp/failure.ts`, `cursor/failure.ts`,
 `codex/refusal.ts`, `pi/`). Other open errors keep their own error types.
 `failureAdvice(failure)` turns any `FailureClass` into a retry policy.
 
-**Per-runtime classifiers (authoritative mappings and inline evidence tiers):**
+**Per-runtime classifiers and failure observations:**
 
 - Shared helpers: [`shared/failure-class.ts`](../../packages/oar/src/shared/failure-class.ts), [`shared/acp/failure.ts`](../../packages/oar/src/shared/acp/failure.ts), [`shared/acp/projection.ts`](../../packages/oar/src/shared/acp/projection.ts)
-- Antigravity: [`runtimes/antigravity/quota.ts`](../../packages/oar/src/runtimes/antigravity/quota.ts) (plus shared ACP)
-- Claude: [`runtimes/claude/failure.ts`](../../packages/oar/src/runtimes/claude/failure.ts), [`runtimes/claude/projection.ts`](../../packages/oar/src/runtimes/claude/projection.ts)
-- CodeBuddy: [`runtimes/codebuddy/failure.ts`](../../packages/oar/src/runtimes/codebuddy/failure.ts) (plus shared ACP)
-- Codex: [`runtimes/codex/failure.ts`](../../packages/oar/src/runtimes/codex/failure.ts), [`runtimes/codex/refusal.ts`](../../packages/oar/src/runtimes/codex/refusal.ts)
-- Cursor: [`runtimes/cursor/failure.ts`](../../packages/oar/src/runtimes/cursor/failure.ts), [`runtimes/cursor/projection.ts`](../../packages/oar/src/runtimes/cursor/projection.ts)
-- Devin: [`runtimes/devin/session.ts`](../../packages/oar/src/runtimes/devin/session.ts) (plus shared ACP)
-- DSH: [`runtimes/dsh/projection.ts`](../../packages/oar/src/runtimes/dsh/projection.ts)
-- Factory: [`runtimes/factory/projection.ts`](../../packages/oar/src/runtimes/factory/projection.ts)
-- Grok: [`runtimes/grok/failure.ts`](../../packages/oar/src/runtimes/grok/failure.ts) (plus shared ACP)
-- Kimi: shared ACP (`shared/acp/failure.ts`, `shared/acp/projection.ts`; provider turn failures often end `end_turn` in ACP, see [kimi](../runtimes/kimi.md))
-- OpenCode: [`runtimes/opencode/failure.ts`](../../packages/oar/src/runtimes/opencode/failure.ts) (plus shared ACP)
-- Pi / Pi Durable: [`runtimes/pi/failure.ts`](../../packages/oar/src/runtimes/pi/failure.ts), [`runtimes/pi-durable/projection.ts`](../../packages/oar/src/runtimes/pi-durable/projection.ts)
-- Qoder: [`runtimes/qoder/projection.ts`](../../packages/oar/src/runtimes/qoder/projection.ts)
-- Qwen: [`runtimes/qwen/projection.ts`](../../packages/oar/src/runtimes/qwen/projection.ts)
-- Unit and vendor tests: [`tests/failure-mapping.test.ts`](../../tests/failure-mapping.test.ts), [`failure-classes.vendor.test.ts`](../../sea-trial/vendor/failure-classes.vendor.test.ts), [`failure-classes-acp.vendor.test.ts`](../../sea-trial/vendor/failure-classes-acp.vendor.test.ts)
+- Antigravity: [`runtimes/antigravity/quota.ts`](../../packages/oar/src/runtimes/antigravity/quota.ts), [observations](../runtimes/antigravity.md#failures)
+- Claude: [`runtimes/claude/failure.ts`](../../packages/oar/src/runtimes/claude/failure.ts), [`runtimes/claude/projection.ts`](../../packages/oar/src/runtimes/claude/projection.ts), [observations](../runtimes/claude.md#failures)
+- CodeBuddy: [`runtimes/codebuddy/failure.ts`](../../packages/oar/src/runtimes/codebuddy/failure.ts), [observations](../runtimes/codebuddy.md)
+- Codex: [`runtimes/codex/failure.ts`](../../packages/oar/src/runtimes/codex/failure.ts), [`runtimes/codex/refusal.ts`](../../packages/oar/src/runtimes/codex/refusal.ts), [observations](../runtimes/codex.md#failures)
+- Cursor: [`runtimes/cursor/failure.ts`](../../packages/oar/src/runtimes/cursor/failure.ts), [`runtimes/cursor/projection.ts`](../../packages/oar/src/runtimes/cursor/projection.ts), [observations](../runtimes/cursor.md#failures)
+- Devin: [`runtimes/devin/session.ts`](../../packages/oar/src/runtimes/devin/session.ts), [observations](../runtimes/devin.md#failures)
+- DSH: [`runtimes/dsh/projection.ts`](../../packages/oar/src/runtimes/dsh/projection.ts), [observations](../runtimes/dsh.md#records)
+- Factory: [`runtimes/factory/projection.ts`](../../packages/oar/src/runtimes/factory/projection.ts), [observations](../runtimes/factory.md#failures)
+- Grok: [`runtimes/grok/failure.ts`](../../packages/oar/src/runtimes/grok/failure.ts), [observations](../runtimes/grok.md#failures)
+- Kimi: shared ACP (`shared/acp/failure.ts`), [observations](../runtimes/kimi.md#failures)
+- OpenCode: [`runtimes/opencode/failure.ts`](../../packages/oar/src/runtimes/opencode/failure.ts), [observations](../runtimes/opencode.md#failures)
+- Pi / Pi Durable: [`runtimes/pi/failure.ts`](../../packages/oar/src/runtimes/pi/failure.ts), [`runtimes/pi-durable/projection.ts`](../../packages/oar/src/runtimes/pi-durable/projection.ts), [observations](../runtimes/pi.md#failures)
+- Qoder: [`runtimes/qoder/projection.ts`](../../packages/oar/src/runtimes/qoder/projection.ts), [observations](../runtimes/qoder.md#usage-and-failures)
+- Qwen: [`runtimes/qwen/projection.ts`](../../packages/oar/src/runtimes/qwen/projection.ts), [observations](../runtimes/qwen.md#usage-and-failures)
+- Tests: [`tests/failure-mapping.test.ts`](../../tests/failure-mapping.test.ts), [`failure-classes.vendor.test.ts`](../../sea-trial/vendor/failure-classes.vendor.test.ts), [`failure-classes-acp.vendor.test.ts`](../../sea-trial/vendor/failure-classes-acp.vendor.test.ts)
+
+### The provider replies
+
+Status and error `type` / `code` sent by the scripted provider (`[doc]`:
+[Anthropic](https://platform.claude.com/docs/en/api/errors),
+[OpenAI](https://developers.openai.com/api/docs/guides/error-codes), Gemini
+generateContent in Google's error shape, [AIP-193](https://google.aip.dev/193)).
+The scripted Gemini replies carry no `details` (`ErrorInfo.reason`), which a
+real one does.
+
+| cause | Anthropic Messages: claude, pi, opencode | OpenAI: codex (Responses), kimi and grok (chat completions) | Gemini: antigravity |
+|---|---|---|---|
+| invalid key | 401 `authentication_error` | 401 `invalid_api_key` | 400 `INVALID_ARGUMENT` "API key not valid" |
+| unknown or unentitled model | 404 `not_found_error` | 404 `model_not_found` | 404 `NOT_FOUND` |
+| rate limited | 429 `rate_limit_error` | 429 `rate_limit_exceeded` | 429 `RESOURCE_EXHAUSTED` |
+| usage limit | 400 `invalid_request_error` "You have reached your specified API usage limits" (organization spend limit) | 429 `organization_usage_limit_exceeded`; ChatGPT plan 429 `usage_limit_reached` (codex `[src]`) | 429 `RESOURCE_EXHAUSTED` "You exceeded your current quota" |
+| billing | 400 `invalid_request_error` "Your credit balance is too low" (claude tests for this text `[sym]`); 402 `billing_error` | 429 `credit_balance_exhausted`; older 429 `insufficient_quota` | 400 `FAILED_PRECONDITION` "enable billing" |
+| server error | 500 `api_error` | 500 `server_error` | 500 `INTERNAL` |
+| overloaded | 529 `overloaded_error` | 503 `server_is_overloaded` | 503 `UNAVAILABLE` |
+| oversized context | 400 `invalid_request_error` "prompt is too long: 250000 tokens > 200000 maximum" | 400 `context_length_exceeded` | 400 `INVALID_ARGUMENT` "The input token count ... exceeds the maximum" |
+| inside a 200 stream | an `error` event (`overloaded_error`, `api_error`) | `response.failed` with `error.code` (Responses API only) | not tried |
+
+The overflow texts are the ones `pi-ai`'s `isContextOverflow` documents per
+provider (`[src]`). Not simulated: a Claude subscription usage limit (a 429
+carrying `anthropic-ratelimit-unified-*` headers) and a tier's monthly spend
+cap (a 429 without `retry-after`).
+
+### Where a class can come from
+
+| cause | claude | codex | pi | opencode | kimi | grok | antigravity | cursor |
+|---|---|---|---|---|---|---|---|---|
+| missing login | `error` + null status | info 401 | prompt refusal | text | open -32000 | open -32000 | open -32000 | text |
+| invalid key | `error` + 401 | info 401 | status in text | text | prompt -32000 | `error_type: auth` | nothing | open 401 |
+| unknown model | `error` + 404 | info | open (oar) | open -32602 | open -32603 | open -32602 | open -32602 | not observed |
+| rate limited | `error` + 429 | info 429 | status in text | text / `provider.rate-limit` | nothing | -32003 | nothing | not observed |
+| usage limit | 400 spend limit; weekly `usage_limit_reached` `[rec]` | info | status in text | text / `data.errorName` | nothing | -32003 + error type or `subscription:free-usage-exhausted` | individual-quota notice `[rec]` (API-key 429: nothing) | not observed |
+| billing | `error` (400 text) or 402 | info | status in text | text | nothing | -32003 + error type; 402: -32603 `data.http_status` | nothing | not observed |
+| server error | `error` + 500 | info | status in text | text | nothing | `error_type: api` | text | not observed |
+| overloaded | 529 | info | status in text | text | nothing | `error_type: api` | nothing | not observed |
+| oversized context | `terminal_reason` | info (in stream) | `isContextOverflow` | nothing | nothing | `error_type: context_length` | nothing | not observed |
+
+"info" is `codexErrorInfo`; "text" is a message that only prose matching can
+read; "nothing" means the turn looks completed or never ends.
 
 ### When a limit resets
 

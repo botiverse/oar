@@ -3,11 +3,12 @@ import { failureFromStatus } from "../../shared/failure-class.js";
 import { asNumber, asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
 
 /*
- * CodeBuddy 2.173.0 / 2.178.1 native error categories (`K0` and module 624361
- * outcome set `t`). Categories precede the less specific HTTP status:
+ * CodeBuddy 2.173.0 / 2.178.1 native `_meta["codebuddy.ai/errorMessage"]`
+ * `data.category` values. Categories precede the less specific HTTP status:
  * - [env] auth (scripted 401 in sea-trial/vendor/codebuddy.vendor.test.ts)
- * - [sym] quota, custom_model_auth, network, model_service, empty_model_response,
- *   internal (CodeBuddy 2.173.0 binary error classifier `K0` and set `t`)
+ * - [sym] quota, custom_model_auth, network, model_service,
+ *   empty_model_response, internal (CodeBuddy 2.173.0 binary native ACP error
+ *   serializer and `FAILED_MODEL_REQUEST` / `REFUSED_OR_BLOCKED` classifier)
  */
 const CATEGORIES: Readonly<Partial<Record<string, FailureClass>>> = {
   quota: "quota", auth: "auth", custom_model_auth: "auth", network: "unknown",

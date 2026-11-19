@@ -2128,3 +2128,44 @@ Independent skills preserve native `scope` in `source` and normalize it as
 system → builtin, user → user, repo → project, admin → managed. `pluginId`
 is returned as `plugin` independently of scope; missing fields stay absent.
 See [skill provenance](../spec/inventory.md#skill-provenance).
+
+## Failures
+
+Measured on Codex **0.160.1** and **0.165.0** against a scripted provider
+([failure evidence](../spec/runtime-matrix.md#failure-evidence),
+[classifier](../../packages/oar/src/runtimes/codex/failure.ts)). The turn ends
+with `turn/completed` (`status: failed`) whose `turn.error` is
+`{message, codexErrorInfo, additionalDetails, misalignment}`, after an `error`
+notification with `willRetry: false`. Each retry is an `error` notification
+with `willRetry: true`,
+`codexErrorInfo: {responseStreamDisconnected: {httpStatusCode}}` and the
+message "Reconnecting... n/5".
+
+| cause | `codexErrorInfo` | retried | oar |
+|---|---|---|---|
+| missing login (no key, default provider: codex sent the request to api.openai.com, which answered 401) | `{httpConnectionFailed: {httpStatusCode: 401}}` | over WebSocket, then (a `warning` "Falling back from WebSockets to HTTPS transport") 5 over HTTPS: 9 notifications | `auth` (the status) |
+| invalid key | `{httpConnectionFailed: {httpStatusCode: 401}}` | 5 | `auth` (the status) |
+| unknown model | `modelNotFound` (0.165.0); 0.160.1 sent `{httpConnectionFailed: {httpStatusCode: 404}}` | 1 on 0.165.0 | `model_unavailable`; status only when native reports it |
+| rate limited | `{responseTooManyFailedAttempts: {httpStatusCode: 429}}` | no notification | `rate_limited` (the status) |
+| usage limit, plan usage limit | `usageLimitExceeded` ("Quota exceeded. Check your plan and billing details."; "You've hit your usage limit.") | no | `quota` |
+| billing (both codes) | `usageLimitExceeded` ("Quota exceeded...") | no | `quota` |
+| server error | `internalServerError` | 5 (`httpStatusCode: null`) | `provider` |
+| overloaded | `serverOverloaded` | no | `overloaded` |
+| oversized context (an HTTP 400) | `other` (the message is the provider's JSON) | no | `input_too_large` (the body's `code`) |
+| in the stream: `context_length_exceeded` | `contextWindowExceeded` | no | `input_too_large` |
+| in the stream: `server_is_overloaded` | `serverOverloaded` | no | `overloaded` |
+| in the stream: `insufficient_quota`, `usage_not_included` | `usageLimitExceeded` | no | `quota` |
+| in the stream: `rate_limit_exceeded` | `rateLimitExceeded` | 5 | `rate_limited` |
+
+The observed 401 is `httpConnectionFailed`. `unauthorized` maps to `auth` from
+the 0.167.0 generated schema without fabricating a status or credential detail
+([evidence](../../experiments/codex-projection/README.md)); a provider SSE
+error named `unauthorized` produced native `other` in the local probe and
+remains `unknown`. Other schema variants (`sessionBudgetExceeded`,
+`badRequest`, `cyberPolicy`, ...) stay `unknown` (`[schema]` `codex app-server
+generate-json-schema`). After a tool call the values are the same. On
+0.169.0/0.169.1, HTTP-400 `other` preserves a quota JSON body's numeric
+`error.resets_at` (including after the remote-compaction prefix), and a 429
+`usageLimitExceeded` can take a unique reset from an exhausted current-turn
+`codex` window ([controls](../../experiments/codex-quota-errors/README.md),
+[when a limit resets](../spec/runtime-matrix.md#when-a-limit-resets)).

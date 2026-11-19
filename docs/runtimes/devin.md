@@ -95,3 +95,16 @@ Live authenticated turns are unverified: Devin talks ConnectRPC to
 Cognition's servers, which `aimock` cannot stand in for. Still open: rate-limit
 and quota payloads, mid-turn prompts, tool-call detail, child attribution,
 installer runs on Linux and Windows, and skill queries on macOS and Windows.
+
+## Failures
+
+ACP `-32000` maps to `auth` as for every ACP runtime (`[env]` observed on a
+logged-out `session/prompt`: "Please log in to use Devin."). Any other JSON-RPC
+error (`[env]` observed `-32603` at `session/new` with an invalid key) whose
+message says authentication is required, the API key is invalid or the user is
+not logged in also maps to `auth`: a `RuntimeFailureError` at open or model
+selection, or a failed turn on `session/prompt`
+([classifier](../../packages/oar/src/runtimes/devin/session.ts),
+[failure evidence](../spec/runtime-matrix.md#failure-evidence)). `devin acp`
+speaks ConnectRPC, so `aimock` cannot script its provider and no other failure
+cause or reset time has been observed.

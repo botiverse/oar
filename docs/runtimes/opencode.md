@@ -1532,3 +1532,27 @@ catalogs: `skill://opencode/SKILL.md` and `skill://report/SKILL.md`. Other
 versions, including 2.3.2, prereleases and custom-suffix builds, retain these
 URIs without scope. New or renamed built-ins also remain unknown until
 verified. Recheck these native identities during the daily runtime version check before updating the mapping.
+
+## Failures
+
+Measured on OpenCode **1.18.30** against a scripted Anthropic provider
+([failure evidence](../spec/runtime-matrix.md#failure-evidence),
+[classifier](../../packages/oar/src/runtimes/opencode/failure.ts)).
+
+| cause | what OpenCode reports | oar |
+|---|---|---|
+| missing login | no local check: request goes without a key; provider 401 returns prompt `-32603` ("Internal error: x-api-key header is required"). With no provider configured, opencode answered from its own hosted model (no failure) | prose fallback (`auth`) |
+| invalid key | prompt `-32603` "Internal error: invalid x-api-key", `data {service: "session", errorName: "APIError"}` | prose fallback (`auth`) |
+| unknown model | open `-32602` "Invalid params: model not found", `data {providerId, modelId}` | `RuntimeFailureError` (`model_unavailable`) |
+| unentitled model (404) | prompt `-32603` "Internal error: model: ..." | prose fallback |
+| rate limited, usage limit, billing | prompt `-32603` "Internal error: <provider message>" | known `data.errorName` first (`provider.free-limit`, `provider.go-limit`, `provider.budget-limit`, `provider.model-budget-limit`, `provider.quota` -> `quota`; `provider.rate-limit` -> `rate_limited`), else prose fallback |
+| server error, overloaded | prompt `-32603` "Internal error: ...", after ~70 s of silent retries | prose fallback (`provider`, `overloaded`) |
+| oversized context | no turn end within 150 s | none |
+
+OpenCode's `data.errorName` table is shared by v1 and v2: `provider.free-limit`
+was recorded live ([PR #710](https://github.com/botiverse/oar/pull/710)),
+`provider.rate-limit` was observed on 2.2.6
+([check](../../experiments/opencode-error-names/README.md)), and the remaining
+four quota names come from 2.2.6 source (`packages/cli/src/acp/error.ts`,
+`packages/core/src/session/to-session-error.ts`). Missing, unknown or
+non-string names fall back to prose matching; no `resetsAt` is reported.

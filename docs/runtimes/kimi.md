@@ -1069,3 +1069,23 @@ Native skill sources builtin/user/project map directly to `scope`; extra maps
 to other. The original `source` remains present. This catalog supplies no
 plugin identity, so `plugin` remains absent. See
 [skill provenance](../spec/inventory.md#skill-provenance).
+
+## Failures
+
+Measured on Kimi **2.1.1** against a scripted OpenAI provider
+([failure evidence](../spec/runtime-matrix.md#failure-evidence),
+[shared ACP classifier](../../packages/oar/src/shared/acp/failure.ts)).
+
+| cause | what Kimi reports | oar |
+|---|---|---|
+| missing login | open `-32000` "Authentication required" | `RuntimeFailureError` (`auth`) |
+| invalid key | prompt `-32000` "Authentication required: 401 ..." | failed turn (`auth`) |
+| unknown model | open `-32603` "Internal error", `data.details` "Model ... is not configured" | plain error (prose only) |
+| unentitled model (404), rate limited, usage limit, billing | turn completes (`end_turn`), no message | completed turn (no failure) |
+| server error, overloaded | turn completes (`end_turn`), no message, after ~140 s | completed turn (no failure) |
+| oversized context | compaction messages ("Compaction cancelled."), then `end_turn` | completed turn (no failure) |
+
+Kimi records provider failures in its private `wire.jsonl` (`turn.ended`
+`reason: failed`), but answers the ACP prompt `end_turn` with no message; OAR
+reads only the ACP stream and therefore records `completed`. No `resetsAt` is
+reported.

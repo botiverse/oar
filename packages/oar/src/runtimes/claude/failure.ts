@@ -6,9 +6,12 @@ import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 
 /*
  * A failed claude turn, classified from what claude says
- * (docs/spec/runtime-matrix.md#failure-evidence): the category on the turn's
- * error `assistant` frame (`error`), then the result's `terminal_reason` and
- * `api_error_status`. `server_error` is decided by status (529 -> overloaded).
+ * (docs/spec/runtime-matrix.md#failure-evidence, docs/runtimes/claude.md#failures):
+ * the category on the turn's error `assistant` frame (`error`), then the
+ * result's `terminal_reason` and `api_error_status`. `server_error` is decided
+ * by status (529 -> overloaded). Declared categories no run has produced
+ * (`oauth_org_not_allowed`, `account_on_hold`, `max_output_tokens`,
+ * `cloud_credential_error`) stay unmapped and fall through to status.
  * A `rate_limit` while claude's latest `rate_limit_event` says a subscription
  * limit refuses requests until a named reset is `quota` with that `resetsAt`
  * (`claudeLimitReset`); without one it stays `rate_limited`.
@@ -17,8 +20,8 @@ import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 /** Categories mapped by evidence tier; `server_error` falls through to status. */
 const CATEGORIES: Readonly<Partial<Record<string, FailureClass>>> = {
   authentication_failed: "auth", // [env] 2.1.292 (failure-classes.vendor.test.ts)
-  verification_required: "auth", // [rec] 2.1 (tests/fixtures/claude-synthetic-failures.json)
-  overloaded: "overloaded", // [rec] 2.1 (tests/fixtures/claude-synthetic-failures.json)
+  verification_required: "auth", // [rec] sanitized recorded Claude 2.1 frames (tests/fixtures/claude-synthetic-failures.json)
+  overloaded: "overloaded", // [rec] sanitized recorded Claude 2.1 frames (tests/fixtures/claude-synthetic-failures.json)
   model_not_found: "model_unavailable", // [env] 2.1.292 (failure-classes.vendor.test.ts)
   rate_limit: "rate_limited", // [env] 2.1.292 (failure-classes.vendor.test.ts)
   billing_error: "billing", // [env] 2.1.292 (failure-classes.vendor.test.ts)
