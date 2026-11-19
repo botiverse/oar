@@ -21,10 +21,15 @@ jobs:
       matrix:
         os: [windows-latest]
         backend: [kimi-aimock, grok-aimock, opencode-aimock]
+        include:
+          - os: windows-latest
+            backend: opencode-v2-aimock
+            suite: opencode-aimock
+            pin: opencode-cleanup
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     env:
-      OAR_TEST: ${{ matrix.backend }}
+      OAR_TEST: ${{ matrix.suite || matrix.backend }}
       OAR_TEST_REQUIRE_AVAILABLE: '1'
       OAR_TEST_CONCURRENCY: '2'
       OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
@@ -38,7 +43,7 @@ jobs:
           node-version: '24'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # All three packages carry native dependencies in npm tarballs. Cache
+      # The packages carry native dependencies in npm tarballs. Cache
       # downloads, not a mutable global installation or runtime HOME.
       - uses: actions/cache@v4
         with:
@@ -47,12 +52,15 @@ jobs:
             ~/AppData/Local/npm-cache
           key: npm-acp-${{ runner.os }}-${{ runner.arch }}-${{ matrix.backend }}-${{ hashFiles('.github/runtime-versions.json') }}
       - name: Install and verify accepted native runtime
-        run: node .github/scripts/runtime-install.mjs '${{ matrix.backend }}'
+        id: native_install
+        run: node .github/scripts/runtime-install.mjs '${{ matrix.pin || matrix.backend }}'
       - run: pnpm run sea-trial
         if: matrix.backend != 'grok-aimock'
         timeout-minutes: 12
       - run: pnpm vitest run sea-trial/vendor --maxWorkers 2
-        if: matrix.backend != 'grok-aimock'
+        if: >-
+          ${{ !cancelled() && steps.native_install.outcome == 'success' &&
+              matrix.backend != 'grok-aimock' && (success() || matrix.backend == 'opencode-v2-aimock') }}
         timeout-minutes: 12
       - name: Observe Grok behavior processes
         id: grok_behavior

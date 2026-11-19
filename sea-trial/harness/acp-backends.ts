@@ -16,8 +16,10 @@ export async function acpBackend(id: keyof typeof backends): Promise<{
 }> {
   const backend = backends[id];
   const aimock = await backend.start((mock) => {
-    mock.onMessage(/slow/u, { content: "ok" }, { latency: 900 });
-    mock.onMessage(/^(?![\s\S]*slow)[\s\S]*$/u, { content: "ok" }, { latency: 80 });
+    // OpenCode v2 emits its native context update only for a measured model step.
+    const reply = id === "opencode" ? { content: "ok", usage: { input_tokens: 100, output_tokens: 10 } } : { content: "ok" };
+    mock.onMessage(/slow/u, reply, { latency: 900 });
+    mock.onMessage(/^(?![\s\S]*slow)[\s\S]*$/u, reply, { latency: 80 });
   });
   // No account or catalog reads: those cases skip by capability, as in the daily probe.
   const { installation, session, sessionCapabilities, execution } = backend.runtime;

@@ -1,4 +1,5 @@
 /* oxlint-disable import/max-dependencies -- Shared ACP cases plus the failure-only Antigravity evidence helper. */
+import { isOpencodeV2Aimock } from "./support/opencode-version.js";
 import assert from "node:assert/strict";
 import { versionAtLeast } from "../../packages/oar/src/shared/update.js";
 import { describe, expect, test } from "vitest";
@@ -13,6 +14,8 @@ import { runtimeUnderTest } from "../harness/subject.js";
 import { currentTurnSays, ECHO_SERVER, echoesReceived, echoFixtures, echoServers, EXPECTED_ECHOES, expectedEchoes, fingerprint, leakedCredentials, scriptEchoes, startHttpEcho, stdioEcho, STDIO_TOKEN, type EchoCall } from "./support/echo-mcp.js";
 import { structuralToolRound } from "./support/tool-round.js";
 import { createAntigravityMcpEvidence, type AntigravityMcpEvidence } from "./support/antigravity-mcp-evidence.js";
+
+const opencodeV2 = await isOpencodeV2Aimock();
 
 const antigravityInstallation = antigravityRuntime.installation;
 const antigravitySession = antigravityRuntime.session;
@@ -121,7 +124,8 @@ for (const acp of cases) {
       mock.on({ predicate: currentTurnSays(/just answer/u) }, { content: "answered" });
     };
 
-    test("a stdio and an http server attach, the agent calls both, and a resume attaches them again", async () => {
+    test("a stdio and an http server attach, the agent calls both, and a resume attaches them again", async context => {
+      if (opencodeV2) { context.skip("This fixture calls direct <server>_echo tools on open and resume. OpenCode v2 calls MCP through Code Mode execute."); }
       const http = await startHttpEcho();
       const env = await acp.start(script, false);
       try {
@@ -165,7 +169,8 @@ for (const acp of cases) {
       }
     }, 240_000);
 
-    test("a server named like one of the user's runs as the session's; the user's other servers stay", async () => {
+    test("a server named like one of the user's runs as the session's; the user's other servers stay", async context => {
+      if (opencodeV2) { context.skip("This fixture checks the clash through direct MCP tool calls. OpenCode v2 calls MCP through Code Mode execute."); }
       const evidence = acp.id === "antigravity-aimock" ? await createAntigravityMcpEvidence() : undefined;
       let env: AcpAimockEnv | undefined = undefined;
       let session: Session | undefined = undefined;
@@ -194,7 +199,8 @@ for (const acp of cases) {
 
 describe.skipIf(process.env.OAR_TEST !== "opencode-aimock")("opencode prompts with mcpServers", () => {
   // The prompts travel in OPENCODE_CONFIG_CONTENT (runtimes/opencode/prompt-config.ts), the servers in the ACP open.
-  test("a replaced and an appended system prompt and the session's MCP servers all take effect", async () => {
+  test("a replaced and an appended system prompt and the session's MCP servers all take effect", async context => {
+    if (opencodeV2) { context.skip("The prompt check scripts a v1 direct MCP echo. OpenCode v2 calls MCP through Code Mode execute."); }
     const http = await startHttpEcho();
     const env = await startOpencodeGitFixture((mock) => {
       scriptEchoes(mock, (server, text) => ({ name: `${server}_echo`, arguments: { text } }));
