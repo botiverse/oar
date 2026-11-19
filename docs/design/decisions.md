@@ -817,3 +817,27 @@ helper follows this decision.
 **What would reopen it:** a host that cannot get what it needs from the
 declarations, contracts and code, and needs an implementation fact on the
 page. Add the fact as a declaration where it can be one.
+
+## Showing what the model received (2026-11-19)
+
+**Status: designed, not implemented** ([spec](../spec/model-request.md)).
+
+**Considered:** a request-body hook per runtime (Raft has one for Pi and
+was about to add one for Claude); reconstructing the request from each
+runtime's transcript; pointing every runtime's base URL at an OAR proxy;
+emitting each request as a record.
+
+**Decided:** one opt-in session option, `modelRequests: "latest"`, and one
+member, `Session.lastModelRequest()`, filled only from what the runtime
+itself exposes at request time (a native dump, extension event or plugin
+hook), with a `fidelity` of `wire` or `harness`. Runtimes without such a
+mechanism refuse the option and declare the refusal.
+
+A hook per runtime is the per-runtime host code OAR exists to remove. A
+transcript lacks the system prompt and tool schemas, the parts a user opens
+this view to see, so a reconstruction would look complete while missing what
+matters. A proxy puts OAR in the credential path and cannot reach prompts
+built on a vendor's server. A record per request would grow the stream with
+the square of the conversation's length; like `contextBreakdown()`, this is
+a reading, and a host that wants every request stores it itself.
+
