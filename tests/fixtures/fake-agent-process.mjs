@@ -9,6 +9,12 @@ import "./agent-tree.mjs";
  * app-server JSON-RPC and Qwen/Qoder control to open a session; other stdin lines are ignored,
  * which is all the claude adapter needs to open a session.
  */
+const legacyIndex = process.argv.indexOf("--session-id");
+let sessionId = legacyIndex === -1 ? undefined : process.argv[legacyIndex + 1];
+for (const arg of process.argv) {
+  if (typeof arg === "string" && arg.startsWith("--session-id=")) { sessionId = arg.slice("--session-id=".length); }
+  if (typeof arg === "string" && arg.startsWith("--resume=")) { sessionId = arg.slice("--resume=".length); }
+}
 const results = new Map([
   ["initialize", {}],
   ["thread/start", { thread: { id: "fake-thread" } }],
@@ -21,7 +27,6 @@ createInterface({ input: process.stdin }).on("line", (line) => {
     return;
   }
   if (message?.type === "control_request" && ["initialize", "get_settings"].includes(message?.request?.subtype)) {
-    const sessionId = process.argv[process.argv.indexOf("--session-id") + 1];
     process.stdout.write(`${JSON.stringify({ type: "control_response", response: {
       subtype: "success", request_id: message.request_id, response: { session_id: sessionId },
     } })}\n`);

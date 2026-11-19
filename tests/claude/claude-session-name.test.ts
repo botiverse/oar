@@ -15,7 +15,7 @@ async function argsFor(options: { resume?: string; name?: string }): Promise<unk
 }
 
 test("a new session is launched with --name", async () => {
-  expect(await argsFor({ name: "Raft · Otter" })).toEqual(expect.arrayContaining(["--session-id", "session", "--name", "Raft · Otter"]));
+  expect(await argsFor({ name: "Raft · Otter" })).toEqual(expect.arrayContaining(["--session-id=session", "--name", "Raft · Otter"]));
 });
 
 // [env] claude 2.1.292: `--name` on a resume replaces the name the session has, which may be the user's.

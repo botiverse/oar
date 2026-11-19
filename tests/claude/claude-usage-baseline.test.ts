@@ -13,7 +13,7 @@ import { fakeLineProcess, type FakeLineProcess } from "../fixtures/fake-line-pro
  * privately like `initialize`. Frames: tests/fixtures/claude-usage.ts.
  */
 
-const spawnLineProcess = vi.hoisted(() => vi.fn<() => FakeLineProcess>());
+const spawnLineProcess = vi.hoisted(() => vi.fn<(command: string, args: readonly string[]) => FakeLineProcess>());
 vi.mock("../../packages/oar/src/shared/executable/index.js", () => ({ spawnLineProcess }));
 const installation = { kind: "available", via: "executable", command: "claude" } as const;
 afterEach(() => { spawnLineProcess.mockReset(); vi.useRealTimers(); });
@@ -21,13 +21,17 @@ afterEach(() => { spawnLineProcess.mockReset(); vi.useRealTimers(); });
 const requestOf = (text: string): JsonRecord | null => asRecord(JSON.parse(text));
 const subtypeOf = (text: string): unknown => asRecord(requestOf(text)?.request)?.subtype;
 
-/** A claude that answers initialize, and get_usage with `usage` (null: never). */
+/** A claude that answers initialize and get_status, and get_usage with `usage` (null: never). */
 function scripted(usage: ((id: unknown) => JsonRecord) | null): FakeLineProcess {
   const fake = fakeLineProcess((text, child) => {
     const request = requestOf(text);
     const subtype = subtypeOf(text);
     if (subtype === "initialize") {
       child.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request?.request_id, response: {} } })}\n`);
+    } else if (subtype === "get_status") {
+      const args = spawnLineProcess.mock.calls[0]?.[1] ?? [];
+      const resumed = args.find((arg) => arg.startsWith("--resume="))?.slice("--resume=".length) ?? "old-id";
+      child.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request?.request_id, response: { sections: [{ title: "Session", rows: [{ label: "Session ID", value: resumed }] }] } } })}\n`);
     } else if (subtype === "get_usage" && usage !== null) {
       child.emit(`${JSON.stringify(usage(request?.request_id))}\n`);
     }
@@ -46,11 +50,15 @@ function lastUsageEvent(session: Session): unknown {
   return session.records().flatMap((record: RawEvent) => record.kind === "frame" ? record.body.events.filter((event) => event.kind === "usage") : []).at(-1);
 }
 
-/** The open asked initialize, then get_usage, and recorded neither answer, nor a late duplicate. */
+/** The open asked initialize, get_status, then get_usage, and recorded none of their answers, nor a late duplicate. */
 function expectPrivateReadbacks(fake: FakeLineProcess, session: Session): void {
   const requests = fake.written.map((text) => requestOf(text));
-  expect(requests.map((request) => request?.request)).toEqual([{ subtype: "initialize" }, { subtype: "get_usage", skip_behaviors: true }]);
-  fake.emit(`${JSON.stringify(getUsageAnswer(requests[1]?.request_id, savedModelUsage))}\n`);
+  expect(requests.map((request) => request?.request)).toEqual([
+    { subtype: "initialize" },
+    { subtype: "get_status" },
+    { subtype: "get_usage", skip_behaviors: true },
+  ]);
+  fake.emit(`${JSON.stringify(getUsageAnswer(requests[2]?.request_id, savedModelUsage))}\n`);
   expect(session.records().map((record) => record.body)).toEqual([{ kind: "open", placement: "auto" }, { kind: "opened", placement: "isolated" }]);
 }
 
@@ -93,7 +101,7 @@ test("a get_usage refusal leaves the resumed session's total null, its usage eve
 /** A resume whose get_usage is never answered, opened once the readback bound has passed. */
 async function openPastTheBound(fake: FakeLineProcess): Promise<Session> {
   const opening = claudeSession(installation, { cwd: process.cwd(), resume: "old-id" });
-  await vi.waitFor(() => { expect(fake.written.map(subtypeOf)).toEqual(["initialize", "get_usage"]); });
+  await vi.waitFor(() => { expect(fake.written.map(subtypeOf)).toEqual(["initialize", "get_status", "get_usage"]); });
   await vi.advanceTimersByTimeAsync(CLAUDE_EFFORT_READBACK_MS);
   return opening;
 }

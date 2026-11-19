@@ -70,6 +70,15 @@ test("empty replacement cannot silently select built-in instructions", () => {
   expect(() => { validateOpenCodePrompts({ cwd: "/", systemPrompt: "" }); }).toThrow("cannot replace the system prompt with an empty string");
 });
 
+test.each(["", "   ", "-c", "--help", "ses\0bad"])("invalid resume is refused before opencode export runs: %j", async (resume) => {
+  const run = vi.fn<ExecutableRunner>();
+  await expect(prepareOpenCodePrompts("opencode", { cwd: "/project", resume, systemPrompt: "replacement" }, run)).rejects.toMatchObject({
+    name: "UnsupportedOptionError",
+    option: "resume",
+  });
+  expect(run).not.toHaveBeenCalled();
+});
+
 test("mode read-back rejects a different or missing agent, naming both sides", () => {
   expect(() => { verifyOpenCodeAgent({ configOptions: [{ category: "mode", currentValue: "scribe" }] }, "scribe"); }).not.toThrow();
   expect(() => { verifyOpenCodeAgent({ configOptions: [{ category: "mode", currentValue: "plan" }] }, "scribe"); }).toThrow('selected agent "plan", but the system prompt was configured for "scribe"');

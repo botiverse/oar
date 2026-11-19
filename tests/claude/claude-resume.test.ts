@@ -51,16 +51,22 @@ test("resume does not resolve until its own initialize succeeds, and keeps the a
   expect(resolved).toBe(false);
   const answer = { type: "control_response", response: { subtype: "success", request_id: request?.request_id, response: { fast_mode_state: "off" } } };
   fake.emit(`${JSON.stringify(answer)}\n`);
-  // Then the token baseline (#282), its answer private as well.
+  // Next get_status confirms the native Session ID, privately too.
   await vi.waitFor(() => { expect(fake.written).toHaveLength(2); });
-  const usage = asRecord(JSON.parse(fake.written[1] ?? "null"));
+  const status = asRecord(JSON.parse(fake.written[1] ?? "null"));
+  expect(status?.request).toEqual({ subtype: "get_status" });
+  const statusAnswer = { type: "control_response", response: { subtype: "success", request_id: status?.request_id, response: { sections: [{ title: "Session", rows: [{ label: "Session ID", value: "existing-session" }] }] } } };
+  fake.emit(`${JSON.stringify(statusAnswer)}\n`);
+  // Then the token baseline (#282), its answer private as well.
+  await vi.waitFor(() => { expect(fake.written).toHaveLength(3); });
+  const usage = asRecord(JSON.parse(fake.written[2] ?? "null"));
   expect(usage?.request).toEqual({ subtype: "get_usage", skip_behaviors: true });
   const usageAnswer = { type: "control_response", response: { subtype: "success", request_id: usage?.request_id, response: { session: { model_usage: {} } } } };
   fake.emit(`${JSON.stringify(usageAnswer)}\n`);
   const session = await opening;
   expect(session.id).toBe("existing-session");
-  expect(session.records().some((record) => record.kind === "frame" && [answer, usageAnswer].some((private_) => JSON.stringify(record.body.native) === JSON.stringify(private_)))).toBe(false);
-  expect(fake.written).toHaveLength(2);
+  expect(session.records().some((record) => record.kind === "frame" && [answer, statusAnswer, usageAnswer].some((private_) => JSON.stringify(record.body.native) === JSON.stringify(private_)))).toBe(false);
+  expect(fake.written).toHaveLength(3);
   await session.dispose();
 });
 
@@ -104,19 +110,38 @@ test("resume initialize has the existing readback deadline and kills an unrespon
   expect(fake.killed()).toBe(true);
 });
 
-test("resume confirms initialize before effort and reuses that answer to confirm service tier", async () => {
+test("resume confirms initialize before effort, reuses initialize for service tier, then confirms session id", async () => {
   const methods: unknown[] = [];
+  const answers: Record<string, Record<string, unknown>> = {
+    initialize: { fast_mode_state: "on" },
+    get_status: { sections: [{ title: "Session", rows: [{ label: "Session ID", value: "old-id" }] }] },
+  };
   const fake = fakeLineProcess((text, child) => {
     const request = asRecord(JSON.parse(text));
     const method = asRecord(request?.request)?.subtype;
     methods.push(method);
-    child.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request?.request_id, response: method === "initialize" ? { fast_mode_state: "on" } : { applied: { effort: "low" } } } })}\n`);
+    const response = typeof method === "string" ? answers[method] ?? { applied: { effort: "low" } } : { applied: { effort: "low" } };
+    child.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request?.request_id, response } })}\n`);
   });
   spawnLineProcess.mockReturnValue(fake);
   const session = await claudeSession(installation, { cwd: process.cwd(), resume: "old-id", effort: "low", serviceTier: "fast" });
-  expect(methods).toEqual(["initialize", "get_settings", "get_usage"]);
+  expect(methods).toEqual(["initialize", "get_settings", "get_status", "get_usage"]);
   expect(session.serviceTier().value).toBeNull();
   await session.dispose();
+});
+
+test("Claude 2.1.326+ non-UUID unmatched-title resume result maps to SessionNotFoundError with redaction", async () => {
+  const nonUuidMissing = {
+    ...missing,
+    errors: [`Error: --resume requires a valid session ID or session title when used with --print (-p). Provided value "${secret}" is not a UUID and does not match any session title.`],
+  };
+  const fake = fakeLineProcess((_text, child) => { child.emit(`${JSON.stringify(nonUuidMissing)}\n`); });
+  spawnLineProcess.mockReturnValue(fake);
+  const opened = await claudeSession(installation, { cwd: process.cwd(), resume: secret, env: { API_KEY: secret } }).catch((error: unknown) => error);
+  expect(opened).toBeInstanceOf(SessionNotFoundError);
+  expect(opened).toMatchObject({ name: "SessionNotFoundError", sessionId: "[redacted]" });
+  expect(inspect(opened, { depth: null })).not.toContain(secret);
+  expect(fake.killed()).toBe(true);
 });
 
 test("a fresh open without readback options sends no initialize", async () => {

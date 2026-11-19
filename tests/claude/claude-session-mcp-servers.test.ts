@@ -100,11 +100,15 @@ test("mcpServers reach claude through --mcp-config, never argv: a FIFO gone once
 test("a resume passes them again: claude remembers no --mcp-config", async () => {
   spawnLineProcess.mockReturnValue(fakeLineProcess((text, child) => {
     const request = asRecord(JSON.parse(text));
-    child.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request?.request_id, response: {} } })}\n`);
+    const subtype = asRecord(request?.request)?.subtype;
+    const response = subtype === "get_status"
+      ? { sections: [{ title: "Session", rows: [{ label: "Session ID", value: "claude-session-1" }] }] }
+      : {};
+    child.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request?.request_id, response } })}\n`);
   }));
   const session = await claudeSession(installation, { cwd: "/work", resume: "claude-session-1", mcpServers: servers });
   const { argv, config } = spawned();
-  expect(argv.slice(argv.indexOf("--resume"), argv.indexOf("--resume") + 2)).toEqual(["--resume", "claude-session-1"]);
+  expect(argv).toContain("--resume=claude-session-1");
   expect(config).not.toBeNull();
   await session.dispose();
 });

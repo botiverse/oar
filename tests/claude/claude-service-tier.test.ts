@@ -9,13 +9,19 @@ vi.mock("../../packages/oar/src/shared/executable/index.js", () => ({ spawnLineP
 const installation = { kind: "available", via: "executable", command: "claude", version: "2.1.293" } as const;
 afterEach(() => { spawnLineProcess.mockReset(); vi.useRealTimers(); });
 
+function statusReply(): Record<string, unknown> {
+  const args = spawnLineProcess.mock.calls[0]?.[1] ?? [];
+  const resumed = args.find((arg) => arg.startsWith("--resume="))?.slice("--resume=".length) ?? "old-id";
+  return { sections: [{ title: "Session", rows: [{ label: "Session ID", value: resumed }] }] };
+}
+
 function scripted(applied: Record<string, unknown>, error?: string): FakeLineProcess {
   const child = fakeLineProcess((line, process) => {
     const request = asRecord(JSON.parse(line));
     const subtype = asRecord(request?.request)?.subtype;
-    if (subtype === "get_usage") {
-      // A resume's token baseline (#282): nothing saved.
-      process.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request?.request_id, response: { session: { model_usage: {} } } } })}\n`);
+    if (subtype === "get_status" || subtype === "get_usage") {
+      const response = subtype === "get_status" ? statusReply() : { session: { model_usage: {} } };
+      process.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request?.request_id, response } })}\n`);
       return;
     }
     if (subtype !== "initialize") { return; }
@@ -32,7 +38,7 @@ test.each([undefined, "old-id"])("per-process settings and initialization confir
   const child = scripted({ fast_mode_state: "on" });
   const session = await claudeSession(installation, { cwd: "/work", serviceTier: "fast", ...(resume === undefined ? {} : { resume }) });
   expect(spawnLineProcess.mock.calls[0]?.[1]).toEqual(expect.arrayContaining(["--settings", '{"fastMode":true}']));
-  expect(child.written).toHaveLength(resume === undefined ? 1 : 2);
+  expect(child.written).toHaveLength(resume === undefined ? 1 : 3);
   expect(session.serviceTier().value).toBeNull();
   expect(session.records().map((record) => record.body)).toEqual([{ kind: "open", placement: "auto" }, { kind: "opened", placement: "isolated" }]);
   child.emit(`${JSON.stringify({ type: "system", subtype: "init", model: "opus", fast_mode_state: "cooldown" })}\n`);

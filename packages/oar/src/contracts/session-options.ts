@@ -157,14 +157,14 @@ export interface SessionOptions {
    */
   readonly name?: string;
   /**
-   * Resume the native conversation identified by a previous Session.id.
-   * Verified missing-target signals reject with SessionNotFoundError; a
-   * target the runtime keeps but will not open now (archived, or held by
-   * another process) rejects with SessionUnavailableError; all
-   * other failed opens keep their own errors. Missing is scoped to the
-   * runtime's configuration, including cwd for per-directory stores. Save
-   * and reuse that cwd; kimi/opencode reject a different one with
-   * UnsupportedOptionError. See docs/spec/runtime-matrix.md#missing-resume-targets.
+   * Resume the native conversation identified by a previous Session.id. Blank,
+   * `-`-prefixed and NUL-containing values reject with UnsupportedOptionError.
+   * Verified missing-target signals reject with SessionNotFoundError; a target
+   * the runtime keeps but will not open now (archived, or held by another
+   * process) rejects with SessionUnavailableError; other failed opens keep
+   * their own errors. Missing is scoped to the runtime's configuration,
+   * including cwd for per-directory stores; kimi/opencode reject a different
+   * cwd with UnsupportedOptionError (docs/spec/runtime-matrix.md#missing-resume-targets).
    */
   readonly resume?: string;
   /**

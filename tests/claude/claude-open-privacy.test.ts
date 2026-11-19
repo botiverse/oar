@@ -23,7 +23,11 @@ const options: SessionOptions[] = [
 
 afterEach(() => { spawnLineProcess.mockReset(); vi.useRealTimers(); });
 
-function script(fastMode = "on", effort = "low"): FakeLineProcess {
+function statusResponse(sessionId: string): Record<string, unknown> {
+  return { sections: [{ title: "Session", rows: [{ label: "Session ID", value: sessionId }, { label: "Email", value: "oar-private-account@example.test" }] }] };
+}
+
+function script(fastMode = "on", effort = "low", sessionId = "old-id"): FakeLineProcess {
   const fake = fakeLineProcess((text, child) => {
     const request = asRecord(JSON.parse(text));
     const method = asRecord(request?.request)?.subtype;
@@ -31,7 +35,8 @@ function script(fastMode = "on", effort = "low"): FakeLineProcess {
       child.emit(`${JSON.stringify(getUsageAnswer(request?.request_id, savedModelUsage))}\n`);
       return;
     }
-    const response = method === "initialize" ? { ...initialized, fast_mode_state: fastMode } : { applied: { effort } };
+    const answers: Record<string, Record<string, unknown>> = { initialize: { ...initialized, fast_mode_state: fastMode }, get_status: statusResponse(sessionId) };
+    const response = typeof method === "string" ? answers[method] ?? { applied: { effort } } : { applied: { effort } };
     child.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request?.request_id, response } })}\n`);
   });
   spawnLineProcess.mockReturnValue(fake);

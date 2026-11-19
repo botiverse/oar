@@ -30,8 +30,9 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
     consume: (message) => readback.consume(message) || contextBreakdown.consume(message) || compaction.consume(message),
     open: async (projection) => {
       await readback.confirm(options);
-      // A fork is confirmed to run under the id OAR assigned, which Session.id reports.
-      if (options.fork !== undefined) { await readback.confirmSessionId(sessionId); }
+      // Both a plain resume (which Claude can otherwise resolve by --name title
+      // to a different session's UUID) and a fork must run under sessionId.
+      if (options.resume !== undefined) { await readback.confirmSessionId(sessionId, options); }
       if (options.resume !== undefined) {
         projection.replace(claudeUsageBaselined(projection.current(), await readback.usageBaseline()));
       }

@@ -40,10 +40,10 @@ export type ClaudeProcess = LineProcess;
  * `-` is never read as a flag.
  */
 export function claudeSessionArgs(sessionId: string, options: Pick<SessionOptions, "resume" | "fork">): readonly string[] {
-  if (options.resume === undefined) { return ["--session-id", sessionId]; }
-  if (options.fork === undefined) { return ["--resume", sessionId]; }
+  if (options.resume === undefined) { return [`--session-id=${sessionId}`]; }
+  if (options.fork === undefined) { return [`--resume=${sessionId}`]; }
   const through = options.fork.through;
-  return ["--resume", options.resume, "--fork-session", "--session-id", sessionId, ...(through === undefined ? [] : [`--resume-session-at=${through}`])];
+  return [`--resume=${options.resume}`, "--fork-session", `--session-id=${sessionId}`, ...(through === undefined ? [] : [`--resume-session-at=${through}`])];
 }
 
 function spawnClaude(command: string, sessionId: string, options: SessionOptions, mcpConfig: string | null, tierSettings: JsonRecord, nativeArgs: readonly string[]): LineProcess {

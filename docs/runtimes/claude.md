@@ -107,10 +107,10 @@ OAR's resume call:
 ```sh
 claude -p --input-format stream-json --output-format stream-json --verbose \
   --replay-user-messages --include-partial-messages \
-  --resume SESSION_ID --dangerously-skip-permissions
+  --resume=SESSION_ID --dangerously-skip-permissions
 ```
 
-A new session passes `--session-id UUID` (OAR's `randomUUID()`) instead.
+A new session passes `--session-id=UUID` (OAR's `randomUUID()`) instead.
 OAR then writes newline-delimited frames such as
 `{"type":"user","message":{"role":"user","content":[{"type":"text","text":"Continue"}]}}`.
 The SDK equivalent is `query({ prompt: "Continue", options: { resume: sessionId } })`;
@@ -130,14 +130,17 @@ sends the native `initialize` control request and waits for success within
 a 30-second active readback budget, with the bounded
 [SessionStart hook pause](#opening-with-sessionstart-hooks) described below.
 A requested `serviceTier` uses that
-same answer, and requested `effort` is read back afterward. Then a resume
-asks `get_usage` for its [token baseline](#token-totals), within a separate
-30-second wall-clock bound; that answer never fails the open. Fresh opens without either setting
+same answer, and requested `effort` is read back afterward. Next, `get_status`
+confirms that Claude's `Session ID` row matches `sessionId` (rejecting a
+saved `--name` title match that opened another UUID), and `get_usage` reads
+its [token baseline](#token-totals), each within a 30-second wall-clock bound;
+the usage answer never fails the open. Fresh opens without either setting
 keep the immediate post-spawn path; no fresh open sends `get_usage`.
 
 A missing resume ID reports `result/error_during_execution` before answering
-`initialize`, then exits. When `errors[0]` starts exactly with
-`No conversation found with session ID`, OAR rejects with
+`initialize`, then exits. When `errors[0]` starts with
+`No conversation found with session ID` or reports that the value
+`is not a UUID and does not match any session title` (2.1.326+), OAR rejects with
 `SessionNotFoundError`, the requested `sessionId`, Claude's `errors` text and `cause: { method: "initialize", native: <result frame> }`, under the
 shared credential-redaction rules. This narrowly pinned prose is a last resort;
 other execution failures keep their original errors
@@ -173,7 +176,7 @@ launch ([session name](../spec/runtime-matrix.md#session-name)).
 [Vendor test](../../sea-trial/vendor/claude-session-name.vendor.test.ts).
 
 **Fork (mapped).** `SessionOptions.fork` with `resume: <source>` launches
-`--resume <source> --fork-session --session-id <OAR's new id>`, so the copy
+`--resume=<source> --fork-session --session-id=<OAR's new id>`, so the copy
 runs under the id `Session.id` reports; `fork.through` adds the hidden
 `--resume-session-at=<uuid>`, which keeps the history through that assistant
 message ([env] 2.1.323: the source transcript is unchanged, the copy resumes

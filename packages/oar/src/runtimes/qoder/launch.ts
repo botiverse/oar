@@ -50,7 +50,7 @@ export async function launchQoder(command: string, sessionId: string, options: S
     const args = [
       "--print", "--input-format", "stream-json", "--output-format", "stream-json", "--include-partial-messages", "--replay-user-messages",
       "--permission-mode", "bypass_permissions", "--permission-prompt-tool", "stdio",
-      ...(options.resume === undefined ? ["--session-id", sessionId] : ["--resume", sessionId]),
+      options.resume === undefined ? `--session-id=${sessionId}` : `--resume=${sessionId}`,
       ...(options.model === undefined ? [] : ["--model", options.model]),
       ...(options.effort === undefined ? [] : ["--reasoning-effort", options.effort]),
       ...promptArgs,
