@@ -125,3 +125,49 @@ test("shared ACP sessions admit and withdraw held input synchronously without ov
     await b.dispose();
   }
 });
+
+// oxlint-disable-next-line eslint/max-statements -- Verify call-order request recording and execution for prompt+queue across isolated and shared ACP.
+test.each(["isolated", "shared"] as const)("%s ACP preserves call order and runs both inputs when prompt is followed synchronously by queue", async (mode) => {
+  const f = mode === "shared" ? await sharedFixture() : null;
+  const session = f === null ? await start() : await f.open("a");
+  try {
+    const [prompted, queued] = await Promise.all([session.prompt("first"), session.queue("second")]);
+    expect([prompted.kind, queued.kind]).toEqual(["accepted", "accepted"]);
+    expect(await awaitTurnEnd(session, prompted.seq)).toEqual({ kind: "completed" });
+    const carried = session.records().find(record => record.kind === "request" && record.body.kind === "prompt" && record.body.carries !== undefined);
+    expect(await awaitTurnEnd(session, carried?.seq ?? queued.seq)).toEqual({ kind: "completed" });
+    const [refusedAbort, promptedAfter, queuedAfter] = await Promise.all([session.abort(), session.prompt("third"), session.queue("fourth")]);
+    expect([refusedAbort.kind, promptedAfter.kind, queuedAfter.kind]).toEqual(["rejected", "accepted", "accepted"]);
+    expect(await awaitTurnEnd(session, promptedAfter.seq)).toEqual({ kind: "completed" });
+    const carriedAfter = session.records().findLast(record => record.kind === "request" && record.body.kind === "prompt" && record.body.carries !== undefined);
+    expect(await awaitTurnEnd(session, carriedAfter?.seq ?? queuedAfter.seq)).toEqual({ kind: "completed" });
+    const requests = session.records().flatMap(record => record.kind === "request" && record.direction === "toRuntime" && (record.body.kind === "abort" || record.body.kind === "prompt" || record.body.kind === "queue") ? [record.body.kind === "abort" ? "abort" : `${record.body.kind}:${record.body.input}`] : []);
+    expect(requests).toEqual(["prompt:first", "queue:second", "prompt:second", "abort", "prompt:third", "queue:fourth", "prompt:fourth"]);
+    if (mode === "isolated") {
+      expect(said(session)).toEqual(["echo:first", "echo:second", "echo:third", "echo:fourth"]);
+    } else {
+      for (const expected of ["echo:first:", "echo:second:", "echo:third:", "echo:fourth:"]) {
+        expect(sharedText(session)).toContain(expected);
+      }
+    }
+  } finally { await session.dispose(); }
+});
+
+// oxlint-disable-next-line eslint/max-statements -- Verify call-order request recording for abort+dispose+prompt across isolated and shared ACP.
+test.each(["isolated", "shared"] as const)("%s ACP records abort before a synchronous follow-up dispose without rejecting abort as disposed", async (mode) => {
+  const f = mode === "shared" ? await sharedFixture() : null;
+  const session = f === null ? await start() : await f.open("a");
+  try {
+    const held = await session.prompt("hold");
+    expect(held.kind).toBe("accepted");
+    const aborting = session.abort();
+    const disposing = session.dispose();
+    const afterDispose = session.prompt("after-dispose");
+    const [aborted, , rejectedAfter] = await Promise.all([aborting, disposing, afterDispose]);
+    const requests = session.records().flatMap(record => record.kind === "request" && record.direction === "toRuntime" && (record.body.kind === "abort" || record.body.kind === "dispose" || (record.body.kind === "prompt" && record.body.input === "after-dispose")) ? [record.body.kind] : []);
+    expect(requests).toEqual(["abort", "dispose", "prompt"]);
+    expect(aborted.response.body).not.toMatchObject({ kind: "rejected", code: "disposed" });
+    if (mode === "shared") { expect(aborted.kind).toBe("accepted"); }
+    expect(rejectedAfter.response.body).toMatchObject({ kind: "rejected", code: "disposed" });
+  } finally { await session.dispose(); }
+});

@@ -6,7 +6,7 @@ import type { SessionKernel } from "./session-kernel.js";
 export interface ProcessSessionLifecycle {
   /** Only after the runtime's interrupt failed to settle within its fallback interval. */
   abortFallback(request: RequestRecord): Promise<ControlResult>;
-  dispose(this: void): Promise<void>;
+  dispose(this: void, serialize?: (run: () => Promise<void>) => Promise<void>): Promise<void>;
 }
 
 function cleanupQueue(kernel: SessionKernel, cleanup: () => Promise<void>, timeoutMs: number): (request: RequestRecord) => Promise<void> {
@@ -71,13 +71,16 @@ export function processSessionLifecycle(kernel: SessionKernel, lease: ProcessLea
       }
       return { request, response };
     },
-    dispose: async () => {
+    dispose: async (serialize) => {
+      const step = serialize ?? (async (run: () => Promise<void>): Promise<void> => { await run(); });
       await kernel.dispose(async request => {
-        try { await dispose(request); }
-        catch (error) {
-          // A concurrently observed exit already completed the lease shutdown.
-          if (!hasExited()) { throw error; }
-        }
+        await step(async () => {
+          try { await dispose(request); }
+          catch (error) {
+            // A concurrently observed exit already completed the lease shutdown.
+            if (!hasExited()) { throw error; }
+          }
+        });
       }, unsubscribe);
     },
   };

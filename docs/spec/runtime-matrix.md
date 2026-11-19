@@ -93,7 +93,10 @@ accepted. See each [runtime page](../runtimes/README.md) for native evidence.
 are members a session may lack: a control the runtime cannot do is an
 absent member, never a request that is always rejected
 ([record stream](record-stream.md#the-rules)). Where `queue.durable` is
-false, the adapter holds queued input in this process.
+false, the adapter holds queued input in this process; a synchronous observer
+of a `prompt` request that reentrantly calls `queue` places the queued entry
+before that `prompt` decides, so adapter-held sessions refuse the `prompt` as
+`busy` and drain the queued entry instead.
 
 | runtime | `steer` | `withdraw` | `capabilities.queue.durable` |
 |---|---|---|---|

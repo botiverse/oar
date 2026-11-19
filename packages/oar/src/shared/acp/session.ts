@@ -179,33 +179,50 @@ export function finishAcpSession(
   // response: a control landing in that window would otherwise be decided
   // here (rejected "ACP process exited") instead of by the gate, so the
   // exit is let land first.
+  let queued = 0;
   let controls = Promise.resolve();
-  const serial = async <T>(run: () => Promise<T>): Promise<T> => {
-    if (ownership === undefined) { const value = await run(); return value; }
+  const track = (promise: Promise<unknown>): void => {
+    queued += 1;
+    controls = (async (): Promise<void> => {
+      try { await promise; } catch { /* One refusal does not poison the next control. */ }
+      finally { queued -= 1; }
+    })();
+  };
+  const serial = <T>(run: () => T | Promise<T>): T | Promise<T> => {
+    if (ownership === undefined) { return run(); }
+    if (queued === 0) {
+      const value = run();
+      if (value instanceof Promise) { track(value); }
+      return value;
+    }
     const previous = controls;
-    const result = (async (): Promise<T> => { await previous; const value = await run(); return value; })();
-    controls = (async (): Promise<void> => { try { await result; } catch { /* One refusal does not poison the next control. */ } })();
-    const value = await result; return value;
+    const next = (async (): Promise<T> => { await previous; const value = await run(); return value; })();
+    track(next);
+    return next;
+  };
+  const liveRefusal = (): ResponseBody | null => {
+    const unreachable = kernel.unreachable();
+    return unreachable !== null && unreachable.code !== "disposed" ? unreachable : null;
   };
   const control = (
     body: RequestBody,
     decide: (request: RequestRecord) => ResponseBody | Promise<ResponseBody>,
-  ): Promise<ControlResult> => serial(async () => {
-    const pendingCancellation = turns.pendingCancellation();
-    if ((body.kind === "prompt" || body.kind === "steer") && pendingCancellation !== null) {
-      try { await pendingCancellation; }
-      catch { /* The abort reports its own failure; later input can still proceed. */ }
-    }
-    if (runtime.closed && kernel.unreachable() === null) { await runtime.exited; }
-    return kernel.control(body, decide);
-  });
-  const heldControl = async (
-    body: RequestBody,
-    decide: (request: RequestRecord) => ResponseBody,
-  ): Promise<ControlResult> => {
-    if (runtime.closed && kernel.unreachable() === null) { await runtime.exited; }
-    return kernel.control(body, decide);
-  };
+  ): Promise<ControlResult> => kernel.control(body, (request) => serial(() => {
+    const pendingCancellation = (body.kind === "prompt" || body.kind === "steer") ? turns.pendingCancellation() : null;
+    if (pendingCancellation === null && !(runtime.closed && kernel.unreachable() === null)) { return liveRefusal() ?? decide(request); }
+    return (async (): Promise<ResponseBody> => {
+      if (pendingCancellation !== null) { try { await pendingCancellation; } catch { /* The abort reports its own failure; later input can still proceed. */ } }
+      if (runtime.closed && kernel.unreachable() === null) { await runtime.exited; }
+      const refusal = liveRefusal();
+      if (refusal !== null) { return refusal; }
+      const value = await decide(request);
+      return value;
+    })();
+  }));
+  const heldControl = (body: RequestBody, decide: (request: RequestRecord) => ResponseBody): Promise<ControlResult> => kernel.control(body, (request) =>
+    runtime.closed && kernel.unreachable() === null
+      ? (async (): Promise<ResponseBody> => { await runtime.exited; return kernel.unreachable() ?? decide(request); })()
+      : kernel.unreachable() ?? decide(request));
 
   // A profile without a native steer cannot inject, so the session has no `steer`;
   // neither does one whose connection did not advertise its steer request.
@@ -218,11 +235,11 @@ export function finishAcpSession(
         if (compaction?.busy() === true) { return { kind: "rejected", code: "busy", reason: "Native compaction is still running" }; }
         // The turn running now, OAR's or the runtime's own, must still be the one running when the RPC goes out.
         const target = turns.active();
-        if (steerRequest !== undefined) { return sendAcpSteerRequest({ kernel, runtime, profile, capabilities, running: () => target !== null && turns.active() === target && !target.abortRequested }, request, input, inputOptions); }
-        const state = turns.active();
-        return state === null || steerParams === undefined
+        if (target === null) { return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" }; }
+        if (steerRequest !== undefined) { return sendAcpSteerRequest({ kernel, runtime, profile, capabilities, running: () => turns.active() === target && !target.abortRequested }, request, input, inputOptions); }
+        return steerParams === undefined
           ? { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" }
-          : turns.steer(state, input, inputOptions, steerParams(input));
+          : turns.steer(target, input, inputOptions, steerParams(input));
       }),
     };
 
@@ -236,29 +253,31 @@ export function finishAcpSession(
     queue: (input, inputOptions?: InputOptions): Promise<ControlResult> => heldControl({ kind: "queue", input, ...inputOptions }, (request) => turns.hold(input, inputOptions?.images, inputOptions?.inputId, request)),
     // The queue is held here (turns.ts), not by the vendor: an entry can be taken back until the drain sends it.
     withdraw: (inputId: string): Promise<ControlResult> => heldControl({ kind: "withdraw", inputId }, () => turns.withdraw(inputId)),
-    abort: (): Promise<ControlResult> => control({ kind: "abort" }, async (request): Promise<ResponseBody> => {
+    abort: (): Promise<ControlResult> => control({ kind: "abort" }, (request): ResponseBody | Promise<ResponseBody> => {
       const state = turns.active();
       if (state === null) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
-      const claim = turnTerminals.aborting(state, request);
-      const answer = await turns.abort(state, request);
-      if (answer.kind === "accepted") { claim.accepted(); } else { claim.refused(); }
-      return answer;
+      return (async (): Promise<ResponseBody> => {
+        const claim = turnTerminals.aborting(state, request);
+        const answer = await turns.abort(state, request);
+        if (answer.kind === "accepted") { claim.accepted(); } else { claim.refused(); }
+        return answer;
+      })();
     }),
     rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
     records: () => kernel.records(),
     graph: () => kernel.graph(),
     resources: ownership?.lease.resources ?? runtime.resources,
-    dispose: (): Promise<void> => {
+    dispose: async (): Promise<void> => {
       if (lifecycle !== undefined && ownership !== undefined) {
-        ownership.stopRequests();
-        const disposal = lifecycle.dispose();
-        turns.onExit();
-        return serial(async () => {
-          await disposal;
-          ownership.detach();
+        await lifecycle.dispose(async run => {
+          await serial(async () => {
+            ownership.stopRequests(); turns.onExit();
+            try { await run(); } finally { ownership.detach(); }
+          });
         });
+        ownership.stopRequests(); turns.onExit(); ownership.detach();
+        return;
       }
-      return serial(async () => {
       await kernel.dispose(async () => {
         // Native cancel can orphan tools before exit, including detached POSIX tools.
         await runtime.prepareShutdown();
@@ -275,7 +294,6 @@ export function finishAcpSession(
         await runtime.exited;
         await terminalHost.dispose();
       }, () => terminalHost.dispose());
-      });
     },
   }, shared?.redact);
 }
