@@ -172,11 +172,15 @@ it("stops when the host cannot display the link", async () => {
 });
 
 it("a silent confirmation shares the whole login deadline and cannot contradict native success", async () => {
+  vi.stubEnv("OAR_KILL_GRACE_MS", "2000");
   const { fake, installation } = await fixture("silent-confirmation");
   expect(await codebuddyLogin(installation, recordedInteraction([]), { timeoutMs: 1500 })).toEqual({ kind: "logged_in" });
-  expect(fake.read().pids).toHaveLength(2);
+  const { pids } = fake.read();
+  assert.ok(Array.isArray(pids));
+  expect(pids).toHaveLength(2);
+  for (const pid of pids) { expect(() => process.kill(Number(pid), 0)).toThrow(); }
   expect(fake.read().loggedIn).toBe(true);
-}, 5000);
+}, 10_000);
 
 it("logout is CodeBuddy's stream-json logout, confirmed by initialize.account", async () => {
   const { fake, installation } = await fixture("success", true);

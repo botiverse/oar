@@ -65,7 +65,9 @@ export async function codebuddyLogin(installation: AvailableInstallation, intera
     try { result = await Promise.race([flow(), stopped(), interactionFailed.promise]); }
     catch (error) { result = flowState.failure ?? { kind: "failed", reason: "process_failed", detail: control.secrets.line(errorMessage(error)) }; }
     settled = true;
-    control.process.stop(); await control.process.exited;
+    // Start confirmation while the successful process shuts down. The finally
+    // block joins its tree even if the confirmation or the caller cancels.
+    control.process.stop();
     if (!flowState.success) { return result; }
     if (aborted()) { return { kind: "logged_in" }; }
     // Confirmation shares the login deadline and cancellation signal. A
