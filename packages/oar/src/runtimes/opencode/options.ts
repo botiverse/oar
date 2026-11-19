@@ -1,4 +1,6 @@
-import type { RefusedSessionOptions } from "../../contracts/runtime.js";
+import { parseOpencodeRelease, type OpencodeRelease } from "./version.js";
+import type { AvailableInstallation } from "../../contracts/installation.js";
+import type { RefusedSessionOptions, SessionCapabilityDeclaration } from "../../contracts/runtime.js";
 
 /* Declared refusals, apart from the session code so the runtime entry loads no ACP SDK until a session opens. */
 
@@ -22,3 +24,33 @@ export const opencodeV1RefusedSessionOptions: RefusedSessionOptions = {
   fork: "OAR has not verified a native copy of a saved OpenCode v1 session",
   additionalDirectories: "opencode v1 ACP exposes no additional workspace directory setting",
 };
+
+/** First v2 releases measured to apply each part of the overlay (experiments/opencode-v2-prompts). */
+const V2_INSTRUCTIONS = { minor: 0, patch: 30, version: "2.0.30" } as const;
+const V2_AGENT_LISTING = { minor: 2, patch: 0, version: "2.2.0" } as const;
+
+/** A pre-release of the floor itself (`2.2.0-beta`) is below it: it may predate the measured behavior. */
+function atLeast(release: OpencodeRelease, floor: { readonly minor: number; readonly patch: number }): boolean {
+  if (release.minor !== floor.minor) { return release.minor > floor.minor; }
+  if (release.patch !== floor.patch) { return release.patch > floor.patch; }
+  return !/^\d+\.\d+\.\d+-/u.test(release.version);
+}
+
+export function opencodeV2PromptRefusals(release: OpencodeRelease): Pick<RefusedSessionOptions, "appendSystemPrompt" | "systemPrompt"> {
+  return {
+    ...(!atLeast(release, V2_INSTRUCTIONS) ? { appendSystemPrompt: `opencode ${release.version} does not load configured instructions; ${V2_INSTRUCTIONS.version} or later does` } : {}),
+    ...(!atLeast(release, V2_AGENT_LISTING) ? { systemPrompt: `opencode ${release.version} cannot list its agents without the shared background service; ${V2_AGENT_LISTING.version} or later can` } : {}),
+  };
+}
+
+export function opencodeSessionCapabilities(installation: AvailableInstallation): SessionCapabilityDeclaration {
+  if (installation.via !== "executable" || installation.version === undefined) { return {}; }
+  const release = parseOpencodeRelease(installation.version);
+  if (release?.major === 1) {
+    return {
+      steer: true, refusedSessionOptions: opencodeV1RefusedSessionOptions,
+      manualCompaction: { kind: "unsupported", reason: "OpenCode v1 ACP has no verified structural completion signal for /compact" },
+    };
+  }
+  return release?.major === 2 ? { refusedSessionOptions: opencodeV2PromptRefusals(release), manualCompaction: { kind: "supported", activeTurn: "reject" } } : {};
+}

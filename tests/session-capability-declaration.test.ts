@@ -89,3 +89,12 @@ describe("a host's wrapper", () => {
     expect(opencodeRuntime.sessionCapabilities(executable("2.3.2")).refusedSessionOptions).toEqual(opencodeRuntime.refusedSessionOptions);
   });
 });
+
+it.each([
+  ["2.0.29", true, true], ["2.0.30-beta.1", true, true], ["2.0.30", false, true],
+  ["2.1.4", false, true], ["2.2.0-rc.1", false, true], ["2.2.0", false, false], ["2.3.2", false, false],
+] as const)("declares OpenCode %s prompt refusals at the measured floors", (version, append, replace) => {
+  const refused = opencodeRuntime.sessionCapabilities(executable(version)).refusedSessionOptions;
+  expect(refused?.appendSystemPrompt).toEqual(append ? expect.stringContaining("2.0.30 or later") : undefined);
+  expect(refused?.systemPrompt).toEqual(replace ? expect.stringContaining("2.2.0 or later") : undefined);
+});
