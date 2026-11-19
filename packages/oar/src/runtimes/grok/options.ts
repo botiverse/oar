@@ -17,6 +17,7 @@ export const grokRefusedSessionOptions: RefusedSessionOptions = {
 export function grokSessionCapabilities(installation: AvailableInstallation): SessionCapabilityDeclaration {
   return {
     steer: true, images: true, stopTask: false, contextUsage: { tokens: true, contextWindow: false },
-    ...(installation.via === "executable" && semverAtLeast(installation.version, "1.0.0") ? { mcpTransports: ["stdio", "http"] as const } : {}),
+    // 1.0.46: oldest version observed advertising mcpCapabilities.http and tested calling stdio/HTTP echo tools in mcp-servers-acp.vendor.test.ts.
+    ...(installation.via === "executable" && semverAtLeast(installation.version, "1.0.46") ? { mcpTransports: ["stdio", "http"] as const } : {}),
   };
 }

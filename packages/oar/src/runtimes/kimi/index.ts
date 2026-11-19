@@ -13,6 +13,7 @@ export const kimiRuntime = defineRuntime({
   id: "kimi",
   sessionCapabilities: (installation) => ({
     steer: false, stopTask: false, contextUsage: { tokens: true, contextWindow: true },
+    // 2.1.1: oldest version observed advertising mcpCapabilities.http and tested calling stdio/HTTP echo tools in mcp-servers-acp.vendor.test.ts.
     ...(installation.via === "executable" && semverAtLeast(installation.version, "2.1.1") ? { mcpTransports: ["stdio", "http"] as const } : {}),
   }),
   manualCompaction: { kind: "unsupported", reason: "The ACP transport reports compaction as ordinary text, without a structural completion signal." },

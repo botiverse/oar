@@ -12,6 +12,7 @@ export { createQwenProviderAuth, QwenProviderAuthError } from "./provider-auth.j
 export type { QwenProvider, QwenProviderAuth, QwenProviderAuthOptions, QwenProviderAuthErrorKind, QwenProviderConnectOptions, QwenProviderConnectResult } from "./provider-auth.js";
 
 function qwenSessionCapabilities(installation: AvailableInstallation): SessionCapabilityDeclaration {
+  // 0.26.0: first release adding HTTP MCP (qwen.vendor.test.ts) and context usage; older readable versions refuse HTTP MCP at open.
   if (installation.via === "executable" && semverAtLeast(installation.version, "0.26.0")) {
     return { steer: false, images: false, stopTask: false, contextUsage: { tokens: true, contextWindow: true }, mcpTransports: ["stdio", "http"] };
   }

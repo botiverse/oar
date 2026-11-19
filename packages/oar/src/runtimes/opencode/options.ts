@@ -29,6 +29,8 @@ export const opencodeV1RefusedSessionOptions: RefusedSessionOptions = {
 /** First v2 releases measured to apply each part of the overlay (experiments/opencode-v2-prompts). */
 const V2_INSTRUCTIONS = { minor: 0, patch: 30, version: "2.0.30" } as const;
 const V2_AGENT_LISTING = { minor: 2, patch: 0, version: "2.2.0" } as const;
+/** 2.0.26: oldest v2 release tested calling stdio/HTTP echo tools (experiments/opencode-v2-2026-10-09.md, mcp-servers-acp.vendor.test.ts). */
+const V2_MCP_HTTP = { minor: 0, patch: 26, version: "2.0.26" } as const;
 
 export function opencodeV2PromptRefusals(release: OpencodeRelease): Pick<RefusedSessionOptions, "appendSystemPrompt" | "systemPrompt"> {
   return {
@@ -43,11 +45,16 @@ export function opencodeSessionCapabilities(installation: AvailableInstallation)
   if (release?.major === 1) {
     return {
       steer: true, stopTask: false, contextUsage: { tokens: true, contextWindow: true }, refusedSessionOptions: opencodeV1RefusedSessionOptions,
+      // 1.18.30: oldest v1 release observed advertising mcpCapabilities.http and tested calling stdio/HTTP echo tools in mcp-servers-acp.vendor.test.ts.
       ...(semverAtLeast(installation.version, "1.18.30") ? { mcpTransports: ["stdio", "http"] as const } : {}),
       manualCompaction: { kind: "unsupported", reason: "OpenCode v1 ACP has no verified structural completion signal for /compact" },
     };
   }
   return release?.major === 2
-    ? { stopTask: false, contextUsage: { tokens: true, contextWindow: true }, mcpTransports: ["stdio", "http"], refusedSessionOptions: opencodeV2PromptRefusals(release), manualCompaction: { kind: "supported", activeTurn: "reject" } }
+    ? {
+      stopTask: false, contextUsage: { tokens: true, contextWindow: true },
+      ...(atLeastV2(release, V2_MCP_HTTP) ? { mcpTransports: ["stdio", "http"] as const } : {}),
+      refusedSessionOptions: opencodeV2PromptRefusals(release), manualCompaction: { kind: "supported", activeTurn: "reject" },
+    }
     : { stopTask: false };
 }

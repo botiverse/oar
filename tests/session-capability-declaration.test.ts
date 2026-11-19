@@ -129,12 +129,13 @@ describe("SessionCapabilityDeclaration.stopTask", () => {
 
 describe("SessionCapabilityDeclaration.mcpTransports", () => {
   it("declares verified mcpTransports across default built-in runtimes", () => {
-    const byId = new Map(allRuntimes.list().map((runtime) => [runtime.id, runtime.sessionCapabilities?.(executable("2.173.0")).mcpTransports]));
-    for (const id of ["antigravity", "claude", "codebuddy", "codex", "factory", "grok", "kimi", "opencode", "pi", "qoder", "qwen"]) {
+    const byId = new Map(allRuntimes.list().map((runtime) => [runtime.id, runtime.sessionCapabilities?.(executable("2.178.1")).mcpTransports]));
+    for (const id of ["antigravity", "claude", "codebuddy", "codex", "grok", "kimi", "opencode", "pi", "qoder", "qwen"]) {
       expect(byId.get(id), id).toEqual(["stdio", "http"]);
     }
     expect(byId.get("dsh")).toEqual(["stdio"]);
     expect(byId.get("devin")).toBeUndefined();
+    expect(byId.get("factory")).toBeUndefined();
   });
 
   it("declares mcpTransports on constructed built-in runtimes", async () => {
@@ -160,17 +161,20 @@ describe("SessionCapabilityDeclaration.mcpTransports", () => {
     expect(qwenRuntime.sessionCapabilities(executable(version)).mcpTransports).toEqual(expected);
   });
 
-  it("gates ACP runtime mcpTransports at verified version floors and omits below or unreadable", () => {
-    expect(opencodeRuntime.sessionCapabilities(executable("1.18.29")).mcpTransports).toBeUndefined();
-    expect(opencodeRuntime.sessionCapabilities(executable("1.18.30")).mcpTransports).toEqual(["stdio", "http"]);
-    expect(opencodeRuntime.sessionCapabilities(executable("opencode v2.0.0")).mcpTransports).toEqual(["stdio", "http"]);
-    expect(opencodeRuntime.sessionCapabilities(executable()).mcpTransports).toBeUndefined();
-    expect(grokRuntime.sessionCapabilities(executable("0.9.9")).mcpTransports).toBeUndefined();
-    expect(grokRuntime.sessionCapabilities(executable("1.0.0")).mcpTransports).toEqual(["stdio", "http"]);
-    expect(kimiRuntime.sessionCapabilities(executable("2.1.0")).mcpTransports).toBeUndefined();
-    expect(kimiRuntime.sessionCapabilities(executable("2.1.1")).mcpTransports).toEqual(["stdio", "http"]);
-    expect(codebuddyRuntime.sessionCapabilities(executable("2.172.9")).mcpTransports).toBeUndefined();
-    expect(codebuddyRuntime.sessionCapabilities(executable("2.173.0")).mcpTransports).toEqual(["stdio", "http"]);
+  it.each([
+    [opencodeRuntime, "1.18.29", undefined],
+    [opencodeRuntime, "1.18.30", ["stdio", "http"]],
+    [opencodeRuntime, "opencode v2.0.25", undefined],
+    [opencodeRuntime, "opencode v2.0.26", ["stdio", "http"]],
+    [opencodeRuntime, undefined, undefined],
+    [grokRuntime, "1.0.45", undefined],
+    [grokRuntime, "1.0.46", ["stdio", "http"]],
+    [kimiRuntime, "2.1.0", undefined],
+    [kimiRuntime, "2.1.1", ["stdio", "http"]],
+    [codebuddyRuntime, "2.178.0", undefined],
+    [codebuddyRuntime, "2.178.1", ["stdio", "http"]],
+  ] as const)("gates ACP runtime mcpTransports at verified version floors (%#)", (runtime, version, expected) => {
+    expect(runtime.sessionCapabilities(executable(version)).mcpTransports).toEqual(expected);
   });
 });
 

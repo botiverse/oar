@@ -140,21 +140,21 @@ and the opened session stays authoritative.
 
 | runtime | `steer` | `images` | `stopTask` | `mcpTransports` | `contextUsage` |
 |---|---|---|---|---|---|
-| antigravity | true | absent: advertised by `initialize` | false | `["stdio", "http"]` (`minVersion` 1.5.0 with `--process-per-session`; credential-free only per `refusedSessionOptions.mcpServerCredentials`) | `{ tokens: true, contextWindow: true }` |
-| claude | true | true | true | `["stdio", "http"]` | `{ tokens: true, contextWindow: true }` |
-| codebuddy | false | absent: advertised by `initialize` | false | `["stdio", "http"]` on `>= 2.173.0`; absent on older or unreadable versions | `{ tokens: false, contextWindow: false }` (native `0/0` when model limit is unknown is not trustworthy) |
-| codex | true | true | true | `["stdio", "http"]` | `{ tokens: true, contextWindow: true }` on `>= 0.151.0`; absent on older or unreadable versions |
-| cursor | true (an individual steer can still be rejected: `unsupported` with images, `runtime_refused` when the run cannot take it, as above) | true | false | `["stdio", "http"]` | `{ tokens: true, contextWindow: false }` |
+| antigravity | true | absent: advertised by `initialize` | false | `["stdio", "http"]` (`minVersion` 1.5.0 with `--process-per-session`, credential-free only per `refusedSessionOptions.mcpServerCredentials`; [mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` |
+| claude | true | true | true | `["stdio", "http"]` ([mcp-servers.vendor.test.ts](../../sea-trial/vendor/mcp-servers.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` |
+| codebuddy | false | absent: advertised by `initialize` | false | `["stdio", "http"]` on `>= 2.178.1` ([codebuddy.vendor.test.ts](../../sea-trial/vendor/codebuddy.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: false, contextWindow: false }` (native `0/0` when model limit is unknown is not trustworthy) |
+| codex | true | true | true | `["stdio", "http"]` ([mcp-servers.vendor.test.ts](../../sea-trial/vendor/mcp-servers.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` on `>= 0.151.0`; absent on older or unreadable versions |
+| cursor | true (an individual steer can still be rejected: `unsupported` with images, `runtime_refused` when the run cannot take it, as above) | true | false | `["stdio", "http"]` ([cursor-mcp.ts](../../experiments/cursor-mcp.ts)) | `{ tokens: true, contextWindow: false }` |
 | devin | false | absent: advertised by `initialize` | false | absent: handshake-dependent and unverified in CI | absent: live turns unverified |
-| dsh | absent: the bridge reports the agent's methods at open | absent: the selected model and native attachment store determine image support | true | `["stdio"]` | `{ tokens: true, contextWindow: true }` |
-| factory | true | true | false | `["stdio", "http"]` | `{ tokens: true, contextWindow: true }` |
-| grok | true | true | false | `["stdio", "http"]` on `>= 1.0.0`; absent on older or unreadable versions | `{ tokens: true, contextWindow: false }` |
-| kimi | false | absent: advertised by `initialize` | false | `["stdio", "http"]` on `>= 2.1.1`; absent on older or unreadable versions | `{ tokens: true, contextWindow: true }` (except models whose catalog entry has no size) |
-| opencode | true on a v1 installation; absent on v2 or an unreadable version (`initialize` advertises steering) | absent: advertised by `initialize` | false | `["stdio", "http"]` on v1 `>= 1.18.30` and v2; absent on older v1 or unreadable versions | `{ tokens: true, contextWindow: true }` on readable v1/v2 versions; absent on unreadable versions |
-| pi | true | true | false | `["stdio", "http"]` | `{ tokens: true, contextWindow: true }` |
+| dsh | absent: the bridge reports the agent's methods at open | absent: the selected model and native attachment store determine image support | true | `["stdio"]` ([dsh-mcp.vendor.test.ts](../../sea-trial/vendor/dsh-mcp.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` |
+| factory | true | true | false | absent: HTTP MCP tool invocation unverified (only stdio is exercised in [factory.vendor.test.ts](../../sea-trial/vendor/factory.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` |
+| grok | true | true | false | `["stdio", "http"]` on `>= 1.0.46` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: false }` |
+| kimi | false | absent: advertised by `initialize` | false | `["stdio", "http"]` on `>= 2.1.1` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: true }` (except models whose catalog entry has no size) |
+| opencode | true on a v1 installation; absent on v2 or an unreadable version (`initialize` advertises steering) | absent: advertised by `initialize` | false | `["stdio", "http"]` on v1 `>= 1.18.30` and v2 `>= 2.0.26` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: true }` on readable v1/v2 versions; absent on unreadable versions |
+| pi | true | true | false | `["stdio", "http"]` ([mcp-servers-pi.vendor.test.ts](../../sea-trial/vendor/mcp-servers-pi.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` |
 | pi-durable | true | false | false | `[]` | `{ tokens: false, contextWindow: false }` |
-| qoder | true | false | true | `["stdio", "http"]` | `{ tokens: false, contextWindow: false }` |
-| qwen | false | false | false | `["stdio", "http"]` on `>= 0.26.0`; `["stdio"]` on readable `< 0.26.0` (HTTP refused at open); absent on unreadable versions | `{ tokens: true, contextWindow: true }` on `>= 0.26.0`; absent on older or unreadable versions |
+| qoder | true | false | true | `["stdio", "http"]` ([qoder.vendor.test.ts](../../sea-trial/vendor/qoder.vendor.test.ts)) | `{ tokens: false, contextWindow: false }` |
+| qwen | false | false | false | `["stdio", "http"]` on `>= 0.26.0` ([qwen.vendor.test.ts](../../sea-trial/vendor/qwen.vendor.test.ts)); `["stdio"]` on readable `< 0.26.0` (HTTP refused at open); absent on unreadable versions | `{ tokens: true, contextWindow: true }` on `>= 0.26.0`; absent on older or unreadable versions |
 
 Every runtime built with `defineRuntime` has the member; one that declares
 neither field answers with its static declarations only. Community runtimes
@@ -172,7 +172,7 @@ answer: whatever the static map refuses, every version refuses.
 `Session.contextUsage()` reliably reports trustworthy `tokens` and
 `contextWindow` by the end of each normally completed root turn (fresh and
 resumed sessions alike; aborted turns are not promised, and earlier readings
-are a bonus); each is absent where not established. `session.capabilities-match-declaration` asserts every declared `steer`, `images`, `stopTask`, `contextUsage` and `mcpTransports` claim against the opened session (opening a local HTTP MCP server when `"http"` is declared, or asserting `UnsupportedOptionError("mcpServers")` when `mcpTransports` omits `"http"`). `defineRuntime` and `installedSessionCapabilities(runtime,
+are a bonus); each is absent where not established. `session.capabilities-match-declaration` asserts every declared `steer`, `images`, `stopTask` and `contextUsage` claim against the opened session. For `mcpTransports`, it checks open-time acceptance when `"http"` is declared (opening with a local loopback HTTP MCP server) or open-time `UnsupportedOptionError("mcpServers")` when `mcpTransports` omits `"http"`; opening alone does not prove end-to-end HTTP transport execution because several runtimes drop a server that fails to attach without failing the open, so end-to-end HTTP tool invocation is proved by each runtime's MCP vendor test or probe linked in the table above. `defineRuntime` and `installedSessionCapabilities(runtime,
 installation)` merge the static declarations in, so a host reads one answer
 and never branches on a runtime's name. `orient()` returns it for every
 available installation ([orientation](orientation.md#session-capabilities)).

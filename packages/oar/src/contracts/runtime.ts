@@ -36,14 +36,12 @@ export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "en
 export type RefusedSessionOptions = Readonly<Partial<Record<RefusableSessionOption, string>>>;
 
 /**
- * What a session opened from this installation will offer, known without
- * opening one. Each field mirrors the opened session (`steer`, `images`,
- * `stopTask`, `mcpTransports`, `contextUsage`). A field is absent when only
- * the native handshake at open can tell; absent means unknown, never false,
- * and the opened session stays authoritative.
+ * What a session opened from this installation will offer, known without opening one.
+ * Each field mirrors the opened session (`steer`, `images`, `stopTask`, `mcpTransports`, `contextUsage`).
+ * A field is absent when only the native handshake at open can tell; absent means unknown, never false, and the opened session stays authoritative.
  *
- * `refusedSessionOptions` and `manualCompaction` are this installation's
- * complete answer (static declaration plus version-specific overrides).
+ * `refusedSessionOptions` and `manualCompaction` are this installation's complete answer (static declaration plus version-specific overrides).
+ * The same rule as the static map holds: a declared option is always refused at open; a refusal only the runtime can decide at open stays undeclared.
  * `defineRuntime` and `installedSessionCapabilities` fill in the static part.
  */
 export interface SessionCapabilityDeclaration {
@@ -53,7 +51,7 @@ export interface SessionCapabilityDeclaration {
   readonly manualCompaction?: ManualCompaction;
   /** Whether native automatic compaction reports `compaction_started` / `compaction_ended`; absent when unmeasured. */
   readonly compactionEvents?: CompactionEvents;
-  /** Whether `Session.contextUsage()` reports trustworthy `tokens` and `contextWindow` by each completed root turn; absent when unmeasured. */
+  /** Whether `Session.contextUsage()` reports trustworthy `tokens` and `contextWindow` by each normally completed root turn; absent when unmeasured. */
   readonly contextUsage?: ContextUsageCapability;
   /** Verified session MCP transports (`[]` when MCP is refused; absent when unverified or handshake-only). */
   readonly mcpTransports?: readonly McpTransport[];

@@ -12,7 +12,8 @@ export const codebuddyRuntime = defineRuntime({
   id: "codebuddy",
   sessionCapabilities: (installation) => ({
     steer: false, stopTask: false, contextUsage: { tokens: false, contextWindow: false },
-    ...(installation.via === "executable" && semverAtLeast(installation.version, "2.173.0") ? { mcpTransports: ["stdio", "http"] as const } : {}),
+    // 2.178.1: oldest version tested calling stdio/HTTP echo tools in codebuddy.vendor.test.ts (experiments/codebuddy-native/2026-10-29/README.md).
+    ...(installation.via === "executable" && semverAtLeast(installation.version, "2.178.1") ? { mcpTransports: ["stdio", "http"] as const } : {}),
   }),
   manualCompaction: { kind: "unsupported", reason: "The published compact method is not implemented by the tested CLI; slash-command completion is unverified." }, brand: runtimeBrands.codebuddy, verifiedPlatforms: verifiedPlatforms.codebuddy,
   refusedSessionOptions: codebuddyRefusedSessionOptions,
