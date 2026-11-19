@@ -65,6 +65,11 @@ compaction disabled. OAR therefore emits no `compaction_started` or
 message receive no event when OpenCode summarizes that history.
 [Native recording and controls](../../experiments/opencode-auto-compaction/README.md).
 
+On v1, pass instructions that must survive compaction in
+`appendSystemPrompt`. OAR adds them to OpenCode's `instructions`
+configuration, so they stay in the system prompt across compaction.
+[Models, effort, instructions, and context](#models-effort-instructions-and-context).
+
 ## Manual compaction
 
 The v2 session exposes idle-only `compact()` through native `/compact`.
