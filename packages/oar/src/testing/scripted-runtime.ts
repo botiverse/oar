@@ -93,7 +93,6 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
     const queued: { readonly input: string; readonly inputId: string | undefined; readonly images: readonly InputImage[] }[] = [];
     const totals: { input: number; output: number } = { input: 0, output: 0 };
     let active: { controller: AbortController; steered: string[] } | null = null;
-    let disposed = false;
     const frame = (type: string, native: unknown, events: readonly RuntimeEventBody[]): void => {
       kernel.frame({ type, native, events });
     };
@@ -186,7 +185,7 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
         { kind: "usage", usage: { tokens: usage(), context: { tokens: totals.input + totals.output, contextWindow: 200_000, percent: ((totals.input + totals.output) / 200_000) * 100 } } },
       ]);
       const next = queued.shift();
-      if (next !== undefined && !disposed) {
+      if (next !== undefined && kernel.unreachable() === null) {
         run(next.input, next.images);
       }
     }
@@ -276,16 +275,12 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
       records: () => kernel.records(),
       graph: () => kernel.graph(),
       dispose: async () => {
-        if (disposed) {
-          return;
-        }
-        disposed = true;
-        const request = kernel.request("toRuntime", { kind: "dispose" });
-        if (kernel.unreachable()?.code === "runtime_exited") { kernel.respond(request.id, { kind: "accepted" }); return; } // nothing left to release
-        queued.length = 0;
-        abortActive();
-        kernel.respond(request.id, { kind: "exited", code: 0 });
-        await Promise.resolve();
+        await kernel.dispose(async () => {
+          queued.length = 0;
+          abortActive();
+          kernel.processExited(0);
+          await Promise.resolve();
+        });
       },
     });
   };

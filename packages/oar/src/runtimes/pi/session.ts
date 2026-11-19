@@ -62,7 +62,6 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
   let nativeActive = false;
   let nextOwner: Admission | null = null;
   let nativeOwner: Admission | null = null;
-  let disposeRequest: RequestRecord | null = null;
   const held: PiHeldInput[] = [];
   const queueBarrier = piQueueBarrier(piAgentSession, drainHeld);
   const busy = (): boolean => nativeActive || admissions.size > 0;
@@ -136,7 +135,7 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
     return kernel.unreachable() ?? response;
   };
   function drainHeld(): void {
-    if (queueBarrier.pending() || disposeRequest !== null || busy() || compaction.busy() || kernel.unreachable() !== null) { return; }
+    if (queueBarrier.pending() || busy() || compaction.busy() || kernel.unreachable() !== null) { return; }
     if (held[0]?.accepted !== true) { return; }
     const next = held.shift();
     if (next === undefined) { return; }
@@ -278,19 +277,17 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
     records: () => kernel.records(),
     graph: () => kernel.graph(),
     dispose: async () => {
-      if (disposeRequest !== null) {
-        return;
-      }
-      held.splice(0);
+      // Publishing dispose releases the compaction observation before Pi is stopped.
       const abortCompaction = compaction.busy();
-      const request = kernel.request("toRuntime", { kind: "dispose" });
-      disposeRequest = request;
-      // Abort and hooks share a deadline. Only Pi's own agent_settled ends a
-      // turn in the stream; forced local cleanup invents no native end.
-      await disposePiAgentSession(piAgentSession, busy() || abortCompaction);
-      // pi runs in this process: there is no process exit to observe, so the
-      // dispose is answered as taken over rather than with an exit code.
-      kernel.respond(request.id, { kind: "accepted" });
+      await kernel.dispose(async request => {
+        held.splice(0);
+        // Abort and hooks share a deadline. Only Pi's own agent_settled ends a
+        // turn in the stream; forced local cleanup invents no native end.
+        await disposePiAgentSession(piAgentSession, busy() || abortCompaction);
+        // pi runs in this process: there is no process exit to observe, so the
+        // dispose is answered as taken over rather than with an exit code.
+        kernel.respond(request.id, { kind: "accepted" });
+      });
     },
   });
   return session;

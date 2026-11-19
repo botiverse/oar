@@ -28,7 +28,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   const kernel = credentials.kernel(sessionId);
   const tasks = profile.stopTask === undefined ? undefined : streamJsonTaskControl(kernel, child, profile.stopTask);
   const userMessage = profile.userMessage ?? streamJsonUserMessage;
-  const state: StreamJsonSessionState<S> = { child, active: null, spontaneous: false, projection: profile.initial, disposed: false };
+  const state: StreamJsonSessionState<S> = { child, active: null, spontaneous: false, projection: profile.initial };
   // Hold queues until turn end; active-turn writes may steer or become an irreversible native queue.
   const commandLifecycle = profile.projection.commandLifecycle !== false;
   const writtenQueues = new Map<string, RequestRecord>();
@@ -40,7 +40,6 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   let canCancelQueued = false;
   const abortFallback = createAbortFallback(() => { child.kill(); });
   const pendingInterrupts = new Map<string, () => void>();
-  let disposeRequest: RequestRecord | null = null;
   let turnRevision = 0;
   let observingCancellation: { readonly revision: number; readonly result: Promise<CancellationObservation> } | null = null;
   let cancellation: CancellationObservation | null = null;
@@ -56,7 +55,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     if (sentInterrupts.size === 0) { completeCancellation(); }
   };
   function drainHeld(): void {
-    if (state.disposed || messages.hasExited() || kernel.unreachable() !== null || busy() || observingCancellation !== null || heldQueue[0]?.accepted !== true) { return; }
+    if (messages.hasExited() || kernel.unreachable() !== null || busy() || observingCancellation !== null || heldQueue[0]?.accepted !== true) { return; }
     const next = heldQueue.shift();
     if (next === undefined) { return; }
     dispatching = true;
@@ -140,7 +139,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   };
   const messages = streamJsonResultReadback(child, {
     before: (): Promise<void> | void => {
-      if (profile.beforeRootResult === undefined || state.disposed) { return; }
+      if (profile.beforeRootResult === undefined || kernel.unreachable() !== null) { return; }
       // Native work has ended; hold input without interrupting a completed turn during readback.
       abortFallback.clear(); completeCancellation(); turnRevision += 1;
       return profile.beforeRootResult(kernel, state.projection);
@@ -160,7 +159,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     // An exit before fallback still precedes the rejected pending controls.
     const reasons = [profile.exitReason?.(), cleanupReason].filter((value) => value !== undefined);
     const reason = reasons.length === 0 ? undefined : reasons.join("; ");
-    kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code, ...(reason === undefined ? {} : { reason }) });
+    kernel.processExited(code, reason);
     state.active = null;
     state.spontaneous = false;
     for (const requestId of pendingInterrupts.keys()) {
@@ -246,7 +245,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
         if (observingCancellation === window) { observingCancellation = null; queueMicrotask(drainHeld); }
       }
       const afterObservation = kernel.unreachable();
-      if (turnRevision !== revision || window.revision !== revision || afterObservation !== null || state.disposed) {
+      if (turnRevision !== revision || window.revision !== revision || afterObservation !== null) {
         observation.complete();
         return { request, response: kernel.respond(request.id, afterObservation ?? { kind: "rejected", code: "no_active_turn", reason: "turn ended before cancellation was sent" }) };
       }
@@ -279,21 +278,13 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     resources: child.resources,
     ...(profile.contextBreakdown === undefined ? {} : { contextBreakdown: profile.contextBreakdown }),
     dispose: async () => {
-      if (state.disposed) { return; }
-      state.disposed = true;
-      // stdin ends now: no query may write to it any more.
-      profile.disposing();
-      const gone = kernel.unreachable() !== null; // only an observed exit can say so before this dispose is recorded
-      disposeRequest = kernel.request("toRuntime", { kind: "dispose" });
-      tasks?.end();
-      if (gone) {
-        // The exit is already recorded; nothing is left to release.
-        kernel.respond(disposeRequest.id, { kind: "accepted" });
-        return;
-      }
-      if (profile.close === undefined) { child.kill(); }
-      else { await profile.close(busy()); }
-      await child.exited; // release point for anything the process held; the exit response is recorded by onExit
+      await kernel.dispose(async () => {
+        profile.disposing();
+        tasks?.end();
+        if (profile.close === undefined) { child.kill(); }
+        else { await profile.close(busy()); }
+        await child.exited; // release point for anything the process held; the exit response is recorded by onExit
+      }, () => { profile.disposing(); });
     },
   });
   return session;

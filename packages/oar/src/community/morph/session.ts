@@ -89,7 +89,6 @@ export function morphSessionWith(acquire: AcquireConsole): StartSession {
 
     const kernel = createSessionKernel(topicId);
     const held: Held[] = [];
-    let disposed = false;
     const body = (task: string): Record<string, unknown> => ({
       task,
       topic_id: topicId,
@@ -109,7 +108,7 @@ export function morphSessionWith(acquire: AcquireConsole): StartSession {
       kernel,
       topicId,
       onIdle: () => {
-        const next = disposed ? undefined : held.shift();
+        const next = kernel.unreachable() !== null ? undefined : held.shift();
         if (next !== undefined) {
           // The input was taken over at queue time; a send that fails leaves no turn.
           void send(next.input);
@@ -210,14 +209,8 @@ export function morphSessionWith(acquire: AcquireConsole): StartSession {
       records: () => kernel.records(),
       graph: () => kernel.graph(),
       dispose: async () => {
-        if (disposed) {
-          return;
-        }
-        disposed = true;
-        const gone = kernel.unreachable() !== null;
-        const request = kernel.request("toRuntime", { kind: "dispose" });
-        held.length = 0;
-        if (!gone) {
+        await kernel.dispose(async request => {
+          held.length = 0;
           const active = tracker.active();
           if (active !== null) {
             // The task's own `canceled` ends the turn in the stream, if it comes in time.
@@ -228,12 +221,12 @@ export function morphSessionWith(acquire: AcquireConsole): StartSession {
             }
             await tracker.settle(DISPOSE_SETTLE_MS);
           }
-        }
-        tracker.close();
-        const stopped = await lease.release();
-        // A Console this release stopped exits as the answer to the dispose; one
-        // still serving other sessions, or the user's own, was only let go.
-        kernel.respond(request.id, stopped === null || gone ? { kind: "accepted" } : { kind: "exited", code: stopped.code });
+          tracker.close();
+          const stopped = await lease.release();
+          // A Console this release stopped exits as the answer to the dispose; one
+          // still serving other sessions, or the user's own, was only let go.
+          kernel.respond(request.id, stopped === null ? { kind: "accepted" } : { kind: "exited", code: stopped.code });
+        }, async () => { tracker.close(); await lease.release(); });
       },
     });
     return session;

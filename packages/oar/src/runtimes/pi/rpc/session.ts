@@ -30,8 +30,6 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
   let nativeActive = false;
   let nextOwner: Admission | null = null;
   const busy = (): boolean => nativeActive || admissions.size > 0;
-  let disposeRequest: RequestRecord | null = null;
-  let disposePromise: Promise<void> | null = null;
   let pump = Promise.resolve();
   const compaction = piManualCompaction(kernel, () => busy() || held.length > 0, async () => {
     // A rejected transport promise is not a native compaction failure. The
@@ -163,7 +161,7 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     held.splice(0);
     void (async (): Promise<void> => {
       await pump;
-      kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code, ...(reason === undefined ? {} : { reason }) });
+      kernel.processExited(code, reason);
       rpc.directory.remove();
     })();
   });
@@ -211,8 +209,7 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
     records: () => kernel.records(), graph: () => kernel.graph(), resources: rpc.child.resources,
     dispose: async () => {
-      disposePromise ??= (async (): Promise<void> => {
-        disposeRequest = kernel.request("toRuntime", { kind: "dispose" });
+      await kernel.dispose(async () => {
         held.splice(0);
         // Native EOF shuts extensions down; the process owner snapshots
         // descendants first, then bounds shutdown and removes survivors.
@@ -220,8 +217,7 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
         await rpc.child.exited;
         await pump;
         rpc.directory.remove();
-      })();
-      return disposePromise;
+      });
     },
   });
 });

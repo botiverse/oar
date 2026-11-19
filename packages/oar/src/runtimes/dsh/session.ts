@@ -6,7 +6,7 @@ import { ResumeCwdError } from "../../contracts/resume-cwd-error.js";
 import { RuntimeFailureError } from "../../contracts/runtime-failure-error.js";
 import { ModelConfirmationError } from "../../contracts/model-confirmation-error.js";
 import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
-import type { RequestRecord, ResponseBody, Session, SessionOptions, StartSession } from "../../contracts/session.js";
+import type { ResponseBody, Session, SessionOptions, StartSession } from "../../contracts/session.js";
 import { createAbortFallback } from "../../shared/abort-fallback.js";
 import { appendCleanupFailure, cleanupFailureReason } from "../../shared/executable/process-cleanup.js";
 import { withInputImages } from "../../shared/input-images.js";
@@ -100,13 +100,9 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
     kernel.frame(frame.body, frame.sessionId === undefined ? undefined : { sessionId: frame.sessionId });
     if (frame.sessionId === undefined && frame.body.events.some((event) => event.kind === "turn_ended")) { fallback.clear(); }
   });
-  let disposeRequest: RequestRecord | null = null;
-  let disposal: Promise<void> | null = null;
-  let exited = false;
   child.onExit((code, reason) => {
-    exited = true;
     fallback.clear();
-    kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code, ...(reason === undefined ? {} : { reason }) });
+    kernel.processExited(code, reason);
   });
   const fields = { sessionId, agentOptions: { ...agentOptions },
     ...(options.disallowedTools === undefined ? {} : { disallowedTools: options.disallowedTools }),
@@ -171,9 +167,7 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
     rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
     records: () => kernel.records(), graph: () => kernel.graph(),
     dispose: async () => {
-      disposal ??= (async (): Promise<void> => {
-        disposeRequest = kernel.request("toRuntime", { kind: "dispose" });
-        if (exited) { kernel.respond(disposeRequest.id, { kind: "accepted" }); return; }
+      await kernel.dispose(async () => {
         // Native disposal records its own turn end and flushes the log; the
         // process owner then bounds shutdown and removes anything left.
         try { await control.request("dispose", {}, DISPOSE_TIMEOUT_MS); }
@@ -183,8 +177,7 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
         child.kill();
         await child.exited;
         directory.remove();
-      })();
-      await disposal;
+      }, () => { directory.remove(); });
     },
   });
 }

@@ -71,7 +71,6 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
     let abortingTurn: string | null | false = false;
     /** The OAR compact request whose `droid.compact_session` is pending: droid's `session_compacted` meanwhile is its completion. */
     let compactRequestId: string | null = null;
-    let disposeRequest: RequestRecord | null = null;
     let settingsWaiter: ((settings: JsonRecord) => void) | null = null;
     const held: Held[] = [];
     let dispatching = false;
@@ -156,7 +155,8 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
     client.handle({ onNotification, onServerRequest, onUnmatched: (native) => { kernel.frame({ type: asRecord(native) === null ? "stdout" : "response", native, events: [] }); } });
     client.onExit((code, reason) => {
       disarm();
-      kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code, ...(reason === undefined ? {} : { reason }) });
+      held.splice(0);
+      kernel.processExited(code, reason);
       active = null;
       spontaneous = false;
       held.splice(0);
@@ -196,7 +196,7 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
       }
     };
     const drainHeld = (): void => {
-      if (kernel.unreachable() !== null || busy() || dispatching || compaction.busy() || disposeRequest !== null) { return; }
+      if (kernel.unreachable() !== null || busy() || dispatching || compaction.busy()) { return; }
       // Taken off `held` in the same step it is sent: a withdraw after this finds it gone.
       if (held[0]?.accepted !== true) { return; }
       const next = held.shift();
@@ -268,14 +268,12 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
       graph: () => kernel.graph(),
       resources: client.resources,
       dispose: async () => {
-        if (disposeRequest !== null) { return; }
-        const gone = kernel.unreachable() !== null;
-        held.splice(0);
-        disposeRequest = kernel.request("toRuntime", { kind: "dispose" });
-        if (gone) { kernel.respond(disposeRequest.id, { kind: "accepted" }); return; }
-        // Closing stdin ends droid's session (it saves and exits); the process owner escalates if it does not.
-        client.kill();
-        await client.exited;
+        await kernel.dispose(async () => {
+          held.splice(0);
+          // Closing stdin ends droid's session (it saves and exits); the process owner escalates if it does not.
+          client.kill();
+          await client.exited;
+        });
       },
     });
     return session;
