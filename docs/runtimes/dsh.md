@@ -130,7 +130,7 @@ Durable events read: `turn/start`, `turn/end` (`turn_ended`), `agent/inbox/splic
 adds no second text. Compaction reads are from the source and unit-tested, not yet
 exercised natively.
 
-`stopTask(jobId)` stops a shell job owned by this session. DSH checks the
+`stopTask(jobId)` stops a shell job this session explicitly started with `run_in_background: true`. DSH checks the
 owner on `jobs.get`, `kill` and `wait`; OAR confirms the `killed` result.
 The separate subagent run id has no corresponding stop operation.
 

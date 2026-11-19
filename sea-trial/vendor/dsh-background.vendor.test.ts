@@ -82,3 +82,21 @@ test.skipIf(!dshEnabled)("DSH stops only the selected session's shell job and re
     }
   });
 }, 60_000);
+
+test.skipIf(!dshEnabled)("DSH leaves a registered foreground shell running when asked to stop a task", async () => {
+  await withDshFixture(request => toolResults(request) === 0
+    ? { kind: "tool", name: nativeShell.tool, arguments: { command: heldCommand, description: "foreground shell" } }
+    : say("ok"), async ({ open, aimock }) => {
+    const session = await open();
+    const reply = await session.prompt("foreground");
+    try {
+      const running = () => tasksOf(session.records()).value.find(row => row.taskType === "shell" && row.status === "running");
+      await expect.poll(running, { timeout: 15_000 }).toBeDefined();
+      const job = running();
+      assert.ok(job !== undefined && session.stopTask !== undefined);
+      expect(await session.stopTask(job.taskId)).toMatchObject({ kind: "rejected", code: "unsupported" });
+      expect(running()?.taskId).toBe(job.taskId);
+    } finally { await writeFile(path.join(aimock.cwd, gate), "release"); }
+    expect(await awaitTurnEnd(session, reply.seq)).toEqual({ kind: "completed" });
+  });
+}, 60_000);

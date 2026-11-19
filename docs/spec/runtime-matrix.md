@@ -176,7 +176,7 @@ available installation ([orientation](orientation.md#session-capabilities)).
 | Grok | Parent `subagent_spawned` / `subagent_finished` | Absent: child `session/cancel` left its work running on 1.0.77. |
 | Qwen | `system/task_started` / `task_notification` with nested `data`, verified on 0.26.8 | Absent: no verified host single-task control. |
 | OpenCode 2.3.0 | `opencode/session/child_update` status `created`, `running`, `completed`, `failed`, `interrupted` | Absent. |
-| DSH | `subagent/start` / `subagent/end`; durable `job/registered` / `job/settled` for shell and other jobs, including foreground commands ([mapping and completion boundaries](../runtimes/dsh.md#root-completion-and-background-work)) | Native `jobs.kill` and `jobs.wait` for this session’s shell jobs. |
+| DSH | `subagent/start` / `subagent/end`; durable `job/registered` / `job/settled` for shell and other jobs, including foreground commands ([mapping and completion boundaries](../runtimes/dsh.md#root-completion-and-background-work)) | Native `jobs.kill` and `jobs.wait` for this session's explicitly backgrounded shell jobs. |
 | Other runtimes | Existing runtime-specific observations only | Absent. |
 
 The [contract](subagents.md#native-single-task-stop) distinguishes native

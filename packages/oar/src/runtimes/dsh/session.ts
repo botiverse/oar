@@ -19,6 +19,7 @@ import { checkSessionName, refuseSessionOptions } from "../../shared/session-opt
 import { withSessionCredentials, type SessionCredentials } from "../../shared/session-credentials.js";
 import { DshCommandError, dshControl, type DshControl } from "./control.js";
 import { dshEnvironment, launchDsh } from "./launch.js";
+import { isBackgroundShellJob } from "./jobs.js";
 import { dshGoalControl } from "./goal.js";
 import { dshMcpRows } from "./mcp.js";
 import { dshAgentOptions, dshDirectoryRefusal, dshRefusedSessionOptions, type DshAgentOptions } from "./options.js";
@@ -164,7 +165,9 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
       }),
     } : {}),
     ...(jobMethods?.get === true && jobMethods.kill === true && jobMethods.wait === true ? {
-      stopTask: async (taskId) => kernel.control({ kind: "stop_task", taskId }, async () => send("stopTask", { taskId })),
+      stopTask: async (taskId) => kernel.control({ kind: "stop_task", taskId }, async () =>
+        isBackgroundShellJob(kernel.records(), sessionId, taskId) ? send("stopTask", { taskId })
+          : { kind: "rejected", code: "unsupported", reason: "DSH stops only this session's explicitly backgrounded shell jobs" }),
     } : {}),
     abort: async () => kernel.control({ kind: "abort" }, async () => {
       const disarm = fallback.arm();
