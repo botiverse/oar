@@ -11,6 +11,7 @@ export interface NodeScriptExit {
   readonly code: number | null;
   readonly signal: NodeJS.Signals | null;
   readonly stderr: string;
+  readonly stderrStartsMidLine?: true;
 }
 
 /** A Node child running a script given on its command line, talking over Node IPC. */
@@ -116,7 +117,7 @@ export function spawnNodeScript(script: string, argument: string, env: NodeJS.Pr
     const timer = setTimeout(drained.resolve, STDERR_DRAIN_MS);
     await Promise.race([stderrClosed.promise, drained.promise]);
     clearTimeout(timer);
-    return { code, signal, stderr: stderr.text() };
+    return { code, signal, ...stderr.observation() };
   })();
   const running = (): boolean => child.pid !== undefined && child.exitCode === null && child.signalCode === null;
   let stopping = false;

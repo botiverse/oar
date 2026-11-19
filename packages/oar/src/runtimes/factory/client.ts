@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { spawnLineProcess } from "../../shared/executable/index.js";
+import { reportedStderr } from "../../shared/executable/reported-stderr.js";
 import { processFailure } from "../../shared/executable/diagnostics.js";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
 import { nativeErrorCause } from "../../shared/native-error.js";
@@ -116,7 +117,7 @@ export function startDroidClient(command: string, options: DroidClientOptions): 
     const diagnostics = child.diagnostics();
     exitFailure = processFailure("droid exited", {
       ...diagnostics,
-      stderr: redact(diagnostics.stderr),
+      stderr: reportedStderr(diagnostics, redact),
       ...(diagnostics.error === undefined ? {} : { error: { ...diagnostics.error, message: redact(diagnostics.error.message) } }),
     });
     for (const waiter of pending.values()) {

@@ -107,7 +107,7 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
     projection = state;
     kernel.frame(frame.body, frame.sessionId === undefined ? undefined : { sessionId: frame.sessionId });
     if (frame.sessionId === undefined && frame.body.events.some((event) => event.kind === "turn_ended")) { fallback.clear(); }
-  });
+  }, credentials.redact);
   child.onExit((code, reason) => {
     fallback.clear();
     kernel.processExited(code, reason);

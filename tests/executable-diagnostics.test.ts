@@ -80,7 +80,7 @@ test("stderr is drained beyond pipe capacity and only its final 8 KiB are retain
   await child.spawned;
   await child.exited;
   expect(lines).toEqual(["drained"]);
-  expect(child.diagnostics()).toEqual({ exitCode: 7, signal: null, stderr: `${"x".repeat(8192 - tail.length)}${tail}` });
+  expect(child.diagnostics()).toEqual({ exitCode: 7, signal: null, stderrStartsMidLine: true, stderr: `${"x".repeat(8192 - tail.length)}${tail}` });
 });
 
 test.skipIf(process.platform === "win32")("long-running process diagnostics preserve its exit signal", async () => {

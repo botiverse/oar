@@ -806,6 +806,14 @@ interface ResponseRecord extends RecordEnvelope {
 // (requestId "") when the runtime died on its own.
 ```
 
+If a process exits before it can complete the open handshake, the error can
+include a bounded stderr tail. Stream-json sessions can open before their
+first native frame. In that case the early `exited.reason` carries the tail.
+Session credentials and recognizable token shapes are redacted. If the retained
+8 KiB starts inside a line, that fragment is omitted from the report.
+[Native child regression](../../tests/claude/claude-startup-stderr.test.ts).
+
+
 The control surface that produces these records (`Session.prompt / steer /
 queue / withdraw / abort / stopTask / compact / dispose`, `rawEvents(observer, cursor?)`, `records()`,
 `graph()`, and the folds) is documented on the contract itself. A `prompt`

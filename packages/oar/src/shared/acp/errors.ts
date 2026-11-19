@@ -1,3 +1,4 @@
+import { reportedStderr } from "../executable/reported-stderr.js";
 import { processFailure, type ProcessDiagnostics } from "../executable/diagnostics.js";
 import { redactTokenShapes } from "../token-redaction.js";
 
@@ -46,7 +47,7 @@ export function acpProcessExitedError(
   const safe = (text: string): string => redactTokenShapes(redact(text));
   const failure = diagnostics === undefined ? undefined : processFailure("ACP process exited", {
     ...diagnostics,
-    stderr: safe(diagnostics.stderr),
+    stderr: reportedStderr(diagnostics, redact),
     ...(diagnostics.error === undefined ? {} : { error: { ...diagnostics.error, message: safe(diagnostics.error.message) } }),
   });
   return new AcpError(

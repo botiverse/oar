@@ -217,7 +217,7 @@ export type ControlEventBody =
   | { readonly kind: "app_request"; readonly requestId: string; readonly type: string }
   /** oar answered a `toApp` request automatically (an `answered` response). */
   | { readonly kind: "app_answered"; readonly requestId: string }
-  /** The runtime process exited (an `exited` response). Optional reason explains an OAR-initiated termination or unverified descendant cleanup, never a guessed native cause. */
+  /** The runtime process exited (an `exited` response). Optional reason carries a native startup diagnostic, OAR termination or unverified descendant cleanup. */
   | { readonly kind: "exited"; readonly code: number | null; readonly reason?: string };
 
 /** Every event kind `Session.events()` can deliver. */
@@ -292,7 +292,7 @@ export type ResponseBody =
   | { readonly kind: "rejected"; readonly code: RejectionCode; readonly reason: string; readonly native?: unknown; readonly failure?: FailureClass }
   /** oar's reply to a `toApp` request (e.g. the automatic permission grant), verbatim. */
   | { readonly kind: "answered"; readonly native: unknown }
-  /** The runtime process exited, an outcome the runtime cannot say itself. Answers a `dispose` request when oar caused it; also recorded for an unrequested exit, pointing at no request. Optional reason explains OAR termination or unverified descendant cleanup. */
+  /** The runtime process exited, an outcome the runtime cannot say itself. Answers a `dispose` request when oar caused it; also recorded for an unrequested exit, pointing at no request. Optional reason carries a native startup diagnostic, OAR termination or unverified descendant cleanup. */
   | { readonly kind: "exited"; readonly code: number | null; readonly reason?: string };
 export type { ContextUsage } from "./context-usage.js";
 export type { Cursor, SessionEdge, SessionGraph, SessionNode } from "./graph.js";

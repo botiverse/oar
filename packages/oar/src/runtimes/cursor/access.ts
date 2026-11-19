@@ -83,9 +83,10 @@ export function subprocessAccess(sdkModule: string, envBase: "inherit" | "clean"
     environment,
     async lease(overlay, use, own) {
       const env = environment(overlay);
-      const apiKey = readEnvironmentCredential(env, "CURSOR_API_KEY");
+      const credentials = sessionCredentialRedactor(overlay === undefined ? {} : { env: overlay });
+      const apiKey = readEnvironmentCredential(env, "CURSOR_API_KEY", credentials);
       const childEnv = apiKey === undefined ? env : sessionEnvironment({ CURSOR_API_KEY: null }, env);
-      const channel = await openCursorChannel(sdkModule, childEnv, use === "session", own);
+      const channel = await openCursorChannel(sdkModule, childEnv, use === "session", own, credentials.redact);
       return { sdk: proxySdk(channel, apiKey), env, child: channel, release: async () => { const exit = await channel.stop(); return exit; } };
     },
   };
