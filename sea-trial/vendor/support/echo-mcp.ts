@@ -59,6 +59,12 @@ export interface EchoStep {
  */
 export type EchoCall = (server: string, text: string) => { readonly name: string; readonly arguments: Readonly<Record<string, unknown>> };
 
+/** OpenCode v2 calls an attached echo server through its Code Mode catalog. */
+export const codeModeEcho: EchoCall = (server, text) => ({
+  name: "execute",
+  arguments: { code: `return await tools.${server}.echo(${JSON.stringify({ text })});` },
+});
+
 const mcpToolCall: EchoCall = (server, text) => ({ name: `mcp__${server}__echo`, arguments: { text } });
 
 /**

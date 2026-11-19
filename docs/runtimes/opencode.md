@@ -1181,7 +1181,16 @@ See [host-served tools](../spec/runtime-matrix.md#host-served-tools).
   suite also runs after a behavior failure. Windows ACP results are
   observational while startup and MCP failures are investigated.
   [Scope and evidence](../../experiments/acp-ci-2026-10-29.md).
-  The broken-command clash was probed, not tested.
+  Two Windows v1 observations traced long first prompts to native snapshots of
+  the OAR checkout. The MCP fixtures now use small Git projects. First snapshots
+  took 235 to 288 ms in eight vendor cases in the
+  [Windows recheck](../../experiments/acp-ci-failures/closeout.md#opencode-windows-validation-completed).
+  The [earlier 120-second timeouts](../../experiments/acp-ci-2026-10-29.md)
+  have no native timings to attribute them individually.
+  Of the 60 completed Windows observations through 16:53 UTC on November 19,
+  v1 passed 59. In the [remaining run](https://github.com/botiverse/oar/actions/runs/44322678429/job/134865503513),
+  the effort case failed after 2.45 seconds. Native stderr reported a disk I/O
+  error 27 ms before that failure. The broken-command clash was probed, not tested.
 - The November 10 Linux check of the v1 vendor fixtures on v2 **2.2.7**
   passed 11 of 16 cases.
   The five failures depend on direct MCP tool calls or direct tool declarations
@@ -1191,6 +1200,15 @@ See [host-served tools](../spec/runtime-matrix.md#host-served-tools).
   checking the installed major version. The remaining vendor cases and shared
   behavior suite run on both lines, with nonzero scripted provider token
   counts so v2 can report its native context usage.
+  In the [Windows observation on November 19](https://github.com/botiverse/oar/actions/runs/44579053929),
+  each line passed 18 shared cases. The vendor suites passed 11 cases on v1
+  and 15 on v2. The [v2 Code Mode tests](../../sea-trial/vendor/opencode-code-mode-mcp.vendor.test.ts)
+  exercise stdio and HTTP on open and resume. After a catalog change the model
+  sees the added and withdrawn names, a call to the withdrawn name fails inside
+  Code Mode, and the host receives the new tool call.
+  The [hosted echo test](../../sea-trial/vendor/serve-mcp-tools.vendor.test.ts)
+  checks the host's response reaches the model and its bearer stays out of the
+  session records.
 - Unexplained first-run failures, not reproduced on rerun:
   `opencode --version` over its 15-second limit during concurrent opens
   (1.19.2, [October 16 report](../../experiments/runtime-version-checks/2026-10-16.md));
