@@ -31,6 +31,7 @@ trust. `env` follows the
 [reader environment rules](orientation.md#environment). Pi's in-process SDK
 loads inventories using the host environment. If an overlay changes it,
 Pi returns `unsupported` with `scope_unavailable` before loading extensions.
+Process-backed inventories follow the [native reader deadline](orientation.md#native-reader-deadlines).
 
 ## Results
 

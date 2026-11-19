@@ -1487,8 +1487,11 @@ separately. No stdout content or skill body is included in a failure reason.
 The reader creates no session, prompt or persistent service registration.
 Native startup still loads workspace plugins and can write native databases,
 logs and caches or access configured remote skill sources. The caller deadline
-bounds version detection, startup and HTTP reads; owned processes and listeners
-are stopped before returning. [Evidence, source and reproduction](../../experiments/opencode-skills/README.md).
+bounds version detection, startup and HTTP reads. If the deadline expires,
+OAR continues stopping the owned process tree in the background. A follow-up
+query can encounter the previous listener or a lock it still holds.
+[Native reader deadlines](../spec/orientation.md#native-reader-deadlines) and
+[OpenCode evidence](../../experiments/opencode-skills/README.md).
 
 ### Independent skill provenance
 
