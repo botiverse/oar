@@ -52,7 +52,7 @@ Control calls have request/response records.
 | Queue | OAR's volatile FIFO, not a durable native queue; withdrawal before dispatch is supported. |
 | Cancel and dispose | `session/cancel`; native close when available during disposal, then owned process-tree cleanup. |
 | Model and effort | Native config responses and updates; selectors `model` and `thought_level`. |
-| Context usage | Native `usage_update.used` and `.size` feed `usage.context` through the shared ACP projection. The 1.5.9 local-provider trace reports 0 of 1,048,576 tokens; nonzero accounting and every native update trigger were not verified. This is separate from account quota. |
+| Context usage | Native `usage_update.used` and `.size` feed `usage.context` through the shared ACP projection. [env] On 1.5.12 with a real Gemini account (7 sessions, 472 updates, 2026-11-19), `used` is the current context size: it grows within a turn, carries across turns, and falls at native compaction (for example 521,323 to 13,154), with `size` 1,048,576. A turn that ends on the quota notice sends no update, so the last value stands; a session that never ran a turn has none. The 1.5.9 local-provider trace reported 0, so a local provider's value is not evidence of size. This is separate from account quota. |
 | Child attribution | `opaque`. No verified CLI child identity mapping; OAR does not invent child sessions or turn ids. |
 | Compaction | The CLI advertises `/compact`, but no structured completion/attribution contract has been verified. `manualCompaction` is declared `unsupported`; no `Session.compact` member. |
 
