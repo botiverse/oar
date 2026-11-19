@@ -11,16 +11,14 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Which behavior backends and platforms this run needs (.github/scripts/ci-select.mjs):
-  # a pull request runs only the backends its files can reach, on Linux; pushes to
-  # main and dispatches run every backend on every platform before a release.
+  # The selector runs affected backends on Linux for pull requests. OpenCode's
+  # two pins also run on Windows. Main pushes and dispatches run the full matrix.
   changes:
     runs-on: ubuntu-latest
     outputs:
       behavior: ${{ steps.pick.outputs.behavior }}
       acp: ${{ steps.pick.outputs.acp }}
       os: ${{ steps.pick.outputs.os }}
-      acp_os: ${{ steps.pick.outputs.acp_os }}
       pi_rpc: ${{ steps.pick.outputs.pi_rpc }}
       pi_rpc_windows: ${{ steps.pick.outputs.pi_rpc_windows }}
     steps:
@@ -356,20 +354,19 @@ jobs:
           if-no-files-found: warn
 
   # Native ACP agents with a local scripted provider; no account credentials.
-  # Pin these versions with the daily compatibility evidence, including the v1
-  # OpenCode package. Its v2 protocol needs separate vendor fixtures.
+  # Both OpenCode majors share a suite and select separate native package pins.
   acp-behavior:
     needs: changes
     if: needs.changes.outputs.acp != '[]'
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJSON(needs.changes.outputs.acp_os) }}
-        backend: ${{ fromJSON(needs.changes.outputs.acp) }}
+        include: ${{ fromJSON(needs.changes.outputs.acp) }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     env:
-      OAR_TEST: ${{ matrix.backend }}
+      OAR_TEST: ${{ matrix.suite || matrix.backend }}
+      OAR_CHILD_STDERR: ${{ matrix.os == 'windows-latest' && 'inherit' || '' }}
       OAR_TEST_REQUIRE_AVAILABLE: '1'
       OAR_TEST_CONCURRENCY: '2'
       OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
@@ -391,10 +388,12 @@ jobs:
             ~/AppData/Local/npm-cache
           key: npm-acp-${{ runner.os }}-${{ runner.arch }}-${{ matrix.backend }}-${{ hashFiles('.github/runtime-versions.json') }}
       - name: Install and verify accepted native runtime
-        run: node .github/scripts/runtime-install.mjs '${{ matrix.backend }}'
+        id: native_install
+        run: node .github/scripts/runtime-install.mjs '${{ matrix.pin || matrix.backend }}'
       - run: pnpm run sea-trial
         timeout-minutes: 12
       - run: pnpm vitest run sea-trial/vendor --maxWorkers 2
+        if: ${{ !cancelled() && steps.native_install.outcome == 'success' && (success() || matrix.backend == 'opencode-v2-aimock') }}
         timeout-minutes: 12
       - uses: actions/upload-artifact@v4
         if: always()

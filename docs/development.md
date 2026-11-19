@@ -280,7 +280,8 @@ or pull request whose changes are all Markdown files or under `docs/` or
 the pin when it was written; [`.github/runtime-versions.json`](../.github/runtime-versions.json)
 is authoritative). The `behavior`, `acp-behavior` and
 Pi RPC jobs are chosen by [`.github/scripts/ci-select.mjs`](../.github/scripts/ci-select.mjs):
-a pull request runs, on Linux only, the backends its changed files can reach
+a pull request runs the backends its changed files can reach on Linux.
+Changes that reach OpenCode run both pins on Linux and Windows
 (a runtime's own directory or its vendor tests reach that runtime; shared code,
 contracts, the behavior harness, CI or anything unrecognized reach all of them;
 docs, Markdown, tests other than `tests/fixtures/`, the CLI and apps reach
@@ -352,11 +353,13 @@ still cannot ship.
   events, the last active cases, combined Vitest output and redacted Pi RPC
   stderr tails. None of this changes an assertion, concurrency or native
   deadline, or establishes the cause of the intermittent Windows hangs.
-- `acp-behavior`: Kimi, Grok, OpenCode v1 and CodeBuddy on
-  Linux and macOS: shared behavior and vendor tests against native programs
-  with local scripted providers, isolated configuration, synthetic keys and
-  npm download caches. Shared-case
-  concurrency and Vitest worker count are both 2; CodeBuddy serializes
+- `acp-behavior` runs both OpenCode majors on Linux, Windows and macOS.
+  Kimi, Grok and CodeBuddy run on Linux and macOS. The
+  [runtime manifest](../.github/runtime-versions.json) supplies the pins.
+  Each job runs shared behavior and vendor tests against the installed
+  program using a local scripted provider, isolated configuration, synthetic
+  keys and npm download caches. Shared-case concurrency and Vitest worker
+  count are both 2; CodeBuddy serializes
   shared cases in its isolated fixture HOME. OpenCode prepares each behavior
   fixture's database with one serial native open and exit before concurrent
   cases begin; a preparation failure stops the suite without retries (the
@@ -453,12 +456,10 @@ Outside ci.yml and its pull-request and release gates:
   HOME; its 180-second install and 240-second child limits are unchanged
   ([details](../experiments/codebuddy-install-diagnostics/README.md)).
   The CodeBuddy and published-host jobs have 15- and 20-minute ceilings.
-- [`acp-windows.yml`](../.github/workflows/acp-windows.yml) runs the Kimi,
-  Grok and OpenCode v1 ACP backends on Windows after main pushes. All three
-  had intermittent Windows startup or MCP timeouts whose causes remain
-  unknown. The jobs still fail, without `continue-on-error` or retries, and
-  retain logs and traces; daily inspection summarizes them. Grok's launch
-  comparison runs after its tests, so it cannot prewarm them. It retains
+- [`acp-windows.yml`](../.github/workflows/acp-windows.yml) observes the Kimi
+  and Grok ACP backends on Windows after main pushes. Each job reports its
+  first attempt and retains logs and traces for daily inspection. Grok's
+  launch comparison runs after its tests, so it cannot prewarm them. It retains
   bootstrap read/decode/write/copy/spawn phases for the explicit Node path
   and repeats that path and the OAR-resolved executable in the same HOME
   after either success or failure. The seven launches keep their 15-second
@@ -483,7 +484,7 @@ variables are omitted. This is test evidence only and changes no matcher,
 assertion or native timeout ([November 6 failures and boundaries](../experiments/acp-ci-failures/README.md)).
 
 Windows `codex-aimock`, every `qoder-native` and `dsh-aimock` behavior job, and the Windows
-ACP observations, forward child stderr to the job log with
+OpenCode ACP gates and ACP observations, forward child stderr to the job log with
 `OAR_CHILD_STDERR=inherit`, including failures before a session trace exists
 (a login's or logout's process is never forwarded: its output may carry secrets).
 Artifact upload warns when no trace directory was created; the failed test
