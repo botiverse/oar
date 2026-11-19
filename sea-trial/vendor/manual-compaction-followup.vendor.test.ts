@@ -6,13 +6,12 @@ import { describe, expect, onTestFailed, test, vi } from "vitest";
 import type { LLMock } from "@copilotkit/aimock";
 import { grokRuntime, opencodeRuntime, qoderRuntime, promptAndWait, type Session } from "../../packages/oar/src/index.js";
 import { startGrokAimock, startOpencodeAimock } from "../harness/aimock-acp.js";
-import { opencodeMajor } from "../../packages/oar/src/runtimes/opencode/version.js";
+import { isOpencodeV2Aimock } from "./support/opencode-version.js";
 import { startQoderNative } from "../harness/qoder-native.js";
 
 const backend = process.env.OAR_TEST;
 const qoder = backend === "qoder-native";
-const opencode = backend === "opencode-aimock" ? await opencodeRuntime.installation() : null;
-const v2 = opencode?.kind === "available" && opencode.via === "executable" && await opencodeMajor(opencode) === 2;
+const v2 = await isOpencodeV2Aimock();
 const enabled = qoder || backend === "grok-aimock" || v2;
 const content = `## Objective\nRetain the synthetic conversation.\n## Work State\n${"The controlled facts remain available. ".repeat(80)}`;
 async function fixture(shadowed = false) {

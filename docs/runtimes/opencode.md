@@ -1184,11 +1184,13 @@ See [host-served tools](../spec/runtime-matrix.md#host-served-tools).
   The broken-command clash was probed, not tested.
 - The November 10 Linux check of the v1 vendor fixtures on v2 **2.2.7**
   passed 11 of 16 cases.
-  The five failures need v1 protocol (direct MCP tools in the
-  provider's `tools` array, a classification from that array, or v1 prompt
-  replacement)
+  The five failures depend on direct MCP tool calls or direct tool declarations
+  in the provider request, including the echo used by the prompt replacement test
   ([November 10 report](../../experiments/runtime-version-checks/2026-11-10.md#known-v1-vendor-boundary)).
-  The Windows v2 job retains these failures alongside the shared behavior results.
+  The Windows v2 job skips only those five direct-tool protocol cases after
+  checking the installed major version. The remaining vendor cases and shared
+  behavior suite run on both lines, with nonzero scripted provider token
+  counts so v2 can report its native context usage.
 - Unexplained first-run failures, not reproduced on rerun:
   `opencode --version` over its 15-second limit during concurrent opens
   (1.19.2, [October 16 report](../../experiments/runtime-version-checks/2026-10-16.md));

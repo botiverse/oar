@@ -1,3 +1,4 @@
+import { isOpencodeV2Aimock } from "./support/opencode-version.js";
 import { piTestRuntime } from "./support/pi-runtime.js";
 import type { LLMock } from "@copilotkit/aimock";
 import { describe, expect, test } from "vitest";
@@ -6,6 +7,8 @@ import { startOpencodeGitFixture, startAntigravityAimock, startGrokAimock } from
 import { allRuntimes } from "../harness/runtimes.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { loadClaudeProbeTools, modelView, runToolsListChanged } from "./support/tools-list-changed.js";
+
+const opencodeV2 = await isOpencodeV2Aimock();
 
 /**
  * `Runtime.mcpToolsListChanged` (#399) on the real harnesses, against a
@@ -35,7 +38,8 @@ const backends: readonly { readonly id: string; readonly runtime: string; readon
 
 for (const backend of backends) {
   describe.skipIf(process.env.OAR_TEST !== backend.id)(`${backend.id} tools/list_changed`, () => {
-    test("a running session takes a change to the served tools as the runtime declares", async () => {
+    test("a running session takes a change to the served tools as the runtime declares", async context => {
+      if (opencodeV2) { context.skip("This fixture reads the direct MCP tool list. OpenCode v2 delivers catalog changes in a Code Mode system update."); }
       const runtime = backend.id === "pi-rpc-aimock" ? piTestRuntime : allRuntimes.require(backend.runtime);
       const env = await backend.start();
       try {

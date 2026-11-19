@@ -1,14 +1,16 @@
+import { isOpencodeV2Aimock } from "./support/opencode-version.js";
 import { piTestRuntime } from "./support/pi-runtime.js";
-import type { LLMock } from "@copilotkit/aimock";
 import { describe, expect, test } from "vitest";
 import { claudeInstallation, defineRuntime, serveMcpTools, type HostTool, type Runtime, claudeRuntime, codexRuntime, grokRuntime, kimiRuntime, opencodeRuntime, piRuntime } from "../../packages/oar/src/index.js";
 
-import { namespaceMcpToolCalls, startClaudeAimock, startCodexAimock, startPiAimock } from "../harness/aimock.js";
+import { namespaceMcpToolCalls, startClaudeAimock, startCodexAimock, startPiAimock, type LLMock } from "../harness/aimock.js";
 import { startOpencodeGitFixture, startGrokAimock, startKimiAimock } from "../harness/aimock-acp.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { echoesReceived, echoFixtures, type EchoCall } from "./support/echo-mcp.js";
 import { structuralToolRound } from "./support/tool-round.js";
 import { record } from "../harness/trace.js";
+
+const opencodeV2 = await isOpencodeV2Aimock();
 
 const claudeSession = claudeRuntime.session;
 const codexInstallation = codexRuntime.installation;
@@ -68,7 +70,8 @@ const backends: readonly Backend[] = [
 
 for (const backend of backends) {
   describe.skipIf(process.env.OAR_TEST !== backend.id)(`${backend.id} serveMcpTools`, () => {
-    test("the agent calls a tool the host serves, and the bearer token stays out of the records", async () => {
+    test("the agent calls a tool the host serves, and the bearer token stays out of the records", async context => {
+      if (opencodeV2) { context.skip("This fixture scripts host_echo as a direct tool. OpenCode v2 calls the host through Code Mode execute."); }
       const served = await serveMcpTools({ name: "host", tools: [hostEcho], instructions: INSTRUCTIONS });
       const env = await backend.start();
       let phase = "opening";
