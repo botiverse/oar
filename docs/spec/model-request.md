@@ -80,14 +80,18 @@ export interface ModelRequest {
   auxiliary calls (titles, summaries, compaction, classifiers, memory
   extraction), never replace the kept request. A runtime that cannot tell
   them from the root's main-loop requests refuses the option until it can.
-- **Current as soon as the request is sent.** OAR replaces the kept request
-  when the runtime sends the next main-loop request, before its response,
-  and the reading is valid at any moment, including mid-turn. A host that
+- **Current as soon as the runtime attributes it.** OAR replaces the kept
+  request when it can tell that the runtime sent a new main-loop request, and
+  the reading is valid at any moment, including mid-turn. Where the runtime
+  attributes a request when it sends it, that is before the response. Where
+  the attribution arrives with the response (claude's file mode, below), the
+  kept request changes when the response completes, and until then the
+  reading is the previous main-loop request. Either way, while a tool runs,
+  the latest request is the one whose response called it, so a host that
   indexes requests by something it observes during a turn (a message the
-  agent sent through a tool) reads at that moment: while a tool runs, the
-  latest request is the one whose response called it. Where the native
-  mechanism writes a file, the reading takes the newest complete file; a
-  partly written file is never returned.
+  agent sent through a tool) reads at that moment. Where the native mechanism
+  writes a file, a file is complete only when it parses as a whole; a partly
+  written file is never returned.
 - **This open only.** A resumed session returns `null` until it sends its
   first request in this open. OAR does not read bodies an earlier process
   left behind.
@@ -116,14 +120,15 @@ export interface ModelRequest {
 ## What runtimes expose
 
 Read from installed packages and source on 2026-11-19 (claude 2.1.328, pi
-1.5.2, opencode 1.19.6 and 2.3.2, dsh 0.2.2-rc). "To verify" items are read
-from binary strings or documentation, not run; each must be checked live
-before the runtime ships.
+1.5.2, opencode 1.19.6 and 2.3.2, dsh 0.2.2-rc). The claude and pi rows were
+then checked in the installed code: claude from the 2.1.328 binary's strings
+(`[sym]`), pi from the installed 1.5.2 packages (`[src]`). Nothing here has
+been run; each "to verify" item must be checked live before the runtime ships.
 
 | runtime | mechanism | to verify |
 | --- | --- | --- |
-| claude | `OTEL_LOG_RAW_API_BODIES=file:<dir>` writes each request body | written when the request is sent, not at turn end; whether a file can be read half written; works with telemetry export off; first version (the string is present in 2.1.292); sub-agent and auxiliary calls (titles, compaction, classifiers, memory) distinguishable from the main loop; `withheld` bodies |
-| pi | extension event `before_provider_request`, through the extension factories OAR already passes | the full request, not the message-threads delta (Raft's `onPayload` relies on this); auxiliary calls distinguishable; in RPC subprocess mode, a multi-megabyte body does not block the JSON-line control channel |
+| claude | `OTEL_LOG_RAW_API_BODIES=file:<dir>` (`[sym]`). Each request writes `<uuid>.request.json` when the request is built, before the response, with no rename, so a reader can meet it half written. After the response claude writes `<request_id>.response.json` and appends one line to `index.jsonl` naming the request file, `session_id` and `query_source`. The request file itself carries no source. Main loop: `query_source` `repl_main_thread*` or `sdk`; sub-agents `agent:*`; auxiliary calls name their own source (`compact`, `generate_session_title`, classifiers, memory extraction and others). File mode needs no telemetry exporter. Thinking text is replaced with `<REDACTED>`; memory operations and a summary with account memory are withheld whole. Claude creates a missing directory with default permissions and never deletes files. Any other truthy value selects inline mode, which puts bodies in the telemetry event; OAR never uses it | the main-loop source under OAR's stream-json launch (`sdk` expected); that a settings `env` entry cannot override OAR's value (the variable is in claude's settings-env lists); the disabling `diskless` launch gate; first version (2.1.304 and 2.1.322 have the same code; 2.1.292 not checked) |
+| pi | extension event `before_provider_request` (`[src]` pi-coding-agent `extensions/runner.js`), wired as the Agent's `onPayload`. Every provider adapter calls it with its built request, and the Anthropic adapter calls it before `prepareThreadRequest` trims to a thread delta. A handler's return value replaces the body, so OAR's handler returns nothing. Cache warming and compaction call the model directly, without the Agent's `onPayload` | whether `buildParams` with message threads already shapes a partial history; that no title or summary call reaches `onPayload`. In RPC mode the event runs in the pi child, and the JSON-line stdout carries every control response, so a body must leave through a side channel (a file or a separate pipe), never that line |
 | opencode 2.x | plugin hook `http.request`, through the config OAR already passes in `OPENCODE_CONFIG_CONTENT` | every provider passes through the hook; auxiliary calls (titles, summaries) distinguishable; how a large body leaves the server process |
 | codex | `CODEX_ROLLOUT_TRACE_ROOT` rollout trace | payload shape; whether WebSocket incremental requests leave a full body to read; auxiliary calls distinguishable |
 | qwen | `--openai-logging` | OpenAI-compatible providers only; whether the log directory can be per session; whether background memory extraction lands in the same log |
