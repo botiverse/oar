@@ -28,10 +28,10 @@ droid also has an ACP mode (`droid exec --output-format acp`). OAR uses it only
 for the account: the stream-jsonrpc protocol has no login, status or logout
 method, and the ACP entry is where droid offers them (see [Login](#login)).
 
-Current check: **droid 1.12.1** (Linux arm64, 2026-11-15): all 19
-behavior cases and eight native vendor cases pass against a local provider, with
-no Factory account ([probes](../../experiments/factory-droid/README.md)). CI
-runs them on Linux and macOS, pinned to droid 1.12.1. Windows is not yet
+The [November 18 runtime check](../../experiments/runtime-version-checks/2026-11-18.md)
+covers droid 1.14.0 against a local provider, including steering and six native
+scenarios. The [CI runtime manifest](../../.github/runtime-versions.json)
+names the accepted version for Linux and macOS. Windows is not yet
 verified. No Factory account has run a turn through OAR yet: Factory's own
 models, a real limits answer and a completed sign-in are unverified.
 
@@ -73,16 +73,17 @@ awaits its process cleanup. [Evidence and reproduction](../../experiments/factor
 
 ### Sessions
 
-One `droid exec` stream-jsonrpc process per session. Every native line is one
-record, whole and in arrival order. A notification is a frame whose `type` is
-its notification `type` (or its method). Every reply to a request OAR sent
-(`initialize_session`, `load_session`, `update_session_settings`,
-`add_user_message`, `interrupt_session`, `get_context_stats`,
-`compact_session`), error replies included, is a frame named after the method,
-recorded whole where it sat on the wire; replies to an input or an abort name
-that control's request in `responseTo`, and a refusal settles the input at
-that point, before any later line is read. A response no request owns is a `response` frame, and a line that
-is not JSON a `stdout` frame.
+One `droid exec` stream-jsonrpc process serves each session. A failed open
+rejects `session()` before it can return a record stream. A successful open
+records the `droid.initialize_session` or `droid.load_session` result.
+Notifications use their notification type or method as the frame type.
+Settings, input, interrupt and context replies use the full `droid.*` method
+name, including error replies. Compaction uses `droid.compact_session` for
+success and `droid.compact_session/error` for an error.
+
+Input, abort and compaction reply frames identify the control request in
+`responseTo`. An input refusal settles at that reply's position in the stream.
+Unmatched JSON responses use `response` and non-JSON stdout lines use `stdout`.
 
 - **Open.** `initialize_session` with the session's `cwd`, `modelId`,
   `reasoningEffort`, system prompt and MCP servers, and
@@ -129,10 +130,11 @@ is not JSON a `stdout` frame.
   back (`queued_message_handed_back`): OAR reports `input_dropped` for the
   prompt, and the session takes a new prompt before droid's late `cancelled`
   turn end arrives (turn ends are matched by turn id). If
-  droid does not end the aborted turn within 10 seconds, OAR stops the process
-  and records its exit; only that turn's end, or droid handing its prompt
-  back, disarms this, so another turn's end neither disarms it nor lets a
-  stale one stop a later turn.
+  cancellation is still pending 10 seconds after an interrupt request, OAR stops the process.
+  A matching turn end or a drop of the awaited input clears the timer.
+  A turn end also clears it when either the end or the awaited turn lacks an
+  id. Process exit clears all attempts. An interrupt RPC refusal withdraws
+  that attempt and clears the timer if it was the last outstanding abort.
 - A steer that reaches droid as its turn ends can miss it: droid ends the turn
   without echoing the steer, then runs the steer as a turn of its own
   (reproduced on 1.12.1 with a steer sent within about 50 ms of the turn's
@@ -191,8 +193,8 @@ beside it (`cacheReadTokens`, `cacheCreationTokens`), `output` is
 `outputTokens` already includes it is not established without a Factory model.
 Once a turn reports sub-agent tokens (`childTokenUsage`), the usage report's
 `total` adds them. After each turn and at open, OAR reads
-`get_context_stats` and records it as a `usage` frame with `context`
-(`used` of `limit`).
+`droid.get_context_stats`. Its reply is a frame of that name. A usable
+reading yields a `usage` event with `context` (`used` of `limit`).
 
 ### Failures
 
@@ -215,7 +217,7 @@ reported.
 | `appendSystemPrompt` | `systemPrompt: { type: "preset", preset: "droid", append }`; with `systemPrompt`, appended to it; refused on resume |
 | `mcpServers` | `mcpServers` on open and resume (below) |
 | `env` | the process environment |
-| `launchArgs` | after OAR's own arguments; the protocol, session and cwd flags are refused |
+| `launchArgs` | after OAR's own arguments; OAR reserves the protocol, session, fork, cwd and file flags (including `-f` and `--file`) |
 | refused | `fork`, `serviceTier` (none), `outputSchema` (droid's `structuredOutputFormat` not yet verified across turns), `name` (title persistence not verified), `additionalDirectories` (none), `disallowedTools` (`disabledToolIds` not yet verified against these names), `userConfiguration: "exclude"` (no verified separation), `goals`, `endTurnProcessesOnAbort` |
 
 #### Session MCP servers
@@ -323,13 +325,16 @@ refreshed or written. droid's directory is resolved as droid resolves it:
 The answer has `limits.standard` (Standard Usage) and `limits.core` (Droid
 Core), each with `fiveHour`, `weekly` and `monthly` buckets of `{
 usedPercent, windowEnd, unlimited? }`. Each bucket becomes a window with
-droid's key as `id` (`standard.fiveHour`, `core.weekly`, ...), droid's label,
+an `id` composed from the group and bucket keys (`standard.fiveHour`,
+`core.weekly`, ...). OAR supplies the labels `5-hour`, `Weekly` and `Monthly`,
+prefixed with `Droid Core ` for that group. It exposes
 `usedPercent / 100` as `usedRatio`, `windowEnd` as `resetsAt` and, for the
 5-hour and weekly buckets, their length as `durationMs`. Standard windows are
 the account's; Droid Core windows are `{ kind: "models", name: "Droid Core" }`.
 A bucket without a future `windowEnd` has reset, which droid shows as 0%, and
 so does OAR (no `resetsAt`). Unlimited buckets are left out, damaged ones are
-omitted, and an answer with none usable rejects. `rateLimited` is a full
+omitted. An answer containing only unlimited buckets returns an empty
+window list. If no bucket is usable or unlimited, the read rejects. `rateLimited` is a full
 Standard window with no Extra Usage to continue on (`overagePreference`
 `extraUsage`, `extraUsageAllowed` and a positive `extraUsageBalanceCents`). No
 limits and `hasActiveSubscription: false` is `unsupported` with

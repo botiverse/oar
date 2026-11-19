@@ -130,7 +130,7 @@ profile declares `capabilities` `{ queue: { durable: false }, attribution:
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
 | `kimi-code` executable | One `kimi acp` subprocess per OAR Session, spawned in the session `cwd` with the env overlay; its exit is an `exited` response record (answering `dispose` when OAR caused it, `requestId ""` when the process died on its own). |
-| Persistent native session | `Session.id` is the native `sessionId`; `SessionOptions.resume` attaches through ACP `session/resume` with a fresh stream (seq 0, no history rebuild), only in the session's own directory. |
+| Persistent native session | `Session.id` is the native `sessionId`; `SessionOptions.resume` attaches through ACP `session/resume` in the session's own directory. The new stream starts at seq 0 and retains frames delivered during attachment. |
 | Handshake answers and opening pushes | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model`, `session/set_config_option` answers are frame records with `model` and `effort` events where they report one (the `thinking` option's current value is the effort); pushes arriving while opening (`available_commands_update`, `current_mode_update`, `config_option_update`) are recorded in arrival order, so `Session.model()` and `effort()` are folds over the stream. |
 | Native agent and turn | Only ACP's `main` agent reaches this transport; every `session/update` is one frame with `native` verbatim. No `spanId` (ACP updates carry no turn id). |
 | Prompt, steer, queue, and cancel | `prompt()` is a `toRuntime` request whose `session/prompt` answer carries `turn_ended`. The session has no `steer` (no ACP method); `queue()` is a host-memory FIFO; `abort()` is `session/cancel` with a kill fallback. |
@@ -297,8 +297,8 @@ completions provider (kimi 2.2.0, [image-only provider test](../../sea-trial/ven
 which declares the model's `image_in` capability).
 
 **Prompt (mapped):** `prompt(string)` records a prompt request answered
-`accepted` once the RPC is on the wire, or `rejected` (`busy` during a turn,
-as in `busy-and-late-control`; the transport error when the process is gone). The
+`accepted` when OAR starts the turn and schedules the RPC, or `rejected`
+when busy or when the transport is gone (see `busy-and-late-control`). The
 RPC answer is recorded as frame `session/prompt` with the `turn_ended`
 event; an RPC error answer as `session/prompt/error` with a failed end
 ([test](../../tests/acp/acp-session.test.ts)).
