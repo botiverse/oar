@@ -209,7 +209,7 @@ continuation-plan API. Evidence: [error classes][connection],
 `external-session.import({adapterId, sourceSessionId})` returns a Maka
 `SessionCatalogItem`. It imports transcript history; it does not reattach to a
 running Claude/Codex process. `session.branch.create` is a separate operation.
-OAR exposes neither history import nor branch creation.
+OAR has no transcript import. On runtimes with a verified fork operation, open a copy with `resume` and `fork`. [Runtime support and cut points](../spec/runtime-matrix.md#forking-a-session).
 [Import protocol][import], [branch protocol][branch].
 
 ### Interactions and client capabilities
