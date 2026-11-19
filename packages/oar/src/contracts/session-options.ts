@@ -291,10 +291,10 @@ export interface SessionOptions {
    * (model, effort and the other typed options read back from the runtime)
    * cover only those options. OAR never records them (no record, event,
    * error or voyage header), though a runtime's own error output can quote
-   * them. They are NOT secret: any local user can read a process's argv
-   * (`ps`), so credentials belong in `env`. Give them again on resume. Refused when non-empty by runtimes with no
-   * process of their own (pi, cursor) and by morph: `session()` rejects with
-   * `UnsupportedOptionError` (`Runtime.refusedSessionOptions`).
+   * them. They are NOT secret: any local user can read a process's argv (`ps`), so credentials belong in `env`. Give them again on resume.
+   * Refused when non-empty by runtimes with no process of their own (pi, cursor) and by morph: `session()` rejects with `UnsupportedOptionError` (`Runtime.refusedSessionOptions`).
    */
   readonly launchArgs?: readonly string[];
+  /** Lower native background auto-memory defaults to `"off"` at the runtime's lowest configuration layer so explicit user, workspace or system settings still override it; refused where no such layer exists (`refusedSessionOptions.nativeMemoryDefault`). */
+  readonly nativeMemoryDefault?: "off";
 }

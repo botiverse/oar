@@ -92,6 +92,27 @@ starting a session and is declared in `Runtime.refusedSessionOptions`.
 `partialUserConfiguration` refuses proper nonempty subsets, as on Cursor,
 whose SDK selects settings sources as a group. See each [runtime page](../runtimes/README.md) for native evidence.
 
+## Native memory default
+
+`SessionOptions.nativeMemoryDefault: "off"` lowers a runtime's own default for
+native background auto-memory without overriding explicit user, workspace or
+system configuration. Omission preserves the runtime's native default. This is
+distinct from `userConfiguration: { exclude: ["instructions"] }`, which hard
+disables auto-memory regardless of user settings.
+
+`Session.capabilities.nativeMemory` (`"on"` or `"off"`) reports the effective
+native auto-memory state when the adapter can read it at open without adding
+open-time wait. Absence means unknown (unreadable, unverified version,
+trust-gated workspace settings, or a runtime whose effective state requires an
+extra open-time query), never `"off"`.
+
+| Runtime | `nativeMemoryDefault: "off"` | `Session.capabilities.nativeMemory` |
+|---|---|---|
+| Qwen (`>= 0.26.0`) | Merges over any existing `QWEN_CODE_SYSTEM_DEFAULTS_PATH` or OS `system-defaults.json` into a private `0700`/`0600` temp file with `memory.enableManagedAutoMemory`, `memory.enableManagedAutoDream` and `memory.enableAutoSkill` set to `false`, leaving the original untouched; user, workspace and system settings still override it ([details](../runtimes/qwen.md#native-memory-default), [vendor test](../../sea-trial/vendor/qwen-native-memory.vendor.test.ts)). | Read across Qwen's four layers (`systemDefaults < user < workspace < system`); omitted below `0.26.0`, on unreadable/malformed layers, when `security.folderTrust.enabled` is `true` with workspace memory overrides, or when unmodeled runtime gates (`--bare`, `--safe-mode`, `--sandbox`, sandbox settings, or corresponding env overrides) are present. |
+| Qwen (`< 0.26.0` or unreadable) | Refused at open (`UnsupportedOptionError("nativeMemoryDefault", ...)`), declared in `sessionCapabilities`. | Omitted. |
+| Claude | Refused at open: Claude's settings layers (`userSettings`, `projectSettings`, `localSettings`, `flagSettings`, `policySettings`) have no below-user default layer; `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1` and `--settings` hard-override user settings. Use `userConfiguration: { exclude: ["instructions"] }` for a hard disable ([details](../runtimes/claude.md#user-configuration)). | Omitted so open stays immediate without waiting for a control reply. |
+| All other built-in runtimes | Refused at open (`refusedSessionOptions.nativeMemoryDefault`): no native background auto-memory feature or no verified below-user default layer. | Omitted. |
+
 ## Session controls
 
 `prompt`, `queue` and `abort` are on every session. `steer`, `withdraw` and `stopTask`
@@ -844,7 +865,7 @@ reading the message.
 
 `Runtime.refusedSessionOptions` declares, before any session opens, the
 `SessionOptions` a runtime refuses when given (`env`, `mcpServers`, `disallowedTools`, `launchArgs`, `additionalDirectories`: a
-non-empty one; `userConfiguration`: any exclusion; `partialUserConfiguration`: a proper nonempty subset; `goals`, `endTurnProcessesOnAbort`: `true`; `fork`: any value), each with that reason. The adapter checks the same map, so
+non-empty one; `userConfiguration`: any exclusion; `partialUserConfiguration`: a proper nonempty subset; `goals`, `endTurnProcessesOnAbort`: `true`; `fork`: any value; `nativeMemoryDefault`: `"off"`), each with that reason. The adapter checks the same map, so
 the declaration and the refusal cannot drift
 (`tests/refused-session-options.test.ts`). A host leaves a declared option
 out instead of naming runtimes. `outputSchema` is considered given even
@@ -856,13 +877,15 @@ and ends with the entries' names
 ([#392](https://github.com/botiverse/oar/issues/392)).
 
 `goals: true` is refused everywhere except Codex and DSH ([native goals](#native-goals)),
-and `endTurnProcessesOnAbort: true` everywhere except Codex in an isolated
+`endTurnProcessesOnAbort: true` everywhere except Codex in an isolated
 app-server and Grok ([ending a turn's processes](#ending-a-turns-processes-on-abort)),
+and `nativeMemoryDefault: "off"` everywhere except Qwen `>= 0.26.0`
+([native memory default](#native-memory-default)),
 for want of a verified way to end one aborted turn's processes while the
 session stays usable (in the host process, no process tree of its own to
-read). Claude and Codex accept forks through a chosen turn. OpenCode v2
+read) or a below-user default settings layer. Claude and Codex accept forks through a chosen turn. OpenCode v2
 can copy a whole session. Other adapters refuse `fork`
-([forking a session](#forking-a-session)). The table omits all three, apart
+([forking a session](#forking-a-session)). The table omits all four, apart
 from Codex's shared-placement refusal.
 These refusals have one reason wherever the table lists them: `serviceTier`,
 no verified per-session tier setting and readback; `outputSchema`, no

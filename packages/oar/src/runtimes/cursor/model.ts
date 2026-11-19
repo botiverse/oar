@@ -66,6 +66,7 @@ export const cursorRefusedSessionOptions: RefusedSessionOptions = {
   appendSystemPrompt: "Cursor's SDK runs no system prompt override for a local agent",
   env: "Cursor runs in this process and its SDK takes no environment for the agent's tools; SessionOptions.env is unsupported (the subprocess execution mode takes it)",
   launchArgs: "Cursor runs in this process through its SDK; there is no runtime command line to add arguments to",
+  nativeMemoryDefault: "Cursor exposes no verified below-user default layer for background auto-memory",
 };
 
 /**

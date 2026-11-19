@@ -13,4 +13,5 @@ export const kimiRefusedSessionOptions: RefusedSessionOptions = {
   disallowedTools: "kimi ACP exposes no session tool denylist; its agent-profile disallowedTools cannot be overlaid through the ACP launch or session options",
   systemPrompt: "kimi acp has no per-session system prompt input; its launcher does not forward --agent-file or --agent",
   appendSystemPrompt: "kimi acp has no per-session system prompt append input; its launcher does not forward --agent-file or --agent",
+  nativeMemoryDefault: "Kimi exposes no verified below-user default layer for background auto-memory",
 };

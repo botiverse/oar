@@ -1998,6 +1998,17 @@ Keychain and routes its child `security` commands to that file without replacing
 the default Keychain or search list; its seeded account matches the child
 `USER`. Other platforms retain the credential-file fixture. Setup errors fail the test, and token-reuse assertions remain strict.
 
+`SessionOptions.nativeMemoryDefault: "off"` is refused at open
+(`refusedSessionOptions.nativeMemoryDefault`). Claude **2.1.292** merges five
+settings layers (`userSettings`, `projectSettings`, `localSettings`,
+`flagSettings`, `policySettings`) with no layer below user settings; both
+`CLAUDE_CODE_DISABLE_AUTO_MEMORY=1` and `--settings '{"autoMemoryEnabled":false}'`
+hard-override explicit user `autoMemoryEnabled: true` (observed on Linux x64
+2.1.292 against a local scripted provider). Use
+`userConfiguration: { exclude: ["instructions"] }` when a hard disable is
+wanted. `Session.capabilities.nativeMemory` is also omitted so Claude keeps its
+immediate post-spawn open contract without waiting for a control response.
+
 ## Orientation query costs
 
 `listModels()` starts a short-lived native print process and sends the

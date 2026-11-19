@@ -9,6 +9,7 @@ export const qoderRefusedSessionOptions: RefusedSessionOptions = {
   outputSchema: "Qoder has no verified structured-output option for long-lived sessions",
   userConfiguration: "Qoder has no verified way to exclude user configuration while preserving native credentials and history",
   name: "Qoder's session-name persistence has not been verified",
+  nativeMemoryDefault: "Qoder has no verified settings layer below user configuration for auto-memory",
 };
 
 const QODER_MANAGED_LAUNCH_ARGS = new Set([

@@ -178,6 +178,17 @@ describe("SessionCapabilityDeclaration.mcpTransports", () => {
   });
 });
 
+it.each([
+  ["0.25.9", true],
+  ["0.26.0-rc.1", true],
+  ["0.26.0", false],
+  ["0.28.0", false],
+  [undefined, true],
+] as const)("gates Qwen nativeMemoryDefault refusal at 0.26.0 (%s)", (version, refused) => {
+  const declaration = qwenRuntime.sessionCapabilities(executable(version)).refusedSessionOptions;
+  expect(declaration?.nativeMemoryDefault === undefined).toBe(!refused);
+});
+
 describe("installedSessionCapabilities", () => {
   const base = { id: "probe", session: scriptedRuntime({ turn: () => undefined }).session };
   it("merges an installation's refusals over the static ones and keeps a per-version manual compaction", () => {

@@ -12,6 +12,7 @@ export const dshRefusedSessionOptions: RefusedSessionOptions = {
   outputSchema: "DSH has no verified final-output schema channel",
   userConfiguration: "DSH default-config dumping omits provider routes with user patches; no verified boot filter preserves providers, login and history",
   endTurnProcessesOnAbort: "DSH cancellation leaves background jobs alive; selected Linux jobs can be killed natively, but complete per-turn process cleanup is not verified",
+  nativeMemoryDefault: "DSH exposes no verified below-user default layer for background auto-memory",
 };
 
 /** Session-scoped directory grants are effective for file and process writes on these platforms. */

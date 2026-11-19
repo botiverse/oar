@@ -28,6 +28,7 @@ const given: Readonly<Record<RefusableSessionOption, Partial<SessionOptions>>> =
   launchArgs: { launchArgs: ["--probe"] },
   name: { name: "probe" },
   fork: { fork: { through: "anchor" }, resume: "source" },
+  nativeMemoryDefault: { nativeMemoryDefault: "off" },
 };
 
 // Declared refusals are checked before anything starts, so an installation
@@ -49,7 +50,7 @@ test("every declared refusal is what session() rejects with", async () => {
   const declaring = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions !== undefined);
   assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "claude", "codebuddy", "codex", "cursor", "devin", "dsh", "factory", "grok", "kimi", "opencode", "pi", "qoder", "qwen"]);
   for (const runtime of declaring) {
-    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "partialUserConfiguration", "goals", "endTurnProcessesOnAbort", "fork"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
+    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "partialUserConfiguration", "goals", "endTurnProcessesOnAbort", "fork", "nativeMemoryDefault"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
     for (const key of keys) {
       const option = refusalNames[key] ?? key;
       const opening = runtime.session(nowhere(runtime.id), { cwd: "/tmp", ...given[key] });
@@ -64,19 +65,19 @@ test("every declared refusal is what session() rejects with", async () => {
 test("the declarations say which options each runtime refuses", () => {
   const refused = Object.fromEntries(allRuntimes.list().map((runtime) => [runtime.id, Object.keys(runtime.refusedSessionOptions ?? {}).toSorted()]));
   assert.deepEqual(refused, {
-    antigravity: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "mcpServerCredentials", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
-    claude: ["endTurnProcessesOnAbort", "goals"],
-    codebuddy: ["additionalDirectories", "appendSystemPrompt", "endTurnProcessesOnAbort", "fork", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
-    codex: ["userConfiguration"],
-    cursor: ["appendSystemPrompt", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "name", "outputSchema", "partialUserConfiguration", "serviceTier", "systemPrompt"],
-    devin: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
-    dsh: ["endTurnProcessesOnAbort", "fork", "launchArgs", "mcpServerCredentials", "outputSchema", "serviceTier", "userConfiguration"],
-    factory: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
-    grok: ["additionalDirectories", "disallowedTools", "fork", "goals", "name", "serviceTier", "userConfiguration"],
-    kimi: ["appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
-    opencode: ["disallowedTools", "endTurnProcessesOnAbort", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
-    pi: ["additionalDirectories", "endTurnProcessesOnAbort", "fork", "goals", "launchArgs", "outputSchema", "serviceTier", "userConfiguration"],
-    qoder: ["endTurnProcessesOnAbort", "fork", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
+    antigravity: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "mcpServerCredentials", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
+    claude: ["endTurnProcessesOnAbort", "goals", "nativeMemoryDefault"],
+    codebuddy: ["additionalDirectories", "appendSystemPrompt", "endTurnProcessesOnAbort", "fork", "goals", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
+    codex: ["nativeMemoryDefault", "userConfiguration"],
+    cursor: ["appendSystemPrompt", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "name", "nativeMemoryDefault", "outputSchema", "partialUserConfiguration", "serviceTier", "systemPrompt"],
+    devin: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
+    dsh: ["endTurnProcessesOnAbort", "fork", "launchArgs", "mcpServerCredentials", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
+    factory: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
+    grok: ["additionalDirectories", "disallowedTools", "fork", "goals", "name", "nativeMemoryDefault", "serviceTier", "userConfiguration"],
+    kimi: ["appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
+    opencode: ["disallowedTools", "endTurnProcessesOnAbort", "goals", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
+    pi: ["additionalDirectories", "endTurnProcessesOnAbort", "fork", "goals", "launchArgs", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
+    qoder: ["endTurnProcessesOnAbort", "fork", "goals", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
     qwen: ["endTurnProcessesOnAbort", "fork", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
   });
 });

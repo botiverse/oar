@@ -135,3 +135,18 @@ test("Qwen below 0.26.0 refuses HTTP MCP servers with UnsupportedOptionError bef
   })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "mcpServers" });
   expect(launchQwen).not.toHaveBeenCalled();
 });
+
+test.each(["on", "off", undefined] as const)("surfaces nativeMemory capability (%s) when launchQwen reports it", async (nativeMemory) => {
+  const child = fakeLineProcess((line, process) => {
+    const frame = asRecord(parseJson(line));
+    if (asRecord(frame?.request)?.subtype === "initialize") {
+      process.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: frame?.request_id, response: { session_id: id } } })}\n`);
+    }
+  });
+  vi.mocked(launchQwen).mockResolvedValue(nativeMemory === undefined ? child : Object.assign(child, { nativeMemory }));
+  child.stdin.on("finish", () => { child.end(0); });
+  const session = await qwenSession(installation, { cwd: "/fixture", resume: id });
+  try {
+    expect(session.capabilities.nativeMemory).toBe(nativeMemory);
+  } finally { await session.dispose(); vi.restoreAllMocks(); }
+});
