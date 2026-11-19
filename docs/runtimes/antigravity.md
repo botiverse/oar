@@ -689,9 +689,10 @@ body is returned or executed. Windows and unverified versions retain the guarded
 The verified file reader follows workspace aliases (`.agent`, `.agents`,
 `_agent`, `_agents`) from the repository root to the requested directory,
 then the global CLI, config and legacy skill directories. Workspace discovery
-uses the physical working directory. Manifest containment uses resolved roots and targets while returned
-manifest paths keep their declared spelling. Linked
-skill directories are followed. It reads skill and
+uses the physical working directory. Every workspace skill and plugin path must
+resolve within the workspace root, while returned paths keep their declared
+spelling; linked directories within the workspace and under the global
+`~/.gemini` roots are followed. It reads skill and
 plugin manifests, applies native duplicate precedence and invocation flags,
 and includes only the native builtin mounts already materialized on disk.
 `disable-slash-command: true` winners are omitted, while

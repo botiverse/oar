@@ -97,6 +97,20 @@ export async function compareAntigravityFileSkills(output: string): Promise<void
         queryCwd = join(home, "cwd-alias"); await symlink(cwd, queryCwd, "junction");
         await skill(join(repo, "direct/child"), "linked-direct", "linked skill directory");
         await symlink(join(repo, "direct/child"), join(cwd, ".agents/skills/link"), "junction");
+        await skill(join(home, "global-link-target/g1"), "global-link-outside", "global link allowed");
+        await symlink(join(home, "global-link-target/g1"), join(home, ".gemini/skills/g-link"), "junction");
+        await skill(join(home, "ws-escape/s1"), "ws-dir-link-outside", "workspace dir link outside");
+        await symlink(join(home, "ws-escape/s1"), join(cwd, ".agents/skills/out-dir-link"), "junction");
+        await skill(join(home, "ws-escape/s2"), "ws-file-link-outside", "workspace SKILL.md link outside");
+        await mkdir(join(cwd, ".agents/skills/out-file-link"), { recursive: true });
+        await symlink(join(home, "ws-escape/s2/SKILL.md"), join(cwd, ".agents/skills/out-file-link/SKILL.md"));
+        await file(join(home, "ws-escape/p1/plugin.json"), JSON.stringify({ name: "Escaped Plugin", version: "1.0.0" }));
+        await skill(join(home, "ws-escape/p1/skills/ps1"), "ws-plugin-link-outside", "workspace plugin link outside");
+        await symlink(join(home, "ws-escape/p1"), join(cwd, ".agents/plugins/out-plugin-link"), "junction");
+        await skill(join(home, "ws-escape/s3"), "ws-manifest-child-link-outside", "manifest child link outside");
+        await mkdir(join(repo, "manifest-bag"), { recursive: true });
+        await symlink(join(home, "ws-escape/s3"), join(repo, "manifest-bag/mlink"), "junction");
+        await skill(join(home, "ws-escape/s4"), "escaped-include-only", "manifest include_only traversal outside");
         await skill(join(repo, "alias-extra/child"), "absolute-alias", "declared alias retained");
         await skill(join(home, "outside-link/child"), "outbound-link", "outside target omitted");
         await skill(join(repo, "inside-link/child"), "inbound-link", "inside target allowed");
@@ -104,6 +118,7 @@ export async function compareAntigravityFileSkills(output: string): Promise<void
         await symlink(join(repo, "inside-link"), join(home, "inbound"), "junction");
         await file(join(cwd, ".agent/skills.json"), JSON.stringify({ entries: [
           { path: join(homeAlias, "repo/alias-extra") }, { path: join(repo, "outbound") }, { path: join(home, "inbound") },
+          { path: join(repo, "manifest-bag") }, { path: ".", include_only: ["../../../ws-escape/s4"] },
         ] }));
       }
       const native = await runExecutable(installation.command, ["--output-format", "json", "--print=/skills"], { cwd: queryCwd, env: nativeEnv, timeoutMs: 15_000 });
@@ -128,6 +143,21 @@ export async function compareAntigravityFileSkills(output: string): Promise<void
       observations.push({ case: stage, timingsMs: timings });
     }
     await antigravitySkillMcpControl(installation, home, cwd, nativeEnv, env, observations);
+    // Non-git working directories bound workspace discovery at realpath(cwd).
+    const nonGitCwd = join(home, "nongit", "work");
+    await mkdir(join(nonGitCwd, ".agents/skills"), { recursive: true });
+    await skill(join(home, "nongit/sibling/s6"), "nongit-parent-link", "non-git sibling escape");
+    await symlink(join(home, "nongit/sibling/s6"), join(nonGitCwd, ".agents/skills/p-link"), "junction");
+    const nonGitNative = await runExecutable(installation.command, ["--output-format", "json", "--print=/skills"], { cwd: nonGitCwd, env: nativeEnv, timeoutMs: 15_000 });
+    assert.ok(nonGitNative.ok, nonGitNative.stderr);
+    const nonGitCommand = asRecord(asRecord(parseJson(nonGitNative.stdout))?.command);
+    const nonGitExpected = project(asRecord(nonGitCommand?.data)?.skills);
+    assert.ok(!nonGitExpected.some(item => item.name === "nongit-parent-link"));
+    const nonGitResult = await antigravityRuntime.skills(installation, { cwd: nonGitCwd, env });
+    assert.equal(nonGitResult.kind, "ok");
+    const nonGitVerified = nonGitExpected.filter(item => !(item.scope === "builtin" && item.path === join(home, ".gemini/antigravity-cli/builtin/skills/native_swarm/SKILL.md")));
+    assert.deepEqual(nonGitResult.items, nonGitVerified);
+    observations.push({ case: "non-git-sibling-escape", result: nonGitResult, native: nonGitExpected });
     // The verified path still works signed out, and touches no files.
     const settings = join(home, ".gemini/antigravity-cli/settings.json");
     await file(settings, "{}\n");
