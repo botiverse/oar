@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
-import { firstProcess, resultsOf } from "../fixtures/claude-usage.js";
-import type { ContextUsage } from "../../packages/oar/src/contracts/session.js";
+import { firstProcess, resumedProcess, resultsOf } from "../fixtures/claude-usage.js";
+import type { CacheWriteByTtl, ContextUsage } from "../../packages/oar/src/contracts/session.js";
 import { contextUsageOf } from "../../packages/oar/src/observe/usage.js";
 import { claudePrompted, foldClaudeStdout, initialClaudeProjection } from "../../packages/oar/src/runtimes/claude/projection.js";
 import type { JsonRecord } from "../../packages/oar/src/shared/json.js";
@@ -106,4 +106,39 @@ test("an auto-compaction mid-turn reads the call after it", () => {
   const afterCompaction = call(2, { input_tokens: 5, cache_read_input_tokens: 20_000, cache_creation_input_tokens: 3000, output_tokens: 1 });
   frames.splice(-1, 0, boundary, ...afterCompaction);
   expect(contextAfterResults(frames)).toEqual([{ tokens: 23_005, contextWindow: 1_000_000, percent: 2 }]);
+});
+
+function ttlAfterResults(frames: readonly JsonRecord[]): (CacheWriteByTtl | undefined)[] {
+  const after: (CacheWriteByTtl | undefined)[] = [];
+  frames.reduce((state, frame) => {
+    const { state: next, commands } = foldClaudeStdout(state, frame);
+    if (frame.type === "result") {
+      const report = commands.flatMap((command) => command.kind === "frame" ? command.body.events : []).find((event) => event.kind === "usage");
+      after.push(report?.kind === "usage" ? report.usage.cacheWriteByTtl : undefined);
+    }
+    return next;
+  }, claudePrompted(initialClaudeProjection));
+  return after;
+}
+
+test("cacheWriteByTtl reads the last root assistant frame, not the turn sum or subagents (recorded)", () => {
+  // Turn 1 had two root calls (7517 + 1026 = 8543 in result.usage) plus a subagent (629 in 5m).
+  // Last root assistant frame wrote 0 (5m) and 1026 (1h); turn 2 wrote 0 / 111; turn 3 compacted (no call).
+  expect(ttlAfterResults(firstProcess)).toEqual([
+    { "5m": 0, "1h": 1026 },
+    { "5m": 0, "1h": 111 },
+    undefined,
+  ]);
+  expect(ttlAfterResults(resumedProcess)).toEqual([{ "5m": 0, "1h": 4111 }]);
+});
+
+test("cacheWriteByTtl ignores synthetic/subagent frames and omits when cache_creation is absent", () => {
+  const frames = longTurn(1);
+  expect(ttlAfterResults(frames)).toEqual([undefined]);
+  const firstCall = call(0, { input_tokens: 5, cache_creation_input_tokens: 500, output_tokens: 1, cache_creation: { ephemeral_5m_input_tokens: 500, ephemeral_1h_input_tokens: 0 } });
+  const secondCall = call(1, { input_tokens: 5, cache_creation_input_tokens: 800, output_tokens: 1, cache_creation: { ephemeral_5m_input_tokens: 0, ephemeral_1h_input_tokens: 800 } });
+  const synthetic = { type: "assistant", message: { model: "<synthetic>", id: "syn", type: "message", role: "assistant", content: [], usage: { input_tokens: 0, cache_creation: { ephemeral_5m_input_tokens: 999 } } } };
+  const result = frames.at(-1);
+  expect(result).toBeDefined();
+  expect(ttlAfterResults([...firstCall, ...secondCall, synthetic, ...(result === undefined ? [] : [result])])).toEqual([{ "5m": 0, "1h": 800 }]);
 });

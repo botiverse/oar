@@ -104,6 +104,7 @@ export type { ContextUsageCapability } from "./context-usage.js";
 export type {
   AdapterSession,
   AttributionTier,
+  CacheWriteByTtl,
   ContextBreakdown,
   ContextCategory,
   ContextItem,

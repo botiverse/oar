@@ -889,7 +889,9 @@ already inside output. It stays absent if the provider does not report it;
 reasoning text or an effort setting never supplies a count. Its input counts pi's
 `input + cacheRead + cacheWrite`, and pi's `cacheRead` and `cacheWrite`
 accumulate as the total's own `cacheRead` and `cacheWrite` (`cacheWrite1h`, a
-subset of `cacheWrite`, is not added again;
+subset of `cacheWrite`, is not added again; when natively present on an
+assistant `message_end`, it is reported on that `usage` event as
+`cacheWriteByTtl: { "1h": cacheWrite1h }`, without deriving `"5m"`,
 [spec](../spec/attribution.md#cache-reads-and-writes)). Live on the baseline model: a one-shot turn
 `{input: 1381, output: 39}` with `contextUsage().value` `{tokens: 1420,
 contextWindow: 128000}`; three turns 1377 → 2772 → 4186 input, one

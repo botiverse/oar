@@ -165,6 +165,18 @@ test("pi cache reads and writes accumulate across turns as parts of input", () =
   ]);
 });
 
+test("pi reports cacheWriteByTtl 1h only when cacheWrite1h is present and never derives 5m", () => {
+  const ttls = [
+    assistantEnd({ input: 10, output: 5, cacheRead: 0, cacheWrite: 5120, cacheWrite1h: 4000 }),
+    assistantEnd({ input: 10, output: 5, cacheRead: 0, cacheWrite: 1000, cacheWrite1h: 0 }),
+    assistantEnd({ input: 10, output: 5, cacheRead: 0, cacheWrite: 1000 }),
+  ].map((event) => {
+    const usage = foldPiEvent(initialPiProjection, event).commands.flatMap((command) => command.body.events).find((view) => view.kind === "usage");
+    return usage?.kind === "usage" ? usage.usage.cacheWriteByTtl : undefined;
+  });
+  expect(ttls).toEqual([{ "1h": 4000 }, { "1h": 0 }, undefined]);
+});
+
 test("pi tool_execution_end maps the explicit isError flag", () => {
   const failed = foldPiEvent(piPrompted(initialPiProjection), toolEndEvent("tool-fail", true));
   expect(failed.commands[0]?.body.events).toEqual([

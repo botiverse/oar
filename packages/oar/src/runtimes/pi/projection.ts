@@ -132,13 +132,17 @@ function accumulate(state: PiProjectionState, message: unknown): Step {
   // back in; each also stands as its own part (`cacheWrite1h` is a subset of
   // `cacheWrite`, pi-ai types.d.ts, so it adds nothing).
   const cache = cacheParts(usage, { read: "cacheRead", write: "cacheWrite" });
+  const cacheWrite1h = asNumber(usage.cacheWrite1h);
   const tokens = addTokens(state.tokens, {
     input: (asNumber(usage.input) ?? 0) + (cache.cacheRead ?? 0) + (cache.cacheWrite ?? 0),
     output: asNumber(usage.output) ?? 0,
     ...reasoningPart(usage, "reasoning"),
     ...cache,
   });
-  return { state: { ...state, tokens }, events: [{ kind: "usage", usage: { tokens } }] };
+  return {
+    state: { ...state, tokens },
+    events: [{ kind: "usage", usage: { tokens, ...(cacheWrite1h === null ? {} : { cacheWriteByTtl: { "1h": cacheWrite1h } }) } }],
+  };
 }
 
 function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldExtra): Step {

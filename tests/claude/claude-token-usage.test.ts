@@ -111,8 +111,8 @@ test.each([
   ["an error answer", resumedAfter({ type: "control_response", response: { subtype: "error", request_id: "oar-usage-1", error: "Unsupported control request subtype: get_usage" } })],
   ["a timeout", resumedAfter(new Error("claude did not answer get_usage within 30000 ms"))],
   ["an answer without session totals", resumedAfter(getUsageAnswer("oar-usage-1", undefined))],
-])("a resume without a baseline (%s) reports context only, and usage().total stays null", (_case, start) => {
-  expect(usageEvents(start, resumedProcess)).toEqual([{ kind: "usage", usage: { context: { tokens: 22_087, contextWindow: 200_000, percent: 11 } } }]);
+])("a resume without a baseline (%s) reports last-call readings only, and usage().total stays null", (_case, start) => {
+  expect(usageEvents(start, resumedProcess)).toEqual([{ kind: "usage", usage: { context: { tokens: 22_087, contextWindow: 200_000, percent: 11 }, cacheWriteByTtl: { "5m": 0, "1h": 4111 } } }]);
   expect(replay(resumedProcess, start).afterResults).toEqual([{ total: null }]);
 });
 

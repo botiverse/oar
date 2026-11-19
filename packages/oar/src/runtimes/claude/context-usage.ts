@@ -1,4 +1,4 @@
-import type { ContextUsage } from "../../contracts/session.js";
+import type { CacheWriteByTtl, ContextUsage } from "../../contracts/session.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 
 /**
@@ -14,13 +14,15 @@ import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
  * last call alone). The window is `result.modelUsage[model].contextWindow`
  * for the latest call's model (the first entry when claude keys it
  * otherwise): modelUsage lists every model the session used, subagents' and
- * auxiliary ones included. Folded per frame, read at the turn's result.
+ * auxiliary ones included. The same latest root assistant frame also supplies
+ * `cacheWriteByTtl` from `usage.cache_creation.ephemeral_{5m,1h}_input_tokens`.
+ * Folded per frame, read at the turn's result.
  */
 export type ClaudeContextReading =
   /** No root model call and no compaction since the last result: the result reports no context, the previous reading stands. */
   | { readonly kind: "unchanged"; readonly model: string | null }
-  /** The root agent's latest model call sent `tokens`. */
-  | { readonly kind: "sent"; readonly tokens: number; readonly model: string | null }
+  /** The root agent's latest model call sent `tokens` and optional TTL-split cache writes. */
+  | { readonly kind: "sent"; readonly tokens: number; readonly model: string | null; readonly cacheWriteByTtl?: CacheWriteByTtl }
   /** claude compacted the context after the latest call: unknown until the next one (the `ContextUsage` contract's null). */
   | { readonly kind: "compacted"; readonly model: string | null };
 
@@ -28,6 +30,18 @@ export const initialClaudeContext: ClaudeContextReading = { kind: "unchanged", m
 
 /** claude's model for the messages it makes up itself (an interrupted or errored turn's reply): no model call. */
 const SYNTHETIC_MODEL = "<synthetic>";
+
+function cacheWriteByTtlOf(usage: JsonRecord): CacheWriteByTtl | undefined {
+  const creation = asRecord(usage.cache_creation);
+  if (creation === null) { return undefined; }
+  const fiveMin = asNumber(creation.ephemeral_5m_input_tokens);
+  const oneHour = asNumber(creation.ephemeral_1h_input_tokens);
+  if (fiveMin === null && oneHour === null) { return undefined; }
+  return {
+    ...(fiveMin === null ? {} : { "5m": fiveMin }),
+    ...(oneHour === null ? {} : { "1h": oneHour }),
+  };
+}
 
 /** A root `assistant` frame: the context its model call sent. Every frame of one message repeats the same usage. */
 export function claudeContextSent(reading: ClaudeContextReading, message: JsonRecord): ClaudeContextReading {
@@ -38,7 +52,8 @@ export function claudeContextSent(reading: ClaudeContextReading, message: JsonRe
     return reading;
   }
   const tokens = (asNumber(usage.input_tokens) ?? 0) + (asNumber(usage.cache_read_input_tokens) ?? 0) + (asNumber(usage.cache_creation_input_tokens) ?? 0);
-  return { kind: "sent", tokens, model: model ?? reading.model };
+  const cacheWriteByTtl = cacheWriteByTtlOf(usage);
+  return { kind: "sent", tokens, model: model ?? reading.model, ...(cacheWriteByTtl === undefined ? {} : { cacheWriteByTtl }) };
 }
 
 /** A root `compact_boundary`: what the context holds is unknown until claude's next call. */
@@ -55,14 +70,22 @@ function windowOf(result: JsonRecord, model: string | null): number | null {
   return entry === null ? null : asNumber(entry.contextWindow);
 }
 
-/** A root `result`: the turn's context reading, null when nothing changed it; the reading starts over for the next turn. */
-export function claudeContextUsage(reading: ClaudeContextReading, result: JsonRecord): { readonly context: ContextUsage | null; readonly reading: ClaudeContextReading } {
+/** A root `result`: the turn's context reading and last-call cache-write TTL split; the reading starts over for the next turn. */
+export function claudeContextUsage(reading: ClaudeContextReading, result: JsonRecord): {
+  readonly context: ContextUsage | null;
+  readonly cacheWriteByTtl: CacheWriteByTtl | undefined;
+  readonly reading: ClaudeContextReading;
+} {
   const next: ClaudeContextReading = { kind: "unchanged", model: reading.model };
   if (reading.kind === "unchanged") {
-    return { context: null, reading: next };
+    return { context: null, cacheWriteByTtl: undefined, reading: next };
   }
   const contextWindow = windowOf(result, reading.model);
   const tokens = reading.kind === "sent" ? reading.tokens : null;
   const percent = tokens === null || contextWindow === null || contextWindow === 0 ? null : Math.round((tokens / contextWindow) * 100);
-  return { context: { tokens, contextWindow, percent }, reading: next };
+  return {
+    context: { tokens, contextWindow, percent },
+    cacheWriteByTtl: reading.kind === "sent" ? reading.cacheWriteByTtl : undefined,
+    reading: next,
+  };
 }

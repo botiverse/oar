@@ -140,13 +140,14 @@ export const claudeProjectionProfile: StreamJsonProjectionProfile<ClaudeProjecti
   result: (state, message, agentPath) => {
     const accumulated = accumulate(state, agentPath, message);
     const running = foldModelUsage(state.modelUsage, message);
-    const { context, reading } = claudeContextUsage(state.context, message);
+    const { context, cacheWriteByTtl, reading } = claudeContextUsage(state.context, message);
     const after: RuntimeEventBody[] = [];
-    if (accumulated !== null || context !== null || running.total !== null) {
+    if (accumulated !== null || context !== null || running.total !== null || cacheWriteByTtl !== undefined) {
       after.push({ kind: "usage", usage: {
         ...(context === null ? {} : { context }),
         ...(accumulated === null ? {} : { tokens: accumulated.tokens }),
         ...(running.total === null ? {} : { total: running.total }),
+        ...(cacheWriteByTtl === undefined ? {} : { cacheWriteByTtl }),
       } });
     }
     const root = agentPath.length === 0;
