@@ -1193,7 +1193,7 @@
         "failedSteps": [
           "Native isolated OpenCode tool cleanup"
         ],
-        "observation": "The OpenCode skills timeout fixture still connected to the loopback port after its sampled PID had exited. PR 1025 changed the fixture to check the actual listener owner.",
+        "observation": "The OpenCode skills timeout fixture still connected to the loopback port after its sampled PID had exited. PR 1025 changed the fixture to check that the port refuses connections once owned cleanup finishes.",
         "log": {
           "bytes": 358993,
           "sha256": "1b0ae176cc2efa9a7515b4bd2c49a1ee1e1088f8503a49cf8a41b03b6ae5431a"
