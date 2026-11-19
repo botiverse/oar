@@ -104,7 +104,14 @@ describe.skipIf(!enabled)("OpenCode native skill discovery", () => {
       const legacyChildren = vi.mocked(nativeProcess.spawn).mock.results.slice(nativeStarts).flatMap(call => call.type === "return" ? [call.value] : []);
       const observed = major === 1 ? legacyChildren : children;
       expect(observed).toHaveLength(1);
-      for (const child of observed) { assert.ok(child.pid !== undefined); expect(() => process.kill(child.pid ?? 0, 0)).toThrow(); }
+      const assertExited = (): void => {
+        for (const { pid } of observed) {
+          assert.ok(pid !== undefined);
+          expect(() => process.kill(pid, 0)).toThrow(expect.objectContaining({ code: "ESRCH" }));
+        }
+      };
+      if (mode === "timeout") { await vi.waitFor(assertExited, { timeout: 15_000 }); }
+      else { assertExited(); }
       if (major === 2) { expect(ports).toHaveLength(1); for (const port of ports) { expect(await portOpen(port)).toBe(false); } }
       const dir = resolvePath(process.env.OAR_TRIAL_RUN_DIR ?? "oar-trial-run", "opencode-skills");
       await mkdir(dir, { recursive: true });

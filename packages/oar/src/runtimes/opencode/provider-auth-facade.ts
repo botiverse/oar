@@ -104,7 +104,7 @@ export class OpencodeProviderAuthFacade implements OpencodeProviderAuth {
       const registry = await server.run(listIntegrations);
       return new OpencodeProviderAuthFacade(server, registry, options);
     } catch (error) {
-      await server.close();
+      await server.closeAfterError(error);
       throw error;
     }
   }

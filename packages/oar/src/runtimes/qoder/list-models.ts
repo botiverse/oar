@@ -1,12 +1,14 @@
+/* oxlint-disable import/max-dependencies -- Model discovery combines native controls, projections and the shared query deadline. */
+import { withQueryDeadline, type OwnQueryProcess } from "../../shared/executable/query.js";
 import { randomUUID } from "node:crypto";
-import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
+import type { ListModelsResult, ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import type { SessionOptions } from "../../contracts/session.js";
 import { effortLevelsOf } from "../../shared/effort-levels.js";
 import { asRecord, asRecordList, parseJson, type JsonRecord } from "../../shared/json.js";
 import { listingCwd } from "../../shared/listing-cwd.js";
 import { launchQoder, closeQoder } from "./launch.js";
 import { qoderControl } from "./control.js";
-import { qoderAuthStatus } from "./auth-status.js";
+import { readQoderAuthStatus } from "./auth-status.js";
 import { qoderVersionInfo } from "./protocol.js";
 
 /** New ModelProvider names identify a selector only when the complete catalog is unambiguous. */
@@ -41,7 +43,15 @@ export function projectQoderModels(payload: unknown, version?: string): ModelEnt
 }
 
 export async function readQoderModels(command: string, options: SessionOptions, timeoutMs = 30_000, version?: string): Promise<ModelEntry[]> {
-  const child = await launchQoder(command, randomUUID(), options, version);
+  const result = await withQueryDeadline("Qoder model listing", timeoutMs, async (signal, own) => {
+    const models = await readModels(command, options, timeoutMs, version, signal, own);
+    return models;
+  });
+  return result;
+}
+
+async function readModels(command: string, options: SessionOptions, timeoutMs: number, version: string | undefined, signal: AbortSignal, own: OwnQueryProcess): Promise<ModelEntry[]> {
+  const child = await launchQoder(command, randomUUID(), options, version, { signal, own });
   const control = qoderControl(child, () => {}, timeoutMs);
   child.onLine((line) => { const message = asRecord(parseJson(line)); if (message !== null) { control.consume(message); } });
   child.onExit(control.end);
@@ -54,7 +64,12 @@ export async function readQoderModels(command: string, options: SessionOptions, 
 
 export const qoderListModels: ModelLister = async (installation, options = {}) => {
   if (installation.via !== "executable") { return { kind: "unsupported", reason: "Qoder model listing requires its executable" }; }
-  const status = await qoderAuthStatus(installation, options);
-  if (status.kind === "logged_out") { return { kind: "unauthenticated" }; }
-  return { kind: "ok", models: await readQoderModels(installation.command, { cwd: listingCwd(options), ...(options.env === undefined ? {} : { env: options.env }) }, options.timeoutMs, installation.version) };
+  const timeoutMs = options.timeoutMs ?? 30_000;
+  const result = await withQueryDeadline<ListModelsResult>("Qoder model listing", timeoutMs, async (signal, own) => {
+    const status = await readQoderAuthStatus(installation, { ...options, signal });
+    signal.throwIfAborted();
+    if (status.kind === "logged_out") { return { kind: "unauthenticated" }; }
+    return { kind: "ok", models: await readModels(installation.command, { cwd: listingCwd(options), ...(options.env === undefined ? {} : { env: options.env }) }, timeoutMs, installation.version, signal, own) };
+  });
+  return result;
 };

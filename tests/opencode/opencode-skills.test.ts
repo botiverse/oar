@@ -94,7 +94,7 @@ test("failed native activation never reads an empty skill catalog", async () => 
 });
 
 // oxlint-disable-next-line max-statements -- Keep deadline, cancellation and exit observations in one timeline.
-test("timeout aborts native requests and waits for process exit", async () => {
+test("timeout aborts native requests and starts process cleanup", async () => {
   vi.useFakeTimers(); serve();
   const observation: { signal?: AbortSignal | null } = {};
   vi.stubGlobal("fetch", vi.fn(async (_url: string, init?: RequestInit) => { observation.signal = init?.signal ?? null; return Promise.withResolvers<Response>().promise; }));
@@ -139,7 +139,7 @@ test.each([{ payload: "not json", code: 0, reason: "OpenCode skill discovery fai
 });
 
 // oxlint-disable-next-line max-statements -- Observe deadline, abort and delayed process disposal together.
-test("v1 startup timeout cancels and waits for its process", async () => {
+test("v1 startup timeout cancels the process and lets cleanup continue", async () => {
   vi.useFakeTimers();
   const pending = Promise.withResolvers<Awaited<ReturnType<ExecutableRunner>>>();
   const state = { aborted: false, returned: false };
@@ -154,7 +154,7 @@ test("v1 startup timeout cancels and waits for its process", async () => {
   const observed = (async () => { await reading; state.returned = true; })();
   await entered.promise;
   await vi.advanceTimersByTimeAsync(25);
-  expect(state).toEqual({ aborted: true, returned: false });
+  expect(state).toEqual({ aborted: true, returned: true });
   pending.resolve({ ok: false, exitCode: null, stderr: "", stdout: "" });
   await expect(reading).resolves.toMatchObject({ kind: "unavailable", code: "timeout" });
   await observed;

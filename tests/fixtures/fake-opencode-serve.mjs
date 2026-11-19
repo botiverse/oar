@@ -14,12 +14,21 @@ state.argv = args;
 state.cwd = process.cwd();
 state.calls = [];
 state.cancelled = [];
+let { hangPlugin } = state;
+if (state.hangSecondStart) {
+  state.starts = (state.starts ?? 0) + 1;
+  hangPlugin = state.starts === 2;
+  if (state.serverPid !== undefined) {
+    try { process.kill(state.serverPid, 0); state.overlapped = true; } catch { state.overlapped = false; }
+  }
+}
 state.serverPid = process.pid;
 const env = (name) => process.env[name] ?? null;
 state.env = { username: env("OPENCODE_SERVER_USERNAME"), browser: env("BROWSER"), autoupdate: env("OPENCODE_DISABLE_AUTOUPDATE"), modelsFetch: env("OPENCODE_DISABLE_MODELS_FETCH") };
 save();
 if (args[0] === "--version") { console.log("opencode v2.2.7"); process.exit(0); }
 if (args[0] !== "serve") { process.exit(2); }
+if (hangPlugin) { process.on("SIGTERM", () => {}); }
 if (state.startup === "crash") { console.error("Error: database is locked"); process.exit(1); }
 
 // `ignorePassword`: a server that does not take OAR's password answers every request 401.
@@ -68,7 +77,7 @@ async function handle(req, res) {
   }
   const parts = url.pathname.split("/").filter((part) => part !== "").map((part) => decodeURIComponent(part));
   if (url.pathname === "/api/plugin") {
-    if (state.hangPlugin) { return; }
+    if (hangPlugin) { return; }
     unready -= 1;
     send(res, 200, { location: {}, data: unready >= 0 ? [] : [{ id: "opencode.provider.xai", state: { status: "active" } }] });
     return;

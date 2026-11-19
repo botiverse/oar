@@ -62,8 +62,8 @@ test("Devin native failure does not expose output", async () => {
   await expect(devinRuntime.skills(installation)).resolves.toEqual({ kind: "unavailable", code: "query_failed", reason: "Native inventory query failed" });
 });
 
-// oxlint-disable-next-line max-statements -- Verify deadline settlement waits for the owned process to exit.
-test("Devin timeout kills and awaits its process", async () => {
+// oxlint-disable-next-line max-statements -- Verify the deadline settles while owned cleanup continues.
+test("Devin timeout starts cleanup of its process", async () => {
   vi.useFakeTimers();
   child = fakeLineProcess();
   const kill = vi.spyOn(child, "kill").mockImplementation(() => {});
@@ -75,7 +75,7 @@ test("Devin timeout kills and awaits its process", async () => {
   })();
   await vi.advanceTimersByTimeAsync(25);
   expect(kill).toHaveBeenCalledOnce();
-  expect(settled).toBe(false);
+  expect(settled).toBe(true);
   child.end(null);
   await expect(reading).resolves.toMatchObject({ kind: "unavailable", code: "timeout" });
 });

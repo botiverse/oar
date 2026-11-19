@@ -1,3 +1,4 @@
+import type { OwnQueryProcess } from "../../../shared/executable/query.js";
 import { spawnNodeScript, type NodeScriptExit } from "../../../shared/executable/node-script.js";
 import { asRecord } from "../../../shared/json.js";
 import { redactTokenShapes } from "../../../shared/token-redaction.js";
@@ -68,10 +69,11 @@ function features(value: unknown): CursorChildFeatures {
  * environment) and wait until it loaded the SDK from `sdkModule`. A child
  * that cannot load it, or exits first, is stopped and the open rejects.
  */
-export async function openCursorChannel(sdkModule: string, env: Readonly<NodeJS.ProcessEnv>, session = false): Promise<CursorChannel> {
+export async function openCursorChannel(sdkModule: string, env: Readonly<NodeJS.ProcessEnv>, session = false, own?: OwnQueryProcess): Promise<CursorChannel> {
   const launch = cursorChildLaunch(sdkModule, env);
   // The host scans for what a session's child left behind; a one-shot call's child runs no tools, and scans for itself as it exits.
   const child = spawnNodeScript(launch.script, launch.argument, launch.env, session ? launch.marker : undefined);
+  own?.({ kill: () => { void child.stop(); }, exited: child.exited });
   const replies = new Map<number, { resolve(value: unknown): void; reject(error: Error): void }>();
   const events = new Map<number, (value: unknown) => void>();
   const exitListeners: ((exit: CursorChildExit) => void)[] = [];
@@ -114,7 +116,7 @@ export async function openCursorChannel(sdkModule: string, env: Readonly<NodeJS.
     // From here on an exit is the one asked for; one before is a crash, with its reason.
     stopping = exit === null;
     // The child closes what is still open and exits on its own; the tree kill is the backstop.
-    const ended = await child.stop(() => { child.send({ id: 0, m: "shutdown", a: [] }); }, session);
+    const ended = await child.stop(() => { child.send({ id: 0, m: "shutdown", a: [] }); }, session || own !== undefined);
     return exit ?? { code: ended.code, reason: exitReason(ended) };
   };
   const timer = setTimeout(() => { ready.reject(new Error(`cursor's SDK child process did not load ${sdkModule} within ${String(READY_TIMEOUT_MS / 1000)} s`)); }, READY_TIMEOUT_MS);

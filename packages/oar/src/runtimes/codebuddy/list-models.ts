@@ -1,3 +1,4 @@
+import { withQueryDeadline, type OwnQueryProcess } from "../../shared/executable/query.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 /* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
 import {
@@ -54,54 +55,52 @@ export function projectCodebuddyModels(response: unknown): ModelEntry[] | undefi
   return entries;
 }
 
-async function readNewSession(command: string, cwd: string, timeoutMs: number, env: NodeJS.ProcessEnv): Promise<JsonRecord> {
-  const runtime = startAcpProcess(command, ["--acp", "--permission-mode", "bypassPermissions"], createClient({ name: "oar" }), { cwd, env });
-  try {
-    const initialize = methods.agent.initialize;
-    await withAcpDeadline(
-      runtime,
-      initialize,
-      timeoutMs,
-      (requestOptions) => runtime.connection.agent.request(initialize, {
-        protocolVersion: PROTOCOL_VERSION,
-        clientCapabilities: {
-          fs: { readTextFile: false, writeTextFile: false },
-          terminal: false,
-        },
-        clientInfo: { name: "oar", version: "0.0.0" },
-      }, requestOptions),
-    );
-    // No `authenticate` or `session/close`: the server reads its
-    // own persisted login, and the process is killed once the list is read.
-    const newSession = methods.agent.session.new;
-    const response = await withAcpDeadline(
-      runtime,
+async function readNewSession(command: string, cwd: string, timeoutMs: number, env: NodeJS.ProcessEnv, own: OwnQueryProcess): Promise<JsonRecord> {
+  const runtime = own(startAcpProcess(command, ["--acp", "--permission-mode", "bypassPermissions"], createClient({ name: "oar" }), { cwd, env }));
+  const initialize = methods.agent.initialize;
+  await withAcpDeadline(
+    runtime,
+    initialize,
+    timeoutMs,
+    (requestOptions) => runtime.connection.agent.request(initialize, {
+      protocolVersion: PROTOCOL_VERSION,
+      clientCapabilities: {
+        fs: { readTextFile: false, writeTextFile: false },
+        terminal: false,
+      },
+      clientInfo: { name: "oar", version: "0.0.0" },
+    }, requestOptions),
+  );
+  // No `authenticate` or `session/close`: the server reads its
+  // own persisted login, and the process is killed once the list is read.
+  const newSession = methods.agent.session.new;
+  const response = await withAcpDeadline(
+    runtime,
+    newSession,
+    timeoutMs,
+    (requestOptions) => runtime.connection.agent.request<JsonRecord>(
       newSession,
-      timeoutMs,
-      (requestOptions) => runtime.connection.agent.request<JsonRecord>(
-        newSession,
-        { cwd, mcpServers: [] },
-        requestOptions,
-      ),
-    );
-    return asRecord(response) ?? {};
-  } finally {
-    runtime.kill();
-    await runtime.exited;
-  }
+      { cwd, mcpServers: [] },
+      requestOptions,
+    ),
+  );
+  return asRecord(response) ?? {};
 }
 
 export const codebuddyListModels: ModelLister = async (installation, options = {}) => {
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "codebuddy model listing requires the CodeBuddy executable" };
   }
+  const timeoutMs = options.timeoutMs ?? 30_000;
   try {
-    const response = await readNewSession(installation.command, listingCwd(options), options.timeoutMs ?? 30_000, sessionEnvironment(options.env));
-    const models = projectCodebuddyModels(response);
-    if (models === undefined) {
-      return { kind: "unsupported", reason: "this CodeBuddy build returns no model config option on session/new" };
-    }
-    return { kind: "ok", models };
+    return await withQueryDeadline("CodeBuddy model listing", timeoutMs, async (_signal, own) => {
+      const response = await readNewSession(installation.command, listingCwd(options), timeoutMs, sessionEnvironment(options.env), own);
+      const models = projectCodebuddyModels(response);
+      if (models === undefined) {
+        return { kind: "unsupported", reason: "this CodeBuddy build returns no model config option on session/new" };
+      }
+      return { kind: "ok", models };
+    });
   } catch (error) {
     if (error instanceof RequestError && (error.code === -32_000 || /auth(?:entication)?|log(?:ged)? ?in/iu.test(error.message))) {
       return { kind: "unauthenticated", detail: "CodeBuddy requires authentication" };

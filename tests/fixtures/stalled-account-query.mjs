@@ -25,7 +25,7 @@ createInterface({ input: process.stdin }).on("line", (line) => {
     return;
   }
   let result = {};
-  if (method === "initialize") { result = { protocolVersion: 1, agentCapabilities: {}, authMethods: [{ id: "login", name: "Login" }] }; }
+  if (method === "initialize") { result = { protocolVersion: 1, agentCapabilities: { auth: { status: {}, logout: {} } }, authMethods: [{ id: "login", name: "Login" }] }; }
   if (method === "_x.ai/billing") { result = { config: { creditUsagePercent: 25 } }; }
   process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", id: message.id, result })}\n`);
 });

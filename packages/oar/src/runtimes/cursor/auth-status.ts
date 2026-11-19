@@ -74,7 +74,7 @@ export function cursorAuthStatusWith(source: CursorSdkSource): AuthStatusReader 
     if (environmentValue(access.environment(options.env), "CURSOR_API_KEY") !== undefined) {
       return { kind: "unknown", configured: ["environment: CURSOR_API_KEY"], detail: "Sessions use CURSOR_API_KEY from the environment; Cursor.auth.status neither reads nor validates that key.", source: STATUS_SOURCE };
     }
-    const result = await withQueryDeadline<AuthStatus>("Cursor auth status", options.timeoutMs ?? STATUS_TIMEOUT_MS, async (signal) => {
+    const result = await withQueryDeadline<AuthStatus>("Cursor auth status", options.timeoutMs ?? STATUS_TIMEOUT_MS, async (signal, own) => {
       const status = await withLease(access, options.env, async (sdk): Promise<AuthStatus> => {
         signal.throwIfAborted();
         const { auth } = sdk.Cursor;
@@ -83,7 +83,7 @@ export function cursorAuthStatusWith(source: CursorSdkSource): AuthStatusReader 
         }
         const read = await readCursorAuthStatus(auth, options.timeoutMs);
         return read;
-      });
+      }, own);
       return "failed" in status ? { kind: "unknown", detail: new LoginSecrets().line(status.failed) } : status;
     }, { kind: "unknown", source: STATUS_SOURCE, detail: `Cursor.auth.status did not answer within ${String(options.timeoutMs ?? STATUS_TIMEOUT_MS)} ms` });
     // Details can carry the SDK's or the child's words: redacted with the call's credentials too.

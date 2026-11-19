@@ -29,24 +29,19 @@ export const devinSkills: InventoryReader<SkillEntry> = async (installation, opt
     return unsupportedInventory("installation_unsupported", "Devin skill discovery requires an executable");
   }
   const timeoutMs = options.timeoutMs ?? 15_000;
-  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) { throw new RangeError("timeoutMs must be positive and finite"); }
   const scope = workspaceScope(options);
-  const child = spawnLineProcess(installation.command, ["skills", "list", "--json"], {
-    cwd: scope.cwd, env: sessionEnvironment(options.env), killTree: true, inheritStderr: false,
-  });
-  let stdout = "";
-  child.stdout.on("data", (chunk: Buffer | string) => { stdout += chunk.toString(); });
-  try {
-    return await inventoryRead(async () => {
-      await child.spawned;
-      const code = await child.exited;
-      if (code !== 0) { throw new Error("Devin skill query failed"); }
-      const rows = nativeRows(parseJson(stdout));
-      const items = rows.map(row => project(row));
-      return inventoryOk(scope, "discovered", items, rows.some(row => (strings(row.errors)?.length ?? 0) > 0));
-    }, timeoutMs);
-  } finally {
-    child.kill();
-    await child.exited;
-  }
+  const result = await inventoryRead(async (_signal, own) => {
+    const child = own(spawnLineProcess(installation.command, ["skills", "list", "--json"], {
+      cwd: scope.cwd, env: sessionEnvironment(options.env), killTree: true, inheritStderr: false,
+    }));
+    let stdout = "";
+    child.stdout.on("data", (chunk: Buffer | string) => { stdout += chunk.toString(); });
+    await child.spawned;
+    const code = await child.exited;
+    if (code !== 0) { throw new Error("Devin skill query failed"); }
+    const rows = nativeRows(parseJson(stdout));
+    const items = rows.map(row => project(row));
+    return inventoryOk(scope, "discovered", items, rows.some(row => (strings(row.errors)?.length ?? 0) > 0));
+  }, timeoutMs);
+  return result;
 };

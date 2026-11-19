@@ -1,3 +1,4 @@
+import type { OwnQueryProcess } from "../../shared/executable/query.js";
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type { SessionOptions } from "../../contracts/session.js";
 import { sessionCredentialRedactor } from "../../shared/credential-redactor.js";
@@ -38,7 +39,7 @@ export interface CursorSdkAccess {
    * cannot be loaded. `session`: the lease is a session's, whose tools the
    * host ends after the child (one-shot calls run no tools).
    */
-  lease(env: SessionOptions["env"], use?: "session" | "call"): Promise<CursorSdkLease>;
+  lease(env: SessionOptions["env"], use?: "session" | "call", own?: OwnQueryProcess): Promise<CursorSdkLease>;
 }
 
 /** Why the in-process mode refuses a nonempty `env` for login, logout and the status. */
@@ -80,11 +81,11 @@ export function subprocessAccess(sdkModule: string, envBase: "inherit" | "clean"
     execution: "subprocess",
     refusedSessionOptions: cursorSubprocessRefusedSessionOptions,
     environment,
-    async lease(overlay, use = "call") {
+    async lease(overlay, use, own) {
       const env = environment(overlay);
       const apiKey = environmentValue(env, "CURSOR_API_KEY");
       const childEnv = apiKey === undefined ? env : sessionEnvironment({ CURSOR_API_KEY: null }, env);
-      const channel = await openCursorChannel(sdkModule, childEnv, use === "session");
+      const channel = await openCursorChannel(sdkModule, childEnv, use === "session", own);
       return { sdk: proxySdk(channel, apiKey), env, child: channel, release: async () => { const exit = await channel.stop(); return exit; } };
     },
   };
@@ -104,10 +105,10 @@ export function callRedaction(env: SessionOptions["env"]): <T>(value: T) => T {
 }
 
 /** Use a lease and release it; a lease that cannot be had is `{ failed }` with its reason. */
-export async function withLease<T>(access: CursorSdkAccess, env: SessionOptions["env"], use: (sdk: CursorSdk, lease: CursorSdkLease) => Promise<T>): Promise<T | { readonly failed: string }> {
+export async function withLease<T>(access: CursorSdkAccess, env: SessionOptions["env"], use: (sdk: CursorSdk, lease: CursorSdkLease) => Promise<T>, own?: OwnQueryProcess): Promise<T | { readonly failed: string }> {
   let lease: CursorSdkLease | null = null;
   try {
-    lease = await access.lease(env);
+    lease = await access.lease(env, "call", own);
   } catch (error) {
     return { failed: error instanceof Error ? error.message : String(error) };
   }

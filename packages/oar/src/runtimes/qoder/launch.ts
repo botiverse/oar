@@ -1,3 +1,4 @@
+import type { OwnQueryProcess } from "../../shared/executable/query.js";
 /* oxlint-disable import/max-dependencies -- Versioned native transport, private launch files and shared option validation. */
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -13,14 +14,14 @@ import { qoderVersionInfo, qoderStartupError } from "./protocol.js";
 import { checkQoderLaunchArgs, qoderRefusedSessionOptions } from "./options.js";
 
 /** Process-scoped files keep MCP credentials and system prompts out of argv. */
-export async function launchQoder(command: string, sessionId: string, options: SessionOptions, version?: string): Promise<LineProcess & { readonly qoderVersion: string }> {
+export async function launchQoder(command: string, sessionId: string, options: SessionOptions, version?: string, query?: { readonly signal: AbortSignal; readonly own: OwnQueryProcess }): Promise<LineProcess & { readonly qoderVersion: string }> {
   refuseSessionOptions(qoderRefusedSessionOptions, options);
   checkQoderLaunchArgs(options.launchArgs);
   const env = { ...sessionEnvironment(options.env), QODER_EXPOSE_TOKEN_USAGE: "1" };
   const servers = options.mcpServers ?? [];
   checkMcpServerNames(servers);
   const directories = resolvedAdditionalDirectories(options);
-  const compatibility = qoderVersionInfo(version ?? await readExecutableVersion(command, 15_000, undefined, env));
+  const compatibility = qoderVersionInfo(version ?? await readExecutableVersion(command, 15_000, undefined, env, query?.signal));
   const { protocol } = compatibility;
   const needsFiles = servers.length > 0 || options.systemPrompt !== undefined || options.appendSystemPrompt !== undefined;
   const temporary = needsFiles ? await privateTempDir("oar-qoder-mcp-") : null;
@@ -58,8 +59,10 @@ export async function launchQoder(command: string, sessionId: string, options: S
       ...(directories.length === 0 ? [] : ["--add-dir", ...directories]),
       ...((options.disallowedTools?.length ?? 0) === 0 ? [] : ["--disallowed-tools", options.disallowedTools?.join(",") ?? ""]),
     ];
+    query?.signal.throwIfAborted();
     child = spawnLineProcess(command, protocol === "daemon" ? ["--sdk"] : args, { cwd: options.cwd,
       env: protocol === "daemon" ? { ...env, QODER_AGENT_SDK_DAEMON: "1" } : env, killTree: true });
+    query?.own(child);
     child.onExit(() => { temporary?.remove(); });
     await child.spawned;
     const transport = protocol === "daemon" ? await qoderDaemonSession(child, sessionId, args, path.resolve(options.cwd), env) : child;

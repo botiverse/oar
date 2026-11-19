@@ -18,11 +18,12 @@ export async function readExecutableVersion(
   timeoutMs?: number,
   read: VersionReader = firstLine,
   env: Readonly<NodeJS.ProcessEnv> = process.env,
+  signal?: AbortSignal,
 ): Promise<string | undefined> {
   const result = await runExecutable(
     executable,
     ["--version"],
-    { env, ...(timeoutMs === undefined ? {} : { timeoutMs }) },
+    { env, ...(signal === undefined ? {} : { signal }), ...(timeoutMs === undefined ? {} : { timeoutMs }) },
   );
   assertRan(result, `Failed to run ${executable} --version`);
   if (!result.ok) {

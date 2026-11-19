@@ -9,6 +9,11 @@ if (process.argv.includes("--version") || process.argv.includes("--help")) {
   console.log(state.version ?? "2.178.1");
   process.exit(0);
 }
+// Keep the successful login process alive through graceful stop while the fresh reader confirms it.
+if (state.mode === "silent-confirmation" && !state.loggedIn) {
+  process.on("SIGTERM", () => {});
+  setInterval(() => {}, 60_000);
+}
 const secret = "synthetic-private-codebuddy-access-token";
 const account = { token: secret, email: "private@example.invalid", uid: "private-uid", userId: "private-user-id", nickname: "private-nickname", enterpriseName: "private-enterprise", enterpriseId: "private-enterprise-id" };
 const save = () => { saveLoginState(file, state); };

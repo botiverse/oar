@@ -1,4 +1,6 @@
 import { randomBytes } from "node:crypto";
+import { setTimeout as delay } from "node:timers/promises";
+import { withQueryDeadline } from "../../shared/executable/query.js";
 import { asRecord, parseJson } from "../../shared/json.js";
 import { LoginSecrets, spawnLoginProcess, type LoginProcess } from "../../shared/login.js";
 import { OpencodeProviderAuthError } from "./provider-auth-error.js";
@@ -35,7 +37,6 @@ export interface OpencodeServerOptions {
 }
 
 interface Running {
-  readonly process: LoginProcess;
   readonly url: string;
   readonly authorization: string;
   exited: boolean;
@@ -86,7 +87,9 @@ export class OpencodeServer {
   #running: Promise<Running> | undefined;
   #users = 0;
   #idle: NodeJS.Timeout | undefined;
-  readonly #stopping = new Set<Promise<void>>();
+  #generation = 0;
+  #child: LoginProcess | undefined;
+  #stopped: Promise<unknown> = Promise.resolve();
 
   constructor(options: OpencodeServerOptions) {
     this.#options = options;
@@ -97,7 +100,8 @@ export class OpencodeServer {
     clearTimeout(this.#idle);
     this.#users += 1;
     try {
-      const running = await this.#ensure();
+      this.#running ??= this.#open(this.#generation);
+      const running = await this.#running;
       return await work(async (method, path, body) => {
         const response = await this.#request(running, method, path, body);
         return response;
@@ -115,51 +119,51 @@ export class OpencodeServer {
   /** Stop the server and everything it started; the next operation starts a new one. */
   async close(): Promise<void> {
     clearTimeout(this.#idle);
-    const running = this.#running;
+    this.#generation += 1;
     this.#running = undefined;
-    if (running !== undefined) {
-      const stopping = OpencodeServer.#stop(running);
-      this.#stopping.add(stopping);
-      void (async (): Promise<void> => { await stopping; this.#stopping.delete(stopping); })();
+    const child = this.#child;
+    if (child !== undefined) {
+      this.#child = undefined;
+      child.stop();
+      this.#stopped = child.exited;
     }
-    // Also a stop already under way (the idle period's): close() settles once no server it started runs.
-    await Promise.all(this.#stopping);
+    await this.#stopped;
   }
 
-  static async #stop(running: Promise<Running>): Promise<void> {
+  /** A timeout answers immediately; explicit close still joins the same teardown. */
+  async closeAfterError(error: unknown): Promise<void> {
+    const stopped = this.close();
+    if (!(error instanceof OpencodeProviderAuthError && error.kind === "timed_out")) {
+      await stopped;
+    }
+  }
+
+  async #open(generation: number): Promise<Running> {
+    const { timeoutMs } = this.#options;
     try {
-      const settled = await running;
-      settled.process.stop();
-      await settled.process.exited;
-    } catch {
-      // A failed start already stopped its process.
-    }
-  }
-
-  async #ensure(): Promise<Running> {
-    // Another caller may replace an exited server while this one waits.
-    for (let current = this.#running; current !== undefined; current = this.#running) {
-      const running = await current;
-      if (!running.exited) {
+      return await withQueryDeadline("OpenCode server startup", timeoutMs, async signal => {
+        // Waiting for an earlier server to exit consumes the same startup budget.
+        await this.#stopped;
+        signal.throwIfAborted();
+        if (generation !== this.#generation) {
+          throw new OpencodeProviderAuthError("startup_failed", "OpenCode's server was closed before startup");
+        }
+        const running = await this.#start(signal);
+        if (generation !== this.#generation) {
+          throw new OpencodeProviderAuthError("startup_failed", "OpenCode's server closed during startup");
+        }
         return running;
-      }
-      if (this.#running === current) {
-        this.#running = undefined;
-      }
-    }
-    const started = this.#start();
-    this.#running = started;
-    try {
-      return await started;
+      });
     } catch (error) {
-      // A failed start leaves nothing to reuse.
-      if (this.#running === started) { this.#running = undefined; }
-      throw error;
+      const failure = error instanceof DOMException && error.name === "TimeoutError"
+        ? new OpencodeProviderAuthError("timed_out", `OpenCode's server was not ready within ${String(timeoutMs)} ms`) : error;
+      if (generation === this.#generation) { await this.closeAfterError(failure); }
+      throw failure;
     }
   }
 
-  async #start(): Promise<Running> {
-    const { command, env, cwd, timeoutMs, pollMs } = this.#options;
+  async #start(signal: AbortSignal): Promise<Running> {
+    const { command, env, cwd } = this.#options;
     const password = randomBytes(24).toString("base64url");
     const secrets = new LoginSecrets();
     secrets.add(password);
@@ -176,66 +180,40 @@ export class OpencodeServer {
         }
       },
     }, { cwd, stopWithHost: true });
-    const deadline = Date.now() + timeoutMs;
-    const timer = setTimeout(() => { listening.reject(new OpencodeProviderAuthError("timed_out", `opencode serve did not start within ${String(timeoutMs)} ms`)); }, timeoutMs);
+    this.#child = child;
     void (async (): Promise<void> => {
       const exit = await child.exited;
+      if (this.#child === child) {
+        this.#generation += 1;
+        this.#child = undefined;
+        this.#running = undefined;
+      }
       const words = said.first === "" ? "" : `: ${secrets.line(said.first)}`;
       listening.reject(new OpencodeProviderAuthError("startup_failed", `opencode serve exited (${exit.error ?? `code ${String(exit.exitCode)}`})${words}`));
     })();
-    try {
-      const url = await listening.promise;
-      const running: Running = { process: child, url, authorization: `Basic ${Buffer.from(`opencode:${password}`).toString("base64")}`, exited: false };
-      void (async (): Promise<void> => {
-        await child.exited;
-        running.exited = true;
-      })();
-      await this.#ready(running, deadline, timeoutMs, pollMs);
-      return running;
-    } catch (error) {
-      // Gone before the caller hears of the failure: Windows cannot remove a directory a live process runs in.
-      child.stop();
+    const url = await listening.promise;
+    const running: Running = { url, authorization: `Basic ${Buffer.from(`opencode:${password}`).toString("base64")}`, exited: false };
+    void (async (): Promise<void> => {
       await child.exited;
-      throw error;
-    } finally {
-      clearTimeout(timer);
-    }
+      running.exited = true;
+    })();
+    await this.#ready(running, signal);
+    return running;
   }
 
-  /**
-   * The registry fills in stages after listening; 2.2.7 lists its plugins
-   * only once it is complete. Startup and readiness share one budget: each
-   * read gets only what is left of it.
-   */
-  async #ready(running: Running, deadline: number, timeoutMs: number, pollMs: number): Promise<void> {
-    const late = (): OpencodeProviderAuthError => new OpencodeProviderAuthError("timed_out", `opencode serve did not load its integrations within ${String(timeoutMs)} ms`);
-    const read = async (path: string): Promise<ApiResponse> => {
-      const left = deadline - Date.now();
-      if (left <= 0) { throw late(); }
-      try {
-        return await this.#request(running, "GET", path, undefined, left);
-      } catch (error) {
-        throw error instanceof OpencodeProviderAuthError && error.kind === "timed_out" ? late() : error;
-      }
-    };
+  /** The registry fills in stages after listening. OpenCode 2.2.7 lists its plugins once it is complete. */
+  async #ready(running: Running, signal: AbortSignal): Promise<void> {
     for (;;) {
-      const plugins = await read("/api/plugin");
-      const integrations = await read("/api/integration");
-      if (listed(plugins) && listed(integrations)) {
-        return;
-      }
-      if (running.exited) {
-        throw new OpencodeProviderAuthError("startup_failed", "opencode serve exited before its integrations loaded");
-      }
-      if (Date.now() + pollMs > deadline) {
-        throw late();
-      }
-      await new Promise((resolve) => { setTimeout(resolve, pollMs); });
+      const plugins = await this.#request(running, "GET", "/api/plugin", undefined, signal);
+      const integrations = await this.#request(running, "GET", "/api/integration", undefined, signal);
+      if (listed(plugins) && listed(integrations)) { return; }
+      if (running.exited) { throw new OpencodeProviderAuthError("startup_failed", "opencode serve exited before its integrations loaded"); }
+      await delay(this.#options.pollMs, undefined, { signal });
     }
   }
 
-  async #request(running: Running, method: HttpMethod, path: string, body?: unknown, timeoutMs = this.#options.timeoutMs): Promise<ApiResponse> {
-    const parsed = await this.#fetch(running, method, path, body, timeoutMs);
+  async #request(running: Running, method: HttpMethod, path: string, body?: unknown, signal = AbortSignal.timeout(this.#options.timeoutMs)): Promise<ApiResponse> {
+    const parsed = await this.#fetch(running, method, path, body, signal);
     if (parsed.status === 401) {
       // 2.2.7: `{"_tag":"UnauthorizedError","message":"Authentication required"}` for a wrong or missing password.
       throw new OpencodeProviderAuthError("authentication_failed", `OpenCode's server refused OAR's password (${nativeDetail(parsed, new LoginSecrets())})`, 401);
@@ -243,20 +221,20 @@ export class OpencodeServer {
     return parsed;
   }
 
-  async #fetch(running: Running, method: HttpMethod, path: string, body: unknown, timeoutMs: number): Promise<ApiResponse> {
+  async #fetch(running: Running, method: HttpMethod, path: string, body: unknown, signal: AbortSignal): Promise<ApiResponse> {
     try {
       const response = await fetch(`${running.url}${path}`, {
         method,
         headers: { authorization: running.authorization, ...(body === undefined ? {} : { "content-type": "application/json" }) },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-        signal: AbortSignal.timeout(timeoutMs),
+        signal,
       });
       const textBody = await response.text();
       return { status: response.status, body: textBody === "" ? undefined : parseJson(textBody) };
     } catch (error) {
       const timedOut = error instanceof Error && error.name === "TimeoutError";
       // Never the request body: it may carry a key.
-      throw new OpencodeProviderAuthError(timedOut ? "timed_out" : "server_failed", `${method} ${path} ${timedOut ? `timed out after ${String(timeoutMs)} ms` : "failed: OpenCode's server did not answer"}`);
+      throw new OpencodeProviderAuthError(timedOut ? "timed_out" : "server_failed", `${method} ${path} ${timedOut ? `timed out after ${String(this.#options.timeoutMs)} ms` : "failed: OpenCode's server did not answer"}`);
     }
   }
 }

@@ -31,31 +31,29 @@ function project(row: JsonRecord): SkillEntry {
 export const qwenSkills: InventoryReader<SkillEntry> = async (installation, options = {}) => {
   if (installation.via !== "executable") { return unsupportedInventory("installation_unsupported", "Qwen skill discovery requires an executable."); }
   const timeoutMs = options.timeoutMs ?? 30_000;
-  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) { throw new RangeError("timeoutMs must be positive and finite"); }
   const scope = workspaceScope(options);
   const pending = new Set<string | number>();
-  const child = startAcpProcess(installation.command, ["--acp"], createAcpClient({ name: "oar-qwen-skills" }), {
-    cwd: scope.cwd, env: sessionEnvironment(options.env), inheritStderr: false, redact: () => "Qwen skill query failed",
-    incoming: message => response(message, pending),
-    outgoing: message => { if ("id" in message && "method" in message && message.id !== null) { pending.add(message.id); } },
-  });
-  try {
-    return await inventoryRead(async () => {
-      await child.spawned;
-      await child.connection.agent.request(methods.agent.initialize, {
-        protocolVersion: 1, clientCapabilities: { fs: { readTextFile: false, writeTextFile: false }, terminal: false },
-      });
-      let payload: JsonRecord | null = null;
-      try { payload = asRecord(await child.connection.agent.request("qwen/status/workspace/skills", {})); }
-      catch (error) {
-        if (error instanceof RequestError && error.code === -32_601) { return unsupportedInventory("native_query_unavailable", "This Qwen version has no workspace skill query."); }
-        throw error;
-      }
-      if (payload?.v !== 1 || payload.initialized !== true || typeof payload.workspaceCwd !== "string") {
-        return unavailableInventory("query_failed", "Qwen did not initialize its skill catalog.");
-      }
-      const errors = payload.errors === undefined ? [] : nativeRows(payload.errors);
-      return inventoryOk(scope, "discovered", nativeRows(payload.skills).map(row => project(row)), errors.length > 0);
-    }, timeoutMs);
-  } finally { child.kill(); await child.exited; }
+  const result = await inventoryRead(async (_signal, own) => {
+    const child = own(startAcpProcess(installation.command, ["--acp"], createAcpClient({ name: "oar-qwen-skills" }), {
+      cwd: scope.cwd, env: sessionEnvironment(options.env), inheritStderr: false, redact: () => "Qwen skill query failed",
+      incoming: message => response(message, pending),
+      outgoing: message => { if ("id" in message && "method" in message && message.id !== null) { pending.add(message.id); } },
+    }));
+    await child.spawned;
+    await child.connection.agent.request(methods.agent.initialize, {
+      protocolVersion: 1, clientCapabilities: { fs: { readTextFile: false, writeTextFile: false }, terminal: false },
+    });
+    let payload: JsonRecord | null = null;
+    try { payload = asRecord(await child.connection.agent.request("qwen/status/workspace/skills", {})); }
+    catch (error) {
+      if (error instanceof RequestError && error.code === -32_601) { return unsupportedInventory("native_query_unavailable", "This Qwen version has no workspace skill query."); }
+      throw error;
+    }
+    if (payload?.v !== 1 || payload.initialized !== true || typeof payload.workspaceCwd !== "string") {
+      return unavailableInventory("query_failed", "Qwen did not initialize its skill catalog.");
+    }
+    const errors = payload.errors === undefined ? [] : nativeRows(payload.errors);
+    return inventoryOk(scope, "discovered", nativeRows(payload.skills).map(row => project(row)), errors.length > 0);
+  }, timeoutMs);
+  return result;
 };

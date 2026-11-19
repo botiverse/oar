@@ -1,9 +1,9 @@
-import type { ChildProcess } from "node:child_process";
+import { processShutdown } from "./executable/process-shutdown.js";
 import { StringDecoder } from "node:string_decoder";
 import spawn from "cross-spawn";
 import type { AvailableInstallation, ExecutableInstallation } from "../contracts/installation.js";
 import type { LoginResult, LoginUnsupportedReason } from "../contracts/login.js";
-import { spawnChecked, killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess, windowsSpawnTarget } from "./executable/index.js";
+import { spawnChecked, OWN_PROCESS_GROUP, trackOwnedProcess, windowsSpawnTarget } from "./executable/index.js";
 import { hostWatchdogTarget } from "./executable/host-watchdog.js";
 import { locateExecutable } from "./installation.js";
 import { releaseVersion, versionAtLeast } from "./update.js";
@@ -85,7 +85,7 @@ export interface LoginProcessExit {
 }
 
 export interface LoginProcess {
-  /** Settles once the command has exited (or failed to start). */
+  /** Settles after native exit, bounded output drain and any owned tree cleanup. */
   readonly exited: Promise<LoginProcessExit>;
   /** Write to the command's stdin; a no-op once it has exited. */
   write(text: string): void;
@@ -136,18 +136,6 @@ function readStream(
   });
 }
 
-function stopTree(child: ChildProcess): void {
-  if (process.platform === "win32") {
-    killProcessTree(child);
-    return;
-  }
-  signalProcessGroup(child, "SIGTERM");
-  // Kept after the command exits: what it started may outlive it in the group.
-  setTimeout(() => {
-    signalProcessGroup(child, "SIGKILL");
-  }, killGraceMs()).unref();
-}
-
 /**
  * Run a login command over pipes (no terminal), in its own process group on
  * POSIX, reading stdout and stderr alike, in `options.cwd` (default: the
@@ -178,18 +166,20 @@ export function spawnLoginProcess(
   }));
   trackOwnedProcess(child);
   let running = true;
-  let stopped = false;
+  const shutdown = processShutdown(child, { killTree: true });
   // A write racing the exit fails with EPIPE; the exit reports the outcome.
   child.stdin?.on("error", () => {});
   readStream(child.stdout, "stdout", handlers);
   readStream(child.stderr, "stderr", handlers);
-  const exited = new Promise<LoginProcessExit>((resolve) => {
+  const drained = new Promise<LoginProcessExit>((resolve) => {
     child.once("error", (error) => {
       running = false;
+      shutdown.nativeExited();
       resolve({ exitCode: null, signal: null, error: error.message });
     });
     child.once("exit", (exitCode: number | null, signal: NodeJS.Signals | null) => {
       running = false;
+      shutdown.nativeExited();
       // Something the command started may hold the output pipes open.
       setTimeout(() => {
         resolve({ exitCode, signal });
@@ -202,25 +192,20 @@ export function spawnLoginProcess(
     });
   });
   return {
-    exited,
+    exited: (async () => {
+      const exit = await drained;
+      await shutdown.finished;
+      return exit;
+    })(),
     write(text) {
-      if (running && child.stdin?.writable === true) {
+      if (running && !shutdown.stopping() && child.stdin?.writable === true) {
         child.stdin.write(text);
       }
     },
     closeInput() {
       child.stdin?.end();
     },
-    stop() {
-      if (stopped) {
-        return;
-      }
-      stopped = true;
-      child.stdin?.end();
-      if (running) {
-        stopTree(child);
-      }
-    },
+    stop() { shutdown.stop(); },
   };
 }
 

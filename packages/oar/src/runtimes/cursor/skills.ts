@@ -48,10 +48,10 @@ export function cursorSkillsWith(access: CursorSdkAccess): InventoryReader<Skill
     if (access.execution === "in_process") { refuseReaderEnvironment(options.env, "Cursor skills reflect the host SDK environment"); }
     const scope = workspaceScope(options);
     const env = access.environment(options.env);
-    const controller = new AbortController();
-    const scan: SkillScan = { partial: false, signal: controller.signal };
-    try {
-      return await inventoryRead(async () => inventoryOk(scope, "discovered", await discover(scope.cwd, environmentHome(env), env, scan), scan.partial), options.timeoutMs);
-    } finally { controller.abort(); }
+    const result = await inventoryRead(async signal => {
+      const scan: SkillScan = { partial: false, signal };
+      return inventoryOk(scope, "discovered", await discover(scope.cwd, environmentHome(env), env, scan), scan.partial);
+    }, options.timeoutMs);
+    return result;
   };
 }

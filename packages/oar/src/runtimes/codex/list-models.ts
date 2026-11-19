@@ -1,3 +1,4 @@
+import { withQueryDeadline } from "../../shared/executable/query.js";
 import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import { effortLevelsOf } from "../../shared/effort-levels.js";
 import { asRecord, asRecordList } from "../../shared/json.js";
@@ -77,33 +78,29 @@ export const codexListModels: ModelLister = async (installation, options = {}) =
   // resolves a relative CODEX_HOME); the project is the `config/read` cwd, as
   // it is the thread's cwd in a session.
   const cwd = listingCwd(options);
-  const client = startAppServerClient(installation.command, options.env);
   const timeoutMs = options.timeoutMs ?? 15_000;
-  const deadline = { timedOut: false };
-  const timer = setTimeout(() => { deadline.timedOut = true; client.kill(); }, timeoutMs);
   try {
-    await client.spawned;
-    client.handle({ onNotification: () => {}, onServerRequest: () => {} });
-    await client.request("initialize", { clientInfo: { name: "oar-models", version: "0" }, capabilities: { experimentalApi: true } });
-    client.notify("initialized", {});
-    const models: ModelEntry[] = [];
-    const cursors = new Set<string>();
-    let cursor: string | null = null;
-    do {
-      const page = await client.request("model/list", cursor === null ? {} : { cursor });
-      if (!Array.isArray(page.data)) { throw new TypeError("codex model/list returned no data array"); }
-      models.push(...projectCodexModels(page));
-      cursor = text(page.nextCursor) ?? null;
-      if (cursor !== null && cursors.has(cursor)) { throw new Error("codex model/list repeated a pagination cursor"); }
-      if (cursor !== null) { cursors.add(cursor); }
-    } while (cursor !== null);
-    const effective = await client.request("config/read", { cwd, includeLayers: false });
-    return { kind: "ok", models: codexDefaultModel(models, text(asRecord(effective.config)?.model)) };
+    return await withQueryDeadline("Codex model listing", timeoutMs, async (_signal, own) => {
+      const client = own(startAppServerClient(installation.command, options.env));
+      await client.spawned;
+      client.handle({ onNotification: () => {}, onServerRequest: () => {} });
+      await client.request("initialize", { clientInfo: { name: "oar-models", version: "0" }, capabilities: { experimentalApi: true } });
+      client.notify("initialized", {});
+      const models: ModelEntry[] = [];
+      const cursors = new Set<string>();
+      let cursor: string | null = null;
+      do {
+        const page = await client.request("model/list", cursor === null ? {} : { cursor });
+        if (!Array.isArray(page.data)) { throw new TypeError("codex model/list returned no data array"); }
+        models.push(...projectCodexModels(page));
+        cursor = text(page.nextCursor) ?? null;
+        if (cursor !== null && cursors.has(cursor)) { throw new Error("codex model/list repeated a pagination cursor"); }
+        if (cursor !== null) { cursors.add(cursor); }
+      } while (cursor !== null);
+      const effective = await client.request("config/read", { cwd, includeLayers: false });
+      return { kind: "ok", models: codexDefaultModel(models, text(asRecord(effective.config)?.model)) };
+    });
   } catch (error) {
-    throw new Error(deadline.timedOut ? `Failed to list Codex models: timed out after ${String(timeoutMs)} ms` : "Failed to list Codex models", { cause: error });
-  } finally {
-    clearTimeout(timer);
-    client.kill();
-    await client.exited;
+    throw new Error(error instanceof DOMException && error.name === "TimeoutError" ? `Failed to list Codex models: timed out after ${String(timeoutMs)} ms` : "Failed to list Codex models", { cause: error });
   }
 };

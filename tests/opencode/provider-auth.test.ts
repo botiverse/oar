@@ -1,10 +1,11 @@
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import type { LoginProvider } from "../../packages/oar/src/contracts/provider-auth.js";
 import { createOpencodeProviderAuth, OpencodeProviderAuthError } from "../../packages/oar/src/runtimes/opencode/provider-auth.js";
 import { recordedInteraction } from "../fixtures/login-interaction.js";
 import { fakeCalls, fakeConnections, fakeList, opencodeAuthFixture, rejectionOf, removeOpencodeAuthFixtures, serverRunning } from "../fixtures/opencode-provider-auth.js";
 
 afterEach(removeOpencodeAuthFixtures);
+afterEach(() => { vi.unstubAllEnvs(); });
 
 function methodText(method: LoginProvider["methods"][number]): string {
   if (method.method === "oauth") { return `oauth ${method.name}`; }
@@ -179,13 +180,16 @@ test("a 401 from serve is an authentication failure at once, not a timeout", asy
 });
 
 test("startup and readiness share one timeoutMs: a late listen leaves readiness only the rest", async () => {
-  const { create } = await opencodeAuthFixture({ listenDelayMs: 1200, hangPlugin: true });
+  vi.stubEnv("OAR_KILL_GRACE_MS", "3000");
+  const { create, fake } = await opencodeAuthFixture({ listenDelayMs: 1200, hangPlugin: true });
   const started = Date.now();
   const error = await rejectionOf(create({ timeoutMs: 2000 }));
   const elapsed = Date.now() - started;
   expect(error).toMatchObject({ kind: "timed_out" });
   // A full timeoutMs for the hanging read would end after about 3.2 s.
   expect(elapsed, `ended after ${String(elapsed)} ms`).toBeLessThan(2800);
+  expect(fakeCalls(fake)).toContainEqual({ method: "GET", path: "/api/plugin" });
+  await expect.poll(() => serverRunning(fake), { timeout: 10_000 }).toBe(false);
 });
 
 test("a crashed or silent start is reported with OpenCode's first line", async () => {
@@ -206,3 +210,19 @@ test("the server stops after the idle period and the next operation starts anoth
     expect(fake.read().serverPid).not.toBe(first);
   }, { idleMs: 50 });
 });
+
+test("close interrupts startup and a concurrent restart waits for the old server to exit", async () => {
+  vi.stubEnv("OAR_KILL_GRACE_MS", "2000");
+  const { using, fake } = await opencodeAuthFixture({ hangSecondStart: true });
+  await using(async auth => {
+    await auth.close();
+    const interrupted = rejectionOf(auth.status("poe"));
+    await expect.poll(() => fake.read().starts === 2 && fakeCalls(fake).some(call => call.path === "/api/plugin"), { timeout: 10_000 }).toBe(true);
+    const closing = auth.close();
+    const next = auth.status("poe");
+    await closing;
+    expect(await interrupted).toBeInstanceOf(OpencodeProviderAuthError);
+    expect(await next).toEqual({ providerId: "poe", configured: false });
+    expect(fake.read()).toMatchObject({ starts: 3, overlapped: false });
+  }, { timeoutMs: 60_000 });
+}, 30_000);

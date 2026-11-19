@@ -1,3 +1,5 @@
+/* oxlint-disable import/max-dependencies -- Model discovery combines native controls, projections and the shared query deadline. */
+import { withQueryDeadline, type OwnQueryProcess } from "../../shared/executable/query.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 /* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
 import {
@@ -72,72 +74,70 @@ export function projectKimiModels(response: unknown): ModelEntry[] | undefined {
   return entries;
 }
 
-async function readNewSession(command: string, cwd: string, timeoutMs: number, env: NodeJS.ProcessEnv): Promise<JsonRecord> {
-  const runtime = startAcpProcess(command, ["acp"], createClient({ name: "oar" }), { cwd, env });
-  try {
-    const initialize = methods.agent.initialize;
-    const initialized = await withAcpDeadline(
+async function readNewSession(command: string, cwd: string, timeoutMs: number, env: NodeJS.ProcessEnv, own: OwnQueryProcess): Promise<JsonRecord> {
+  const runtime = own(startAcpProcess(command, ["acp"], createClient({ name: "oar" }), { cwd, env }));
+  const initialize = methods.agent.initialize;
+  const initialized = await withAcpDeadline(
+    runtime,
+    initialize,
+    timeoutMs,
+    (requestOptions) => runtime.connection.agent.request(initialize, {
+      protocolVersion: PROTOCOL_VERSION,
+      clientCapabilities: {
+        fs: { readTextFile: false, writeTextFile: false },
+        terminal: false,
+      },
+      clientInfo: { name: "oar", version: "0.0.0" },
+    }, requestOptions),
+  );
+  const method = selectKimiAuthMethod(asRecord(initialized) ?? {});
+  if (method !== undefined) {
+    const authenticate = methods.agent.authenticate;
+    await withAcpDeadline(
       runtime,
-      initialize,
+      authenticate,
       timeoutMs,
-      (requestOptions) => runtime.connection.agent.request(initialize, {
-        protocolVersion: PROTOCOL_VERSION,
-        clientCapabilities: {
-          fs: { readTextFile: false, writeTextFile: false },
-          terminal: false,
-        },
-        clientInfo: { name: "oar", version: "0.0.0" },
-      }, requestOptions),
-    );
-    const method = selectKimiAuthMethod(asRecord(initialized) ?? {});
-    if (method !== undefined) {
-      const authenticate = methods.agent.authenticate;
-      await withAcpDeadline(
-        runtime,
+      (requestOptions) => runtime.connection.agent.request(
         authenticate,
-        timeoutMs,
-        (requestOptions) => runtime.connection.agent.request(
-          authenticate,
-          { methodId: method },
-          requestOptions,
-        ),
-      );
-    }
-    const newSession = methods.agent.session.new;
-    const response = await withAcpDeadline(
-      runtime,
-      newSession,
-      timeoutMs,
-      (requestOptions) => runtime.connection.agent.request<JsonRecord>(
-        newSession,
-        { cwd, mcpServers: [] },
+        { methodId: method },
         requestOptions,
       ),
     );
-    const record = asRecord(response) ?? {};
-    const sessionId = text(record.sessionId);
-    if (sessionId !== undefined) {
-      // Best effort: the list is already in hand and the process is killed next.
-      await closeAcpSession(runtime, sessionId).catch(() => {});
-    }
-    return record;
-  } finally {
-    runtime.kill();
-    await runtime.exited;
   }
+  const newSession = methods.agent.session.new;
+  const response = await withAcpDeadline(
+    runtime,
+    newSession,
+    timeoutMs,
+    (requestOptions) => runtime.connection.agent.request<JsonRecord>(
+      newSession,
+      { cwd, mcpServers: [] },
+      requestOptions,
+    ),
+  );
+  const record = asRecord(response) ?? {};
+  const sessionId = text(record.sessionId);
+  if (sessionId !== undefined) {
+    // Best effort: the list is already in hand and the process is killed next.
+    await closeAcpSession(runtime, sessionId).catch(() => {});
+  }
+  return record;
 }
 
 export const kimiListModels: ModelLister = async (installation, options = {}) => {
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "kimi model listing requires the kimi executable" };
   }
+  const timeoutMs = options.timeoutMs ?? 30_000;
   try {
-    const response = await readNewSession(installation.command, listingCwd(options), options.timeoutMs ?? 30_000, sessionEnvironment(options.env));
-    const models = projectKimiModels(response);
-    if (models === undefined) {
-      return { kind: "unsupported", reason: "this kimi build returns no model config option on session/new" };
-    }
-    return { kind: "ok", models };
+    return await withQueryDeadline("Kimi model listing", timeoutMs, async (_signal, own) => {
+      const response = await readNewSession(installation.command, listingCwd(options), timeoutMs, sessionEnvironment(options.env), own);
+      const models = projectKimiModels(response);
+      if (models === undefined) {
+        return { kind: "unsupported", reason: "this kimi build returns no model config option on session/new" };
+      }
+      return { kind: "ok", models };
+    });
   } catch (error) {
     if (error instanceof RequestError) {
       if (error.code === -32_601) {
