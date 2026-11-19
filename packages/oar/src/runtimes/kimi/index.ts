@@ -2,6 +2,7 @@ import { runtimeBrands } from "../../brands.js";
 import { verifiedPlatforms } from "../../platforms.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { onFirstCall } from "../../shared/lazy.js";
+import { semverAtLeast } from "../../shared/semver.js";
 import { kimiAccountUsage } from "./account-usage.js";
 import { kimiInstallation } from "./installation.js";
 import { kimiInstall, kimiInstallPlan } from "./install.js";
@@ -10,7 +11,10 @@ import { kimiRefusedSessionOptions } from "./options.js";
 
 export const kimiRuntime = defineRuntime({
   id: "kimi",
-  sessionCapabilities: () => ({ steer: false, contextUsage: { tokens: true, contextWindow: true } }),
+  sessionCapabilities: (installation) => ({
+    steer: false, stopTask: false, contextUsage: { tokens: true, contextWindow: true },
+    ...(installation.via === "executable" && semverAtLeast(installation.version, "2.1.1") ? { mcpTransports: ["stdio", "http"] as const } : {}),
+  }),
   manualCompaction: { kind: "unsupported", reason: "The ACP transport reports compaction as ordinary text, without a structural completion signal." },
   brand: runtimeBrands.kimi, verifiedPlatforms: verifiedPlatforms.kimi,
   installation: kimiInstallation,

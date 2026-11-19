@@ -1,9 +1,11 @@
 /* oxlint-disable import/max-dependencies -- Session assembly wires protocol, process lifetime and private readbacks. */
 import { appendCleanupFailure, cleanupFailureReason } from "../../shared/executable/process-cleanup.js";
 import { randomUUID } from "node:crypto";
+import { UnsupportedOptionError } from "../../contracts/errors.js";
 import type { McpServer, RuntimeEventBody, StartSession } from "../../contracts/session.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { checkMcpServerNames, isHttpMcpServer } from "../../shared/mcp-servers.js";
+import { semverBelow } from "../../shared/semver.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { streamJsonSession } from "../../shared/stream-json/session.js";
 import { qwenContextReadback } from "./context-usage.js";
@@ -33,7 +35,11 @@ export function qwenEffort(answer: JsonRecord, requested?: string): readonly Run
 export const qwenSession: StartSession = withSessionCredentials(async (installation, options, credentials) => {
   if (installation.via !== "executable") { throw new Error("The Qwen session adapter needs an executable installation"); }
   const sessionId = options.resume ?? randomUUID();
-  const mcpServers = qwenMcpConfig(options.mcpServers ?? []);
+  const servers = options.mcpServers ?? [];
+  const mcpServers = qwenMcpConfig(servers);
+  if (semverBelow(installation.version, "0.26.0") && servers.some((server) => isHttpMcpServer(server))) {
+    throw new UnsupportedOptionError("mcpServers", `Qwen ${installation.version ?? "below 0.26.0"} does not support HTTP MCP servers; 0.26.0 or later is required`);
+  }
   const child = await launchQwen(installation.command, sessionId, options);
   const control = qwenControl(child);
   const context = qwenContextReadback(child);

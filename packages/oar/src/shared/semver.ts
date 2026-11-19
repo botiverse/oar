@@ -36,9 +36,21 @@ export function compareSemver(left: string, right: string): number | null {
   return comparePrerelease(a.prerelease, b.prerelease);
 }
 
+/** First semver token inside a `--version` line, or undefined when none is present. */
+export function extractSemver(versionText: string | undefined): string | undefined {
+  return versionText === undefined ? undefined : /\bv?(\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?)\b/u.exec(versionText)?.[1];
+}
+
 /** Whether a `--version` line contains a semver at or above `floor` (prereleases sort below their release). */
 export function semverAtLeast(versionText: string | undefined, floor: string): boolean {
-  const token = versionText === undefined ? undefined : /\bv?(\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?)\b/u.exec(versionText)?.[1];
+  const token = extractSemver(versionText);
   const order = token === undefined ? null : compareSemver(token, floor);
   return order !== null && order >= 0;
+}
+
+/** Whether a `--version` line contains a readable semver strictly below `floor`. */
+export function semverBelow(versionText: string | undefined, floor: string): boolean {
+  const token = extractSemver(versionText);
+  const order = token === undefined ? null : compareSemver(token, floor);
+  return order !== null && order < 0;
 }

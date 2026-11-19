@@ -9,7 +9,7 @@ import { devinCheckUpdate } from "./update.js";
 
 export const devinRuntime = defineRuntime({
   id: "devin",
-  sessionCapabilities: () => ({ steer: false }),
+  sessionCapabilities: () => ({ steer: false, stopTask: false }),
   manualCompaction: { kind: "unsupported", reason: "Devin CLI ACP exposes no verified manual compaction protocol or structured completion signal." },
   brand: runtimeBrands.devin,
   installation: devinInstallation,

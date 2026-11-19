@@ -1,3 +1,4 @@
+import { semverAtLeast } from "../../shared/semver.js";
 import { atLeastV2, parseOpencodeRelease, type OpencodeRelease } from "./version.js";
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { RefusedSessionOptions, SessionCapabilityDeclaration } from "../../contracts/runtime.js";
@@ -37,13 +38,16 @@ export function opencodeV2PromptRefusals(release: OpencodeRelease): Pick<Refused
 }
 
 export function opencodeSessionCapabilities(installation: AvailableInstallation): SessionCapabilityDeclaration {
-  if (installation.via !== "executable" || installation.version === undefined) { return {}; }
+  if (installation.via !== "executable" || installation.version === undefined) { return { stopTask: false }; }
   const release = parseOpencodeRelease(installation.version);
   if (release?.major === 1) {
     return {
-      steer: true, contextUsage: { tokens: true, contextWindow: true }, refusedSessionOptions: opencodeV1RefusedSessionOptions,
+      steer: true, stopTask: false, contextUsage: { tokens: true, contextWindow: true }, refusedSessionOptions: opencodeV1RefusedSessionOptions,
+      ...(semverAtLeast(installation.version, "1.18.30") ? { mcpTransports: ["stdio", "http"] as const } : {}),
       manualCompaction: { kind: "unsupported", reason: "OpenCode v1 ACP has no verified structural completion signal for /compact" },
     };
   }
-  return release?.major === 2 ? { contextUsage: { tokens: true, contextWindow: true }, refusedSessionOptions: opencodeV2PromptRefusals(release), manualCompaction: { kind: "supported", activeTurn: "reject" } } : {};
+  return release?.major === 2
+    ? { stopTask: false, contextUsage: { tokens: true, contextWindow: true }, mcpTransports: ["stdio", "http"], refusedSessionOptions: opencodeV2PromptRefusals(release), manualCompaction: { kind: "supported", activeTurn: "reject" } }
+    : { stopTask: false };
 }

@@ -7,11 +7,11 @@ import { grokInstallation } from "./installation.js";
 import { grokInstall, grokInstallPlan } from "./install.js";
 import { grokCheckUpdate, grokUpgrade } from "./update.js";
 import { grokSharedRefusal } from "./sharing-admission.js";
-import { grokRefusedSessionOptions } from "./options.js";
+import { grokRefusedSessionOptions, grokSessionCapabilities } from "./options.js";
 
 export const grokRuntime = defineRuntime({
   id: "grok",
-  sessionCapabilities: () => ({ steer: true, images: true, contextUsage: { tokens: true, contextWindow: false } }),
+  sessionCapabilities: grokSessionCapabilities,
   brand: runtimeBrands.grok, verifiedPlatforms: verifiedPlatforms.grok,
   manualCompaction: { kind: "supported", activeTurn: "reject" },
   refusedSessionOptions: grokRefusedSessionOptions,

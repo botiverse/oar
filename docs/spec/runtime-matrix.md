@@ -138,23 +138,23 @@ that installation would open: `steer` is whether `Session.steer` exists,
 handshake at open can tell; a host treats absent as unknown, never as false,
 and the opened session stays authoritative.
 
-| runtime | `steer` | `images` | `contextUsage` |
-|---|---|---|---|
-| antigravity | true | absent: advertised by `initialize` | `{ tokens: true, contextWindow: true }` |
-| claude | true | true | `{ tokens: true, contextWindow: true }` |
-| codebuddy | false | absent: advertised by `initialize` | `{ tokens: false, contextWindow: false }` (native `0/0` when model limit is unknown is not trustworthy) |
-| codex | true | true | `{ tokens: true, contextWindow: true }` on `>= 0.151.0`; absent on older or unreadable versions |
-| cursor | true (an individual steer can still be rejected: `unsupported` with images, `runtime_refused` when the run cannot take it, as above) | true | `{ tokens: true, contextWindow: false }` |
-| devin | false | absent: advertised by `initialize` | absent: live turns unverified |
-| dsh | absent: the bridge reports the agent's methods at open | absent: the selected model and native attachment store determine image support | `{ tokens: true, contextWindow: true }` |
-| factory | true | true | `{ tokens: true, contextWindow: true }` |
-| grok | true | true | `{ tokens: true, contextWindow: false }` |
-| kimi | false | absent: advertised by `initialize` | `{ tokens: true, contextWindow: true }` (except models whose catalog entry has no size) |
-| opencode | true on a v1 installation; absent on v2 or an unreadable version (`initialize` advertises steering) | absent: advertised by `initialize` | `{ tokens: true, contextWindow: true }` on readable v1/v2 versions; absent on unreadable versions |
-| pi | true | true | `{ tokens: true, contextWindow: true }` |
-| pi-durable | true | false | `{ tokens: false, contextWindow: false }` |
-| qoder | true | false | `{ tokens: false, contextWindow: false }` |
-| qwen | false | false | `{ tokens: true, contextWindow: true }` on `>= 0.26.0`; absent on older or unreadable versions |
+| runtime | `steer` | `images` | `stopTask` | `mcpTransports` | `contextUsage` |
+|---|---|---|---|---|---|
+| antigravity | true | absent: advertised by `initialize` | false | `["stdio", "http"]` (`minVersion` 1.5.0 with `--process-per-session`; credential-free only per `refusedSessionOptions.mcpServerCredentials`) | `{ tokens: true, contextWindow: true }` |
+| claude | true | true | true | `["stdio", "http"]` | `{ tokens: true, contextWindow: true }` |
+| codebuddy | false | absent: advertised by `initialize` | false | `["stdio", "http"]` on `>= 2.173.0`; absent on older or unreadable versions | `{ tokens: false, contextWindow: false }` (native `0/0` when model limit is unknown is not trustworthy) |
+| codex | true | true | true | `["stdio", "http"]` | `{ tokens: true, contextWindow: true }` on `>= 0.151.0`; absent on older or unreadable versions |
+| cursor | true (an individual steer can still be rejected: `unsupported` with images, `runtime_refused` when the run cannot take it, as above) | true | false | `["stdio", "http"]` | `{ tokens: true, contextWindow: false }` |
+| devin | false | absent: advertised by `initialize` | false | absent: handshake-dependent and unverified in CI | absent: live turns unverified |
+| dsh | absent: the bridge reports the agent's methods at open | absent: the selected model and native attachment store determine image support | true | `["stdio"]` | `{ tokens: true, contextWindow: true }` |
+| factory | true | true | false | `["stdio", "http"]` | `{ tokens: true, contextWindow: true }` |
+| grok | true | true | false | `["stdio", "http"]` on `>= 1.0.0`; absent on older or unreadable versions | `{ tokens: true, contextWindow: false }` |
+| kimi | false | absent: advertised by `initialize` | false | `["stdio", "http"]` on `>= 2.1.1`; absent on older or unreadable versions | `{ tokens: true, contextWindow: true }` (except models whose catalog entry has no size) |
+| opencode | true on a v1 installation; absent on v2 or an unreadable version (`initialize` advertises steering) | absent: advertised by `initialize` | false | `["stdio", "http"]` on v1 `>= 1.18.30` and v2; absent on older v1 or unreadable versions | `{ tokens: true, contextWindow: true }` on readable v1/v2 versions; absent on unreadable versions |
+| pi | true | true | false | `["stdio", "http"]` | `{ tokens: true, contextWindow: true }` |
+| pi-durable | true | false | false | `[]` | `{ tokens: false, contextWindow: false }` |
+| qoder | true | false | true | `["stdio", "http"]` | `{ tokens: false, contextWindow: false }` |
+| qwen | false | false | false | `["stdio", "http"]` on `>= 0.26.0`; `["stdio"]` on readable `< 0.26.0` (HTTP refused at open); absent on unreadable versions | `{ tokens: true, contextWindow: true }` on `>= 0.26.0`; absent on older or unreadable versions |
 
 Every runtime built with `defineRuntime` has the member; one that declares
 neither field answers with its static declarations only. Community runtimes
@@ -172,9 +172,7 @@ answer: whatever the static map refuses, every version refuses.
 `Session.contextUsage()` reliably reports trustworthy `tokens` and
 `contextWindow` by the end of each normally completed root turn (fresh and
 resumed sessions alike; aborted turns are not promised, and earlier readings
-are a bonus); each is absent where not established. The shared behavior suite
-asserts every `true` `contextUsage` field after a completed turn
-(`session.capabilities-match-declaration`). `defineRuntime` and `installedSessionCapabilities(runtime,
+are a bonus); each is absent where not established. `session.capabilities-match-declaration` asserts every declared `steer`, `images`, `stopTask`, `contextUsage` and `mcpTransports` claim against the opened session (opening a local HTTP MCP server when `"http"` is declared, or asserting `UnsupportedOptionError("mcpServers")` when `mcpTransports` omits `"http"`). `defineRuntime` and `installedSessionCapabilities(runtime,
 installation)` merge the static declarations in, so a host reads one answer
 and never branches on a runtime's name. `orient()` returns it for every
 available installation ([orientation](orientation.md#session-capabilities)).

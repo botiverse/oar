@@ -3,7 +3,7 @@ import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import { createModels } from "@earendil-works/pi-ai-durable/models";
 import { Harness, MemoryStorage, createRegistry } from "@earendil-works/pi-durable";
 import { createMorphRuntime } from "../packages/oar/src/community/morph/index.js";
-import { codexRuntime, createCursorRuntime, createPiRuntime, defineRuntime, installedSessionCapabilities, opencodeRuntime, qwenRuntime, type AvailableInstallation } from "../packages/oar/src/index.js";
+import { codebuddyRuntime, codexRuntime, createCursorRuntime, createPiRuntime, defineRuntime, grokRuntime, installedSessionCapabilities, kimiRuntime, opencodeRuntime, qwenRuntime, type AvailableInstallation } from "../packages/oar/src/index.js";
 import { createPiDurableRuntime } from "../packages/oar/src/pi-durable.js";
 import { scriptedRuntime } from "../packages/oar/src/testing/index.js";
 import { allRuntimes } from "../sea-trial/harness/runtimes.js";
@@ -18,7 +18,7 @@ describe("Runtime.sessionCapabilities", () => {
       expect(runtime.sessionCapabilities, runtime.id).toBeTypeOf("function");
       const declared = runtime.sessionCapabilities?.(executable("1.0.0"));
       expect(declared, runtime.id).not.toBeInstanceOf(Promise);
-      const known = new Set(["steer", "images", "refusedSessionOptions", "manualCompaction", "compactionEvents", "contextUsage"]);
+      const known = new Set(["steer", "images", "refusedSessionOptions", "manualCompaction", "compactionEvents", "contextUsage", "mcpTransports", "stopTask"]);
       expect(Object.keys(declared ?? {}).every((key) => known.has(key)), runtime.id).toBe(true);
       // The static declarations are always part of the answer, and the answer is plain data a host can send on.
       expect(declared?.refusedSessionOptions ?? {}, runtime.id).toMatchObject(runtime.refusedSessionOptions ?? {});
@@ -99,6 +99,78 @@ describe("SessionCapabilityDeclaration.contextUsage", () => {
     [undefined, undefined],
   ] as const)("gates Qwen contextUsage at 0.26.0 (%s)", (version, expected) => {
     expect(qwenRuntime.sessionCapabilities(executable(version)).contextUsage).toEqual(expected);
+  });
+});
+
+describe("SessionCapabilityDeclaration.stopTask", () => {
+  it("declares stopTask across default built-in runtimes", () => {
+    const byId = new Map(allRuntimes.list().map((runtime) => [runtime.id, runtime.sessionCapabilities?.(executable("2.3.2")).stopTask]));
+    for (const id of ["claude", "codex", "dsh", "qoder"]) {
+      expect(byId.get(id), id).toBe(true);
+    }
+    for (const id of ["antigravity", "codebuddy", "devin", "factory", "grok", "kimi", "opencode", "pi", "qwen"]) {
+      expect(byId.get(id), id).toBe(false);
+    }
+    expect(opencodeRuntime.sessionCapabilities(executable()).stopTask).toBe(false);
+  });
+
+  it("declares stopTask on constructed built-in runtimes", async () => {
+    expect(createPiRuntime({ execution: "subprocess" }).sessionCapabilities?.(executable("1.4.0")).stopTask).toBe(false);
+    expect(createCursorRuntime({ sdk: unusedSdk }).sessionCapabilities?.({ kind: "available", via: "bundled" }).stopTask).toBe(false);
+    const models = createModels();
+    const harness = await Harness.open(new MemoryStorage(), { models, registry: createRegistry() }, BACKGROUND_CONTEXT);
+    try {
+      expect(createPiDurableRuntime({ harness, models }).sessionCapabilities?.({ kind: "available", via: "bundled" }).stopTask).toBe(false);
+    } finally {
+      await harness.close(BACKGROUND_CONTEXT);
+    }
+  });
+});
+
+describe("SessionCapabilityDeclaration.mcpTransports", () => {
+  it("declares verified mcpTransports across default built-in runtimes", () => {
+    const byId = new Map(allRuntimes.list().map((runtime) => [runtime.id, runtime.sessionCapabilities?.(executable("2.173.0")).mcpTransports]));
+    for (const id of ["antigravity", "claude", "codebuddy", "codex", "factory", "grok", "kimi", "opencode", "pi", "qoder", "qwen"]) {
+      expect(byId.get(id), id).toEqual(["stdio", "http"]);
+    }
+    expect(byId.get("dsh")).toEqual(["stdio"]);
+    expect(byId.get("devin")).toBeUndefined();
+  });
+
+  it("declares mcpTransports on constructed built-in runtimes", async () => {
+    expect(createPiRuntime({ execution: "subprocess" }).sessionCapabilities?.(executable("1.4.0")).mcpTransports).toEqual(["stdio", "http"]);
+    expect(createCursorRuntime({ sdk: unusedSdk }).sessionCapabilities?.({ kind: "available", via: "bundled" }).mcpTransports).toEqual(["stdio", "http"]);
+    const models = createModels();
+    const harness = await Harness.open(new MemoryStorage(), { models, registry: createRegistry() }, BACKGROUND_CONTEXT);
+    try {
+      expect(createPiDurableRuntime({ harness, models }).sessionCapabilities?.({ kind: "available", via: "bundled" }).mcpTransports).toEqual([]);
+    } finally {
+      await harness.close(BACKGROUND_CONTEXT);
+    }
+  });
+
+  it.each([
+    ["0.25.9", ["stdio"]],
+    ["0.26.0-rc.1", ["stdio"]],
+    ["0.26.0", ["stdio", "http"]],
+    ["0.28.0", ["stdio", "http"]],
+    ["garbage", undefined],
+    [undefined, undefined],
+  ] as const)("gates Qwen mcpTransports at 0.26.0 (%s)", (version, expected) => {
+    expect(qwenRuntime.sessionCapabilities(executable(version)).mcpTransports).toEqual(expected);
+  });
+
+  it("gates ACP runtime mcpTransports at verified version floors and omits below or unreadable", () => {
+    expect(opencodeRuntime.sessionCapabilities(executable("1.18.29")).mcpTransports).toBeUndefined();
+    expect(opencodeRuntime.sessionCapabilities(executable("1.18.30")).mcpTransports).toEqual(["stdio", "http"]);
+    expect(opencodeRuntime.sessionCapabilities(executable("opencode v2.0.0")).mcpTransports).toEqual(["stdio", "http"]);
+    expect(opencodeRuntime.sessionCapabilities(executable()).mcpTransports).toBeUndefined();
+    expect(grokRuntime.sessionCapabilities(executable("0.9.9")).mcpTransports).toBeUndefined();
+    expect(grokRuntime.sessionCapabilities(executable("1.0.0")).mcpTransports).toEqual(["stdio", "http"]);
+    expect(kimiRuntime.sessionCapabilities(executable("2.1.0")).mcpTransports).toBeUndefined();
+    expect(kimiRuntime.sessionCapabilities(executable("2.1.1")).mcpTransports).toEqual(["stdio", "http"]);
+    expect(codebuddyRuntime.sessionCapabilities(executable("2.172.9")).mcpTransports).toBeUndefined();
+    expect(codebuddyRuntime.sessionCapabilities(executable("2.173.0")).mcpTransports).toEqual(["stdio", "http"]);
   });
 });
 

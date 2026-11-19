@@ -125,3 +125,13 @@ test.each([["prompt", true], ["queue", true], ["prompt", false], ["queue", false
     expect(session.status().value.kind).toBe("idle");
   } finally { await session.dispose(); vi.restoreAllMocks(); }
 });
+
+test("Qwen below 0.26.0 refuses HTTP MCP servers with UnsupportedOptionError before launching", async () => {
+  const legacy = { kind: "available" as const, via: "executable" as const, command: "qwen", version: "0.25.9" };
+  vi.mocked(launchQwen).mockClear();
+  await expect(qwenSession(legacy, {
+    cwd: "/fixture",
+    mcpServers: [{ name: "remote", type: "http", url: "http://127.0.0.1:9/mcp" }],
+  })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "mcpServers" });
+  expect(launchQwen).not.toHaveBeenCalled();
+});

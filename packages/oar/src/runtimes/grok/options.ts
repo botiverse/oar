@@ -1,4 +1,6 @@
-import type { RefusedSessionOptions } from "../../contracts/runtime.js";
+import type { AvailableInstallation } from "../../contracts/installation.js";
+import type { RefusedSessionOptions, SessionCapabilityDeclaration } from "../../contracts/runtime.js";
+import { semverAtLeast } from "../../shared/semver.js";
 
 /* Declared refusals, apart from the session code so the runtime entry loads no ACP SDK until a session opens. */
 
@@ -11,3 +13,10 @@ export const grokRefusedSessionOptions: RefusedSessionOptions = {
   name: "grok exposes no verified session name setting",
   disallowedTools: "grok agent stdio does not forward the CLI tool denylist; supplying an agent profile would replace the user's selected harness rather than overlay its tools",
 };
+
+export function grokSessionCapabilities(installation: AvailableInstallation): SessionCapabilityDeclaration {
+  return {
+    steer: true, images: true, stopTask: false, contextUsage: { tokens: true, contextWindow: false },
+    ...(installation.via === "executable" && semverAtLeast(installation.version, "1.0.0") ? { mcpTransports: ["stdio", "http"] as const } : {}),
+  };
+}
