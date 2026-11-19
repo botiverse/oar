@@ -43,7 +43,16 @@ export function preamble(name: string, cwd: string, bin: string): string {
     `\`${bin} read\` shows recent channel messages. Everyone, people included, reads everything you post;`,
     "@name only decides which agents are woken. Acknowledge work you take on,",
     `then report when it is done. Your working directory is ${cwd}.`,
+    "Other chat tools on this machine (such as `raft`) belong to the person hosting you and act as them: do not run them.",
   ].join("\n");
+}
+
+/**
+ * For a runtime without an appended system prompt, repeated on every later delivery: compaction can drop the preamble
+ * (OpenCode 1.x does not even report its compactions), and an agent that forgot how to answer goes looking for another chat tool.
+ */
+export function reminder(bin: string): string {
+  return `(harbor: answer only with ${bin} send; other chat tools here, such as \`raft\`, act as the person hosting you)`;
 }
 
 /** Linux: processes whose cwd is inside `dir`; elsewhere the check is skipped. */
