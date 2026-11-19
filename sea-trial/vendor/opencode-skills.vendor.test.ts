@@ -4,7 +4,7 @@ import * as nativeProcess from "node:child_process";
 import { mkdir, mkdtemp, realpath, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve as resolvePath } from "node:path";
-import { createConnection } from "node:net";
+import { createConnection, createServer } from "node:net";
 import { describe, expect, test, vi } from "vitest";
 import { opencodeRuntime } from "../../packages/oar/src/runtimes/opencode/index.js";
 import * as executable from "../../packages/oar/src/shared/executable/index.js";
@@ -35,15 +35,37 @@ async function fixture() {
 }
 
 async function portOpen(port: number): Promise<boolean> {
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     const socket = createConnection({ host: "127.0.0.1", port });
     socket.on("connect", () => { socket.destroy(); resolve(true); });
-    socket.on("error", () => { resolve(false); });
+    socket.once("error", (error: NodeJS.ErrnoException) => {
+      if (error.code === "ECONNREFUSED") { resolve(false); } else { reject(error); }
+    });
   });
+}
+
+async function assertListenerClosed(port: number, child: executable.LineProcess): Promise<void> {
+  await child.exited;
+  assert.equal(await portOpen(port), false, "listener accepted a connection after owned cleanup");
 }
 
 const enabled = ["opencode-skills", "opencode-aimock", "opencode-cleanup"].includes(process.env.OAR_TEST ?? "");
 describe.skipIf(!enabled)("OpenCode native skill discovery", () => {
+  test("a listener retained past owned cleanup fails the port assertion", async () => {
+    const listener = createServer(socket => { socket.destroy(); });
+    try {
+      await new Promise<void>((resolve, reject) => {
+        listener.once("error", reject);
+        listener.listen(0, "127.0.0.1", resolve);
+      });
+      const address = listener.address();
+      assert.ok(address !== null && typeof address === "object");
+      const child = executable.spawnLineProcess(process.execPath, ["-e", "process.exitCode = 0"], { cwd: process.cwd() });
+      await child.spawned;
+      await assert.rejects(assertListenerClosed(address.port, child), /listener accepted a connection after owned cleanup/u);
+    } finally { await listener[Symbol.asyncDispose](); }
+  });
+
   test.for(["success", "failure", "timeout", "plugin-failure"])("%s preserves native paths and reclaims the owned process", { timeout: 60_000 }, async (mode, context) => {
     const f = await fixture();
     const children: executable.LineProcess[] = [];
@@ -112,10 +134,18 @@ describe.skipIf(!enabled)("OpenCode native skill discovery", () => {
       };
       if (mode === "timeout") { await vi.waitFor(assertExited, { timeout: 15_000 }); }
       else { assertExited(); }
-      if (major === 2) { expect(ports).toHaveLength(1); for (const port of ports) { expect(await portOpen(port)).toBe(false); } }
+      let portOpenAtRootExit: boolean | undefined = undefined;
+      if (major === 2) {
+        expect(ports).toHaveLength(1);
+        const port = ports[0];
+        const child = children[0];
+        assert.ok(port !== undefined && child !== undefined);
+        if (mode === "timeout") { portOpenAtRootExit = await portOpen(port); }
+        await assertListenerClosed(port, child);
+      }
       const dir = resolvePath(process.env.OAR_TRIAL_RUN_DIR ?? "oar-trial-run", "opencode-skills");
       await mkdir(dir, { recursive: true });
-      await writeFile(join(dir, `${major}-${mode}.json`), JSON.stringify({ version: version.stdout.trim(), mode, result, processesExited: true, portsClosed: true }, null, 2));
+      await writeFile(join(dir, `${major}-${mode}.json`), JSON.stringify({ version: version.stdout.trim(), mode, result, processesExited: true, portOpenAtRootExit, portsClosed: true }, null, 2));
     } finally {
       vi.restoreAllMocks();
       for (const child of children) { child.kill(); await child.exited; }
