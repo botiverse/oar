@@ -1,16 +1,43 @@
 /* oxlint-disable import/max-dependencies -- Native controls, isolated model replay, and actual MCP server fixtures. */
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { existsSync, readdirSync } from "node:fs";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { describe, expect, onTestFailed, test } from "vitest";
 import { promptAndWait } from "../../packages/oar/src/index.js";
 import type { SessionOptions, Session } from "../../packages/oar/src/contracts/session.js";
 import { qoderSession } from "../../packages/oar/src/runtimes/qoder/session.js";
+import { QODER_MCP_PREFIX } from "../../packages/oar/src/runtimes/qoder/mcp-config.js";
 import { qoderInstallation } from "../../packages/oar/src/runtimes/qoder/installation.js";
 import { qoderFixture } from "./support/qoder-fixture.js";
-import { echoServers, startHttpEcho, leakedCredentials } from "./support/echo-mcp.js";
+import { echoServers, HTTP_AUTHORIZATION, startHttpEcho, STDIO_TOKEN, leakedCredentials } from "./support/echo-mcp.js";
+
+function qoderMcpDirectories(): readonly string[] {
+  return readdirSync(tmpdir()).filter((name) => name.startsWith(`${QODER_MCP_PREFIX}${String(process.pid)}-`));
+}
+async function qoderMcpConfigsGone(ms: number): Promise<readonly string[]> {
+  const deadline = Date.now() + ms;
+  while (qoderMcpDirectories().length > 0 && Date.now() < deadline) {
+    // oxlint-disable-next-line no-await-in-loop -- polling for FIFO cleanup after Qoder startup read.
+    await delay(50);
+  }
+  return qoderMcpDirectories();
+}
+async function persistedCredentials(directory: string): Promise<string[]> {
+  const leaked: string[] = [];
+  for (const entry of await readdir(directory, { withFileTypes: true }).catch(() => [])) {
+    const full = path.join(directory, entry.name);
+    if (entry.isDirectory()) { leaked.push(...await persistedCredentials(full)); }
+    else if (entry.isFile()) {
+      const text = await readFile(full, "utf8").catch(() => "");
+      if (text.includes(STDIO_TOKEN) || text.includes(HTTP_AUTHORIZATION)) { leaked.push(full); }
+    }
+  }
+  return leaked;
+}
 
 async function open(env: Awaited<ReturnType<typeof qoderFixture>>, options: Partial<SessionOptions> = {}) {
   const installation = await qoderInstallation();
@@ -66,20 +93,29 @@ describe.skipIf(process.env.OAR_TEST !== "qoder-native")("Qoder native model rep
     } finally { await session.dispose(); }
   }, 45_000);
 
-  test("MCP stdio and HTTP tools return real server results", async () => {
-    const env = await qoderFixture([{ tool: { name: "mcp__echo__echo", args: { text: "stdio-call" } } },
-      { tool: { name: "mcp__remote__echo", args: { text: "http-call" } } }, { text: "done" }]);
+  test("MCP stdio and HTTP tools return real server results after the private config handoff is gone", async () => {
+    const env = await qoderFixture([
+      { tool: { name: "mcp__echo__echo", args: { text: "stdio-call" } } },
+      { tool: { name: "mcp__remote__echo", args: { text: "http-call" } } },
+      { tool: { name: "mcp__echo__echo", args: { text: "stdio-second" } } },
+      { tool: { name: "mcp__remote__echo", args: { text: "http-second" } } },
+      { text: "done" },
+    ]);
     const http = await startHttpEcho();
     try {
       const session = await open(env, { mcpServers: echoServers(http.url) });
       try {
+        expect(await qoderMcpConfigsGone(10_000)).toEqual([]);
         const result = await turn(session, "call echo");
         expect(result.outcome).toEqual({ kind: "completed" });
         const records = JSON.stringify(session.records());
         expect(records).toContain("echo:stdio-call via=stdio");
         expect(records).toContain("echo:http-call via=http");
+        expect(records).toContain("echo:stdio-second via=stdio");
+        expect(records).toContain("echo:http-second via=http");
         expect(leakedCredentials(session)).toEqual([]);
       } finally { await session.dispose(); }
+      expect(await persistedCredentials(env.home)).toEqual([]);
     } finally { http.stop(); }
   }, 60_000);
 

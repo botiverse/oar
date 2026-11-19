@@ -70,6 +70,9 @@ export const qoderSession: StartSession = withSessionCredentials(async (installa
       },
       open: async (projection) => {
         await control.request({ subtype: "initialize" }, qoderInitializeTimeoutMs).catch((error: unknown) => { throw qoderStartupError(error, options.effort); });
+        // Qoder reads --mcp-config during startup before initialize settles;
+        // release any non-FIFO fallback file before the first turn runs.
+        child.releaseMcpConfig?.();
         if (options.model !== undefined && (model !== options.model || qoderVersionInfo(child.qoderVersion).modelFormat === "provider")) {
           await confirmModel(control, options.model, model, child.qoderVersion);
         }
