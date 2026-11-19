@@ -68,8 +68,11 @@ agy 1.5.12 can end a refused turn with a normal `end_turn`. OAR reports
 reached” notice with its reset countdown and the prompt response omits
 `usage`. The native notice has no structured failure code. Its countdown
 starts at receipt of the last notice chunk. A prompt RPC error carrying the
-same reset sentence also supplies `resetsAt`. Other text, tool activity, or
-a reply with usage leaves an ordinary `end_turn` completed.
+same reset sentence also supplies `resetsAt`. The estimate has the precision
+of the smallest unit agy prints. For example, `4h12m` can put the estimate
+up to a minute early, and an hours-only countdown up to an hour early.
+A retry at that time can still meet the same limit. Other text, tool
+activity, or a reply with usage leaves an ordinary `end_turn` completed.
 
 Gemini's prompt response reports spend across the turn's model calls. OAR
 accumulates `totalTokens - outputTokens` as input, including cache reads,
@@ -100,7 +103,9 @@ Google-login account tests:
 - **Failed turns look completed.** After a successful MCP call, injected
   401 `invalid_token`, 429 quota/rate-limit, HTTP 504 and cut SSE responses
   produce warning text followed by `end_turn`. OAR records `completed` and
-  retains the original warning in its records. These warnings differ from the [1.5.12 individual-quota notice](#gemini-quota-notices-and-whole-turn-usage). Tracked upstream in
+  retains the original warning in its records. For the account-level notice,
+  see [Gemini quota notices](#gemini-quota-notices-and-whole-turn-usage).
+  The provider failures are tracked in
   [antigravity-cli#1570](https://github.com/google-antigravity/antigravity-cli/issues/1570).
 - **Background completion is absent from the observed ACP stream.** A
   `run_command` outlived `end_turn`, finished, and triggered another model

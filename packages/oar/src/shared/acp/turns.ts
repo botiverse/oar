@@ -141,8 +141,8 @@ export function createAcpTurns(deps: {
         // at that end includes this turn's usage.
         await usageGate.settleAfterPrompt(profile, state.abortRequested);
         const usage = promptUsage(result);
-        const rootTurnRecords = (): readonly RawEvent[] => kernel.records().slice(state.since + 1)
-          .filter(record => record.sessionId === rootId && record.agentPath.length === 0);
+        const rootTurnRecords = (): readonly RawEvent[] => kernel.records().filter(record =>
+          record.seq > state.since && record.sessionId === rootId && record.agentPath.length === 0);
         finishRequest(state, requestNumber, {
           type: methods.agent.session.prompt,
           native: result,
