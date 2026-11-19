@@ -788,7 +788,7 @@ including a map whose only entries are `null` removals. In subprocess mode
 `env` is the session child's environment, over the host's or over nothing
 ([child environment](#child-environment)), and the agent's tools inherit
 it. `refusedSessionOptions` declares the in-process `env` refusal, and in
-both modes `goals`, `endTurnProcessesOnAbort`, `outputSchema`, `name`,
+both modes `fork`, `goals`, `endTurnProcessesOnAbort`, `outputSchema`, `name`,
 `serviceTier`, `systemPrompt`, `appendSystemPrompt` and `launchArgs`
 ([refused session options](../spec/runtime-matrix.md#refused-session-options)),
 before any session opens. The

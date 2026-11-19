@@ -981,11 +981,13 @@ selection; `session/llm/request.ts` chooses the agent prompt; and
 | --- | --- |
 | `cwd` | ACP directory; a resume elsewhere is refused from native `session/list`. |
 | `resume` | ACP resume, native session identity and saved agent. |
+| `fork` | Both OpenCode v1 and v2 refuse `SessionOptions.fork` ([declarations](../../packages/oar/src/runtimes/opencode/options.ts)). |
 | `model` | ACP model config option with native read-back. |
 | `effort` | ACP `thought_level` config option when the selected model has variants; otherwise refused. |
 | `systemPrompt` | Fresh inline `agent.<selected>.prompt`, verified against the ACP mode on new/resumed sessions. |
 | `appendSystemPrompt` | Fresh inline `instructions` entry for a session-owned temporary file, on new/resumed sessions. The file goes when the session ends; a host that ends without disposing leaves it to its `exit` event or the next opencode session's sweep ([private-temp](../../packages/oar/src/shared/private-temp.ts)). |
 | `env` | Child-process environment, shared by native queries, the ACP process and its tools. |
+| `goals: true`, `endTurnProcessesOnAbort: true` | Both lines refuse these options. ACP exposes no structured goal control, and OAR has no verified way to end only the processes owned by an aborted turn. |
 | `name` | Refused with `UnsupportedOptionError` on both lines (no verified session name setting), declared in `Runtime.refusedSessionOptions` ([session name](../spec/runtime-matrix.md#session-name)). |
 
 ### Tools, permissions, and process

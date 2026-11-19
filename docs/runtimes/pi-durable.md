@@ -239,6 +239,8 @@ resume and return to the default prompt when they are omitted.
 Resume configuration is transactional. While adopting an active run, supplied
 cwd/model/effort/instructions must match its saved settings; changed values
 are refused before mutation. Reopen after the run finishes to change them.
+Pi Durable refuses `SessionOptions.fork` because OAR has no verified mapping
+for copying a saved conversation through a chosen turn.
 The runtime also refuses `env`, `launchArgs`, `serviceTier`, `mcpServers` and
 `disallowedTools`. Environment and extensions belong to the host Harness;
 there is no verified per-conversation OAR channel for these options. `goals`

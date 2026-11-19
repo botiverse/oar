@@ -537,7 +537,7 @@ sessions; OAR does not use that as a prompt override or modify user config.
 | `mcpServers` | ACP `mcpServers` on `session/new` and `session/resume` ([session MCP servers](#session-mcp-servers)). |
 | `systemPrompt`, `appendSystemPrompt` | Refused: the selected native launcher does not carry them. |
 | `name` | Refused: kimi has no verified session name setting ([session name](../spec/runtime-matrix.md#session-name)). |
-| `goals`, `endTurnProcessesOnAbort` | Refused ([refused session options](../spec/runtime-matrix.md#refused-session-options)). |
+| `fork`, `goals`, `endTurnProcessesOnAbort` | Refused ([refused session options](../spec/runtime-matrix.md#refused-session-options)). |
 
 **Context (partial):** native ACP
 [emits context usage after the prompt response](https://github.com/MoonshotAI/kimi-code/blob/f9ca33376/packages/acp-server/src/session.ts#L907-L947)

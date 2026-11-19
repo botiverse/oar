@@ -260,7 +260,7 @@ sections describe the default SDK path unless the RPC differences above apply.
 | In-process AgentSession | One OAR Session wrapping the SDK object; no runtime subprocess. |
 | Session file header ID | `Session.id`; resume resolves it to a file in the cwd's session directory. Every open starts a new record stream at seq 0; history is not rebuilt. |
 | Agent run | One OAR turn: from the `prompt` request (accepted once pi emits `agent_start`) to pi's `agent_settled`, whose `turn_ended` event carries the outcome. Several native `turn_start`/`turn_end` pairs, threshold compaction and auto-retries sit inside it. |
-| History tree and replacement APIs | Resume is mapped; branch navigation, fork, import and history access are not exposed. |
+| History tree and replacement APIs | OAR maps resume and refuses `SessionOptions.fork` in both SDK and RPC modes. Branch navigation, import and history access remain unavailable. |
 | ModelRuntime and ResourceLoader | Native services determine models/resources; OAR exposes selected startup options and catalog results. The `pi/session_opened` frame reports the effective model and thinking level as `model` and `effort` events. Outside sessions, `createPiProviderAuth` wraps `ModelRuntime.login`/`logout`/auth status and lists the providers pi's `/login` offers (`loginProviders`), and the internal model catalog wraps `ModelRegistry`; hosts discover models through `piRuntime.listModels`. |
 | SDK event stream | Every `AgentSessionEvent` is exactly one Frame record, verbatim as `native`, with the events OAR reads from it ([table](#observation-history-and-children)). No `spanId` (pi has no native turn id); `agentPath` is always root; capabilities declare `attribution: "none"`. |
 | Control | `prompt`/`steer`/`queue`/`withdraw`/`abort`/`dispose` are request records answered accepted/rejected ([details](#prompt-steering-queueing-and-abort)). |
@@ -275,6 +275,11 @@ Sources: [adapter](../../packages/oar/src/runtimes/pi/session.ts),
 [agent loop][native-agent-loop], [Session contract](../../packages/oar/src/contracts/session.ts).
 
 ## Capability details
+
+The SDK and RPC adapters refuse `goals: true` and
+`endTurnProcessesOnAbort: true`. Pi exposes no structured goal control.
+The SDK runs in the host process, and OAR has not verified per-turn process
+ownership on the RPC path. [Declared refusals](../../packages/oar/src/runtimes/pi/open.ts).
 
 ### Project trust and package installation
 
