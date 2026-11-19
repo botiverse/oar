@@ -101,6 +101,7 @@ export interface ConfigIssue {
   readonly code:
     | "required"
     | "invalid_shape"
+    | "conflicting_fields"
     | "mode_not_allowed"
     | "model_not_listed"
     | "model_disabled"

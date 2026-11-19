@@ -7,10 +7,27 @@ export function withSessionNode(graph: SessionGraph, id: string, nodeIds?: Set<s
   return { ...graph, nodes: [...graph.nodes, { id }] };
 }
 
+/** Every session derived from `sessionId` in the graph, nested ones too, each once; never `sessionId` itself. */
+export function derivedFrom(graph: SessionGraph, sessionId: string): ReadonlySet<string> {
+  const found = new Set<string>();
+  const queue = [sessionId];
+  while (queue.length > 0) {
+    const parent = queue.shift();
+    for (const edge of graph.edges) {
+      if (edge.parent === parent && edge.child !== sessionId && !found.has(edge.child)) {
+        found.add(edge.child);
+        queue.push(edge.child);
+      }
+    }
+  }
+  return found;
+}
+
 /** The same native edge may be reported many times; the graph contains it once. */
 export function withSessionLink(graph: SessionGraph, edge: SessionEdge, nodeIds?: Set<string>): SessionGraph {
   const nodes = withSessionNode(withSessionNode(graph, edge.parent, nodeIds), edge.child, nodeIds);
-  return nodes.edges.some((known) => known.parent === edge.parent && known.child === edge.child)
+  return edge.parent === edge.child || nodes.edges.some((known) => known.parent === edge.parent && known.child === edge.child)
+    || derivedFrom(nodes, edge.child).has(edge.parent)
     ? nodes : { ...nodes, edges: [...nodes.edges, { parent: edge.parent, child: edge.child, via: edge.via }] };
 }
 

@@ -1,3 +1,4 @@
+import { observeState } from "./cursor.js";
 import type {
   ContextUsage,
   ControlAction,
@@ -13,7 +14,7 @@ import type {
   TurnOutcome,
   Unsubscribe,
 } from "../contracts/session.js";
-import { withSessionNode } from "./graph.js";
+import { prepareViewRoot, recordedRoot, rootEvidence } from "./session-view-root.js";
 import type { SessionTokens } from "./usage-totals.js";
 import { initialStatus, reduceStatus, type AgentStatus, type StatusState } from "./agent-status.js";
 import {
@@ -190,8 +191,10 @@ export interface SessionView {
   readonly exited: { readonly code: number | null } | null;
   /** The fold internals, exposed like `ConversationState`: all derivable. */
   readonly conversation: ConversationState;
-  /** sessionId of the latest prompt request: whose `turn_ended` closes turns. */
+  /** Session whose root-level turn ends, settings and status this view tracks. */
   readonly rootSessionId: string | undefined;
+  /** The host supplied this root; native evidence cannot replace it. */
+  readonly rootProvided?: true;
   /** Replay state for native lineage and every observed session's latest totals; includes children before their lineage arrives. */
   readonly sessionGraph: SessionGraph;
   readonly usageBySession: ReadonlyMap<string, SessionTokens>;
@@ -200,7 +203,7 @@ export interface SessionView {
   readonly usageTotal: TokenTotals | null;
 }
 
-export function initialSessionView(): SessionView {
+export function initialSessionView(rootSessionId?: string): SessionView {
   return {
     messages: [],
     pendingInputs: [],
@@ -212,7 +215,7 @@ export function initialSessionView(): SessionView {
     pendingRequests: [],
     exited: null,
     conversation: initialConversation(),
-    rootSessionId: undefined,
+    rootSessionId, ...(rootSessionId === undefined ? {} : { rootProvided: true as const }),
     sessionGraph: { nodes: [], edges: [] },
     usageBySession: new Map(),
     usageByAgent: new Map(), usageTotal: null,
@@ -234,16 +237,9 @@ export function reduceSessionView(
     return { ...previous, conversation: { ...previous.conversation, updates: [] } };
   }
   const draft = draftOf(previous);
-  draft.rootSessionId ??= record.sessionId;
-  draft.sessionGraph = withSessionNode(draft.sessionGraph, record.sessionId);
-  if (
-    record.kind === "request" &&
-    record.direction === "toRuntime" &&
-    record.body.kind === "prompt"
-  ) {
-    draft.rootSessionId = record.sessionId;
-  }
-  const status = reduceStatus(previous.statusState ?? previous.status, record, draft.rootSessionId);
+  prepareViewRoot(draft, record.sessionId, rootEvidence(record), record.kind === "frame" ? record.body.events : []);
+  const priorStatus = previous.rootSessionId === draft.rootSessionId ? previous.statusState ?? previous.status : initialStatus;
+  const status = reduceStatus(priorStatus, record, draft.rootSessionId);
   if (record.kind === "response" && (record.body.kind === "exited" || record.body.kind === "released") && previous.status.kind === "running" && status.kind === "idle" && status.lastTurnOutcome !== undefined) {
     stampTurnOutcome(draft, `turn:${streamId}:${record.sessionId}:${record.seq}`, status.lastTurnOutcome);
   }
@@ -267,10 +263,9 @@ export function reduceSessionView(
  */
 export function reduceSessionViewEvent(previous: SessionView, event: Event, streamId = ""): SessionView {
   const draft = draftOf(previous);
-  draft.rootSessionId ??= event.sessionId;
-  draft.sessionGraph = withSessionNode(draft.sessionGraph, event.sessionId);
+  prepareViewRoot(draft, event.sessionId, event.kind === "turn_started" && event.agentPath.length === 0 ? "prompt" : undefined, [event]);
   foldEvent(draft, upgradeLegacyEvent(event), streamId);
-  return assemble(draft, previous.conversation, previous.statusState ?? previous.status);
+  return assemble(draft, previous.conversation, previous.rootSessionId === draft.rootSessionId ? previous.statusState ?? previous.status : initialStatus);
 }
 
 /** Upsert a user input from a non-record source (an app's own submission log); it enters `messages` now. */
@@ -281,20 +276,16 @@ export function reduceSessionViewInput(previous: SessionView, input: Conversatio
 }
 
 /** Replay a whole record log into a view. One `streamId` per call. */
-export function viewOf(records: readonly RawEvent[], streamId = ""): SessionView {
-  return records.reduce((state, record) => reduceSessionView(state, record, streamId), initialSessionView());
+export function viewOf(records: readonly RawEvent[], streamId = "", rootSessionId?: string): SessionView {
+  const start = initialSessionView(rootSessionId ?? recordedRoot(records));
+  const result = records.reduce((state, record) => reduceSessionView(state, record, streamId), start);
+  if (rootSessionId !== undefined) { return result; }
+  const { rootProvided: _provided, ...inferred } = result;
+  return inferred;
 }
 
-/**
- * The composed subscriber: folds the retained prefix, pushes the view on
- * every record after `cursor`. Mirrors `observeConversation`.
- */
+/** Observe the current view and live updates, or resume delivering views after an explicit cursor. */
 export function observeSessionView(session: Session, observer: (view: SessionView) => void, cursor?: Cursor): Unsubscribe {
-  let state = initialSessionView();
-  return session.rawEvents((record) => {
-    state = reduceSessionView(state, record, session.id);
-    if (record.seq > (cursor?.afterSeq ?? -1)) {
-      observer(state);
-    }
-  }, { sessionId: session.id, afterSeq: -1 });
+  return observeState(session, cursor, initialSessionView(session.id),
+    (state, record) => reduceSessionView(state, record, session.id), observer);
 }

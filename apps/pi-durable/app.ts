@@ -52,7 +52,7 @@ async function connect(): Promise<void> {
     try {
       const runtime = createPiDurableRuntime({ harness, models });
       const session = await runtime.session({ kind: "available", via: "bundled" }, { cwd: "/", model: ui.model.value });
-      let view = initialSessionView();
+      let view = initialSessionView(session.id);
       const unsubscribe = session.rawEvents(record => {
         view = reduceSessionView(view, record, session.id);
         render(view);

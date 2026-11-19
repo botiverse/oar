@@ -1,3 +1,4 @@
+import { derivedFrom } from "./graph.js";
 import type { SessionGraph, SessionUsage, TokenTotals, UsageReport } from "../contracts/session.js";
 import { addTokens, noTokens, subtractTokens } from "../shared/token-totals.js";
 
@@ -41,22 +42,6 @@ export function sessionUsageFrom(byAgent: readonly AgentTotal[], reported: Token
     ...(onlyRoot && unattributed === null ? {} : { byAgent }),
     ...(unattributed === null ? {} : { unattributed }),
   };
-}
-
-/** Every session derived from `sessionId` in the graph, nested ones too, each once; never `sessionId` itself. */
-export function derivedFrom(graph: SessionGraph, sessionId: string): ReadonlySet<string> {
-  const found = new Set<string>();
-  const queue = [sessionId];
-  while (queue.length > 0) {
-    const parent = queue.shift();
-    for (const edge of graph.edges) {
-      if (edge.parent === parent && edge.child !== sessionId && !found.has(edge.child)) {
-        found.add(edge.child);
-        queue.push(edge.child);
-      }
-    }
-  }
-  return found;
 }
 
 /** Latest totals per agent, without mutating a previously published view. */

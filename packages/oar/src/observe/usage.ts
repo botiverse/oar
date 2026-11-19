@@ -5,8 +5,8 @@ import type {
   SessionGraph,
   SessionUsage,
 } from "../contracts/session.js";
-import { graphOf } from "./graph.js";
-import { derivedFrom, foldSessionTokens, usageFromSessions, type SessionTokens } from "./usage-totals.js";
+import { derivedFrom, graphOf } from "./graph.js";
+import { foldSessionTokens, usageFromSessions, type SessionTokens } from "./usage-totals.js";
 
 /**
  * Query = projection over the stream. Model, token usage and context

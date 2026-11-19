@@ -1,4 +1,3 @@
-import { withSessionLink } from "./graph.js";
 import { foldSessionTokens } from "./usage-totals.js";
 import type { Event, RawEvent } from "../contracts/session.js";
 import {
@@ -26,13 +25,14 @@ import type { PendingRequest, ViewPart } from "./session-view.js";
  */
 
 export function foldEvent(draft: Draft, event: Event, streamId: string, openedBy?: string): void {
-  // Native echoes are ConversationInput observations, never a second bubble.
-  if (event.kind === "user_message" || event.kind === "input_dropped" || event.kind === "input_queued" || event.kind === "input_handled") {
+  // Lineage is folded before root attribution. Native echoes are ConversationInput observations.
+  if (event.kind === "session_linked" || event.kind === "user_message" || event.kind === "input_dropped" || event.kind === "input_queued" || event.kind === "input_handled") {
     return;
   }
   const scope = draft.rootSessionId ?? event.sessionId;
   switch (event.kind) {
     case "turn_started":
+      if (event.sessionId !== scope || event.agentPath.length > 0) { return; }
       beginTurn(draft, `turn:${streamId}:${event.requestId}`, event.requestId);
       return;
     case "turn_active":
@@ -202,9 +202,6 @@ export function foldEvent(draft: Draft, event: Event, streamId: string, openedBy
       });
       sealTurn(draft);
       return;
-    case "session_linked":
-      draft.sessionGraph = withSessionLink(draft.sessionGraph, event);
-      return;
     case "usage":
       draft.usageBySession.set(event.sessionId, foldSessionTokens(draft.usageBySession.get(event.sessionId), event.agentPath, event.usage));
       if (event.sessionId === scope && event.usage.context !== undefined && event.agentPath.length === 0) {
@@ -289,7 +286,7 @@ export function recordFacts(draft: Draft, record: RawEvent, streamId: string): v
     updateRequestPart(draft, record.id, (part) => ({ ...part, body: entry.body }));
     return;
   }
-  if (record.kind === "request" && record.direction === "toRuntime" && record.body.kind === "prompt") {
+  if (record.kind === "request" && record.direction === "toRuntime" && record.body.kind === "prompt" && record.sessionId === draft.rootSessionId && record.agentPath.length === 0) {
     // After the input update landed: the turn opens below its own bubble.
     beginTurn(draft, `turn:${streamId}:${record.id}`, record.id);
     return;

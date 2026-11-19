@@ -1,4 +1,4 @@
-import { asModelValue, isActive, isEmpty, unknownFieldIds } from "./fields.js";
+import { activeFields, asModelValue, isEmpty, mappingConflicts, scalarIssue, unknownFieldIds } from "./fields.js";
 import type { ConfigField, ConfigIssue, LaunchValue, LaunchValues, RuntimeConfigForm } from "./types.js";
 import type { SessionOptions } from "../contracts/session-options.js";
 
@@ -47,21 +47,13 @@ function modelContribution(field: ConfigField & { kind: "model" }, value: Launch
   return model.kind === "custom" ? { model: model.name } : {};
 }
 
-function presentSecret(value: LaunchValue | undefined): string | undefined {
-  if (typeof value !== "object" || value === null || Reflect.get(value, "present") !== true) {
-    return undefined;
-  }
-  const secret: unknown = Reflect.get(value, "value");
-  return typeof secret === "string" ? secret : undefined;
-}
-
 function contribution(field: ConfigField, value: LaunchValue | undefined): Contribution {
   if (field.kind === "secret") {
-    const secret = presentSecret(value);
-    if (secret !== undefined) {
-      return { secret };
-    }
-    return field.required ? { issue: "secret_missing" } : {};
+    if (value === null || value === undefined) { return field.required ? { issue: "secret_missing" } : {}; }
+    if (typeof value !== "object" || !("present" in value) || typeof value.present !== "boolean") { return { issue: "invalid_shape" }; }
+    if (!value.present || value.value === "") { return field.required ? { issue: "secret_missing" } : {}; }
+    if (typeof value.value !== "string") { return { issue: "invalid_shape" }; }
+    return { secret: value.value };
   }
   if (isEmpty(value)) {
     return field.required ? { issue: "required" } : {};
@@ -75,7 +67,8 @@ function contribution(field: ConfigField, value: LaunchValue | undefined): Contr
   if (field.kind === "effort") {
     return typeof value === "string" ? { effort: value } : { issue: "invalid_shape" };
   }
-  return { unmapped: value };
+  const issue = scalarIssue(field, value);
+  return issue === null ? { unmapped: value } : { issue };
 }
 
 /**
@@ -90,7 +83,9 @@ export function toSessionOptions(form: RuntimeConfigForm, values: LaunchValues):
   const options: { model?: string; effort?: string } = {};
   const unmapped: Record<string, string | boolean> = {};
   const secrets: Record<string, string> = {};
-  for (const field of form.fields.filter((candidate) => isActive(candidate, values))) {
+  const fields = activeFields(form, values);
+  issues.push(...mappingConflicts(fields, values));
+  for (const field of fields) {
     const part = contribution(field, values[field.id]);
     if ("issue" in part) {
       issues.push({ field: field.id, code: part.issue });
