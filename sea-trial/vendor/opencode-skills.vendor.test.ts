@@ -4,10 +4,10 @@ import * as nativeProcess from "node:child_process";
 import { mkdir, mkdtemp, realpath, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve as resolvePath } from "node:path";
-import { createConnection } from "node:net";
 import { describe, expect, test, vi } from "vitest";
 import { opencodeRuntime } from "../../packages/oar/src/runtimes/opencode/index.js";
 import * as executable from "../../packages/oar/src/shared/executable/index.js";
+import { probePort, windowsListenerTrace } from "./support/windows-listener.js";
 import { sessionEnvironment } from "../../packages/oar/src/shared/environment.js";
 
 vi.mock("node:child_process", { spy: true });
@@ -34,20 +34,13 @@ async function fixture() {
   return { root, cwd, roots, env: { ...stripped, HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: config, XDG_DATA_HOME: join(root, "data"), XDG_CACHE_HOME: join(root, "cache"), XDG_STATE_HOME: join(root, "state"), OPENCODE_DISABLE_AUTOUPDATE: "true", OPENCODE_DISABLE_MODELS_FETCH: "true", NO_COLOR: "1" } };
 }
 
-async function portOpen(port: number): Promise<boolean> {
-  return new Promise(resolve => {
-    const socket = createConnection({ host: "127.0.0.1", port });
-    socket.on("connect", () => { socket.destroy(); resolve(true); });
-    socket.on("error", () => { resolve(false); });
-  });
-}
-
 const enabled = ["opencode-skills", "opencode-aimock", "opencode-cleanup"].includes(process.env.OAR_TEST ?? "");
 describe.skipIf(!enabled)("OpenCode native skill discovery", () => {
   test.for(["success", "failure", "timeout", "plugin-failure"])("%s preserves native paths and reclaims the owned process", { timeout: 60_000 }, async (mode, context) => {
     const f = await fixture();
     const children: executable.LineProcess[] = [];
     const ports: number[] = [];
+    const trace: { listener?: ReturnType<typeof windowsListenerTrace> } = {};
     const spawn = executable.spawnLineProcess;
     const command = process.env.OAR_OPENCODE_BIN === undefined ? "opencode" : resolvePath(process.env.OAR_OPENCODE_BIN);
     try {
@@ -64,13 +57,18 @@ describe.skipIf(!enabled)("OpenCode native skill discovery", () => {
       const nativeStarts = vi.mocked(nativeProcess.spawn).mock.results.length;
       vi.spyOn(executable, "spawnLineProcess").mockImplementation((...args) => {
         const child = spawn(...args); children.push(child);
-        child.onLine(line => { const match = /^server listening on http:\/\/127\.0\.0\.1:([0-9]+)/u.exec(line); if (match?.[1] !== undefined) { ports.push(Number(match[1])); } });
+        child.onLine(line => {
+          const match = /^server listening on http:\/\/127\.0\.0\.1:([0-9]+)/u.exec(line);
+          if (match?.[1] === undefined) { return; }
+          const port = Number(match[1]); ports.push(port);
+          if (mode === "timeout" && process.platform === "win32") { trace.listener = windowsListenerTrace(port, child); }
+        });
         return child;
       });
       if (mode === "failure") { vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Synthetic transport failure")); }
       if (mode === "timeout") {
         vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) => new Promise<Response>((_resolve, reject) => {
-          init?.signal?.addEventListener("abort", () => { reject(new Error("Deadline")); }, { once: true });
+          init?.signal?.addEventListener("abort", () => { trace.listener?.mark("deadline"); reject(new Error("Deadline")); }, { once: true });
         }));
       }
       const result = await opencodeRuntime.skills({ kind: "available", via: "executable", command, version: version.stdout.trim() }, { cwd: f.cwd, env: f.env, timeoutMs: mode === "timeout" ? 15_000 : 30_000 });
@@ -112,14 +110,21 @@ describe.skipIf(!enabled)("OpenCode native skill discovery", () => {
       };
       if (mode === "timeout") { await vi.waitFor(assertExited, { timeout: 15_000 }); }
       else { assertExited(); }
-      if (major === 2) { expect(ports).toHaveLength(1); for (const port of ports) { expect(await portOpen(port)).toBe(false); } }
+      if (major === 2) {
+        expect(ports).toHaveLength(1);
+        for (const port of ports) {
+          const connection = await probePort(port);
+          trace.listener?.mark("root-exited", connection);
+          expect(connection.connected).toBe(false);
+        }
+      }
       const dir = resolvePath(process.env.OAR_TRIAL_RUN_DIR ?? "oar-trial-run", "opencode-skills");
       await mkdir(dir, { recursive: true });
       await writeFile(join(dir, `${major}-${mode}.json`), JSON.stringify({ version: version.stdout.trim(), mode, result, processesExited: true, portsClosed: true }, null, 2));
     } finally {
       vi.restoreAllMocks();
       for (const child of children) { child.kill(); await child.exited; }
-      await rm(f.root, { recursive: true, force: true });
+      try { await trace.listener?.finish(); } finally { await rm(f.root, { recursive: true, force: true }); }
     }
   });
 });

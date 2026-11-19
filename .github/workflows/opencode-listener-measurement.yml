@@ -1,0 +1,45 @@
+name: Measure OpenCode Windows listener ownership
+on: pull_request
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    if: github.head_ref == 'agent/otter/opencode-windows-listener'
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - run: node .github/scripts/runtime-install.mjs opencode-cleanup
+      - name: Record five independent timeouts
+        shell: pwsh
+        env:
+          OAR_TEST: opencode-cleanup
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $false
+          $failed = 0
+          foreach ($round in 1..5) {
+            $env:OAR_TRIAL_RUN_DIR = Join-Path $env:GITHUB_WORKSPACE "listener-samples/$round"
+            if ($round -le 2) {
+              pnpm exec vitest run sea-trial/vendor/opencode-cleanup.vendor.test.ts sea-trial/vendor/opencode-skills.vendor.test.ts
+            } else {
+              pnpm exec vitest run sea-trial/vendor/opencode-skills.vendor.test.ts -t 'timeout preserves'
+            }
+            if ($LASTEXITCODE -ne 0) { $failed++ }
+          }
+          if ($failed -gt 0) { throw "$failed rounds failed" }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-windows-listener-samples
+          path: listener-samples/**/skills-listener.json
+          if-no-files-found: error
