@@ -320,3 +320,7 @@ test("model and effort are read from the native request header, never from what 
   expect(dshOpenedFrame({ sessionId: "s" }).events).toEqual([]);
   expect(dshOpenedFrame({ model: { provider: "p", model: "m", reasoningEffort: "low" } }).events).toEqual([{ kind: "model", model: "p/m" }, { kind: "effort", effort: "low" }]);
 });
+
+test("a self-referencing DSH catalog keeps the native frame without a child link", () => {
+  expect(eventsOf([durable("subagent/catalog", { childId: "root" })])).toEqual([]);
+});

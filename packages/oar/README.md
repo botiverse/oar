@@ -571,7 +571,7 @@ const runtime = createPiDurableRuntime({ harness, models });
 const session = await runtime.session({ kind: "available", via: "bundled" }, {
   cwd: "/workspace", model: "provider/model",
 });
-let view = initialSessionView();
+let view = initialSessionView(session.id);
 session.rawEvents(record => {
   view = reduceSessionView(view, record, session.id);
   render(view);

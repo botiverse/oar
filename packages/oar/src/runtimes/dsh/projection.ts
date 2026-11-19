@@ -192,7 +192,7 @@ function sessionEvent(state: DshProjection, sessionId: string, session: DshSessi
       ] };
     }
     case "subagent/catalog": {
-      if (typeof data.childId !== "string") { return { ...unchanged, events: [] }; }
+      if (typeof data.childId !== "string" || data.childId === sessionId) { return { ...unchanged, events: [] }; }
       const link = `${sessionId} ${data.childId}`;
       return state.links.includes(link) ? { ...unchanged, events: [] }
         : { session, links: [...state.links, link], events: [{ kind: "session_linked", parent: sessionId, child: data.childId, via: "tool_call" }] };

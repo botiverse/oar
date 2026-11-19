@@ -40,6 +40,7 @@ export interface Draft {
   usageBySession: Map<string, SessionTokens>;
   sessionGraph: SessionGraph;
   rootSessionId: string | undefined;
+  rootProvided: boolean;
 }
 
 export function draftOf(state: SessionView): Draft {
@@ -58,6 +59,7 @@ export function draftOf(state: SessionView): Draft {
     usageBySession: new Map(state.usageBySession),
     sessionGraph: state.sessionGraph,
     rootSessionId: state.rootSessionId,
+    rootProvided: state.rootProvided === true,
   };
 }
 
@@ -83,6 +85,7 @@ export function assemble(
     exited: draft.exited,
     conversation,
     rootSessionId: draft.rootSessionId,
+    ...(draft.rootProvided ? { rootProvided: true as const } : {}),
     usageBySession: draft.usageBySession,
     sessionGraph: draft.sessionGraph,
     usageByAgent: own?.agents ?? new Map(),

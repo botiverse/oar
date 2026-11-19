@@ -79,6 +79,13 @@ an exhaustive event switch must handle `session_linked`.
 these facts into a `SessionGraph`. Each record's `sessionId` and each edge's
 endpoints establish nodes. Repeated edges are deduplicated. A foreign id
 alone establishes only a node; it never implies that the root spawned it.
+Repeated links, self-links, and links that would create a cycle add no edge.
+When folding raw records incrementally, seed the view with
+`initialSessionView(session.id)`. A child can have an empty agent path.
+`observeSessionView` knows the root from the open session. For a complete
+offline stream, `viewOf` checks opening records, prompts and recorded lineage.
+For cross-session slices, pass the host’s root ID; `viewOf` accepts it as its third argument. A supplied root stays authoritative. Without it, the first envelope gives a provisional root that later opening, prompt or lineage evidence can correct.
+
 An empty log has an empty graph. `Session.graph()` retains the result of
 this same fold, updated as each record is appended, so querying it does not
 scan the log again. Node ids have a Set index. The live graph starts with
@@ -139,6 +146,8 @@ interface Cursor { sessionId: string; afterSeq: number; }
 // Session.rawEvents(observer, cursor) replays every retained record with
 // seq > afterSeq synchronously, then continues live;
 // Session.events(observer, { cursor }) does the same for the flat Events;
+// Without a cursor, subscribers receive only new records or events.
+// Stateful readers still use earlier records to interpret new responses.
 // Session.records() is the retained log. A cursor for another session id
 // throws. Pinned by sea-trial `session.cursor-replays-without-loss-or-duplication`.
 ```

@@ -37,7 +37,7 @@ framework:
   runtime has not taken yet; a withdrawn one leaves it), `openTurn`, `status`, `model`, `effort`,
   `context`, `usage`, `usageByAgent`, `pendingRequests`, `exited`, and the
   underlying `conversation` fold.
-- `initialSessionView()` creates the initial view;
+- `initialSessionView(session.id)` creates the initial view with the known root. Pass the root when replaying cross-session slices; without it the initial root is provisional.
   `reduceSessionView(view, record, streamId?)` folds each raw record, including
   when replaying a saved log.
 

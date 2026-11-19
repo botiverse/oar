@@ -8,6 +8,7 @@ import type {
   Session,
   SteerOrQueueResult,
 } from "../contracts/session.js";
+import { observeWithPrefix } from "../observe/cursor.js";
 import { statusOf } from "../observe/agent-status.js";
 import { coalesceText, eventsReader } from "../observe/events.js";
 import { contextUsageOf, effortOf, modelOf, serviceTierOf, usageOf } from "../observe/usage.js";
@@ -113,7 +114,7 @@ export function sealSession(adapterSession: AdapterSession): Session {
       const target = coalesce === false
         ? observer
         : coalesceText(observer, coalesce === true ? {} : { maxHoldMs: coalesce.maxHoldMs });
-      return adapterSession.rawEvents(eventsReader(target), options.cursor);
+      return observeWithPrefix(adapterSession, options.cursor, afterSeq => eventsReader(target, afterSeq));
     },
     model: () => modelOf(adapterSession.records(), adapterSession.id),
     effort: () => effortOf(adapterSession.records(), adapterSession.id),

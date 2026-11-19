@@ -1,3 +1,4 @@
+import { observeWithPrefix } from "./cursor.js";
 import { findCarriedInput, inputIdentity as identity, invalidCarriedInput } from "./input-carries.js";
 import { awaitsEcho, deliveryState, withDeliveryState, type InputDrop } from "./input-delivery.js";
 import type { Cursor, Event, InputImage, InputOrigin, RawEvent, RequestRecord, ResponseRecord, Session, Unsubscribe, UserMessage } from "../contracts/session.js";
@@ -241,8 +242,8 @@ export function conversationOf(records: readonly RawEvent[]): ConversationState 
 export function observeConversation(session: Session, observer: (state: ConversationState) => void, cursor?: Cursor): Unsubscribe {
   let state = initialConversation();
   // Always fold the retained prefix: a cursor can start after an input request.
-  return session.rawEvents((record) => {
+  return observeWithPrefix(session, cursor, afterSeq => record => {
     state = reduceConversation(state, record);
-    if (record.seq > (cursor?.afterSeq ?? -1)) {observer(state);}
-  }, { sessionId: session.id, afterSeq: -1 });
+    if (record.seq > afterSeq) {observer(state);}
+  });
 }

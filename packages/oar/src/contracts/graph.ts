@@ -17,7 +17,7 @@ export interface SessionGraph {
   readonly edges: readonly SessionEdge[];
 }
 
-/** Resume reading after `afterSeq`; `-1` (or omitting the cursor) reads from the start. */
+/** Resume reading after `afterSeq`; `-1` reads from the start. Without a cursor, subscribers receive new records only. */
 export interface Cursor {
   readonly sessionId: string;
   readonly afterSeq: number;

@@ -98,12 +98,12 @@ function remember(actions: Map<string, KnownControl>, record: RawEvent): void {
 }
 
 /** A raw-event observer that delivers `eventsOf` each record to `observer`, remembering toRuntime requests so a rejection names its action and an accepted withdraw its input. */
-export function eventsReader(observer: EventObserver): RawEventObserver {
+export function eventsReader(observer: EventObserver, afterSeq = -1): RawEventObserver {
   const actions = new Map<string, KnownControl>();
   return (record) => {
     remember(actions, record);
-    for (const event of eventsOf(record, actions)) {
-      observer(event);
+    if (record.seq > afterSeq) {
+      for (const event of eventsOf(record, actions)) { observer(event); }
     }
     if (record.kind === "response") {
       actions.delete(record.requestId);
