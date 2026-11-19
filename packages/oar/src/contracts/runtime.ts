@@ -4,6 +4,7 @@ import type { AuthStatusReader, RuntimeLogin, RuntimeLogout } from "./login.js";
 import type { AvailableInstallation, InstallationProbe } from "./installation.js";
 import type { InstallLine, InstallPlanner, Installer } from "./install.js";
 import type { InventoryResult, RuntimeInventories } from "./inventory.js";
+import type { McpTransport, SessionOptions } from "./session-options.js";
 // oxlint-disable-next-line import/consistent-type-specifier-style -- Keep types and implementation from the same contract in one import.
 import { type PlacementRequest, type RuntimePlacementOptions, placementSession } from "./placement.js";
 import type { UpdateChecker, Upgrader } from "./update.js";
@@ -12,7 +13,6 @@ import type { ManualCompaction } from "./compaction.js";
 import type { ModelLister } from "./list-models.js";
 import type { ProviderAuthReader } from "./provider-auth.js";
 import type { RuntimeBrand } from "./brand.js";
-import type { SessionOptions } from "./session-options.js";
 import type { StartSession } from "./session.js";
 
 /**
@@ -36,19 +36,12 @@ export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "en
 export type RefusedSessionOptions = Readonly<Partial<Record<RefusableSessionOption, string>>>;
 
 /**
- * What a session opened from this installation will offer, known without
- * opening one. Each field mirrors the opened session: `steer` is whether
- * `Session.steer` exists, `images` is `capabilities.images`. A field is
- * absent when only the native handshake at open can tell (an ACP agent's
- * advertised image input, OpenCode 2's steering extension, DSH's agent); a
- * host treats absent as unknown, never as false. The opened session stays
- * authoritative.
+ * What a session opened from this installation will offer, known without opening one.
+ * Each field mirrors the opened session (`steer`, `images`, `stopTask`, `mcpTransports`, `contextUsage`).
+ * A field is absent when only the native handshake at open can tell; absent means unknown, never false, and the opened session stays authoritative.
  *
- * `refusedSessionOptions` and `manualCompaction` are this installation's
- * complete answer: the Runtime's static declaration plus what this version
- * changes (an option a release below its floor refuses). The same rule as
- * the static map holds: a declared option is always refused at open. A
- * refusal only the runtime can decide at open stays undeclared.
+ * `refusedSessionOptions` and `manualCompaction` are this installation's complete answer (static declaration plus version-specific overrides).
+ * The same rule as the static map holds: a declared option is always refused at open; a refusal only the runtime can decide at open stays undeclared.
  * `defineRuntime` and `installedSessionCapabilities` fill in the static part.
  */
 export interface SessionCapabilityDeclaration {
@@ -56,10 +49,14 @@ export interface SessionCapabilityDeclaration {
   readonly images?: boolean;
   readonly refusedSessionOptions?: RefusedSessionOptions;
   readonly manualCompaction?: ManualCompaction;
-  /** Whether native automatic compaction reports `compaction_started` / `compaction_ended`; absent when not measured for this installation. */
+  /** Whether native automatic compaction reports `compaction_started` / `compaction_ended`; absent when unmeasured. */
   readonly compactionEvents?: CompactionEvents;
-  /** Whether `Session.contextUsage()` reports trustworthy `tokens` and `contextWindow` by each normally completed root turn; absent when not measured for this installation. */
+  /** Whether `Session.contextUsage()` reports trustworthy `tokens` and `contextWindow` by each normally completed root turn; absent when unmeasured. */
   readonly contextUsage?: ContextUsageCapability;
+  /** Verified session MCP transports (`[]` when MCP is refused; absent when unverified or handshake-only). */
+  readonly mcpTransports?: readonly McpTransport[];
+  /** Whether an opened session exposes `Session.stopTask(taskId)`. */
+  readonly stopTask?: boolean;
 }
 
 /** Which compaction lifecycle events a runtime's own automatic compaction produces. */

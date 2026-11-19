@@ -13,3 +13,5 @@ export type {
 } from "./contracts/runtime.js";
 export type { AvailableInstallation } from "./contracts/installation.js";
 export type { ManualCompaction } from "./contracts/compaction.js";
+export type { ContextUsageCapability } from "./contracts/context-usage.js";
+export type { McpTransport } from "./contracts/session-options.js";

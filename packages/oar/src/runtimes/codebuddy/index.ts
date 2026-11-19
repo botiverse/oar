@@ -3,13 +3,18 @@ import { runtimeBrands } from "../../brands.js";
 import { verifiedPlatforms } from "../../platforms.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { onFirstCall } from "../../shared/lazy.js";
+import { semverAtLeast } from "../../shared/semver.js";
 import { codebuddyInstall, codebuddyInstallPlan } from "./install.js";
 import { codebuddyInstallation } from "./installation.js";
 import { codebuddyRefusedSessionOptions } from "./options.js";
 
 export const codebuddyRuntime = defineRuntime({
   id: "codebuddy",
-  sessionCapabilities: () => ({ steer: false, contextUsage: { tokens: false, contextWindow: false } }),
+  sessionCapabilities: (installation) => ({
+    steer: false, stopTask: false, contextUsage: { tokens: false, contextWindow: false },
+    // 2.178.1: oldest version tested calling stdio/HTTP echo tools in codebuddy.vendor.test.ts (experiments/codebuddy-native/2026-10-29/README.md).
+    ...(installation.via === "executable" && semverAtLeast(installation.version, "2.178.1") ? { mcpTransports: ["stdio", "http"] as const } : {}),
+  }),
   manualCompaction: { kind: "unsupported", reason: "The published compact method is not implemented by the tested CLI; slash-command completion is unverified." }, brand: runtimeBrands.codebuddy, verifiedPlatforms: verifiedPlatforms.codebuddy,
   refusedSessionOptions: codebuddyRefusedSessionOptions,
   installation: codebuddyInstallation, install: codebuddyInstall, installPlan: codebuddyInstallPlan,

@@ -8,6 +8,8 @@ import { expect, test } from "vitest";
 import {
   installedSessionCapabilities,
   type AvailableInstallation,
+  type ContextUsageCapability,
+  type McpTransport,
   type SessionCapabilityDeclaration,
 } from "../packages/oar/src/capabilities.js";
 
@@ -67,13 +69,18 @@ test("importing and calling the capabilities entry writes no global and leaves n
 
 test("installedSessionCapabilities from the capabilities entry merges static and per-installation declarations", () => {
   const installation: AvailableInstallation = { kind: "available", via: "executable", command: "/bin/agent", version: "2.0.0" };
+  const contextUsage: ContextUsageCapability = { tokens: true, contextWindow: true };
+  const mcpTransports: readonly McpTransport[] = ["stdio", "http"];
   const declared: SessionCapabilityDeclaration = installedSessionCapabilities({
     refusedSessionOptions: { name: "static" },
     manualCompaction: { kind: "unsupported", reason: "static" },
-    sessionCapabilities: () => ({ steer: true, refusedSessionOptions: { fork: "version" } }),
+    sessionCapabilities: () => ({ steer: true, stopTask: true, contextUsage, mcpTransports, refusedSessionOptions: { fork: "version" } }),
   }, installation);
   expect(declared).toEqual({
     steer: true,
+    stopTask: true,
+    contextUsage,
+    mcpTransports,
     refusedSessionOptions: { name: "static", fork: "version" },
     manualCompaction: { kind: "unsupported", reason: "static" },
   });

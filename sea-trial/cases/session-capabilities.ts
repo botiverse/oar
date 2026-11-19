@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
+import { UnsupportedOptionError } from "../../packages/oar/src/contracts/errors.js";
 import { runTurn } from "../harness/session-controls.js";
 import type { TrialCase } from "../harness/runner.js";
+import { startHttpEcho } from "../vendor/support/echo-mcp.js";
 
 export const sessionCapabilitiesCases: readonly TrialCase[] = [
   {
@@ -18,6 +20,9 @@ export const sessionCapabilitiesCases: readonly TrialCase[] = [
         if (declared.steer !== undefined) {
           assert.equal(session.steer !== undefined, declared.steer, "declared steer matches Session.steer");
         }
+        if (declared.stopTask !== undefined) {
+          assert.equal(session.stopTask !== undefined, declared.stopTask, "declared stopTask matches Session.stopTask");
+        }
         if (declared.images !== undefined) {
           assert.equal(session.capabilities.images, declared.images, "declared images matches capabilities.images");
         }
@@ -34,6 +39,23 @@ export const sessionCapabilitiesCases: readonly TrialCase[] = [
         }
       } finally {
         await session.dispose();
+      }
+      if (declared.mcpTransports !== undefined) {
+        if (declared.mcpTransports.includes("http")) {
+          const http = await startHttpEcho();
+          try {
+            const withHttp = await subject.startSession({ mcpServers: [{ name: "oar_cap_http", type: "http", url: http.url }] });
+            await withHttp.dispose();
+          } finally {
+            http.stop();
+          }
+        } else {
+          await assert.rejects(
+            async () => { await subject.startSession({ mcpServers: [{ name: "oar_cap_http", type: "http", url: "http://127.0.0.1:1/mcp" }] }); },
+            (error: unknown) => error instanceof UnsupportedOptionError && error.option === "mcpServers",
+            "runtime omitting http from declared mcpTransports must refuse HTTP mcpServers with UnsupportedOptionError",
+          );
+        }
       }
     },
   },

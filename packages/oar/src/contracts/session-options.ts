@@ -5,6 +5,7 @@
  */
 
 export type UserConfigurationCategory = "settings" | "mcp" | "instructions";
+export type McpTransport = "stdio" | "http";
 
 /**
  * One MCP server a session attaches (`SessionOptions.mcpServers`), in ACP's
