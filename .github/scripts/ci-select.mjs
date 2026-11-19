@@ -1,7 +1,7 @@
 // Picks which behavior backends and platforms a CI run needs, from the files it
 // changes. Pushes to main, dispatches and anything this script cannot place run
 // everything; a pull request runs only the backends its change can reach, on
-// Linux. macOS and Windows behavior run after merge, and the release gate waits
+// Linux and, for OpenCode, both Windows pins. Other platforms run after merge. The release gate waits
 // for main's run on the exact commit (.github/workflows/release.yml).
 import { execFileSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
@@ -63,11 +63,17 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href && process.arg
     }
   }
   const os = pullRequest ? ["ubuntu-latest"] : ["ubuntu-latest", "windows-latest", "macos-latest"];
+  const acpBackends = acp.filter(backend => selected.includes(backend));
+  const acpJobs = os.filter(runner => runner !== "windows-latest")
+    .flatMap(runner => acpBackends.map(backend => ({ os: runner, backend })));
+  if (acpBackends.includes("opencode-aimock")) {
+    acpJobs.push({ os: "windows-latest", backend: "opencode-aimock" },
+      { os: "windows-latest", backend: "opencode-v2-aimock", suite: "opencode-aimock", pin: "opencode-cleanup" });
+  }
   const out = {
     behavior: JSON.stringify(behavior.filter((backend) => selected.includes(backend))),
-    acp: JSON.stringify(acp.filter((backend) => selected.includes(backend))),
+    acp: JSON.stringify(acpJobs),
     os: JSON.stringify(os),
-    acp_os: JSON.stringify(os.filter((name) => name !== "windows-latest")),
     pi_rpc: String(selected.includes("pi-rpc-aimock")),
     // The Windows-only Pi RPC job runs after merge, like the other non-Linux jobs.
     pi_rpc_windows: String(!pullRequest && selected.includes("pi-rpc-aimock")),

@@ -20,16 +20,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest]
-        backend: [kimi-aimock, grok-aimock, opencode-aimock]
-        include:
-          - os: windows-latest
-            backend: opencode-v2-aimock
-            suite: opencode-aimock
-            pin: opencode-cleanup
+        backend: [kimi-aimock, grok-aimock]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     env:
-      OAR_TEST: ${{ matrix.suite || matrix.backend }}
+      OAR_TEST: ${{ matrix.backend }}
       OAR_TEST_REQUIRE_AVAILABLE: '1'
       OAR_TEST_CONCURRENCY: '2'
       OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
@@ -52,15 +47,12 @@ jobs:
             ~/AppData/Local/npm-cache
           key: npm-acp-${{ runner.os }}-${{ runner.arch }}-${{ matrix.backend }}-${{ hashFiles('.github/runtime-versions.json') }}
       - name: Install and verify accepted native runtime
-        id: native_install
-        run: node .github/scripts/runtime-install.mjs '${{ matrix.pin || matrix.backend }}'
+        run: node .github/scripts/runtime-install.mjs '${{ matrix.backend }}'
       - run: pnpm run sea-trial
         if: matrix.backend != 'grok-aimock'
         timeout-minutes: 12
       - run: pnpm vitest run sea-trial/vendor --maxWorkers 2
-        if: >-
-          ${{ !cancelled() && steps.native_install.outcome == 'success' &&
-              matrix.backend != 'grok-aimock' && (success() || matrix.backend == 'opencode-v2-aimock') }}
+        if: matrix.backend != 'grok-aimock'
         timeout-minutes: 12
       - name: Observe Grok behavior processes
         id: grok_behavior

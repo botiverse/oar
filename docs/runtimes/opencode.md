@@ -1174,17 +1174,17 @@ See [host-served tools](../spec/runtime-matrix.md#host-served-tools).
   provider only, not a logged-in provider or a free `opencode/*` model. The
   vendor test and shared behavior suite run in CI (`OAR_TEST=opencode-aimock`),
   pinned to `opencode-ai@1.19.5` on Linux and macOS. The
-  [Windows observation workflow](../../.github/workflows/acp-windows.yml)
-  runs these suites after main pushes or a manual dispatch, in separate jobs
-  for v1 (`opencode-aimock`, 1.19.5) and v2 (`opencode-cleanup`, 2.2.7).
-  Each retains its installed version and trial artifacts. The v2 vendor
-  suite also runs after a behavior failure. Windows ACP results are
-  observational while startup and MCP failures are investigated.
-  [Scope and evidence](../../experiments/acp-ci-2026-10-29.md).
+  [Windows CI jobs](../../.github/workflows/ci.yml) run the shared behavior and vendor
+  suites for both v1 (`opencode-aimock`, 1.19.5) and v2 (`opencode-cleanup`,
+  2.2.7). They gate pull requests that reach OpenCode and pushes to main. Each
+  retains its installed version and trial artifacts. The v2 vendor suite also
+  runs after a behavior failure. OAR declares Windows in `verifiedPlatforms`.
   Two Windows v1 observations traced long first prompts to native snapshots of
   the OAR checkout. The MCP fixtures now use small Git projects. First snapshots
   took 235 to 288 ms in eight vendor cases in the
   [Windows recheck](../../experiments/acp-ci-failures/closeout.md#opencode-windows-validation-completed).
+  The [native fresh-database startup race](#startup-and-compatibility) has
+  separate reproduction and [upstream tracking](https://github.com/anomalyco/opencode/issues/53879).
   The [earlier 120-second timeouts](../../experiments/acp-ci-2026-10-29.md)
   have no native timings to attribute them individually.
   Of the 60 completed Windows observations through 16:53 UTC on November 19,
@@ -1202,7 +1202,10 @@ See [host-served tools](../spec/runtime-matrix.md#host-served-tools).
   counts so v2 can report its native context usage.
   In the [Windows observation on November 19](https://github.com/botiverse/oar/actions/runs/44579053929),
   each line passed 18 shared cases. The vendor suites passed 11 cases on v1
-  and 15 on v2. The [v2 Code Mode tests](../../sea-trial/vendor/opencode-code-mode-mcp.vendor.test.ts)
+  and 15 on v2. The [next Windows observation](https://github.com/botiverse/oar/actions/runs/44581502965)
+  again passed 18 shared cases on each pin. With the three Code Mode cases
+  included, v2 passed 18 vendor cases and v1 passed 11.
+  The [v2 Code Mode tests](../../sea-trial/vendor/opencode-code-mode-mcp.vendor.test.ts)
   exercise stdio and HTTP on open and resume. After a catalog change the model
   sees the added and withdrawn names, a call to the withdrawn name fails inside
   Code Mode, and the host receives the new tool call.

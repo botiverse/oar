@@ -1,3 +1,5 @@
+import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import { defaultRuntimes, dshRuntime, orient, RuntimeRegistry, type RuntimePlatform } from "../packages/oar/src/index.js";
@@ -13,22 +15,36 @@ function platformsOf(runners: readonly unknown[]): RuntimePlatform[] {
   });
 }
 
-/**
- * The CI manifest's behavior and ACP backends, by the runtime id their key names (`dsh-aimock` is dsh).
- * ACP backends gate on Linux and macOS only (ci-select.mjs drops Windows from `acp_os`); their Windows
- * runs are observation. Antigravity's behavior runs in the `check` job on every OS instead.
- */
+function acpJobs(event: "push" | "pull_request"): Readonly<Record<string, unknown>>[] {
+  const output = execFileSync(process.execPath, [".github/scripts/ci-select.mjs"], {
+    encoding: "utf8", env: { ...process.env, GITHUB_EVENT_NAME: event, GITHUB_OUTPUT: undefined, BASE_SHA: "" },
+  });
+  const matrix = output.split("\n").find(line => line.startsWith("acp="));
+  if (matrix === undefined) { throw new Error("CI selector omitted the ACP matrix"); }
+  const jobs: unknown = JSON.parse(matrix.slice("acp=".length));
+  assert.ok(Array.isArray(jobs));
+  return jobs.map((value: unknown) => {
+    const job = asRecord(value);
+    assert.ok(job);
+    return job;
+  });
+}
+
+/** The manifest's native backends, intersected with the actual ACP gate. Antigravity runs in the check job. */
 function manifestPlatforms(): Map<string, RuntimePlatform[]> {
   const text = readFileSync(new URL("../.github/runtime-versions.json", import.meta.url), "utf8");
   const manifest = asRecord(JSON.parse(text));
   const entries = asRecord(manifest?.runtimes) ?? manifest ?? {};
+  const jobs = acpJobs("push");
   const backends = Object.entries(entries).flatMap(([key, value]) => {
     const entry = asRecord(value);
     const runners: unknown = entry?.platforms;
     const verified = (entry?.suite === "behavior" || entry?.suite === "acp") && Array.isArray(runners);
     if (!verified) { return []; }
     const id = key.replace(/-(?:aimock|native)$/u, "");
-    const gating = entry.suite === "acp" && id !== "antigravity" ? runners.filter((runner) => runner !== "windows-latest") : runners;
+    const gating = entry.suite === "acp" && id !== "antigravity"
+      ? runners.filter(runner => jobs.some(job => job.os === runner && (job.suite ?? job.backend) === key))
+      : runners;
     return [[id, platformsOf(gating)] as const];
   });
   return new Map(backends);
@@ -36,6 +52,13 @@ function manifestPlatforms(): Map<string, RuntimePlatform[]> {
 
 /** Runtimes whose behavior suite runs from the SDK dependency, so the manifest has no row for them (ci-select.mjs `behavior`). */
 const sdkRuntimes: Readonly<Record<string, readonly RuntimePlatform[]>> = { pi: ["linux", "darwin", "win32"], "pi-durable": ["linux", "darwin", "win32"] };
+
+test.each(["push", "pull_request"] as const)("the %s ACP gate runs both Windows OpenCode pins against the shared suite", event => {
+  const windows = acpJobs(event).filter(job => job.os === "windows-latest");
+  expect(windows.map(job => [job.suite ?? job.backend, job.pin ?? job.backend])).toEqual([
+    ["opencode-aimock", "opencode-aimock"], ["opencode-aimock", "opencode-cleanup"],
+  ]);
+});
 
 test("every built-in runtime declares exactly the platforms a gating CI job runs it on, and nothing else declares any", () => {
   const evidence = new Map([...manifestPlatforms(), ...Object.entries(sdkRuntimes).map(([id, platforms]) => [id, [...platforms]] as const)]);

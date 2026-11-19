@@ -16,8 +16,9 @@ change travels.
   (`--evidence-file`); on OAR only @Cindy uses it, for her own pull requests,
   after verifying them herself and getting a second look.
 - **Merge.** Squash only. All CI checks report SUCCESS on the exact head
-  (36 in `ci.yml` today). The separate Windows ACP observation workflow
-  runs after main pushes, retains failures, and is not a pull-request gate. A pull request that changes only `**/*.md`, `docs/**` or
+  for the jobs selected by `ci.yml`. A pull request that reaches OpenCode
+  runs both Windows pins. The separate Kimi and Grok Windows ACP observation
+  workflow runs after main pushes and retains failures. A pull request that changes only `**/*.md`, `docs/**` or
   `assets/**` runs no CI by design and merges on the author's local check
   plus the review. The author merges once approved:
   `stamp pr merge N --repo botiverse/oar --auto --head SHA --base SHA`.
