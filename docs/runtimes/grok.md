@@ -983,7 +983,7 @@ the abort fallback, so termination reaches the runtime behind its launcher
 and its descendants ([test](../../tests/session-dispose.test.ts)).
 See [host-exit cleanup and limits](../spec/record-stream.md#the-rules).
 
-Installation checks `OAR_GROK_BIN`, PATH, and the official script/npm layouts
+Installation uses `OAR_GROK_BIN` alone when set; otherwise it checks PATH and the official script/npm layouts
 (`$GROK_BIN_DIR`, `$GROK_HOME/bin`, `~/.grok/bin`), probing with
 `grok agent stdio --help`. When none is found, `install` runs xAI's script,
 `curl -fsSL https://x.ai/cli/install.sh | bash`

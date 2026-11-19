@@ -473,7 +473,7 @@ and cleans up the owned process tree on disposal. Persisted conversations
 are not deleted. Host-exit and descendant limitations are the
 [shared process contract](../spec/record-stream.md#the-rules).
 
-Discovery checks `OAR_ANTIGRAVITY_BIN`, PATH `agy`, then the official install
+Discovery uses `OAR_ANTIGRAVITY_BIN` alone when set; otherwise it checks PATH `agy`, then the official install
 location: `~/.local/bin/agy` on Linux/macOS or
 `%LOCALAPPDATA%\agy\bin\agy.exe` on Windows (with the standard user AppData
 fallback). Without an explicit override, an unsupported old PATH copy does

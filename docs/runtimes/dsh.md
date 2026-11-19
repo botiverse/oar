@@ -254,7 +254,7 @@ session in `SessionOptions.env`: nobody sits at an approval prompt, and native r
 tools run and the native `permission/preset` frame is recorded.
 
 Refused with `UnsupportedOptionError` until an effective native mapping is verified:
-`fork`, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`,
+`fork`, `mcpServerCredentials`, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`,
 `userConfiguration: "exclude"`, `endTurnProcessesOnAbort: true`
 ([`options.ts`](../../packages/oar/src/runtimes/dsh/options.ts)). Images are not
 sent: `capabilities.images` is false and an input with images is rejected
@@ -415,8 +415,8 @@ never answered because no native evidence for it exists yet.
 
 ## Installation and configuration
 
-`installation` looks for `OAR_DSH_BIN`, then `dsh` on PATH. `installPlan` and
-`install` run `npm install -g @deepseek-ai/dsh` (Node 24.9 or later). DSH's
+`installation` uses `OAR_DSH_BIN` alone when set, otherwise `dsh` on PATH. `installPlan` and
+`install` run `npm install -g @deepseek-ai/dsh` (the package declares Node 24.9 or later; OAR does not check it). DSH's
 default route is `deepseek-official`, with an API key (see the real-provider run
 above). Any other route goes in the user's own patch, for example
 `$DSH_HOME/cordis.patch.yml` with `llm-pi-ai` providers and `agent-default-model`,

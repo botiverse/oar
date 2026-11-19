@@ -246,7 +246,7 @@ the status query after login and executable lookup. Strings set variables;
 precedence over caller `BROWSER`. OAR leaves the host environment unchanged.
 See [environment capture](../spec/login.md#environment).
 
-OAR finds `OAR_QODER_BIN`, `qodercli` on PATH, or the official user installation
+OAR uses `OAR_QODER_BIN` alone when set; otherwise it finds `qodercli` on PATH or the official user installation
 under `~/.local/bin`. On Unix, `installPlan` describes the vendor's installer
 with `--skip-path`; `install` verifies the resulting executable. Windows
 installation is left to the vendor instructions. The native executable can

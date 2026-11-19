@@ -1286,7 +1286,7 @@ retry decision
 ([exit diagnostics tests](../../tests/codex/codex-exit-diagnostics.test.ts),
 [spawn failure test](../../tests/codex/codex-startup-diagnostics.test.ts)).
 
-Installation checks `OAR_CODEX_BIN`, then `codex` on PATH, then:
+Installation uses `OAR_CODEX_BIN` alone when set; otherwise it checks `codex` on PATH, then:
 
 - macOS and Linux: on macOS the desktop bundles (`ChatGPT.app` before the
   legacy `Codex.app`, system before per-user installs), then the standalone
