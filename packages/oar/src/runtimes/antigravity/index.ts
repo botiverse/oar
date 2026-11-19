@@ -1,4 +1,5 @@
 import { runtimeBrands } from "../../brands.js";
+import { verifiedPlatforms } from "../../platforms.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { onFirstCall } from "../../shared/lazy.js";
 import { antigravityInstallation } from "./installation.js";
@@ -13,7 +14,7 @@ export const antigravityRuntime = defineRuntime({
   sessionCapabilities: () => ({ steer: true }),
   minVersion: ANTIGRAVITY_MINIMUM_VERSION,
   manualCompaction: { kind: "unsupported", reason: "The CLI advertises /compact, but no structured completion and attribution contract has been verified." },
-  brand: runtimeBrands.antigravity,
+  brand: runtimeBrands.antigravity, verifiedPlatforms: verifiedPlatforms.antigravity,
   installation: antigravityInstallation,
   installPlan: antigravityInstallPlan,
   install: antigravityInstall,

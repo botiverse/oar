@@ -1,5 +1,6 @@
 /* oxlint-disable import/max-dependencies -- The runtime declaration imports one module per capability. */
 import { runtimeBrands } from "../../brands.js";
+import { verifiedPlatforms } from "../../platforms.js";
 import { codexSkills, codexMcpServers, codexTools } from "./inventory.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { codexAuthStatus, codexLogin } from "./login.js";
@@ -22,7 +23,7 @@ export const codexRuntime = defineRuntime({
     systemPrompt: { provided: "immediate", omitted: "saved" },
     appendSystemPrompt: { provided: "next_compaction", omitted: "saved_until_compaction" },
   },
-  brand: runtimeBrands.codex,
+  brand: runtimeBrands.codex, verifiedPlatforms: verifiedPlatforms.codex,
   skills: codexSkills,
   mcpServers: codexMcpServers,
   tools: codexTools,

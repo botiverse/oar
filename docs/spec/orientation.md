@@ -90,7 +90,9 @@ For an available installation, each runtime's entry also has
 (steer, images, the options it refuses, manual compaction, compaction
 events), with the static declarations merged in
 ([runtime matrix](runtime-matrix.md#session-capabilities-before-open)). It is
-pure, so it is a value, not a probe. Together with `brand`, the
+pure, so it is a value, not a probe. Every entry, installed or not, also
+carries the runtime's `verifiedPlatforms` and `credentials` shape
+([platforms and credentials](runtime-matrix.md#platforms-and-credentials)). Together with `brand`, the
 installation snapshot and the probes, the whole report is plain JSON: a host
 can send it from the machine to a server unchanged and key it by runtime and
 installed version.

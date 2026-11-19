@@ -166,6 +166,30 @@ installation)` merge the static declarations in, so a host reads one answer
 and never branches on a runtime's name. `orient()` returns it for every
 available installation ([orientation](orientation.md#session-capabilities)).
 
+### Platforms and credentials
+
+`Runtime.verifiedPlatforms` lists the operating systems (`process.platform`)
+where a gating CI job, one a release waits for, runs OAR's behavior suite
+against the runtime's real binary or SDK. Observation runs do not count: the
+ACP backends' Windows runs (`acp-windows.yml`) are not gating. The values
+live in one table
+([platforms.ts](../../packages/oar/src/platforms.ts)), and a test keeps it
+equal to the CI evidence in both directions. A runtime without an entry is
+unknown, not unsupported. The claim covers the CI-pinned version; an older
+supported version may be unverified on some systems.
+
+`Runtime.credentials` describes what the runtime reads on its own, never a
+value: the environment variables, whether each is a secret, and every file
+or store a credential can come from, in the runtime's own precedence, with
+the variable that moves it, its default location, and whether it wins over
+the environment. A `.env` the runtime reads from the session's directory is
+listed too, since it can supply a key the host never passed. A host isolates
+one agent's credentials by setting the directory variables, and never puts
+a secret on a command line. Native login is the `login` member and
+per-provider keys are `providers`. Each runtime page states its own shape
+(for example [dsh](../runtimes/dsh.md#credentials)). `orient()` carries both
+fields in every entry, installed or not.
+
 ### Native tasks and single-task stop
 
 | Runtime | Native task lifecycle | `stopTask(taskId)` |

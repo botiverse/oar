@@ -16,9 +16,14 @@ function unavailable<T>(installation: Probe<InstallationSnapshot>, member: unkno
   return installation.value.kind === "not_found" ? { kind: "skipped", because: "not_installed" } : { kind: "unsupported" };
 }
 
+/** Static facts every entry carries, installed or not. */
+function declared(runtime: Runtime): Pick<RuntimeOrientation, "verifiedPlatforms" | "credentials"> {
+  return { ...(runtime.verifiedPlatforms === undefined ? {} : { verifiedPlatforms: runtime.verifiedPlatforms }), ...(runtime.credentials === undefined ? {} : { credentials: runtime.credentials }) };
+}
+
 function absent(runtime: Runtime, installation: Probe<InstallationSnapshot>, options: OrientOptions): RuntimeOrientation {
   return {
-    id: runtime.id, brand: runtime.brand, installation, auth: unavailable(installation, runtime.authStatus),
+    id: runtime.id, brand: runtime.brand, ...declared(runtime), installation, auth: unavailable(installation, runtime.authStatus),
     ...(runtime.providers === undefined ? {} : { providers: unavailable(installation, runtime.providers) }),
     ...(options.depth === "account" || options.depth === "models" ? { accountUsage: unavailable(installation, runtime.accountUsage) } : {}),
     ...(options.depth === "models" ? { models: unavailable(installation, runtime.listModels) } : {}),
@@ -73,7 +78,7 @@ async function readRuntime(runtime: Runtime, requested: OrientOptions, until: nu
     providersReader === undefined ? undefined : budget.run(async (timeoutMs) => { const result = await providersReader(available, { resolve: options.depth === "account" || options.depth === "models", timeoutMs, ...(options.env === undefined ? {} : { env: options.env }) }); return result; }),
   ]);
   const extra = await additional(runtime, available, auth, options, budget, slots);
-  return { id: runtime.id, brand: runtime.brand, installation, sessionCapabilities: installedSessionCapabilities(runtime, available), auth, ...(providers === undefined ? {} : { providers }), ...extra };
+  return { id: runtime.id, brand: runtime.brand, ...declared(runtime), installation, sessionCapabilities: installedSessionCapabilities(runtime, available), auth, ...(providers === undefined ? {} : { providers }), ...extra };
 }
 
 /** Combine native observations with bounded cost, without calling Runtime.session or submitting a prompt. */

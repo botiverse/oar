@@ -99,7 +99,7 @@ export type {
   RuntimeLogin,
   RuntimeLogout,
 } from "./login.js";
-export type { CompactionEvents, McpToolsListChanged, RefusableSessionOption, RefusedSessionOptions, ResumeOptionSemantics, ResumedSessionOptions, Runtime, SessionCapabilityDeclaration } from "./runtime.js";
+export type { CompactionEvents, CredentialStore, CredentialVariable, McpToolsListChanged, RefusableSessionOption, RefusedSessionOptions, ResumeOptionSemantics, ResumedSessionOptions, Runtime, RuntimeCredentials, RuntimePlatform, SessionCapabilityDeclaration } from "./runtime.js";
 export type {
   AdapterSession,
   AttributionTier,

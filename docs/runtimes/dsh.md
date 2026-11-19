@@ -449,6 +449,23 @@ DSH also creates `dsh-spill-*` and `dsh-subprocess-*` directories in the system
 temporary directory and leaves them there empty; with one process per session they
 accumulate. They are DSH's own, so OAR does not remove them.
 
+### Credentials
+
+`dshRuntime.credentials` declares the shape, in DSH's own precedence: its
+store `$DSH_HOME/.credentials.yaml` (default `~/.dsh`), then the launch
+environment (`DEEPSEEK_API_KEY` for the default route), then `.env` in the
+session's directory, then `$DSH_HOME/.env`. OAR starts DSH in the session's
+directory, so a project's `.env` can supply a key the host never passed. The
+`acp` profile OAR starts builds on `dsh-base`, which loads the store, so a
+key saved through DSH's settings applies to OAR sessions too. On 0.2.2-rc.1
+a session with a valid key in the environment and a different key in the
+store failed with `failure: "auth"`; without the store file the same
+environment key completed the turn (2026-11-19, real DeepSeek route). On
+POSIX, DSH refuses to load a store that other users can read (mode 600); the
+check is skipped on Windows. Pointing `DSH_HOME` elsewhere moves the store
+and the home `.env` together with sessions and profiles. OAR never reads or
+writes any of these files.
+
 ## Testing
 
 `OAR_DSH_BIN=<dsh> OAR_TEST=dsh-aimock pnpm sea-trial` and

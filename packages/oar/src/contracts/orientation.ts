@@ -1,10 +1,10 @@
 import type { AccountUsageSnapshot, UtcInstant } from "./account-usage.js";
+import type { RuntimeCredentials, RuntimePlatform, SessionCapabilityDeclaration } from "./runtime.js";
 import type { AuthStatus } from "./login.js";
 import type { InstallationSnapshot } from "./installation.js";
 import type { ModelEntry } from "./list-models.js";
 import type { ProviderAuthStatus } from "./provider-auth.js";
 import type { RuntimeBrand } from "./brand.js";
-import type { SessionCapabilityDeclaration } from "./runtime.js";
 import type { SessionOptions } from "./session-options.js";
 
 /** Facts, including missing evidence, without an embedded selection policy. */
@@ -36,6 +36,8 @@ export interface Customization {
 export interface RuntimeOrientation {
   readonly id: string;
   readonly brand: RuntimeBrand;
+  readonly verifiedPlatforms?: readonly RuntimePlatform[];
+  readonly credentials?: RuntimeCredentials;
   readonly installation: Probe<InstallationSnapshot>;
   /** For an available installation: what a session from it will offer (`installedSessionCapabilities`). Pure, so never a probe. */
   readonly sessionCapabilities?: SessionCapabilityDeclaration;

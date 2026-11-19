@@ -1,4 +1,5 @@
 import { runtimeBrands } from "../../brands.js";
+import { verifiedPlatforms } from "../../platforms.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { onFirstCall } from "../../shared/lazy.js";
 import { kimiAccountUsage } from "./account-usage.js";
@@ -11,7 +12,7 @@ export const kimiRuntime = defineRuntime({
   id: "kimi",
   sessionCapabilities: () => ({ steer: false }),
   manualCompaction: { kind: "unsupported", reason: "The ACP transport reports compaction as ordinary text, without a structural completion signal." },
-  brand: runtimeBrands.kimi,
+  brand: runtimeBrands.kimi, verifiedPlatforms: verifiedPlatforms.kimi,
   installation: kimiInstallation,
   installPlan: kimiInstallPlan,
   install: kimiInstall,

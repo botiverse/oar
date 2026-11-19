@@ -1,4 +1,5 @@
 import { runtimeBrands } from "../../brands.js";
+import { verifiedPlatforms } from "../../platforms.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { onFirstCall } from "../../shared/lazy.js";
 import { opencodeInstallation } from "./installation.js";
@@ -12,7 +13,7 @@ export const opencodeRuntime = defineRuntime({
   id: "opencode",
   // v1 always steers; v2 steers only when initialize advertises it. Images come from initialize.
   sessionCapabilities: (installation) => (installation.via === "executable" && installation.version !== undefined && parseOpencodeRelease(installation.version)?.major === 1 ? { steer: true } : {}),
-  brand: runtimeBrands.opencode,
+  brand: runtimeBrands.opencode, verifiedPlatforms: verifiedPlatforms.opencode,
   refusedSessionOptions: opencodeRefusedSessionOptions,
   mcpToolsListChanged: "full",
   installation: opencodeInstallation,
