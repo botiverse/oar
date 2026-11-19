@@ -1,12 +1,9 @@
 # Account usage
 
 `runtime.accountUsage(installation, options?)` reads account quota independently
-of session token usage. It is an optional member: antigravity, claude,
-codex, factory, grok and kimi have it; the other built-in runtimes do not. The
-[TypeScript contract](../../packages/oar/src/contracts/account-usage.ts)
-defines the snapshot and reader options. A custom runtime's reader (`defineRuntime` with `accountUsage`) builds each
-`resetsAt` with `utcInstantFromDate(date)`, which returns null for an invalid
-date, rather than casting a string to `UtcInstant`.
+of session token usage. Check for the reader on the runtime. The
+[account usage contract](../../packages/oar/src/contracts/account-usage.ts)
+defines snapshots, reset timestamps and reader options.
 
 ## Environment
 
@@ -62,15 +59,9 @@ whole account (Claude's OAuth apps window is one). `name` is the runtime's
 own, kept as given: it can be a quota alias (codex's `limitName` can be
 `gpt-reserve`), OAR does not rewrite it from a related field such as codex's
 `normalModelSlug`, and it is not promised to equal a `listModels` id or
-display name. A host matches it to its own models; which models a group
-holds is the runtime's to say (agy says it only in prose), so a host maps
-group names itself. The windows that concern a model are the `account` ones,
-the `model` ones naming it and the `models` ones whose group holds it; a host
-that must decide about a window without `scope` can treat it as `account` as
-its own conservative choice. `scope` says what a window counts, not whether a
-full one stops work: extra usage can carry a Claude, Codex, Factory, Grok or Kimi
-account past a full subscription window, which the snapshot's `rateLimited`
-already weighs.
+display name. A host maps the native names to its selected model. Treat an absent scope
+as unknown. Use the snapshot's `rateLimited` for availability, since extra
+usage can carry an account past a full subscription window.
 
 | Runtime | `account` | `model` / `models` (name) | no `scope` |
 | --- | --- | --- | --- |
@@ -104,12 +95,9 @@ and its separate `/credits` call returns a balance.
 ## Limit resets
 
 Some subscriptions grant resets an account can spend to restore its usage
-limits early. Codex reports them in the same read, and an available
-snapshot carries them as `limitResets`: `available`, the runtime's count,
-and `resets`, its detail rows (`id`, `status`, `grantedAt`, `expiresAt`,
-`title`, `description`, each only as reported). Codex may cap the rows below
-the count. `resets` is omitted when Codex gave only the count and empty when
-it found none; `limitResets` is omitted when the runtime reports nothing.
+limits early. Codex reports its count and optional detail rows in
+`limitResets`. Its row count can be capped. See the
+[reset snapshot contract](../../packages/oar/src/contracts/account-usage.ts).
 Only resets of codex's own limits are listed: a row of a kind Codex cannot
 name is left out, since OAR cannot say what it would reset. A host that
 polls and needs only the count passes `limitResetDetails: false`: Codex then
@@ -141,14 +129,9 @@ offers no tool for it: a host calls it on the owner's explicit request.
   backend; a network error; an outcome OAR does not know) leaves unknown
   whether a reset was spent. Retry with the same key.
 
-Claude adds three outcomes: `not_attempted` (nothing that could spend was
-sent; try again), `unknown` (the command was submitted, or Yes was sent,
-and no recognised screen followed; OAR does not retry it) and `unsupported` / `consent_required`.
-
-No outcome says what the limits are now. Read `accountUsage` again after
-any of them; do not infer recovered windows from the outcome. The reset
-applies to the account the call resolves, as for the read, so pass the same
-`env` as the session and the read.
+Read `accountUsage` again with the same environment after redemption to
+learn the current limits. For Claude, an unrecognised screen after submission
+leaves spending unknown. See the [redemption outcomes](../../packages/oar/src/contracts/account-usage.ts).
 
 ## Claude limit resets
 
@@ -288,16 +271,10 @@ signed in is `reauth_required`, not a `startup` value.
 `includeFiveHour: true`, `five_hour`, reads each confirmation dialog, and
 cancels it with Esc. It is not part of `accountUsage` and must not be
 polled: it starts the CLI's UI, and on the older program it can spend (above).
-`kind: "inspected"` lists every kind with its `state`: `available` (with
-`resetsLeft` and `expiresText`, claude's own words such as "Nov 19,
-4:59pm", when the dialog shows them), `none`, `not_offered`, `unknown` (a
-screen after it was not recognised, so nothing more was typed) or
-`not_checked`. `program: "legacy"` says the older program answered (it has
-only the 5-hour reset and says nothing more); `fiveHourSpent: true` says it
-spent that reset when the command opened, which only consent allows.
-`version` is the banner's. The same `reauth_required` (no login),
-`unsupported` (`endpoint_unavailable` when this account's Claude Code
-answers "Unknown command: /limit-reset") and `not_attempted` outcomes apply.
+For per-kind states, optional dialog fields and startup outcomes, see the
+[inspection contract](../../packages/oar/src/contracts/account-usage.ts).
+The older program can spend a 5-hour reset on opening the command;
+`fiveHourSpent` reports that side effect when consent was given.
 
 A redeem's `nothing_to_reset` is claude's "saved for when you reach a usage
 limit" line, or the older program's "isn't available right now" for a

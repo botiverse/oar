@@ -15,7 +15,7 @@ test("the bundled installation leaves compaction unknown until an SDK agent is o
   try {
     expect(f.runtime.manualCompaction).toBeUndefined();
     expect(f.runtime.sessionCapabilities?.({ kind: "available", via: "bundled" }).manualCompaction).toBeUndefined();
-    expect(f.session.compact).toBeTypeOf("function");
+    expect(typeof f.session.compact).toBe("function");
   } finally { await f.session.dispose(); }
 });
 
