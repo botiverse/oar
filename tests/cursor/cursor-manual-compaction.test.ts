@@ -202,3 +202,20 @@ test.each(["compact", "prompt"])("Cursor %s terminal keeps status busy while pre
     expect(await f.session.prompt("C after B")).toMatchObject({ kind: "accepted" });
   } finally { await f.session.dispose(); }
 });
+
+test("Cursor completed summary with fallback: true settles manual compact() as completed and drains queued input", async () => {
+  const f = await open();
+  try {
+    const waiting = f.compact(); await settle();
+    const run = f.agent.latest();
+    await f.session.queue("after-fallback");
+    run.streamMessage({ type: "summary", run_id: run.id, agent_id: "agent-1", status: "completed", fallback: true });
+    run.end("finished");
+    expect(await waiting).toMatchObject({
+      kind: "completed",
+      frame: { spanId: run.id, body: { native: { status: "completed", fallback: true, run_id: run.id, agent_id: "agent-1" } } },
+    });
+    expect(f.session.records().some(r => r.kind === "frame" && r.body.events.some(e => e.kind === "compaction_ended" && e.outcome === "completed"))).toBe(true);
+    expect(f.agent.latest().message).toBe("after-fallback");
+  } finally { await f.session.dispose(); }
+});

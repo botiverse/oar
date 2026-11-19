@@ -7,7 +7,7 @@ import { streamJsonCompaction } from "./compaction.js";
 import type { ControlResult, InputOptions, RequestRecord, Session } from "../../contracts/session.js";
 import { createAbortFallback } from "../abort-fallback.js";
 import { withInputImages } from "../input-images.js";
-import { withdrawControl } from "../held-input.js";
+import { enqueueHeld, withdrawControl } from "../held-input.js";
 import type { JsonRecord } from "../json.js";
 import type { SessionCredentials } from "../session-credentials.js";
 import { appendCleanupFailure, cleanupFailureReason } from "../executable/process-cleanup.js";
@@ -212,8 +212,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       const result = await kernel.control({ kind: "queue", input, ...inputOptions }, (request) =>
         withInputImages(capabilities, inputOptions?.images, (images) => {
           if (messages.hasExited()) { return { kind: "rejected", code: "runtime_exited" as const, reason: "runtime exited" }; }
-          heldQueue.push({ request, input, ...(inputOptions?.inputId === undefined ? {} : { inputId: inputOptions.inputId }), options: { ...inputOptions }, images });
-          heldQueue.sort((left, right) => left.request.seq - right.request.seq);
+          enqueueHeld(heldQueue, { request, input, ...(inputOptions?.inputId === undefined ? {} : { inputId: inputOptions.inputId }), options: { ...inputOptions }, images });
           return { kind: "accepted", queued: "adapter" };
         }));
       const entry = heldQueue.find(next => next.request.id === result.request.id);

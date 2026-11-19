@@ -199,6 +199,13 @@ export function finishAcpSession(
     if (runtime.closed && kernel.unreachable() === null) { await runtime.exited; }
     return kernel.control(body, decide);
   });
+  const heldControl = async (
+    body: RequestBody,
+    decide: (request: RequestRecord) => ResponseBody,
+  ): Promise<ControlResult> => {
+    if (runtime.closed && kernel.unreachable() === null) { await runtime.exited; }
+    return kernel.control(body, decide);
+  };
 
   // A profile without a native steer cannot inject, so the session has no `steer`;
   // neither does one whose connection did not advertise its steer request.
@@ -226,9 +233,9 @@ export function finishAcpSession(
       (turns.active() === null && !turns.queued() && compaction?.busy() !== true ? turns.begin(request, input, inputOptions?.images) : { kind: "rejected", code: "busy", reason: "busy" })),
     ...steer,
     ...(compaction === null ? {} : { compact: compaction.compact }),
-    queue: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "queue", input, ...inputOptions }, (request) => turns.hold(input, inputOptions?.images, inputOptions?.inputId, request)),
+    queue: (input, inputOptions?: InputOptions): Promise<ControlResult> => heldControl({ kind: "queue", input, ...inputOptions }, (request) => turns.hold(input, inputOptions?.images, inputOptions?.inputId, request)),
     // The queue is held here (turns.ts), not by the vendor: an entry can be taken back until the drain sends it.
-    withdraw: (inputId: string): Promise<ControlResult> => control({ kind: "withdraw", inputId }, () => turns.withdraw(inputId)),
+    withdraw: (inputId: string): Promise<ControlResult> => heldControl({ kind: "withdraw", inputId }, () => turns.withdraw(inputId)),
     abort: (): Promise<ControlResult> => control({ kind: "abort" }, async (request): Promise<ResponseBody> => {
       const state = turns.active();
       if (state === null) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
@@ -241,15 +248,17 @@ export function finishAcpSession(
     records: () => kernel.records(),
     graph: () => kernel.graph(),
     resources: ownership?.lease.resources ?? runtime.resources,
-    dispose: (): Promise<void> => serial(async () => {
+    dispose: (): Promise<void> => {
       if (lifecycle !== undefined && ownership !== undefined) {
         ownership.stopRequests();
         const disposal = lifecycle.dispose();
         turns.onExit();
-        await disposal;
-        ownership.detach();
-        return;
+        return serial(async () => {
+          await disposal;
+          ownership.detach();
+        });
       }
+      return serial(async () => {
       await kernel.dispose(async () => {
         // Native cancel can orphan tools before exit, including detached POSIX tools.
         await runtime.prepareShutdown();
@@ -266,6 +275,7 @@ export function finishAcpSession(
         await runtime.exited;
         await terminalHost.dispose();
       }, () => terminalHost.dispose());
-    }),
+      });
+    },
   }, shared?.redact);
 }

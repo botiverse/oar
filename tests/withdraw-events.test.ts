@@ -3,6 +3,7 @@ import type { Event, RawEvent, RequestRecord, ResponseRecord } from "../packages
 import { controlActionsOf, eventsOf, eventsReader } from "../packages/oar/src/observe/events.js";
 import { conversationOf, reduceConversation, type ConversationInput } from "../packages/oar/src/observe/conversation.js";
 import { withdrawHeld } from "../packages/oar/src/kernel.js";
+import { enqueueHeld } from "../packages/oar/src/shared/held-input.js";
 
 /**
  * `withdraw` in the record stream (docs/spec/record-stream.md): a toRuntime
@@ -90,4 +91,11 @@ test("withdrawHeld removes every entry held for the input, or answers not_queued
   expect(held).toEqual([{ inputId: undefined }, { inputId: "b" }]);
   expect(withdrawHeld(held, "a")).toEqual({ kind: "rejected", code: "not_queued", reason: "no held input with this inputId is waiting" });
   expect(held).toHaveLength(2);
+});
+
+test("enqueueHeld keeps held entries ordered by recorded request seq across reentrant observers", () => {
+  const held: { readonly inputId?: string; readonly request: { readonly seq: number } }[] = [];
+  enqueueHeld(held, { inputId: "second", request: { seq: 3 } });
+  enqueueHeld(held, { inputId: "first", request: { seq: 2 } });
+  expect(held.map(entry => entry.inputId)).toEqual(["first", "second"]);
 });

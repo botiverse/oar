@@ -4,7 +4,7 @@ import { asRecord } from "../../shared/json.js";
 import type { ControlResult, InputOptions, RequestRecord, ResponseBody, Session, StartSession } from "../../contracts/session.js";
 import { manualCompaction } from "../../shared/manual-compaction.js";
 import { cursorCompaction } from "./compaction.js";
-import { withdrawControl } from "../../shared/held-input.js";
+import { enqueueHeld, withdrawControl } from "../../shared/held-input.js";
 import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { checkMcpServerNames } from "../../shared/mcp-servers.js";
@@ -232,8 +232,7 @@ export function cursorSessionWith(source: CursorSdkSource): StartSession {
       queue: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
         const result = await kernel.control({ kind: "queue", input, ...inputOptions }, request =>
           withInputImages(capabilities, inputOptions?.images, (images) => {
-            held.push({ request, input, inputId: inputOptions?.inputId, options: { ...inputOptions }, images });
-            held.sort((left, right) => left.request.seq - right.request.seq);
+            enqueueHeld(held, { request, input, inputId: inputOptions?.inputId, options: { ...inputOptions }, images });
             return { kind: "accepted", queued: "adapter" };
           }));
         const entry = held.find(next => next.request.id === result.request.id);

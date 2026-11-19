@@ -7,6 +7,15 @@ export interface HeldInput {
 }
 
 /**
+ * Admit a held input synchronously in recorded request order, so a reentrant
+ * `queue` inside a request observer still drains after the request it observed.
+ */
+export function enqueueHeld<Entry extends HeldInput & { readonly request: { readonly seq: number } }>(held: Entry[], entry: Entry): void {
+  held.push(entry);
+  held.sort((left, right) => left.request.seq - right.request.seq);
+}
+
+/**
  * The decision of `Session.withdraw` over an adapter-held queue: remove every
  * entry held for `inputId` and answer `accepted`, or answer `not_queued` when
  * none is waiting (already sent, never queued in this session, or already

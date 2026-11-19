@@ -5,7 +5,7 @@ import { handledInput, refusedInput, startedInput, type PiHeldInput } from "../i
 import type { AgentSessionEvent, SessionStats } from "@earendil-works/pi-coding-agent";
 import type { RequestRecord, ResponseBody, RuntimeEventBody, StartSession } from "../../../contracts/session.js";
 import { createAbortFallback } from "../../../shared/abort-fallback.js";
-import { withdrawControl } from "../../../shared/held-input.js";
+import { enqueueHeld, withdrawControl } from "../../../shared/held-input.js";
 import { withInputImages, type LoadedImage } from "../../../shared/input-images.js";
 import { withSessionCredentials } from "../../../shared/session-credentials.js";
 import { foldPiEvent, initialPiProjection, piPrompted } from "../projection.js";
@@ -63,8 +63,8 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     if (next === undefined) { return; }
     void (async (): Promise<void> => {
       const { inputId: _inputId, ...body } = next.body;
-      await kernel.control({ ...body, kind: "prompt", admission: "native", carries: [next.inputId ?? next.requestId] },
-         async request => { const response = await start(request, next.body.input, next.images, true); return response; });
+      await kernel.control({ ...body, kind: "prompt", admission: "native", carries: [next.inputId ?? next.request.id] },
+         async request => { const response = kernel.unreachable() ?? await start(request, next.body.input, next.images, true); return response; });
       drain();
     })();
   }
@@ -191,10 +191,10 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     queue: async (input, inputOptions) => {
       const body = { kind: "queue" as const, input, ...inputOptions };
       const result = await kernel.control(body, request => withInputImages(capabilities, inputOptions?.images, images => {
-        held.push({ body, requestId: request.id, inputId: inputOptions?.inputId, images });
+        enqueueHeld(held, { body, request, inputId: inputOptions?.inputId, images });
         return { kind: "accepted", queued: "adapter" };
       }));
-      const queued = held.find(entry => entry.requestId === result.request.id);
+      const queued = held.find(entry => entry.request.id === result.request.id);
       if (queued !== undefined) { queued.accepted = true; }
       drain();
       return result;
