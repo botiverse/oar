@@ -207,7 +207,7 @@ export function spawnLineProcess(
     ...(child.stdio[3] instanceof Duplex ? { extraPipe: child.stdio[3] } : {}),
     diagnostics: () => {
       const cleanup = cleanupDiagnostics();
-      return { exitCode, signal: exitSignal, stderr: stderr.text(),
+      return { exitCode, signal: exitSignal, ...stderr.observation(),
         ...(spawnError === undefined ? {} : { error: spawnError }),
         ...(cleanup === undefined ? {} : { cleanup: { ...cleanup,
           ...(preparationAfterCleanup === undefined ? {} : { preparation: { ...preparationAfterCleanup } }),

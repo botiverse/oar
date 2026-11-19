@@ -22,6 +22,7 @@ export interface ProcessDiagnostics {
   readonly exitCode: number | null;
   readonly signal: NodeJS.Signals | null;
   readonly stderr: string;
+  readonly stderrStartsMidLine?: true;
   readonly timeoutMs?: number;
   readonly timeoutObservation?: ProcessTimeoutObservation;
   readonly error?: { readonly code?: string; readonly message: string };
@@ -33,12 +34,22 @@ export const STDERR_TAIL_BYTES = 8192;
 /** Copy retained bytes so a small suffix cannot keep a large chunk alive. */
 export class StderrTail {
   private bytes: Buffer = Buffer.alloc(0);
+  private startsMidLine = false;
 
   append(chunk: Buffer | string): void {
     const incoming = typeof chunk === "string" ? Buffer.from(chunk) : chunk;
+    const discarded = this.bytes.length + incoming.length - STDERR_TAIL_BYTES;
+    if (discarded > 0) {
+      const lastDiscarded = discarded <= this.bytes.length ? this.bytes[discarded - 1] : incoming[discarded - this.bytes.length - 1];
+      this.startsMidLine = lastDiscarded !== 10;
+    }
     this.bytes = incoming.length >= STDERR_TAIL_BYTES
       ? Buffer.from(incoming.subarray(-STDERR_TAIL_BYTES))
       : Buffer.concat([this.bytes.subarray(Math.max(0, this.bytes.length + incoming.length - STDERR_TAIL_BYTES)), incoming]);
+  }
+
+  observation(): { stderr: string; stderrStartsMidLine?: true } {
+    return { stderr: this.text(), ...(this.startsMidLine ? { stderrStartsMidLine: true } : {}) };
   }
 
   text(): string {

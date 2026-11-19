@@ -1,5 +1,6 @@
 import { sessionEnvironment } from "../../shared/environment.js";
 import { spawnLineProcess, type LineProcessOptions } from "../../shared/executable/index.js";
+import { reportedStderr } from "../../shared/executable/reported-stderr.js";
 import { processFailure } from "../../shared/executable/diagnostics.js";
 import type { CancellationObservation } from "../../shared/executable/process-cancellation.js";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
@@ -175,7 +176,7 @@ function createAppServerClient(
     const diagnostics = child.diagnostics();
     exitFailure = processFailure("app-server exited", {
       ...diagnostics,
-      stderr: redact(diagnostics.stderr),
+      stderr: reportedStderr(diagnostics, redact),
       ...(diagnostics.error === undefined ? {} : { error: { ...diagnostics.error, message: redact(diagnostics.error.message) } }),
     });
     for (const waiter of pending.values()) {

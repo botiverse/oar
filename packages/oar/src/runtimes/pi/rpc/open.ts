@@ -11,6 +11,7 @@ import { environmentValue, sessionEnvironment } from "../../../shared/environmen
 import { spawnLineProcess, type LineProcess } from "../../../shared/executable/index.js";
 import { privateTempDir, type PrivateTempDir } from "../../../shared/private-temp.js";
 import { checkSessionName, refuseSessionOptions } from "../../../shared/session-options.js";
+import { reportedStderr } from "../../../shared/executable/reported-stderr.js";
 import type { CredentialRedactor } from "../../../shared/credential-redactor.js";
 import { piMcpServerConfig, validatePiMcpEnvironment } from "../mcp.js";
 import { piThinkingLevel, piRefusedSessionOptions, piEffortRefusal, checkPiSystemPrompt } from "../open.js";
@@ -107,12 +108,12 @@ export async function openPiRpc(options: SessionOptions, credentials: Credential
     const keyPipe = child.extraPipe;
     if (keyPipe === undefined) { child.kill(); await child.exited; throw new Error("Pi RPC requires a private credential pipe"); }
     readPiRpcCredentials(keyPipe, credentials.add, () => { child.kill(); });
-    const control = piRpcControl(child, receive);
+    const control = piRpcControl(child, receive, credentials.redact);
     try {
       await child.spawned;
       const response = await control.request({ type: "get_state" });
       const state = piRpcState(response);
-      if (!existsSync(path.join(directory.path, "ready"))) { throw new Error(`Pi did not load the OAR RPC extension: ${child.diagnostics().stderr}`); }
+      if (!existsSync(path.join(directory.path, "ready"))) { throw new Error(`Pi did not load the OAR RPC extension: ${reportedStderr(child.diagnostics(), credentials.redact)}`); }
       // oxlint-disable-next-line typescript/no-unsafe-assignment -- Written only by the bundled extension into this private directory.
       const ready: { modelRegistered: boolean; version: string } = JSON.parse(readFileSync(path.join(directory.path, "ready"), "utf8"));
       assertPiRpcVersion(ready.version, runtime.command === undefined ? launch.version : undefined);

@@ -15,7 +15,7 @@ import { QODER_CREDENTIAL_ENV, qoderVersionInfo, qoderStartupError } from "./pro
 import { checkQoderLaunchArgs, qoderRefusedSessionOptions } from "./options.js";
 
 /** Process-scoped files keep MCP credentials and system prompts out of argv. */
-export async function launchQoder(command: string, sessionId: string, options: SessionOptions, version?: string, query?: { readonly signal: AbortSignal; readonly own: OwnQueryProcess }, credentials?: Pick<CredentialRedactor, "add">): Promise<LineProcess & { readonly qoderVersion: string }> {
+export async function launchQoder(command: string, sessionId: string, options: SessionOptions, version?: string, query?: { readonly signal: AbortSignal; readonly own: OwnQueryProcess }, credentials?: Pick<CredentialRedactor, "add" | "redact">): Promise<LineProcess & { readonly qoderVersion: string }> {
   refuseSessionOptions(qoderRefusedSessionOptions, options);
   checkQoderLaunchArgs(options.launchArgs);
   const env = { ...sessionEnvironment(options.env), QODER_EXPOSE_TOKEN_USAGE: "1" };

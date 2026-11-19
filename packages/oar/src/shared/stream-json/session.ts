@@ -1,3 +1,4 @@
+import { appendStartupStderr, reportedStderr } from "../executable/reported-stderr.js";
 import { streamJsonAppRequest } from "./permission.js";
 import { streamJsonResultReadback } from "./result-readback.js";
 import { writeHeldInput, type HeldStreamJsonInput } from "./held-input.js";
@@ -137,6 +138,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     }
     if (ended || (dropped && !busy())) { drainHeld(); }
   };
+  let receivedNativeFrame = false;
   const messages = streamJsonResultReadback(child, {
     before: (): Promise<void> | void => {
       if (profile.beforeRootResult === undefined || kernel.unreachable() !== null) { return; }
@@ -146,6 +148,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     },
     process: processMessage,
     consume: (message) => {
+      receivedNativeFrame = true;
       if (message.type === "system" && message.subtype === "init" && typeof message.parent_tool_use_id !== "string" && Array.isArray(message.capabilities)) {
         canCancelQueued = profile.cancelQueuedCapability !== undefined && message.capabilities.includes(profile.cancelQueuedCapability);
       }
@@ -157,7 +160,9 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   const finishExit = (code: number | null, cleanupReason?: string): void => {
     abortFallback.clear(); completeCancellation(); turnRevision += 1;
     // An exit before fallback still precedes the rejected pending controls.
-    const reasons = [profile.exitReason?.(), cleanupReason].filter((value) => value !== undefined);
+    // Some profiles return a session before the CLI sends its first protocol frame.
+    const tail = receivedNativeFrame || child.stopping() ? "" : reportedStderr(child.diagnostics(), credentials.redact).trimEnd();
+    const reasons = [profile.exitReason?.(), cleanupReason, tail ? `stderr (tail):\n${tail}` : undefined].filter((value) => value !== undefined);
     const reason = reasons.length === 0 ? undefined : reasons.join("; ");
     // This Session owns one child. Its projection, including open compactions, ends here.
     kernel.processExited(code, reason);
@@ -172,7 +177,11 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   messages.listen();
   try {
     await profile.open({ current: () => state.projection, replace: (projection) => { state.projection = projection; }, report: (body) => { kernel.frame(body); } });
-  } catch (error) { throw appendCleanupFailure(error, cleanupFailureReason(child.diagnostics().cleanup)); }
+  } catch (error) {
+    const diagnostics = child.diagnostics();
+    const failure = messages.hasExited() ? appendStartupStderr(error, diagnostics, credentials.redact) : error;
+    throw appendCleanupFailure(failure, cleanupFailureReason(diagnostics.cleanup));
+  }
   let interruptCounter = 0;
   const capabilities = profile.capabilities;
   const session: Session = credentials.seal({

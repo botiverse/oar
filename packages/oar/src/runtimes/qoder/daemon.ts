@@ -1,3 +1,4 @@
+import { appendStartupStderr } from "../../shared/executable/reported-stderr.js";
 import { PassThrough, Writable } from "node:stream";
 import type { CredentialRedactor } from "../../shared/credential-redactor.js";
 import type { LineProcess } from "../../shared/executable/index.js";
@@ -6,7 +7,7 @@ import { qoderDaemonAuth } from "./protocol.js";
 import { qoderControl, qoderInitializeTimeoutMs, rememberQoderSecrets } from "./control.js";
 
 /** The official SDK's daemon transport, owned by exactly one OAR session. */
-export async function qoderDaemonSession(child: LineProcess, sessionId: string, workerArgs: readonly string[], cwd: string, env: NodeJS.ProcessEnv, credentials?: Pick<CredentialRedactor, "add">): Promise<LineProcess> {
+export async function qoderDaemonSession(child: LineProcess, sessionId: string, workerArgs: readonly string[], cwd: string, env: NodeJS.ProcessEnv, credentials?: Pick<CredentialRedactor, "add" | "redact">): Promise<LineProcess> {
   const controls = qoderControl(child, (value) => { if (credentials !== undefined) { rememberQoderSecrets(value, credentials.add); } }, qoderInitializeTimeoutMs);
   const handlers: ((line: string) => void)[] = [];
   const buffered: string[] = [];
@@ -14,6 +15,7 @@ export async function qoderDaemonSession(child: LineProcess, sessionId: string, 
   const stdout = new PassThrough();
   stdout.resume();
   let ready = false;
+  const lifetime = { exited: false };
   child.onLine((line) => {
     const frame = asRecord(parseJson(line));
     if (frame === null || failure.error !== undefined) { return; }
@@ -28,7 +30,7 @@ export async function qoderDaemonSession(child: LineProcess, sessionId: string, 
     stdout.write(`${line}\n`);
     for (const handler of handlers) { handler(line); }
   });
-  child.onExit(() => { controls.end(); stdout.end(); });
+  child.onExit(() => { lifetime.exited = true; controls.end(); stdout.end(); });
   const write = (text: string): void => {
     if (failure.error !== undefined) { throw failure.error; }
     for (const line of text.split("\n")) {
@@ -81,5 +83,10 @@ export async function qoderDaemonSession(child: LineProcess, sessionId: string, 
         for (const line of buffered.splice(0)) { stdout.write(`${line}\n`); handler(line); }
       },
     };
-  } catch (error) { controls.end(); child.kill(); await child.exited; throw failure.error ?? error; }
+  } catch (error) {
+    const cause = failure.error ?? error;
+    const openingFailure = lifetime.exited ? appendStartupStderr(cause, child.diagnostics(), credentials?.redact) : cause;
+    controls.end(); child.kill(); await child.exited;
+    throw openingFailure;
+  }
 }

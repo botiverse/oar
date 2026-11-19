@@ -1,11 +1,13 @@
+import { reportedStderr } from "../../../shared/executable/reported-stderr.js";
 import type { RpcCommand, RpcResponse } from "@earendil-works/pi-coding-agent";
 import type { LineProcess } from "../../../shared/executable/index.js";
 import { asRecord, parseJson } from "../../../shared/json.js";
 
 /** Native Pi JSONL correlation. Event observers never wait for a command response. */
-export function piRpcControl(child: LineProcess, receive: (message: Record<string, unknown>) => void): {
+export function piRpcControl(child: LineProcess, receive: (message: Record<string, unknown>) => void, redact?: (text: string) => string): {
   request(command: RpcCommand, issued?: (id: string) => void): Promise<RpcResponse>;
 } {
+  const stderr = (): string => reportedStderr(child.diagnostics(), redact);
   let sequence = 0;
   let ended = false;
   const pending = new Map<string, { resolve(value: RpcResponse): void; reject(error: Error): void; timer: NodeJS.Timeout | undefined }>();
@@ -26,7 +28,7 @@ export function piRpcControl(child: LineProcess, receive: (message: Record<strin
     ended = true;
     for (const waiter of pending.values()) {
       clearTimeout(waiter.timer);
-      waiter.reject(new Error(`Pi RPC exited (${String(code)}): ${child.diagnostics().stderr}`));
+      waiter.reject(new Error(`Pi RPC exited (${String(code)}): ${stderr()}`));
     }
     pending.clear();
   });
@@ -38,7 +40,7 @@ export function piRpcControl(child: LineProcess, receive: (message: Record<strin
       // Compact is a native operation, not a short query. Caller wait limits must not kill it.
       const timer = command.type === "compact" ? undefined : setTimeout(() => {
         pending.delete(id);
-        reject(new Error(`Pi RPC ${command.type} did not reply within 30 seconds: ${child.diagnostics().stderr}`));
+        reject(new Error(`Pi RPC ${command.type} did not reply within 30 seconds: ${stderr()}`));
         child.kill();
       }, 30_000);
       pending.set(id, { resolve, reject, timer });
