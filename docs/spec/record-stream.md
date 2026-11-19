@@ -64,8 +64,9 @@ Each session from an adapter with declared execution exposes its actual `placeme
 `in_process`). An `open` request records the requested placement and its
 `opened` response records the actual placement, without recording environment
 values or process configuration. A pool belongs to one runtime instance;
-process-level executable, arguments, environment, home and configuration
-directories must all match before sessions join it.
+every process-level field of `ProcessConfiguration`
+([`shared/process-pool.ts`](../../packages/oar/src/shared/process-pool.ts))
+must match before sessions join it.
 Environment matching includes resolved inherited values, not only the overlay.
 Session-level cwd, model, effort and MCP settings may share a pool only where
 the runtime's protocol has proved their isolation. Legacy custom adapters and
