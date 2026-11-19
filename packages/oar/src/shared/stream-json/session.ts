@@ -159,7 +159,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     // An exit before fallback still precedes the rejected pending controls.
     const reasons = [profile.exitReason?.(), cleanupReason].filter((value) => value !== undefined);
     const reason = reasons.length === 0 ? undefined : reasons.join("; ");
-    state.projection = { ...state.projection, compactingAgents: new Set() };
+    // This Session owns one child. Its projection, including open compactions, ends here.
     kernel.processExited(code, reason);
     state.active = null;
     state.spontaneous = false;
