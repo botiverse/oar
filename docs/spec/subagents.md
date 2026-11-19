@@ -5,13 +5,10 @@ takes `SessionOptions.env`, follow them, and feed their results back into a
 parent. `oar mcp` serves the same library to any agent that speaks MCP. The
 [TypeScript contract](../../packages/oar/src/agents/types.ts) is normative.
 
-A child carries its depth in `env`, so a runtime that declares `env` in
-`refusedSessionOptions` cannot be a child: spawn refuses it with
-`open_failed` and the reason before opening anything, and the `oar mcp`
-`runtimes` tool marks it `spawnable: false`. Cursor and the community Morph
-adapter are such runtimes. The crew finds runtimes in `defaultRuntimes` by
-default, which contains neither, so there their spawn is refused
-`unknown_runtime`; `oar mcp` offers the CLI's registry, which adds both.
+A child carries its depth in `env`. Its runtime and execution mode must accept
+this option, and the runtime must be present in the selected registry.
+Check the runtime's refusals and the MCP `runtimes` result's `spawnable` flag.
+[Spawn admission](../../packages/oar/src/agents/crew.ts).
 
 ## Model
 
@@ -145,9 +142,11 @@ The library is mechanism; the host chooses the policy.
   `PATH` and a few more; checked on 0.158.0), so a codex child's `oar mcp`
   reads depth 0 unless its server entry lists
   `env_vars = ["OAR_SUBAGENT_DEPTH"]`.
-- **Concurrency.** `maxRunning` (default 4) counts children whose turn is
-  open; a spawn or follow-up past it is refused, with a reason that says to
-  wait rather than retry.
+- **Concurrency.** `maxRunning` (default 4) counts starting children and
+  running turns. It gates a new spawn, a follow-up that starts an idle child,
+  and queueing for an idle child. A follow-up delivered inside an existing
+  turn uses its existing slot.
+  [Crew](../../packages/oar/src/agents/crew.ts), [delivery](../../packages/oar/src/agents/subagent.ts).
 - **Runtimes.** The `runtimes` option is where a spawn looks a runtime up
   by id (the built-in registry by default); `oar mcp --runtimes` limits it
   to the listed ids.
@@ -217,9 +216,9 @@ not run an unscoped `wait` concurrently: it can consume the same reports.
 There is no wait-all mode. Unlike `next(id)` in the crew API, `wait`
 does not reserve reports for an id.
 
-An MCP server can only speak when called, so every other tool result names
-the subagents with unread reports (`list.unread` for `list`, a text note for
-the others). A call the client cancels
+An MCP server can only speak when called, so `list.unread` and the text note on other
+tools name children with unread reports. The `run` and `wait` tools deliver
+reports directly and omit that note. A call the client cancels
 (`notifications/cancelled`) gets no answer and takes nothing, so a cancelled
 `run` leaves its report for `wait`. When the client goes away (stdin ends) or
 the server is stopped, pending calls are cancelled and every subagent is

@@ -69,6 +69,33 @@ it("an abort droid honors by handing the prompt back is disarmed, so a later tur
   expect(opened.records().some(record => record.kind === "response" && record.body.kind === "exited")).toBe(false);
 });
 
+it("sends held input after a handback even if no turn end follows", async () => {
+  const opened = await session("handback", 10_000);
+  await opened.prompt("initial");
+  const queued = await opened.queue("next", { inputId: LATE });
+  expect(queued.kind).toBe("accepted");
+  await opened.abort();
+  await expect.poll(() => opened.records().some(r => r.kind === "request" && r.body.kind === "prompt" && r.body.carries?.includes(LATE) === true), { timeout: 1500 }).toBe(true);
+});
+
+it("admits a prompt issued synchronously from a native compact refusal", async () => {
+  const opened = await session("compact-refusal");
+  const submitted: { prompt?: ReturnType<Session["prompt"]> } = {};
+  opened.rawEvents(record => {
+    if (record.kind === "frame" && record.body.type === "droid.compact_session/error") {
+      submitted.prompt = opened.prompt("after");
+    }
+  });
+  expect(await opened.compact?.()).toMatchObject({ kind: "rejected", code: "runtime_refused" });
+  expect(await submitted.prompt).toMatchObject({ kind: "accepted" });
+});
+
+it("a background summary notice cannot confirm a manual request that removed nothing", async () => {
+  const opened = await session("compact-zero");
+  expect(await opened.compact?.()).toMatchObject({ kind: "failed", code: "not_compacted" });
+  expect(opened.records().flatMap(r => r.kind === "frame" ? r.body.events.filter(e => e.kind === "compaction_ended") : [])).toEqual([{ kind: "compaction_ended", outcome: "completed" }]);
+});
+
 it("an abort whose turn never ends stops droid after the fallback", async () => {
   const opened = await session("stuck", 10_000);
   await opened.prompt("stuck");

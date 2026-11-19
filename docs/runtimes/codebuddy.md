@@ -16,10 +16,11 @@ pass. OAR adds no delay between turns. A future transport change requires both
 a fixed native reproduction and a capability comparison, not just an upstream
 version change. [Official ACP documentation](https://www.codebuddy.ai/docs/cli/acp).
 
-Current check: **2.184.0** (Linux x64, 2026-11-13): all 16 applicable
-behavior cases and eight native vendor cases passed against local providers
-([daily evidence](../../experiments/runtime-version-checks/2026-11-13.md#codebuddy-21840)).
-CI remains pinned to 2.179.3.
+See the [dated runtime checks](../../experiments/runtime-version-checks/)
+for measured versions and the [CI manifest](../../.github/runtime-versions.json)
+for the pinned release. In the 2.185.0 ACP handshake, `loadSession` was true
+and `sessionCapabilities.resume` was absent, so OAR used `session/load`.
+The shared driver prefers `session/resume` when a runtime advertises it.
 Unless marked otherwise, evidence below identifies CodeBuddy 2.178.1, Linux
 x64 local-provider tests and Linux arm64 international-account tests on
 2026-10-29; account observations remain on 2.178.1. These are observation
@@ -81,7 +82,7 @@ set, status stays `unknown` and the key is untouched. [Installation evidence](in
 
 | Surface | Native mechanism and OAR behavior |
 | --- | --- |
-| Open / resume | ACP new/load, native ID and history. Resume was verified after killing the first process and when changing cwd; a native shell ran in the newly requested directory. Host model, effort, MCP and prompt settings are applied again on each open. |
+| Open / resume | ACP `session/new` and the advertised reconnect method (`session/load` on 2.185.0), with native ID and history. Resume was verified after killing the first process and when changing cwd; a native shell ran in the newly requested directory. Host model, effort, MCP and prompt settings are applied again on each open. |
 | Prompt / queue | One prompt RPC at a time; held input belongs to OAR, `queue.durable: false`, and can be withdrawn before dispatch. |
 | Steer | Absent. No callable immediate-injection contract has been verified. Native `codebuddy.ai/steerClientMeta` appears in user-message broadcast/replay code; that field alone does not establish a steering input API. |
 | Abort / dispose | `session/cancel`, with the shared bounded fallback; disposal stops the owned process tree and hosted terminals. Turn completion is not proof that every native background task stopped. |
@@ -238,7 +239,7 @@ credentials) fails on every checked release from 2.178.1 through 2.184.0
 (Linux x64): of three immediate runs, each either duplicates the second input
 (`first, second, second`) or times out after the first result (2.178.1 and
 2.179.3: all three duplicated; 2.184.0, 2026-11-13: two duplicated, one timed
-out; [newest report](../../experiments/runtime-version-checks/2026-11-13.md#codebuddy-21840)).
+out; [November 13 report](../../experiments/runtime-version-checks/2026-11-13.md#codebuddy-21840)).
 On each version, delaying the second input by one second returns one request
 per input (`first, second`), and from 2.179.3 the immediate ACP control keeps
 one conversation request per input and completes both turns (two separate

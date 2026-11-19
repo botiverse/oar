@@ -153,19 +153,18 @@ test.each([piTools, piCommands])("Pi startup resolving after the query deadline 
 });
 
 
-test("Pi inventory accepts env without changing SDK configuration and applies it to its bash tool", async () => {
-  const agent = session();
-  sdk.createAgentSessionFromServices.mockResolvedValue({ session: agent });
+test.each([piTools, piCommands, piSkills])("Pi refuses changed inventory environments before loading extensions", async reader => {
   const host = process.env.OAR_PI_AGENT_DIR;
-  const result = await piTools(bundled, { cwd: "/inventory", env: { OAR_PI_AGENT_DIR: "child-only-dir", REMOVE: null } });
-  expect(result.kind).toBe("ok");
-  expect(sdk.createAgentSessionServices).toHaveBeenCalledWith(expect.objectContaining({ agentDir: host ?? "/fake/agent" }));
-  const hook = sdk.createBashToolDefinition.mock.calls[0]?.[1].spawnHook;
-  expect(hook?.({ env: { KEEP: "inherited", REMOVE: "remove" } }).env).toEqual({ KEEP: "inherited", OAR_PI_AGENT_DIR: "child-only-dir" });
+  const result = await reader(bundled, { cwd: "/inventory", env: { OAR_PI_AGENT_DIR: `${host ?? ""}/other` } });
+  expect(result).toMatchObject({ kind: "unsupported", code: "scope_unavailable" });
+  expect(sdk.createAgentSessionServices).not.toHaveBeenCalled();
   expect(process.env.OAR_PI_AGENT_DIR).toBe(host);
-  expect(agent.dispose).toHaveBeenCalledOnce();
 });
 
+test("an equivalent inventory environment can use the host SDK", async () => {
+  sdk.createAgentSessionFromServices.mockResolvedValue({ session: session() });
+  expect(await piSkills(bundled, { cwd: "/inventory", env: { PATH: process.env.PATH ?? null } })).toMatchObject({ kind: "ok" });
+});
 
 test("Pi SDK keeps package identity and native scope separate", async () => {
   const agent = session();

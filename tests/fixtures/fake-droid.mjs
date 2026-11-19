@@ -125,6 +125,11 @@ input.on("line", (line) => {
       if (mode === "noisy") { write({ type: "response", id: message.id, error: { code: -32_603, message: "context unavailable" } }); return; }
       reply({ used: 10, remaining: 90, limit: 100, accuracy: "estimated", updatedAt: new Date().toISOString() });
       return;
+    case "droid.compact_session":
+      if (mode === "compact-refusal") { write({ type: "response", id: message.id, error: { code: -32602, message: "Nothing to compact" } }); return; }
+      note({ type: "session_compacted", summaryId: "summary", removedCount: 4 });
+      reply({ newSessionId: sessionId, removedCount: mode === "compact-zero" ? 0 : 4 });
+      return;
     case "droid.list_models":
       reply({ models: [{ id: "gpt-6.1-sol", displayName: "GPT 6.1 Sol", supportedReasoningEfforts: ["low", "medium", "high"], defaultReasoningEffort: "medium" }] });
       return;

@@ -92,7 +92,6 @@ function cursorRuntime(access: CursorSdkAccess): CursorRuntime {
     sessionCapabilities: () => ({ steer: true, images: true }),
     refusedSessionOptions: access.refusedSessionOptions,
     brand: runtimeBrands.cursor,
-    manualCompaction: { kind: "supported", activeTurn: "reject" },
     installation: cursorInstallationFor(process.platform, process.arch, access.execution),
     listModels: cursorListModelsWith(access),
     login: cursorLoginWith(access),

@@ -90,7 +90,10 @@ The envelope's `spanId` remains the native **turn** id (Cursor's run id),
 never a replacement for a compaction message id. `compaction_ended.requestId?`
 means the native response explicitly answered that OAR `compact` request:
 Grok's dedicated RPC response can finish it without an observed start. No
-request ownership is inferred from notification timing. Unowned ends retain
+request ownership is inferred from notification timing. Factory's RPC result
+identifies both the request and the current session. Its independent summary
+notification has no request identity. The identity-based event fold also
+supports persisted or adapter-provided requests without `settledBy`. Unowned ends retain
 the previous rules.
 
 The manual operation releases its input reservation and status on the same
@@ -147,9 +150,9 @@ returns `rejected` / `busy`. Claude, Pi, Grok, Factory, Qoder, Cursor and OpenCo
 retain `queue()` input in the OAR queue and drain it after native completion; Codex and DSH refuse new
 queue input `busy` because its native queue could start another turn during
 compaction. A submitted but not yet started input also prevents compact.
-`abort()` uses the native cancellation control once it has a target. Before
-native admission or Codex's compaction item identifies a turn, it returns
-`busy` with the missing-target reason. Claude's queued `cancelled` command
+`abort()` uses the native cancellation control once it has a target. Factory cannot interrupt its compact RPC and returns `busy`. Cursor
+accepts an early cancellation and applies it when the SDK supplies the run.
+Codex returns `busy` until its native compaction item identifies the turn. Claude's queued `cancelled` command
 settles as `aborted`. Once Claude starts compacting, interrupt stops it but
 Claude reports `compact_result: failed`, so the compact result is `failed`
 with `native_failed`; OAR does not reclassify its error text. The ordinary

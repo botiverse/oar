@@ -8,7 +8,7 @@ import { piAgentDir } from "./resolve.js";
 import { checkPiProjectPackages, reportMissingPiPackages } from "./project.js";
 import type { PiProjectOptions } from "./options.js";
 import { initPiTheme } from "./theme.js";
-import { piEnvBashTool } from "./open.js";
+import { environmentValue, sessionEnvironment } from "../../shared/environment.js";
 
 interface PiReaders {
   readonly skills: () => InventoryResult<SkillEntry>;
@@ -59,6 +59,10 @@ function reader<T>(select: (readers: PiReaders) => () => InventoryResult<T>, pro
     if (installation.via !== "bundled") {
       return unsupportedInventory("installation_unsupported", "Pi inventory requires the bundled SDK");
     }
+    const env = sessionEnvironment(options.env);
+    if (Object.keys(options.env ?? {}).some(key => environmentValue(env, key) !== environmentValue(process.env, key))) {
+      return unsupportedInventory("scope_unavailable", "Pi discovers inventories in the host process and cannot apply a different environment");
+    }
     const scope = workspaceScope(options);
     // Cleanup stays inside the task: if the caller times out during SDK startup,
     // the eventual session is still disposed. No trust-store write or model prompt.
@@ -72,7 +76,6 @@ function reader<T>(select: (readers: PiReaders) => () => InventoryResult<T>, pro
       const services = await sdk.createAgentSessionServices({ cwd: scope.cwd, agentDir, settingsManager });
       const { session } = await sdk.createAgentSessionFromServices({
         services, sessionManager: sdk.SessionManager.inMemory(scope.cwd),
-        ...(options.env === undefined ? {} : { customTools: [await piEnvBashTool(scope.cwd, options.env)] }),
       });
       try {
         return select(piInventories(session, scope))();

@@ -280,7 +280,7 @@ session browser nor a fork API.
 Native `session/prompt { sessionId, prompt: [{ type: "text", text }] }`
 streams updates and returns a `stopReason`. Attachment submits no prompt.
 The native ACP driver buffers events arriving before the launch returns a
-turn ID and can bind a `session/cancel` request to that eventual ID. Native
+turn ID and can bind a `session/cancel` notification to that eventual ID. Native
 ACP accepts image and resource blocks. OAR sends `InputOptions.images` as
 `image` blocks (`data`, `mimeType`, the file as `uri`) before the text block,
 because `initialize` advertises `promptCapabilities.image`
@@ -297,7 +297,9 @@ which declares the model's `image_in` capability).
 `accepted` when OAR starts the turn and schedules the RPC, or `rejected`
 when busy or when the transport is gone (see `busy-and-late-control`). The
 RPC answer is recorded as frame `session/prompt` with the `turn_ended`
-event; an RPC error answer as `session/prompt/error` with a failed end
+event. An RPC error becomes `session/prompt/error`, with an aborted outcome
+after cancellation and a failed outcome otherwise. If the process has
+exited, its exit response settles the turn
 ([test](../../tests/acp/acp-session.test.ts)).
 
 **Steer (not available on this transport):** the native SDK and agent
@@ -325,8 +327,7 @@ the running turn, not held input ([input cancellation](input-cancellation.md),
 [test](../../tests/acp/acp-session-withdraw.test.ts)).
 
 **Abort (mapped):** `abort()` sends `session/cancel` (a notification, so
-the `accepted` answer carries no `native`) and is `rejected no active
-turn` after the turn. Kimi then asks the client to `terminal/kill` the running
+the `accepted` answer carries no `native`) and is rejected with `no_active_turn` after the turn. Kimi then asks the client to `terminal/kill` the running
 command, `wait_for_exit` answers `SIGTERM`, the tool ends `status: "failed"`,
 and the prompt answers `stopReason: "cancelled"` about one second later,
 recorded as `turn_ended: aborted` (`abort`). If the cancelled prompt is not

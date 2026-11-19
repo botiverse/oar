@@ -2,10 +2,9 @@
 
 OAR uses the standalone **agy CLI's native ACP entry point** (1.5.0 and
 later), not the retired `agy_acp_server` archive or its companion harness.
-Newest check: CLI **1.5.9** on Linux, 2026-11-14, 17 behavior cases and all
-fourteen vendor cases with an isolated HOME and a local scripted Gemini
-provider ([daily report](../../experiments/runtime-version-checks/2026-11-14.md#antigravity-159));
-it does not establish account-specific or macOS/Windows behavior. The
+Dated versions and platform coverage are in the
+[runtime checks](../../experiments/runtime-version-checks/) and
+[CI version list](../../.github/runtime-versions.json). The
 [1.5.0 migration report](../../experiments/antigravity-cli-acp-2026-11-05.md)
 has the native controls, retained limitations and host migration checklist.
 
@@ -67,8 +66,8 @@ agy 1.5.12 can end a refused turn with a normal `end_turn`. OAR reports
 `failure: "quota"` when the entire output is agy's exact “Individual quota
 reached” notice with its reset countdown and the prompt response omits
 `usage`. The native notice has no structured failure code. Its countdown
-starts at receipt of the last notice chunk. A prompt RPC error carrying the
-same reset sentence also supplies `resetsAt`. The estimate has the precision
+starts at receipt of the last notice chunk. A prompt RPC error supplies `resetsAt` only when its classification and
+countdown match the [native quota rules](../../packages/oar/src/runtimes/antigravity/quota.ts). The estimate has the precision
 of the smallest unit agy prints. For example, `4h12m` can put the estimate
 up to a minute early, and an hours-only countdown up to an hour early.
 A retry at that time can still meet the same limit. Other text, tool
@@ -666,8 +665,10 @@ CLI 1.5.11 archive on Linux, macOS and Windows, verifies its SHA-512, and runs
 the behavior and vendor suites with an isolated home and local provider.
 The manual sharing-evidence workflow uses the same installer. The local
 Linux results do not stand in for CI's macOS/Windows runs.
-Real-account inference and login, reliable child identity links, usage,
-structured compaction and concurrent same-id controllers remain unverified.
+Real Gemini sessions on 1.5.12 supplied context usage updates and whole-turn
+usage on prompt replies that included the native fields. Reliable child
+identity links, structured compaction and concurrent same-id controllers
+remain unverified.
 
 Historical evidence stays versioned: the
 [CLI 1.4.9 versus separate ACP 1.4.4 comparison](../../experiments/antigravity-steering-2026-10-29.md),

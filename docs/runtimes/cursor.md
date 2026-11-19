@@ -72,7 +72,8 @@ stops it. Progress arrives through `send(…, { onDelta })` as updates, each a
 record with a `type`; `run.stream()` offers a coarser message view of the
 same run, including compaction statuses omitted from `onDelta` in SDK 1.2.0.
 The native `Agent.summarize()` starts a manual summary run; OAR exposes it as
-idle-only `compact()`. An agent takes one run at a time: a second `send`
+idle-only `compact()` when the opened agent supplies `summarize`. The pre-open
+declaration stays unknown because the embedder supplies the SDK. An agent takes one run at a time: a second `send`
 while one runs is refused (`already has active run`, probed).
 
 The credential is `CURSOR_API_KEY`, or, without it, the key
@@ -655,8 +656,8 @@ counted once, through `onDelta`. No trigger or failure reason is reported.
 still counts as completed compaction. Cancellation can end the run with only
 a summary start observed; OAR adds no compaction end in that case.
 
-**Manual `compact()`** (`manualCompaction: { kind: "supported", activeTurn:
-"reject" }`) is `Agent.summarize()`. OAR binds the accepted response to the
+**Manual `compact()`** is present on the opened session when its agent exposes
+`summarize()` and is admitted between turns. OAR binds the accepted response to the
 run id the SDK returns before observing messages: native `run_id` becomes
 `spanId`, `sessionId` stays the root agent id, children keep their task-call
 `agentPath`, and a different native `agent_id` cannot supply root summary
@@ -740,7 +741,7 @@ does not silently ignore a requested tier or alter a global default.
 ### Models, instructions, and context
 
 **Mapped:** the [model lister](../../packages/oar/src/runtimes/cursor/list-models.ts)
-is `Cursor.models.list()` (about 45 models on this account, `default` first),
+is `Cursor.models.list()` in the order supplied by the SDK,
 `unauthenticated` without a credential, with a 15 second deadline. Each model
 lists its own parameters; the reasoning one has a different id per family:
 `effort` (Claude 5, Grok 4.6), `reasoning` (GPT), `reasoning_effort` (Grok

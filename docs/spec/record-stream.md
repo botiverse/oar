@@ -145,14 +145,15 @@ one, it is honestly absent. No oar-made native frames exist in the stream, so th
 is no origin self-disclosure label.
 
 **request**: an action record that expects an outcome; bidirectional.
-app→runtime: open / prompt / steer / queue / withdraw / abort / stop_task / compact / dispose. runtime→app:
+App-to-runtime actions are defined by [`RequestBody`](../../packages/oar/src/contracts/records.ts). Runtime-to-app actions include
 approvals, questions, external tools. toApp request bodies are runtime
 verbatim with an open vocabulary, so `direction` is the only way a server
 can decide "does the app need to answer this" without understanding the
 body.
 
-**response**: must point at a request (`requestId`); the reverse is not
-guaranteed. A response exists *only* when oar observed an outcome the
+**response** records an observed outcome. Its `requestId` identifies the
+request when one caused the outcome. A spontaneous process exit has an
+empty `requestId`. A response exists *only* when oar observed an outcome the
 runtime will not say itself (e.g. the process exit code after a dispose).
 Outcomes the runtime does say (a prompt completing) are answered by its own
 frames, and oar adds no echoing response (it would be a synthesized
@@ -281,7 +282,7 @@ Further rules:
   landing points are always events. A rejection carries one typed `code`
   (`busy`, `no_active_turn`, `not_queued`, `unsupported`, `runtime_exited`, `session_released`,
   `disposed`, `aborted`, `runtime_refused`, `session_not_found`, `error`) next to the prose `reason`, so an application
-  branches on a word, not on vendor text. A `runtime_refused` may also carry
+  branches on a word, not on vendor text. A classified rejection may also carry
   `failure` (a `FailureClass`) where the runtime's error code says one, as
   `input_dropped` does; `session_not_found` means the runtime no longer has
   the session, so no later control on it can succeed and a host reopens it
@@ -708,7 +709,7 @@ Further rules:
   kept whole. A plain string result is one text part; `content` is absent
   when the runtime reported no result. The frame's `native` keeps the
   original. `toolResultText(content)` (`@botiverse/oar/observe`) joins the
-  text parts for a host that shows only text. Streamed output while a call
+  text parts for a host that shows only text and returns `undefined` when there are none. Streamed output while a call
   runs stays in `tool_call_progress`: `output` replaces the preview and
   `outputDelta` appends a chunk. Records written before 0.14.0
   carry `output` instead; `eventsOf` and the session view read it as
@@ -785,12 +786,12 @@ interface RequestRecord extends RecordEnvelope {
   kind: "request";
   id: string;
   direction: "toRuntime" | "toApp";
-  body: RequestBody;            // open {placement} | prompt {input, inputId?, images?, origin?, carries?, admission?: "native"} | steer | queue {input, inputId?, images?, origin?} | withdraw {inputId} | abort | stop_task {taskId} | compact {settledBy?: "native_response"} | dispose | goal_set {options} | goal_read | goal_clear | native {type, native} (toApp, verbatim)
+  body: RequestBody;            // see the request union in contracts/records.ts
 }
 
 interface ResponseRecord extends RecordEnvelope {
   kind: "response";
-  requestId: string;            // must point to a request; reverse not guaranteed
+  requestId: string;            // empty for a spontaneous exit
   body: ResponseBody;           // opened {placement} | accepted {native?, queued?: "adapter"} | rejected {code, reason, native?} | answered {native} | cleanup {result: completed {signalled?} | failed {reason, signalled?}} | released {reason, nativeTurnMayContinue:true, workStartedAfterCleanupMayContinue:true} | exited {code, reason?}
 }
 // accepted/rejected: control answers only "taken over or not".
@@ -1131,8 +1132,8 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   trigger; its `auto_compact_completed` notification alone supplies neither
   ownership nor a trigger. DSH `compaction/end` supplies failed with its
   native `error` as reason, else completed, keeping its `compactionId`.
-  Factory's `session_compacted` supplies completed with no trigger, carrying
-  the OAR `requestId` while a `droid.compact_session` is pending; Factory has
+  Factory's `session_compacted` supplies completed without a request id
+  or trigger. Its correlated RPC answer settles manual compaction. Factory has
   no projected start. An
   ended compaction starts no work: `statusOf` keeps an idle agent idle, and
   only moves an already-running ordinary agent to `waiting_model`. Which

@@ -323,6 +323,11 @@ explain the following boundaries:
   process cleanup for a turn across platforms, so
   `endTurnProcessesOnAbort: true` stays refused.
 
+Revisit configuration exclusion when a host needs to preserve its selected
+providers, login and history while suppressing user configuration. Revisit
+abort cleanup when a host needs verified ownership of every process started
+by the aborted turn on its target platforms.
+
 ## Launcher arguments
 
 `launchArgs` remains refused before a process starts. Native `--patch` can

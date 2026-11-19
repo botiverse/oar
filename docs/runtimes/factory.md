@@ -277,10 +277,11 @@ id as its JSON-RPC id. Probed on 1.12.1 with a custom model: droid summarizes
 in the same session (`newSessionId` equals the session id, and a later
 `load_session` of that id holds the compacted history), reports
 `session_compacted { summaryId, removedCount }` and then answers `{
-newSessionId, removedCount }`. While that call is pending, OAR tags the
-`session_compacted` frame's `compaction_ended` with the request id, and the
-answer frame settles the operation (`settledBy: "native_response"`):
-`completed` with the `session_compacted` frame. droid refuses a compaction
+newSessionId, removedCount }`. OAR settles manual compaction on its own RPC answer.
+A matching session ID and positive removal count confirm completion. Zero
+removals yield `not_compacted`; a missing session ID or removal count
+leaves the result unconfirmed. The summary notification has no request ID.
+Factory droid refuses a compaction
 during a turn (-32602 "Wait for the current turn to finish before
 compacting.") and OAR answers `busy` before sending one; on an empty
 conversation droid's refusal ("Nothing to compact") is `rejected`
