@@ -2,16 +2,8 @@ import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import { asRecord } from "../json.js";
 
-/*
- * A runtime's descendants on POSIX, read from the system process table, so
- * that ending the runtime ends them too. Its process group alone does not
- * reach them all: a descendant can leave the group (claude 2.1.292 runs each
- * Bash tool command in a session of its own), and once the runtime is gone
- * such a process is re-parented to init or a subreaper, where the tree no
- * longer leads to it. So the table is read while the runtime still runs, and
- * read again before anything in it is signalled: a pid is signalled only if
- * the same process (same start time) still holds it.
- */
+/* Capture descendants before root exit: detached tools can leave the group
+ * and be reparented. Revalidate PID and start time before signalling them. */
 
 /** One process in the table. `start` tells it from a later process given the same pid. */
 export interface ProcessEntry {
@@ -19,6 +11,8 @@ export interface ProcessEntry {
   readonly ppid: number;
   readonly pgid: number;
   readonly start: string;
+  /** POSIX has recorded exit but the parent has not reaped the process yet. */
+  readonly zombie?: true;
 }
 
 /** The process table at one moment, by pid. */
@@ -28,10 +22,12 @@ export interface ProcessTableRead {
   readonly table: ProcessTable;
   /** Entries omitted because access or a start identity was unavailable. */
   readonly skipped: number;
+  /** Enumerated PIDs whose identities could not be read. Never exposed in diagnostics. */
+  readonly unreadable?: ReadonlySet<number>;
 }
 
 export type ProcessTableSource = "procfs" | "ps" | "windows";
-export type ProcessTableFailureReason = "timeout" | "command_failed" | "spawn_failed" | "read_failed" | "invalid_output" | "missing_host" | "missing_root";
+export type ProcessTableFailureReason = "timeout" | "command_failed" | "spawn_failed" | "read_failed" | "invalid_output" | "missing_host" | "missing_root" | "descendant_unreadable" | "descendant_still_running" | "descendant_exit_unconfirmed";
 /** No command output, process names, arguments or environment values are retained. */
 export interface ProcessTableFailure {
   readonly ok: false;
@@ -73,13 +69,13 @@ export function parseProcessStat(pid: number, stat: string): ProcessEntry {
   const fields = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
   const [ppid, pgid, start] = [Number(fields[1]), Number(fields[2]), fields[19]];
   if (!Number.isInteger(ppid) || !Number.isInteger(pgid) || start === undefined || !/^\d+$/u.test(start)) { throw new InvalidProcessTableError(); }
-  return { pid, ppid, pgid, start };
+  return { pid, ppid, pgid, start, ...(fields[0] === "Z" ? { zombie: true } : {}) };
 }
 
 /** Linux: every process's stat. */
 function readProcfs(): ProcessTableRead {
   const table = new Map<number, ProcessEntry>();
-  let skipped = 0;
+  const unreadable = new Set<number>();
   for (const name of readdirSync("/proc")) {
     try {
       const entry = /^\d+$/u.test(name) ? readStat(Number(name)) : null;
@@ -88,16 +84,16 @@ function readProcfs(): ProcessTableRead {
       // hidepid can deny other users' stat files without hiding our tree.
       // Never signal these entries, but keep the count visible to cleanup.
       const code = asRecord(error)?.code;
-      if (code === "EACCES" || code === "EPERM") { skipped += 1; }
+      if (code === "EACCES" || code === "EPERM") { unreadable.add(Number(name)); }
       else { throw error; }
     }
   }
-  return { table, skipped };
+  return { table, skipped: unreadable.size, unreadable };
 }
 
 /** Other POSIX systems (macOS): one `ps` run; `lstart` is the start time to the second. */
 function readPs(): ProcessTableRead {
-  const output = execFileSync("ps", ["-A", "-o", "pid=,ppid=,pgid=,lstart="], {
+  const output = execFileSync("ps", ["-A", "-o", "pid=,ppid=,pgid=,stat=,lstart="], {
     encoding: "utf8",
     env: { ...process.env, LC_ALL: "C" },
     stdio: ["ignore", "pipe", "ignore"],
@@ -112,10 +108,10 @@ export function parseProcessPs(output: string): ProcessTableRead {
   const table = new Map<number, ProcessEntry>();
   for (const line of output.split("\n")) {
     if (line.trim() === "") { continue; }
-    const match = /^\s*(\d+)\s+(\d+)\s+(\d+)\s+(\S.*?)\s*$/u.exec(line);
+    const match = /^\s*(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(\S.*?)\s*$/u.exec(line);
     if (match !== null) {
       const pid = Number(match[1]);
-      table.set(pid, { pid, ppid: Number(match[2]), pgid: Number(match[3]), start: match[4] ?? "" });
+      table.set(pid, { pid, ppid: Number(match[2]), pgid: Number(match[3]), start: match[5] ?? "", ...(match[4]?.startsWith("Z") === true ? { zombie: true } : {}) });
     } else { throw new InvalidProcessTableError(); }
   }
   return { table, skipped: 0 };
@@ -133,19 +129,19 @@ function readWindows(): ProcessTableRead {
 export function parseProcessWindows(output: string): ProcessTableRead {
   const values: unknown = JSON.parse(output);
   const table = new Map<number, ProcessEntry>();
-  let skipped = 0;
+  const unreadable = new Set<number>();
   for (const value of Array.isArray(values) ? values : [values]) {
     const entry = asRecord(value);
     if (entry === null || typeof entry.ProcessId !== "number" || !Number.isInteger(entry.ProcessId) || entry.ProcessId < 0
       || typeof entry.ParentProcessId !== "number" || !Number.isInteger(entry.ParentProcessId) || entry.ParentProcessId < 0) { throw new InvalidProcessTableError(); }
     // Non-admin hosts may not see protected processes' creation times.
     // Omit identities we cannot revalidate, without rejecting readable peers.
-    if (entry.Started === undefined || entry.Started === null || entry.Started === "") { skipped += 1; continue; }
+    if (entry.Started === undefined || entry.Started === null || entry.Started === "") { unreadable.add(entry.ProcessId); continue; }
     if (typeof entry.Started !== "string") { throw new InvalidProcessTableError(); }
-    if (entry.ProcessId === 0 || entry.ProcessId === 4) { skipped += 1; continue; }
+    if (entry.ProcessId === 0 || entry.ProcessId === 4) { unreadable.add(entry.ProcessId); continue; }
     table.set(entry.ProcessId, { pid: entry.ProcessId, ppid: entry.ParentProcessId, pgid: 0, start: entry.Started });
   }
-  return { table, skipped };
+  return { table, skipped: unreadable.size, unreadable };
 }
 
 /**
@@ -247,7 +243,7 @@ function signalCode(error: unknown): string {
  * processes started since the entries were read. Never the host, nor its group,
  * nor a group `mayKillGroup` holds back. Says what was actually sent.
  */
-export function signalEntries(entries: Iterable<ProcessEntry>, table: ProcessTable, mayKillGroup: (group: number) => boolean = () => true, signal: NodeJS.Signals = "SIGKILL"): SignalReport {
+export function signalEntries(entries: Iterable<ProcessEntry>, table: ProcessTable, mayKillGroup: (group: number) => boolean = () => true, signal: NodeJS.Signals = "SIGKILL", denied?: Set<number>): SignalReport {
   const hostGroup = table.get(process.pid)?.pgid;
   if (hostGroup === undefined) { return { hostIdentified: false, signalled: 0, failed: 0, foreign: 0, codes: [] }; }
   const groups = new Set<number>();
@@ -281,6 +277,9 @@ export function signalEntries(entries: Iterable<ProcessEntry>, table: ProcessTab
       signalled += 1;
     } catch (error) {
       const code = signalCode(error);
+      // A successful group signal does not establish permission for every
+      // member. Whole-tree exit confirmation needs the direct PID result.
+      if (code === "EPERM") { denied?.add(pid); }
       // Its group's signal may already have reaped it.
       if (reached.has(group)) { signalled += 1; }
       else if (code === "EPERM") { foreign += 1; }
@@ -290,7 +289,9 @@ export function signalEntries(entries: Iterable<ProcessEntry>, table: ProcessTab
   return { hostIdentified: true, signalled, failed, foreign, codes: [...codes] };
 }
 
-/** `signalEntries` for callers with no record to keep: a process that is gone or out of reach is left to the exit diagnostics. */
-export function killEntries(entries: Iterable<ProcessEntry>, table: ProcessTable): void {
-  signalEntries(entries, table);
+/** Return PIDs for which the OS directly refused permission to signal this identity. */
+export function killEntries(entries: Iterable<ProcessEntry>, table: ProcessTable): ReadonlySet<number> {
+  const denied = new Set<number>();
+  signalEntries(entries, table, undefined, "SIGKILL", denied);
+  return denied;
 }

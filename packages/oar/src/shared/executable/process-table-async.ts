@@ -11,13 +11,13 @@ async function readProcfs(): Promise<ProcessTableRead> {
   const names = await readdir("/proc");
   const listed = names.filter((name) => /^\d+$/u.test(name));
   const table = new Map<number, ProcessEntry>();
-  let skipped = 0;
+  const unreadable = new Set<number>();
   const read = async (name: string): Promise<ProcessEntry | null> => {
     try { return parseProcessStat(Number(name), await readFile(`/proc/${name}/stat`, "utf8")); }
     catch (error) {
       const code = asRecord(error)?.code;
       if (code === "ENOENT" || code === "ESRCH") { return null; }
-      if (code === "EACCES" || code === "EPERM") { skipped += 1; return null; }
+      if (code === "EACCES" || code === "EPERM") { unreadable.add(Number(name)); return null; }
       throw error;
     }
   };
@@ -25,7 +25,7 @@ async function readProcfs(): Promise<ProcessTableRead> {
     const entries = await Promise.all(listed.slice(offset, offset + BATCH).map(async (name) => { const entry = await read(name); return entry; }));
     for (const entry of entries) { if (entry !== null) { table.set(entry.pid, entry); } }
   }
-  return { table, skipped };
+  return { table, skipped: unreadable.size, unreadable };
 }
 
 /** One actual read, distinct from the callers waiting to join a new batch. */
@@ -35,7 +35,7 @@ export async function observeProcessTableOnce(source: ProcessTableSource, option
     let result: ProcessTableRead = { table: new Map(), skipped: 0 };
     if (source === "procfs") { result = await readProcfs(); }
     else if (source === "ps") {
-      result = parseProcessPs(await processTableCommand("ps", ["-A", "-o", "pid=,ppid=,pgid=,lstart="], { ...process.env, LC_ALL: "C" }, options));
+      result = parseProcessPs(await processTableCommand("ps", ["-A", "-o", "pid=,ppid=,pgid=,stat=,lstart="], { ...process.env, LC_ALL: "C" }, options));
     } else {
       result = parseProcessWindows(await processTableCommand("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command",
         "$ErrorActionPreference='Stop'; Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,@{Name='Started';Expression={if ($null -ne $_.CreationDate) { $_.CreationDate.ToUniversalTime().ToString('o') }}} | ConvertTo-Json -Compress"], undefined, options));

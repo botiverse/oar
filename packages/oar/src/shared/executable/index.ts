@@ -4,6 +4,7 @@ export { isolatedOutput, runIsolated, type IsolatedResult } from "./isolated.js"
 export type { ExecutableResult, ExecutableRunner, ExecutableRunOptions } from "./run.js";
 export { runExecutable } from "./run.js";
 export { readExecutableVersion, type VersionReader } from "./version.js";
+export type { ProcessCleanupDiagnostics } from "./process-cleanup-diagnostics.js";
 export type { LineProcess, LineProcessOptions } from "./process.js";
 export {
   KILL_GRACE_MS,

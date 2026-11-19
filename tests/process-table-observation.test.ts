@@ -119,6 +119,15 @@ test("procfs permission-denied host and structural read errors remain failures",
 });
 
 test("malformed ps rows fail even when the host row was readable", () => {
-  vi.mocked(execFileSync).mockReturnValue(`${String(process.pid)} ${String(process.ppid)} 1 Fri Oct 30 00:00:00 2026\nmalformed private-row\n`);
+  vi.mocked(execFileSync).mockReturnValue(`${String(process.pid)} ${String(process.ppid)} 1 S Fri Oct 30 00:00:00 2026\nmalformed private-row\n`);
   expect(observeProcessTable("ps")).toMatchObject({ ok: false, reason: "invalid_output" });
+});
+
+test("procfs and ps distinguish an exited zombie from a live identity", () => {
+  procfs.list.mockReturnValue([String(process.pid)]);
+  procfs.read.mockReturnValue(stat(process.pid, process.ppid).replace(") S ", ") Z "));
+  vi.mocked(execFileSync).mockReturnValue(`${String(process.pid)} ${String(process.ppid)} 1 Z+ Fri Oct 30 00:00:00 2026\n`);
+  for (const source of ["procfs", "ps"] as const) {
+    expect(readProcessTable(source).get(process.pid)).toMatchObject({ zombie: true });
+  }
 });

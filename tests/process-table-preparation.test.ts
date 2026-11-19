@@ -64,7 +64,7 @@ test("completed preparation cannot replace the next capture or authorize signals
   const old = { pid: 456, ppid: root.pid, pgid: 0, start: "2026-10-31T00:00:01Z" };
   const current = { pid: 789, ppid: root.pid, pgid: 0, start: "2026-10-31T00:00:02Z" };
   const final = snapshot([{ ...old, ppid: 0 }, { ...current, ppid: 0 }]);
-  const query = vi.fn().mockResolvedValueOnce(snapshot([root, old])).mockResolvedValueOnce(snapshot([root, current])).mockResolvedValue(final);
+  const query = vi.fn().mockResolvedValueOnce(snapshot([root, old])).mockResolvedValueOnce(snapshot([root, current])).mockResolvedValueOnce(final).mockResolvedValue(snapshot([old]));
   const batch = tables.batchProcessTableReads(query);
   vi.spyOn(tables, "observeProcessTableAsync").mockImplementation(async (source, options) => { const result = await batch(source ?? "windows", options); return result; });
   const preparation = await import("../packages/oar/src/shared/executable/process-table-preparation.js");
@@ -72,9 +72,9 @@ test("completed preparation cannot replace the next capture or authorize signals
   expect(query).toHaveBeenCalledOnce();
   expect(preparation.processTablePreparation()).toEqual({ ok: true, source: "windows", elapsedMs: 1, skipped: 0 });
   const { processTreeCleanup } = await import("../packages/oar/src/shared/executable/process-cleanup.js");
-  const kill = vi.spyOn(tree, "killEntries").mockImplementation(() => {});
+  const kill = vi.spyOn(tree, "killEntries").mockReturnValue(new Set());
   const cleanup = processTreeCleanup(root.pid);
   await cleanup.capture(); expect(query).toHaveBeenCalledTimes(2);
-  await cleanup.finish(); expect(query).toHaveBeenCalledTimes(3);
+  await cleanup.finish(); expect(query).toHaveBeenCalledTimes(4);
   expect(kill).toHaveBeenCalledExactlyOnceWith([current], final.ok ? final.table : undefined);
 });

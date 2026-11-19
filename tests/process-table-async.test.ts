@@ -34,7 +34,7 @@ test.each([
 });
 
 test("async ps parses the same identities under the C locale", async () => {
-  vi.mocked(processTableCommand).mockResolvedValue(`${process.pid} ${process.ppid} 77 Fri Oct 30 20:00:00 2026\n`);
+  vi.mocked(processTableCommand).mockResolvedValue(`${process.pid} ${process.ppid} 77 S Fri Oct 30 20:00:00 2026\n`);
   const result = await observeProcessTableOnce("ps");
   expect(result.ok).toBe(true);
   if (!result.ok) { throw new Error(JSON.stringify(result)); }

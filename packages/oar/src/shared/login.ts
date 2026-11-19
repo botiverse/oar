@@ -3,7 +3,7 @@ import { StringDecoder } from "node:string_decoder";
 import spawn from "cross-spawn";
 import type { AvailableInstallation, ExecutableInstallation } from "../contracts/installation.js";
 import type { LoginResult, LoginUnsupportedReason } from "../contracts/login.js";
-import { spawnChecked, OWN_PROCESS_GROUP, trackOwnedProcess, windowsSpawnTarget } from "./executable/index.js";
+import { spawnChecked, OWN_PROCESS_GROUP, trackOwnedProcess, windowsSpawnTarget, type ProcessCleanupDiagnostics } from "./executable/index.js";
 import { hostWatchdogTarget } from "./executable/host-watchdog.js";
 import { locateExecutable } from "./installation.js";
 import { releaseVersion, versionAtLeast } from "./update.js";
@@ -82,6 +82,8 @@ export interface LoginProcessExit {
   readonly signal: NodeJS.Signals | null;
   /** The spawn error, when the command could not start. */
   readonly error?: string;
+  /** Final tree observations for an OAR stop, including unverified and foreign identities. */
+  readonly cleanup?: ProcessCleanupDiagnostics;
 }
 
 export interface LoginProcess {
@@ -195,7 +197,8 @@ export function spawnLoginProcess(
     exited: (async () => {
       const exit = await drained;
       await shutdown.finished;
-      return exit;
+      const cleanup = shutdown.diagnostics();
+      return cleanup === undefined ? exit : { ...exit, cleanup };
     })(),
     write(text) {
       if (running && !shutdown.stopping() && child.stdin?.writable === true) {

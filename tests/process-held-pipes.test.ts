@@ -146,6 +146,7 @@ test.skipIf(!posix)("kill() when the holder is out of reach (EPERM): nothing han
   const exited = await within(child.exited);
   const { cleanup } = child.diagnostics();
   expect({ settled: exited !== HUNG, status: cleanup?.status, holders: cleanup?.heldPipes?.holders }).toEqual({ settled: true, status: "observed", holders: [holder] });
+  expect(cleanup?.foreign).toBe(1);
   expect(await gone(holder, 50)).toBe(false);
 });
 

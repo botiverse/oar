@@ -1,11 +1,12 @@
-import { descendantsOf, killEntries, processTableFailure, type ProcessEntry, type ProcessTable, type ProcessTableObservation, type ProcessTableSource } from "./process-tree.js";
+import { descendantsOf, killEntries, processTableFailure, type ProcessEntry, type ProcessTableObservation } from "./process-tree.js";
 import { observeProcessTableAsync, processTableSource } from "./process-table-async.js";
 import { observeProcessTableWithin } from "./process-table-budget.js";
+import { verifyDescendantExit } from "./verify-descendant-exit.js";
 import type { Observation, Phase, ProcessCleanupDiagnostics } from "./process-cleanup-diagnostics.js";
 
 export { appendCleanupFailure, cleanupFailureReason, withHeldPipes, type HeldPipe, type HeldPipes, type ProcessCleanupDiagnostics } from "./process-cleanup-diagnostics.js";
 
-interface Snapshot { readonly table: ProcessTable; readonly source: ProcessTableSource; }
+type Snapshot = Extract<ProcessTableObservation, { ok: true }>;
 
 /** Capture before EOF, then revalidate identities before signalling descendants. */
 export function processTreeCleanup(pid: number, alive: () => boolean = () => true): {
@@ -18,11 +19,12 @@ export function processTreeCleanup(pid: number, alive: () => boolean = () => tru
   diagnostics(): ProcessCleanupDiagnostics;
 } {
   const observations: Observation[] = [];
+  const foreign = new Set<string>();
   let unverified = false;
   let captured = false;
   let descendants: readonly ProcessEntry[] = [];
   let root: ProcessEntry | undefined = undefined;
-  const diagnostics = (): ProcessCleanupDiagnostics => ({ status: unverified ? "unverified" : "observed", observations: [...observations] });
+  const diagnostics = (): ProcessCleanupDiagnostics => ({ status: unverified ? "unverified" : "observed", observations: [...observations], ...(foreign.size === 0 ? {} : { foreign: foreign.size }) });
   const failed = (error: unknown, phase: Phase): void => {
     unverified = true;
     observations.push({ ...processTableFailure(error, processTableSource(), 0), phase });
@@ -34,7 +36,7 @@ export function processTreeCleanup(pid: number, alive: () => boolean = () => tru
       return undefined;
     }
     observations.push({ ok: true, phase, source: result.source, elapsedMs: result.elapsedMs, skipped: result.skipped });
-    return { table: result.table, source: result.source };
+    return result;
   };
   const read = async (phase: Phase): Promise<Snapshot | undefined> => {
     try {
@@ -64,9 +66,23 @@ export function processTreeCleanup(pid: number, alive: () => boolean = () => tru
     // Keep earlier cancellation's orphaned tools when their identity remains
     // visible, and add this turn's newly started descendants. Never overwrite
     // identity evidence with a reused PID's current owner.
-    const retained = descendants.filter(entry => snapshot.table.get(entry.pid)?.start === entry.start);
+    const retained = descendants.filter(entry => snapshot.table.get(entry.pid)?.start === entry.start || snapshot.unreadable?.has(entry.pid) === true);
     descendants = [...new Map([...retained, ...descendantsOf(snapshot.table, pid, snapshot.source)]
       .map(entry => [entry.pid, entry])).values()];
+  };
+  const signalOwned = (snapshot: Snapshot, includeLiveRoot = false): ProcessEntry[] => {
+    const entries = ownedEntries(snapshot, includeLiveRoot).filter(entry => snapshot.table.get(entry.pid)?.zombie !== true);
+    const denied = killEntries(entries, snapshot.table);
+    for (const entry of entries) {
+      if (denied.has(entry.pid)) { foreign.add(`${String(entry.pid)}:${entry.start}`); }
+    }
+    return entries.filter(entry => !denied.has(entry.pid));
+  };
+  const unreadableIdentity = (snapshot: Snapshot, phase: Phase): void => {
+    if (descendants.some(entry => snapshot.unreadable?.has(entry.pid) === true)) {
+      unverified = true;
+      observations.push({ ok: false, phase, source: snapshot.source, elapsedMs: snapshot.elapsedMs, reason: "descendant_unreadable" });
+    }
   };
   return {
     rememberCancellation(result) {
@@ -101,14 +117,19 @@ export function processTreeCleanup(pid: number, alive: () => boolean = () => tru
       // signalling a remembered descendant without matching its identity.
       stopRoot();
       if (table === undefined) { unverified = true; return; }
-      killEntries(ownedEntries(table), table.table);
-      descendants = [];
+      unreadableIdentity(table, "before_force");
+      const running = signalOwned(table);
+      // A temporarily unreadable PID can still be revalidated after root exit.
+      descendants = [...running, ...descendants.filter(entry => table.unreadable?.has(entry.pid) === true)];
     },
     async finish() {
       if (descendants.length === 0) { return; }
-      const table = await read("after_exit");
-      if (table === undefined) { unverified = true; }
-      else { killEntries(ownedEntries(table), table.table); }
+      const deadline = performance.now() + 5000;
+      const table = accept(await observeProcessTableWithin(5000), "after_exit");
+      if (table === undefined) { unverified = true; return; }
+      unreadableIdentity(table, "after_exit");
+      descendants = signalOwned(table);
+      if (descendants.length > 0 && accept(await verifyDescendantExit(descendants, deadline), "after_exit") === undefined) { unverified = true; }
       descendants = [];
     },
     finishSync(readNow) {
@@ -121,8 +142,13 @@ export function processTreeCleanup(pid: number, alive: () => boolean = () => tru
         unverified = true;
         observations.push({ ok: false, phase: "before_eof", source: processTableSource(), elapsedMs: 0, reason: "missing_root" });
       }
-      killEntries(ownedEntries(table, true), table.table);
-      descendants = [];
+      unreadableIdentity(table, phase);
+      const running = signalOwned(table, true);
+      // Synchronous host exit has no opportunity to await another observation.
+      if (running.length > 0) {
+        unverified = true;
+        observations.push({ ok: false, phase, source: table.source, elapsedMs: table.elapsedMs, reason: "descendant_exit_unconfirmed" });
+      }
       return diagnostics();
     },
     failed,

@@ -82,7 +82,8 @@ test.each([false, true])("force uses new descendant identities after root exit (
   const gate = Promise.withResolvers<tree.ProcessTableObservation>();
   vi.spyOn(asyncTree, "observeProcessTableAsync")
     .mockResolvedValueOnce({ ok: true, source: "ps", elapsedMs: 1, skipped: 0, table: new Map([host, root].map((entry) => [entry.pid, entry])) })
-    .mockReturnValueOnce(gate.promise);
+    .mockReturnValueOnce(gate.promise)
+    .mockResolvedValue({ ok: true, source: "ps", elapsedMs: 1, skipped: 0, table: new Map([[host.pid, host]]) });
   const signal = vi.spyOn(process, "kill").mockReturnValue(true);
   let alive = true;
   const cleanup = processTreeCleanup(root.pid, () => alive);
@@ -175,8 +176,9 @@ test.each(["force", "finish"])("%s follows new children of a tool orphaned by ca
   const initial: tree.ProcessTableObservation = { ok: true, source: "ps", elapsedMs: 1, skipped: 0, table: new Map([host, root, tool].map(entry => [entry.pid, entry])) };
   const cleanup = processTreeCleanup(root.pid);
   cleanup.rememberCancellation(initial);
-  vi.spyOn(asyncTree, "observeProcessTableAsync").mockResolvedValue({ ok: true, source: "ps", elapsedMs: 1, skipped: 0,
-    table: new Map([host, { ...tool, ppid: 1 }, child, { ...root, start: "unrelated-reused-pid" }].map(entry => [entry.pid, entry])) });
+  vi.spyOn(asyncTree, "observeProcessTableAsync").mockResolvedValueOnce({ ok: true, source: "ps", elapsedMs: 1, skipped: 0,
+    table: new Map([host, { ...tool, ppid: 1 }, child, { ...root, start: "unrelated-reused-pid" }].map(entry => [entry.pid, entry])) })
+    .mockResolvedValue({ ok: true, source: "ps", elapsedMs: 1, skipped: 0, table: new Map([[host.pid, host]]) });
   const signal = vi.spyOn(process, "kill").mockReturnValue(true);
   await (phase === "force" ? cleanup.force(() => {}) : cleanup.finish());
   expect(signal).toHaveBeenCalledWith(tool.pid, "SIGKILL");
