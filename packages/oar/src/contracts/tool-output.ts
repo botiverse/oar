@@ -1,3 +1,10 @@
+/** One file in a change the runtime confirmed. A native move retains both paths. */
+export interface FileChange {
+  readonly path: string;
+  readonly kind: "added" | "modified" | "deleted" | "unknown";
+  readonly moveTo?: string;
+}
+
 /** One part of a tool result: text, an image (base64 `data` and its media type), or a block OAR does not recognize, kept whole. */
 export type ToolOutputPart =
   | { readonly type: "text"; readonly text: string }

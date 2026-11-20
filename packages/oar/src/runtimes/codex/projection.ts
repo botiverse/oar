@@ -12,7 +12,7 @@ import { codexQuotaResetForTurn, emptyCodexQuotaReset, nextCodexQuotaReset, type
 import { foldCodexMessages, type CodexMessages } from "./messages.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { noTokens } from "../../shared/token-totals.js";
-import { codexItemExitCode, codexItemInput, codexToolContent } from "./item-detail.js";
+import { codexItemInput, codexToolEnd } from "./item-detail.js";
 import { codexServiceTierEvents, type CodexOpenMethod } from "./open.js";
 import { codexReasoningContent } from "./reasoning.js";
 import { aboutOwnChild, codexTaskViews, withStartedChild, type SubagentThreads } from "./tasks.js";
@@ -109,34 +109,19 @@ function outcomeFromTurn(state: CodexProjectionState, reporter: string, turn: Js
 
 function toolViews(method: string, item: JsonRecord | null): RuntimeEventBody[] {
   const itemType = typeof item?.type === "string" ? item.type : "";
-  if (!TOOL_ITEM_TYPES.has(itemType)) {
+  if (item === null || !TOOL_ITEM_TYPES.has(itemType)) {
     return [];
   }
-  const itemId = typeof item?.id === "string" ? item.id : "unknown";
+  const itemId = typeof item.id === "string" ? item.id : "unknown";
   if (method === "item/started") {
-    const input = item === null ? undefined : codexItemInput(item);
+    const input = codexItemInput(item);
     return [{ kind: "tool_call_started", callId: itemId, tool: itemType,
       ...(input === undefined ? {} : { input }),
-      ...(itemType === "mcpToolCall" && typeof item?.server === "string" ? { server: item.server } : {}),
-      ...(itemType === "mcpToolCall" && typeof item?.tool === "string" ? { toolName: item.tool } : {}),
+      ...(itemType === "mcpToolCall" && typeof item.server === "string" ? { server: item.server } : {}),
+      ...(itemType === "mcpToolCall" && typeof item.tool === "string" ? { toolName: item.tool } : {}),
     }];
   }
-  const content = item === null ? undefined : codexToolContent(item);
-  const exitCode = item === null ? undefined : codexItemExitCode(item);
-  const status = typeof item?.status === "string" ? item.status : undefined;
-  let result: "ok" | "failed" | undefined = undefined;
-  if (status === "completed") {
-    result = "ok";
-  } else if (status === "failed") {
-    result = "failed";
-  }
-  return [{
-    kind: "tool_call_ended",
-    callId: itemId,
-    ...(content === undefined ? {} : { content }),
-    ...(result === undefined ? {} : { result }),
-    ...(exitCode === undefined ? {} : { exitCode }),
-  }];
+  return [codexToolEnd(item, itemId)];
 }
 
 /**

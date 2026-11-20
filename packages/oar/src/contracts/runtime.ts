@@ -59,6 +59,8 @@ export interface SessionCapabilityDeclaration {
   readonly mcpTransports?: readonly McpTransport[];
   /** Whether an opened session exposes `Session.stopTask(taskId)`. */
   readonly stopTask?: boolean;
+  /** A completed native file-edit tool can report applied changes by path and kind. */
+  readonly fileChanges?: boolean;
 }
 
 /** Which compaction lifecycle events a runtime's own automatic compaction produces. */

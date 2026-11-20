@@ -18,7 +18,7 @@ describe("Runtime.sessionCapabilities", () => {
       expect(runtime.sessionCapabilities, runtime.id).toBeTypeOf("function");
       const declared = runtime.sessionCapabilities?.(executable("1.0.0"));
       expect(declared, runtime.id).not.toBeInstanceOf(Promise);
-      const known = new Set(["steer", "images", "refusedSessionOptions", "manualCompaction", "compactionEvents", "contextUsage", "mcpTransports", "stopTask"]);
+      const known = new Set(["steer", "images", "refusedSessionOptions", "manualCompaction", "compactionEvents", "contextUsage", "mcpTransports", "stopTask", "fileChanges"]);
       expect(Object.keys(declared ?? {}).every((key) => known.has(key)), runtime.id).toBe(true);
       // The static declarations are always part of the answer, and the answer is plain data a host can send on.
       expect(declared?.refusedSessionOptions ?? {}, runtime.id).toMatchObject(runtime.refusedSessionOptions ?? {});
@@ -233,4 +233,11 @@ it.each([
   const refused = opencodeRuntime.sessionCapabilities(executable(version)).refusedSessionOptions;
   expect(refused?.appendSystemPrompt).toEqual(append ? expect.stringContaining("2.0.30 or later") : undefined);
   expect(refused?.systemPrompt).toEqual(replace ? expect.stringContaining("2.2.0 or later") : undefined);
+});
+
+
+it("Codex declares per-file kinds from the first verified native version", () => {
+  expect(codexRuntime.sessionCapabilities(executable("0.160.1")).fileChanges).toBe(true);
+  expect(codexRuntime.sessionCapabilities(executable()).fileChanges).toBeUndefined();
+  expect(codexRuntime.sessionCapabilities(executable("0.159.0")).fileChanges).toBeUndefined();
 });

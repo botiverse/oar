@@ -4,6 +4,7 @@ import {
   codexItemExitCode,
   codexItemInput,
   codexToolContent,
+  codexToolEnd,
 } from "../../packages/oar/src/runtimes/codex/item-detail.js";
 import { toolResultText } from "../../packages/oar/src/observe/tool-output.js";
 import { foldCodexNotification, initialCodexProjection } from "../../packages/oar/src/runtimes/codex/projection.js";
@@ -123,4 +124,15 @@ test("collaboration input preserves present fields without deriving arguments fr
   expect(codexItemInput({ ...common, prompt: "native prompt" })).toBe('{"prompt":"native prompt"}');
   expect(codexItemInput({ ...common, tool: "sendInput", prompt: "native prompt", model: "unrelated" })).toBe('{"tool":"sendInput","prompt":"native prompt"}');
   expect(codexItemInput({ ...common, tool: "future", prompt: "" })).toBe('{"tool":"future","prompt":""}');
+});
+
+
+test("unapplied patches have no applied files, and unfamiliar native kinds retain their paths", () => {
+  const item = { type: "fileChange", changes: [{ path: "a", kind: { type: "future" } }, { path: "b" }, { kind: { type: "add" } }] };
+  for (const status of ["declined", "failed", "inProgress", undefined]) {
+    expect(codexToolEnd({ ...item, status }, "call")).not.toHaveProperty("fileChanges");
+  }
+  expect(codexToolEnd({ ...item, status: "completed" }, "call").fileChanges).toEqual([
+    { path: "a", kind: "unknown" }, { path: "b", kind: "unknown" },
+  ]);
 });

@@ -164,6 +164,7 @@ export type {
   TaskStatus,
   TaskType,
   TokenTotals,
+  FileChange,
   ToolOutputPart,
   TurnOutcome,
   Unsubscribe,
