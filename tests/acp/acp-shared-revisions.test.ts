@@ -2,7 +2,7 @@
 import { expect, test, vi } from "vitest";
 import { promptAndWait, awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
-import { fixture, opening, text } from "../fixtures/acp-shared-support.js";
+import { fixture, launchId, opening, text } from "../fixtures/acp-shared-support.js";
 
 test("late successful session/new after timeout cleans and retires only that native id", async () => {
   const f = await fixture({}, { sessionStartTimeoutMs: 1000 }); const a = await f.open("a");
@@ -90,7 +90,7 @@ test.each(["initialize failure", "transport close"])("%s evicts before process s
       // EOF must arrive while the original process is still alive, before kill is released.
       expect(() => { process.kill(Number(opening(old)?.pid), 0); }).not.toThrow();
       const fresh = await f.open("fresh");
-      expect(opening(fresh)?.pid).not.toBe(opening(old)?.pid);
+      expect(launchId(fresh)).not.toBe(launchId(old));
       expect(await promptAndWait(fresh, "works")).toMatchObject({ kind: "ended" });
       shutdown.release?.(); await awaitTurnEnd(old, prompt.request.seq);
     }

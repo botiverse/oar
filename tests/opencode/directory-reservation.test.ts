@@ -4,7 +4,7 @@ import { expect, test, vi } from "vitest";
 import * as initialize from "../../packages/oar/src/shared/acp/initialize.js";
 // oxlint-disable-next-line import/no-namespace -- Observe the actual process launch count while initialization is blocked.
 import * as acp from "../../packages/oar/src/shared/acp/process.js";
-import { fixture, opening } from "../fixtures/acp-shared-support.js";
+import { fixture, launchId } from "../fixtures/acp-shared-support.js";
 import { openCodeDirectoryReservation } from "../../packages/oar/src/runtimes/opencode/shared-session.js";
 import { promptAndWait } from "../../packages/oar/src/observe/turns.js";
 
@@ -16,7 +16,7 @@ test("a failed shared open retains its directory reservation while a peer keeps 
   const a = await f.open("a");
   await expect(f.open("failed")).rejects.toThrow("configuration failed");
   await expect(f.open("failed", {}, "shared")).rejects.toMatchObject({ option: "placement" });
-  const b = await f.open("b"); expect(opening(a)?.pid).toBe(opening(b)?.pid);
+  const b = await f.open("b"); expect(launchId(a)).toBe(launchId(b));
   expect(await promptAndWait(a, "alive")).toMatchObject({ kind: "ended" });
 });
 
@@ -64,7 +64,7 @@ test("same-directory auto fallback waits for the shared process initialization b
     release.resolve();
     const [a, b] = await Promise.all([first, second]);
     expect([a.placement, b.placement]).toEqual(["shared", "isolated"]);
-    expect(opening(a)?.pid).not.toBe(opening(b)?.pid);
+    expect(launchId(a)).not.toBe(launchId(b));
     expect(launches).toHaveBeenCalledTimes(2);
   } finally {
     release.resolve(); await Promise.allSettled([first, ...(second === undefined ? [] : [second])]);

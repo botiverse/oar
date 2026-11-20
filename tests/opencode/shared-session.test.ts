@@ -10,7 +10,7 @@ import type { Session } from "../../packages/oar/src/contracts/session.js";
 import { experimentalOpenCodeRuntime, opencodeCandidateRefusal } from "../../experiments/sharing/opencode-candidate.js";
 import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
 import { promptAndWait } from "../../packages/oar/src/observe/turns.js";
-import { asRecord } from "../../packages/oar/src/shared/json.js";
+import { launchId } from "../fixtures/acp-shared-support.js";
 import acpFixtureMethodsByInstance from "../fixtures/acp-trace.js";
 // oxlint-disable-next-line import/no-namespace -- Type of the complete module retained by Vitest importOriginal.
 import type * as OpenCodeSessionModule from "../../packages/oar/src/runtimes/opencode/session.js";
@@ -33,10 +33,6 @@ function launched(spy: MockInstance<typeof acp.startAcpProcess>, index: number):
   if (result?.type !== "return") { throw new Error("Expected a started native process"); }
   return result.value;
 }
-function pid(session: Session): unknown {
-  const record = session.records().find(r => r.kind === "frame" && ["session/new", "session/resume"].includes(r.body.type));
-  return record?.kind === "frame" ? asRecord(record.body.native)?.pid : null;
-}
 async function fixture(version = "2.2.5") {
   const root = await mkdtemp(path.join(os.tmpdir(), "oar-opencode-sharing-")); roots.push(root);
   await Promise.all(["a", "b", "c"].map(async name => { await mkdir(path.join(root, name)); }));
@@ -50,17 +46,17 @@ async function fixture(version = "2.2.5") {
 test.each(["2.2.3", "2.2.5"])("%s auto shares distinct directories; aliases and lifetime reuse fall back before native open", async version => {
   const f = await fixture(version);
   const [a, b] = await Promise.all([f.open("a"), f.open("b")]);
-  expect(a.placement).toBe("shared"); expect(pid(a)).toEqual(pid(b));
+  expect(a.placement).toBe("shared"); expect(launchId(a)).toEqual(launchId(b));
   await symlink(path.join(f.root, "a"), path.join(f.root, "alias"), "junction");
   const duplicate = await f.open("alias");
   expect(duplicate.records().find(r => r.kind === "frame" && r.body.type === "session/new")?.body).toMatchObject({ native: { cwd: path.join(f.root, "alias") } });
-  expect(duplicate.placement).toBe("isolated"); expect(pid(duplicate)).not.toEqual(pid(a));
+  expect(duplicate.placement).toBe("isolated"); expect(launchId(duplicate)).not.toEqual(launchId(a));
   await a.dispose();
-  const reused = await f.open("a"); expect(reused.placement).toBe("isolated"); expect(pid(reused)).not.toEqual(pid(b));
+  const reused = await f.open("a"); expect(reused.placement).toBe("isolated"); expect(launchId(reused)).not.toEqual(launchId(b));
   expect(reused.records().find(r => r.kind === "response" && r.body.kind === "opened")?.body).toEqual({ kind: "opened", placement: "isolated" });
   expect(await promptAndWait(b, "still-peer")).toMatchObject({ kind: "ended" });
   await b.dispose();
-  const fresh = await f.open("a"); expect(fresh.placement).toBe("shared"); expect(pid(fresh)).not.toEqual(pid(b));
+  const fresh = await f.open("a"); expect(fresh.placement).toBe("shared"); expect(launchId(fresh)).not.toEqual(launchId(b));
 });
 
 test.each(["2.2.3", "2.2.5"])("%s explicit shared refuses repeated directory even after release; each runtime has its own pool", async version => {
@@ -69,7 +65,7 @@ test.each(["2.2.3", "2.2.5"])("%s explicit shared refuses repeated directory eve
   await expect(f.open("a", shared)).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "placement" });
   await a.dispose();
   await expect(f.open("a", shared)).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "placement" });
-  const own = await f.open("a"); expect(pid(own)).not.toEqual(pid(b)); expect(own.placement).toBe("shared");
+  const own = await f.open("a"); expect(launchId(own)).not.toEqual(launchId(b)); expect(own.placement).toBe("shared");
 });
 
 test("concurrent same-directory opens reserve once, and active resume cannot bypass ownership", async () => {
@@ -83,7 +79,7 @@ test("concurrent same-directory opens reserve once, and active resume cannot byp
 test("explicit isolated and unknown versions keep their own processes", async () => {
   const f = await fixture(); const isolated = f.runtime.withPlacement("isolated");
   const [a, b] = await Promise.all([f.open("a", isolated), f.open("b", isolated)]);
-  expect([a.placement, b.placement]).toEqual(["isolated", "isolated"]); expect(pid(a)).not.toEqual(pid(b));
+  expect([a.placement, b.placement]).toEqual(["isolated", "isolated"]); expect(launchId(a)).not.toEqual(launchId(b));
   const newer = await f.runtime.session({ ...installation, version: "2.2.4" }, { cwd: path.join(f.root, "c"), env: f.env }); sessions.push(newer);
   expect(newer.placement).toBe("isolated");
   await expect(f.runtime.withPlacement("shared").session({ ...installation, version: "2.2.4" }, { cwd: f.root })).rejects.toMatchObject({ option: "placement" });
@@ -114,7 +110,7 @@ test("directory identity handles case aliases without conflating case-sensitive 
 test("process-level environment changes split pools even for the same directory", async () => {
   const f = await fixture(); const a = await f.open("a");
   const b = await f.runtime.session(installation, { cwd: path.join(f.root, "a"), env: { ...f.env, OPENCODE_DISABLE_AUTOUPDATE: "1" } }); sessions.push(b);
-  expect(b.placement).toBe("shared"); expect(pid(b)).not.toEqual(pid(a));
+  expect(b.placement).toBe("shared"); expect(launchId(b)).not.toEqual(launchId(a));
 });
 
 test("custom startup arguments fall back under auto and are refused under explicit shared", async () => {
@@ -162,7 +158,7 @@ test.each(["2.2.4", "2.2.6", "2.2.5-dev", "opencode v2.2.5", ""])("a stale insta
 
 test("a shared native crash records exit once for every attached session", async () => {
   const f = await fixture(); const [a, b] = await Promise.all([f.open("a"), f.open("b")]);
-  expect(pid(a)).toEqual(pid(b)); await a.prompt("exit");
+  expect(launchId(a)).toEqual(launchId(b)); await a.prompt("exit");
   // Final records follow asynchronous process cleanup, including Windows read budgets.
   try { await expect.poll(() => [exits(a).length, exits(b).length], { timeout: 15_000 }).toEqual([1, 1]); }
   catch (error) { throw new Error(`Missing shared exit records: ${JSON.stringify({ a: a.records(), b: b.records() })}`, { cause: error }); }

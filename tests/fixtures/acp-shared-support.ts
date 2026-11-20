@@ -37,4 +37,10 @@ export function opening(session: Session, method = "session/new") {
   const frame = session.records().find(record => record.kind === "frame" && record.body.type === method);
   return frame?.kind === "frame" ? asRecord(frame.body.native) : null;
 }
+export function launchId(session: Session, method = "session/new"): string {
+  const id = opening(session, method)?.instanceId;
+  if (typeof id !== "string" || id.length === 0) { throw new Error("ACP fixture did not return its launch identity"); }
+  return id;
+}
+
 export function text(session: Session): string { return session.records().flatMap(record => record.kind === "frame" ? record.body.events.flatMap(event => event.kind === "text_delta" ? [event.text] : []) : []).join("|"); }

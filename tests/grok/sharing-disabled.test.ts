@@ -6,7 +6,7 @@ import path from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { grokRuntime } from "../../packages/oar/src/runtimes/grok/index.js";
 import type { Session } from "../../packages/oar/src/contracts/session.js";
-import { opening } from "../fixtures/acp-shared-support.js";
+import { launchId } from "../fixtures/acp-shared-support.js";
 // oxlint-disable-next-line import/no-namespace -- Replace only the executable with a deterministic native fixture.
 import type * as GrokSessionModule from "../../packages/oar/src/runtimes/grok/session.js";
 
@@ -34,7 +34,7 @@ test.each(["grok 1.0.70 (f50904eaee6c)", "grok 1.0.70 (f50904eaee6c) [stable]", 
   const a = await runtime.session(installation, { cwd, env }); sessions.push(a);
   const b = await runtime.session(installation, { cwd, env, mcpServers: [{ name: "remote", type: "http", url: "http://127.0.0.1/fixture" }] }); sessions.push(b);
   expect([a.placement, b.placement]).toEqual(["isolated", "isolated"]);
-  expect(opening(a)?.pid).not.toBe(opening(b)?.pid);
+  expect(launchId(a)).not.toBe(launchId(b));
   const rejected = runtime.withPlacement("shared").session(installation, { cwd, env });
   await expect(rejected).rejects.toMatchObject({ option: "placement" });
   await expect(rejected).rejects.toThrow("configured stdio MCP");
