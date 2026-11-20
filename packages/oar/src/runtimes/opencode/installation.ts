@@ -37,7 +37,10 @@ export const opencodeInstallation = executableInstallation(
   ["--help"],
   {
     versionTimeoutMs: 15_000,
-    identity: { vendor: "OpenCode", help: /\bopencode\b/iu },
+    identity: {
+      vendor: "OpenCode",
+      help: /(?:^\s*opencode(?:\.exe)?\s+(?:acp|<subcommand>|\[project\])\b|^\s*OpenCode command line interface\s*$)/imu,
+    },
     versionPolicy: {
       label: "OpenCode",
       lines: [

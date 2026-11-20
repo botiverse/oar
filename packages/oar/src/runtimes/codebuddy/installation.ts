@@ -7,7 +7,7 @@ import { npmGlobalBin, npmGlobalPrefix } from "../../shared/install-npm.js";
 import { executableInstallation } from "../../shared/installation.js";
 
 const CODEBUDDY_OPTIONS = {
-  identity: { vendor: "CodeBuddy Code", help: /\b(?:codebuddy|cbc)\b/iu },
+  identity: { vendor: "CodeBuddy Code", help: /^\s*(?:Usage:\s+(?:codebuddy|cbc)(?:\.exe)?(?:\|(?:codebuddy|cbc))?\b|CodeBuddy Code\b)/imu },
 } as const;
 
 const directInstallation = executableInstallation(

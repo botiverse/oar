@@ -31,6 +31,6 @@ export const kimiInstallation = executableInstallation(
   {
     readinessTimeoutMs: 30_000,
     versionTimeoutMs: 30_000,
-    identity: { vendor: "Kimi CLI", help: /\bkimi\b/iu },
+    identity: { vendor: "Kimi CLI", help: /^\s*Usage:\s+kimi(?:\.exe)?\s+acp\b/imu },
   },
 );

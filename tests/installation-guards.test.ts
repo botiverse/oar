@@ -1,5 +1,5 @@
 /* oxlint-disable import/max-dependencies -- Cross-runtime installation guard contract covers all executable and SDK runtimes. */
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, expect, test } from "vitest";
@@ -15,13 +15,21 @@ const scratch = mkdtempSync(path.join(tmpdir(), "oar-install-guards-"));
 afterAll(() => { rmSync(scratch, { recursive: true, force: true }); });
 afterEach(() => { clearInstallationCache(); });
 
-/** Write a fake executable that prints fixed help/version strings and exits 0. */
-function makeCli(name: string, spec: { readonly help: string; readonly version: string }): string {
+/** Write a fake executable that prints fixed help/version strings and exits with configured status codes. */
+function makeCli(
+  name: string,
+  spec: { readonly help: string; readonly version: string; readonly versionExitCode?: number; readonly requirePrefix?: string },
+): string {
   const dir = mkdtempSync(path.join(scratch, `${name}-`));
   const script = path.join(dir, `${name}.mjs`);
+  const versionExit = spec.versionExitCode ?? 0;
+  const prefixCheck = spec.requirePrefix === undefined
+    ? ""
+    : `if (args[0] !== ${JSON.stringify(spec.requirePrefix)}) { process.exit(2); } args.shift();`;
   writeFileSync(script, [
     "const args = process.argv.slice(2);",
-    `if (args.includes("--version")) { process.stdout.write(${JSON.stringify(`${spec.version}\n`)}); process.exit(0); }`,
+    prefixCheck,
+    `if (args.includes("--version")) { process.stdout.write(${JSON.stringify(`${spec.version}\n`)}); process.exit(${String(versionExit)}); }`,
     `if (args.includes("--help")) { process.stdout.write(${JSON.stringify(`${spec.help}\n`)}); process.exit(0); }`,
     "process.exit(0);",
   ].join("\n"));
@@ -58,6 +66,57 @@ test.each(EXECUTABLE_RUNTIMES)("%s refuses a non-vendor executable even when eve
   });
 });
 
+const nearMissBridge = makeCli("vendor-bridge", {
+  help: "Usage: vendor-bridge [options]\nACP bridge wrapping kimi, opencode, codebuddy, cbc, qwen, qodercli, dsh, droid, codex, grok, devin and agy",
+  version: "bridge 1.18.30",
+});
+
+test.each(EXECUTABLE_RUNTIMES)("%s refuses a near-miss bridge whose help mentions the vendor name", async (id, envVar) => {
+  const runtime = defaultRuntimes.require(id);
+  const snapshot = await runtime.installation?.({ env: { [envVar]: nearMissBridge, PATH: "" } });
+  expect(snapshot).toMatchObject({
+    kind: "unsupported",
+    code: "unrecognized_executable",
+    via: "executable",
+    command: nearMissBridge,
+  });
+});
+
+test("a failing --version returns readiness_failed instead of unrecognized_executable", async () => {
+  const broken = makeCli("broken-claude", { help: "Usage: claude", version: "", versionExitCode: 1 });
+  expect(await defaultRuntimes.require("claude").installation?.({ env: { OAR_CLAUDE_BIN: broken, PATH: "" } })).toEqual({
+    kind: "unsupported",
+    code: "readiness_failed",
+    via: "executable",
+    command: broken,
+    reason: "--version failed",
+  });
+});
+
+function writeShellCommand(dir: string, name: string, body: string): string {
+  mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, name);
+  writeFileSync(file, body);
+  chmodSync(file, 0o755);
+  return file;
+}
+
+test.skipIf(process.platform === "win32")("version_unsupported from a vendor fallback takes precedence over an unrelated PATH copy", async () => {
+  const home = mkdtempSync(path.join(scratch, "precedence-"));
+  const pathBin = path.join(home, "bin");
+  writeShellCommand(pathBin, "opencode", "#!/bin/sh\necho 'Usage: opencode-bridge'\nexit 0\n");
+  const oldOfficial = writeShellCommand(path.join(home, ".opencode", "bin"), "opencode", "#!/bin/sh\nif [ \"$1\" = \"--help\" ]; then echo '  opencode acp  start ACP'; else echo '1.18.29'; fi\n");
+
+  expect(await opencodeInstallation({ env: { HOME: home, PATH: pathBin, OAR_OPENCODE_BIN: null } })).toMatchObject({
+    kind: "unsupported",
+    code: "version_unsupported",
+    via: "executable",
+    command: oldOfficial,
+    installedVersion: "1.18.29",
+    requiredVersion: OPENCODE_SUPPORTED_VERSION_RANGE,
+  });
+});
+
 test.each([
   ["Devin adapter", devinAdapter],
   ["ACP bridge", foreignBridge],
@@ -72,13 +131,15 @@ test.each([
   });
 });
 
+const OPENCODE_V2_HELP = "DESCRIPTION\n  OpenCode command line interface\n\nUSAGE\n  opencode <subcommand>";
+
 test.each([
   ["1.18.30", "1.18.30"],
   ["1.19.5", "1.19.5"],
   ["opencode v2.0.27", "opencode v2.0.27"],
   ["opencode v2.2.7", "opencode v2.2.7"],
 ] as const)("opencode accepts supported 1.x and 2.x releases: %s", async (reported, expectedVersion) => {
-  const cli = makeCli("opencode-ok", { help: "Usage: opencode <subcommand>\nOpenCode command line interface", version: reported });
+  const cli = makeCli("opencode-ok", { help: OPENCODE_V2_HELP, version: reported });
   expect(await opencodeInstallation({ env: { OAR_OPENCODE_BIN: cli, PATH: "" } })).toEqual({
     kind: "available",
     via: "executable",
@@ -98,7 +159,7 @@ test.each([
   ["opencode v3.0.0-alpha.1", "3.0.0-alpha.1"],
   ["dev-build", undefined],
 ] as const)("opencode refuses unsupported versions outside 1.x >=1.18.30 / 2.x >=2.0.27 <3: %s", async (reported, installedVersion) => {
-  const cli = makeCli("opencode-bad", { help: "Usage: opencode <subcommand>\nOpenCode command line interface", version: reported });
+  const cli = makeCli("opencode-bad", { help: OPENCODE_V2_HELP, version: reported });
   const snapshot = await opencodeInstallation({ env: { OAR_OPENCODE_BIN: cli, PATH: "" } });
   expect(snapshot).toMatchObject({
     kind: "unsupported",
@@ -172,15 +233,19 @@ test("pi RPC installation enforces non-SEA, non-Electron and resolvable rpc-entr
     .toEqual({ kind: "available", via: "bundled" });
 });
 
-test("pi RPC with an explicit command verifies executable existence and version >= 1.4.0 even on SEA or Electron", async () => {
+test("pi RPC with an explicit command verifies existence, failing --version, args prefix and version >= 1.4.0", async () => {
   const missing = createPiRuntime({ execution: "subprocess", command: path.join(scratch, "missing-pi") });
   expect(await missing.installation()).toEqual({ kind: "not_found" });
+
+  const brokenPi = makeCli("pi-broken", { help: "pi", version: "", versionExitCode: 1 });
+  expect(await piInstallationFor({ execution: "subprocess", command: brokenPi }, { ...healthyHost, compiledSingleExecutable: true, electron: true })())
+    .toEqual({ kind: "unsupported", code: "readiness_failed", via: "executable", command: brokenPi, reason: "--version failed" });
 
   const oldPi = makeCli("pi-old", { help: "pi", version: "1.3.99" });
   expect(await piInstallationFor({ execution: "subprocess", command: oldPi }, { ...healthyHost, compiledSingleExecutable: true, electron: true })())
     .toMatchObject({ kind: "unsupported", code: "version_unsupported", via: "executable", command: oldPi, installedVersion: "1.3.99", requiredVersion: "1.4.0" });
 
-  const okPi = makeCli("pi-ok", { help: "pi", version: "1.5.2" });
-  expect(await piInstallationFor({ execution: "subprocess", command: okPi }, { ...healthyHost, compiledSingleExecutable: true, electron: true })())
+  const okPi = makeCli("pi-ok", { help: "pi", version: "1.5.2", requirePrefix: "pi" });
+  expect(await piInstallationFor({ execution: "subprocess", command: okPi, args: ["pi"] }, { ...healthyHost, compiledSingleExecutable: true, electron: true })())
     .toEqual({ kind: "available", via: "bundled" });
 });
