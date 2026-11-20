@@ -64,7 +64,12 @@ async function runWithCleanup(testCase: TrialCase, subject: RuntimeUnderTest): P
   let failure: unknown = undefined;
   try {
     await testCase.run({ ...subject, startSession: async (options) => {
-      const session = await subject.startSession(options);
+      const session = await subject.startSession(options).catch((error: unknown) => {
+        // The adapter's error includes the owned child's safe exit diagnostics.
+        // Record it before a case that expects a refusal can consume it.
+        record({ kind: "session_open_failed", caseId: testCase.id, reason: error instanceof Error ? error.message : String(error) });
+        throw error;
+      });
       sessions.add(session);
       return session;
     } });

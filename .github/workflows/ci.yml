@@ -391,7 +391,14 @@ jobs:
         id: native_install
         run: node .github/scripts/runtime-install.mjs '${{ matrix.pin || matrix.backend }}'
       - run: pnpm run sea-trial
+        id: behavior
         timeout-minutes: 12
+      - name: Check effort independently after a Windows OpenCode behavior failure
+        if: ${{ !cancelled() && steps.behavior.outcome == 'failure' && runner.os == 'Windows' && startsWith(matrix.backend, 'opencode') }}
+        run: pnpm run sea-trial session.effort-never-substituted
+        timeout-minutes: 3
+        env:
+          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run/independent-effort
       - run: pnpm vitest run sea-trial/vendor --maxWorkers 2
         if: ${{ !cancelled() && steps.native_install.outcome == 'success' && (success() || matrix.backend == 'opencode-v2-aimock') }}
         timeout-minutes: 12

@@ -1,4 +1,5 @@
 /* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
+import { AcpError } from "./errors.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import { acpReportedEffort, acpThoughtLevelOption } from "./model.js";
@@ -66,6 +67,8 @@ export async function applyAcpEffort(
   try {
     answer = await setConfigOption(process, opened.sessionId, configId, effort, context);
   } catch (error) {
+    // The opener adds the owned child's exit diagnostics to transport failures.
+    if (error instanceof AcpError) { throw error; }
     throw new Error(`${method} ${configId}=${effort} was refused: ${rpcErrorText(error)}`, { cause: error });
   }
   const response = asRecord(answer) ?? {};
