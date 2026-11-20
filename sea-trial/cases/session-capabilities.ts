@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { stat } from "node:fs/promises";
+import { isAbsolute } from "node:path";
 import { UnsupportedOptionError } from "../../packages/oar/src/contracts/errors.js";
 import { runTurn } from "../harness/session-controls.js";
 import type { TrialCase } from "../harness/runner.js";
@@ -26,8 +28,20 @@ export const sessionCapabilitiesCases: readonly TrialCase[] = [
         if (declared.images !== undefined) {
           assert.equal(session.capabilities.images, declared.images, "declared images matches capabilities.images");
         }
-        if (declared.contextUsage?.tokens === true || declared.contextUsage?.contextWindow === true) {
+        const reportsContext = declared.contextUsage?.tokens === true || declared.contextUsage?.contextWindow === true;
+        if (declared.nativeSessionFile !== undefined) {
+          assert.equal(typeof session.nativeSessionFile === "function", declared.nativeSessionFile, "declared nativeSessionFile matches the session method");
+        }
+        if (reportsContext || declared.nativeSessionFile === true) {
           assert.deepEqual(await runTurn(session, "hello"), { kind: "completed" });
+        }
+        if (declared.nativeSessionFile === true) {
+          const file = await session.nativeSessionFile?.();
+          assert.ok(typeof file === "string" && isAbsolute(file), "nativeSessionFile returns an absolute path after a completed root turn");
+          const status = await stat(file);
+          assert.ok(status.isFile(), "the native session file exists");
+        }
+        if (reportsContext) {
           const context = session.contextUsage().value;
           assert.ok(context !== null, "declared contextUsage must be non-null after a completed root turn");
           if (declared.contextUsage.tokens) {
