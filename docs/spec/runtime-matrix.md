@@ -279,6 +279,15 @@ while tool discovery was pending. Per-server
 wait for its required servers before submitting input. An absent declaration
 means unknown. See the [Codex measurement](../runtimes/codex.md#session-mcp-servers).
 
+### Recovery after automatic compaction fails
+
+A host can read the failed turn from `turn_ended.outcome`, then check
+`status()` before its next input. After a measured failed automatic
+compaction, Claude, Pi, DSH, OpenCode v2 and threshold-triggered Codex
+returned to idle and completed the next prompt on the same session.
+The failure class and available compaction events vary by runtime.
+[Measured versions, controls and unknowns](../../experiments/manual-compaction/automatic-failure.md).
+
 ### Native tasks and single-task stop
 
 | Runtime | Native task lifecycle | `stopTask(taskId)` |

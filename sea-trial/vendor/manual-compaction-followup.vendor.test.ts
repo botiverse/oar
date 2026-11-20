@@ -70,7 +70,13 @@ describe.skipIf(!enabled)("native followup manual compaction", () => {
   }, 120_000);
   test.skipIf(qoder)("native provider failure is separate from the ordinary prompt result", async () => {
     const f = await fixture();
-    try { const s = await f.open(); await seed(s); f.fail(); expect(await s.compact({ timeoutMs: 30_000 })).toMatchObject({ kind: "failed", code: "native_failed" }); expect(s.status().value.kind).toBe("idle"); }
+    try {
+      const s = await f.open(); await seed(s); f.fail();
+      expect(await s.compact({ timeoutMs: 30_000 })).toMatchObject({ kind: "failed", code: "native_failed" });
+      expect(s.status().value.kind).toBe("idle");
+      f.release();
+      expect(await promptAndWait(s, "OAR_AFTER_COMPACTION_FAILURE", { timeoutMs: 30_000 })).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
+    }
     finally { await f.close(); }
   }, 120_000);
   test.skipIf(qoder)("timeout holds the input gate until native completion, then drains queue in order", async () => {

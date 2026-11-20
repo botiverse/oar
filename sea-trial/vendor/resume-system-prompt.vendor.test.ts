@@ -17,8 +17,10 @@ async function removeDirectory(directory: string, backend: "claude" | "codex"): 
 
 async function fixture(backend: "claude" | "codex") {
   let largeUsage = false;
+  let fail = false;
   const provider = await (backend === "claude" ? startClaudeAimock : startCodexAimock)((mock) => {
     mock.onMessage(/[\s\S]*/u, () => {
+      if (fail) { return { status: 400, error: { type: "invalid_request_error", code: "invalid_request_error", message: "Controlled summary failure" } }; }
       const tokens = largeUsage ? 200_000 : 100;
       largeUsage = false;
       return { content: "A short response or conversation summary.", usage: { input_tokens: tokens, output_tokens: 10 } };
@@ -44,6 +46,7 @@ async function fixture(backend: "claude" | "codex") {
     const directory = root;
     return {
       runtime, raw: provider.raw,
+      failProvider: (value: boolean) => { fail = value; },
       open: async (options: Partial<SessionOptions> = {}) => runtime.session(installation, { cwd, env, ...options }),
       compact: async (session: Session) => {
         if (backend === "claude") { expect(await runTurn(session, "/compact")).toEqual({ kind: "completed" }); }
@@ -104,3 +107,23 @@ for (const backend of ["claude", "codex"] as const) {
     }, 120_000);
   });
 }
+
+test.skipIf(process.env.OAR_TEST !== "codex-aimock")("Codex can retry threshold compaction after its provider fails", async () => {
+  const f = await fixture("codex");
+  let session: Session | undefined = undefined;
+  try {
+    session = await f.open();
+    await runTurn(session, "Earlier material");
+    await f.compact(session);
+    const before = session.records().length;
+    f.failProvider(true);
+    expect(await runTurn(session, "Continue")).toMatchObject({ kind: "failed", failure: "invalid_request" });
+    const records = session.records().slice(before);
+    expect(records.some(r => r.kind === "frame" && r.body.events.some(e => e.kind === "compaction_started"))).toBe(true);
+    expect(session.status().value.kind).toBe("idle");
+    f.failProvider(false);
+    expect(await runTurn(session, "Continue after recovery")).toEqual({ kind: "completed" });
+  } finally {
+    try { await session?.dispose(); } finally { await f.stop(); }
+  }
+}, 90_000);

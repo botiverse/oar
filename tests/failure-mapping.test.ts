@@ -30,6 +30,7 @@ test.each([
   { name: "500", reason: "API Error: 500 Internal server error.", category: "server_error", status: 500, terminalReason: "api_error", expected: { failure: "provider", status: 500 } },
   { name: "529", reason: "API Error: 529 Overloaded.", category: "server_error", status: 529, terminalReason: "api_error", expected: { failure: "overloaded", status: 529 } },
   { name: "oversized context", reason: "Prompt is too long", category: "invalid_request", status: 400, terminalReason: "prompt_too_long", expected: { failure: "input_too_large", status: 400 } },
+  { name: "explicit context overflow without the terminal category", reason: "Your input exceeds the context window of this model.", category: "invalid_request", status: 400, terminalReason: "api_error", expected: { failure: "input_too_large", status: 400 } },
   { name: "an invalid request", reason: "API Error: 400 max_tokens exceeds model limit", category: "invalid_request", status: 400, terminalReason: "api_error", expected: { failure: "invalid_request", status: 400 } },
   { name: "a declared category no run produced", reason: "Your account is on hold", category: "account_on_hold", status: 403, terminalReason: "api_error", expected: { failure: "unknown", status: 403 } },
   { name: "no category and no status", reason: "error", category: null, status: null, terminalReason: null, expected: { failure: "unknown" } },
@@ -147,6 +148,9 @@ test.each([
 
 // Anything the table does not name is left to the generic rules (its words).
 test.each([
+  { name: "the provider explicitly reports context overflow", data: { service: "session", errorName: "provider.invalid-request" }, message: "Internal error: This model's maximum context length is 10000 tokens. However, your messages resulted in 18000 tokens. Please reduce the length of the messages.", failure: "input_too_large" },
+  { name: "a separate compaction provider error retains its cause", data: { service: "session", errorName: "provider.invalid-request" }, message: "Internal error: Controlled summary failure", failure: "provider" },
+  { name: "a service failure mentioning context length remains a provider error", data: { service: "session", errorName: "APIError" }, message: "Internal error: 500 while checking the maximum context length", failure: "provider" },
   { name: "an unlisted errorName follows the words", data: { service: "session", errorName: "provider.something-new" }, message: "Internal error: Rate limit exceeded", failure: "rate_limited" },
   { name: "invalid key (errorName APIError) stays auth", data: { service: "session", errorName: "APIError" }, message: "Internal error: invalid x-api-key", failure: "auth" },
   { name: "no data follows the words", data: undefined, message: "Internal error: Rate limit exceeded", failure: "rate_limited" },
