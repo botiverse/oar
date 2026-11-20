@@ -273,10 +273,15 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       resources: client.resources,
       dispose: async () => {
         await kernel.dispose(async () => {
-          client.kill();
-          // Await the actual exit: the process may hold state (codex's sqlite
-          // runtime in CODEX_HOME) that the next session needs released; onExit records it.
-          await client.exited;
+          // Idle app-server exits cleanly on stdin EOF; active turns stop immediately.
+          if (!busy() && client.close !== undefined) {
+            await client.close();
+          } else {
+            client.kill();
+            // Await the actual exit: the process may hold state (codex's sqlite
+            // runtime in CODEX_HOME) that the next session needs released; onExit records it.
+            await client.exited;
+          }
           await turnProcesses.settled();
         });
       },

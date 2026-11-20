@@ -534,6 +534,12 @@ per-case concurrency, assertions and deadlines.
    - control calls go through `kernel.control()` so request and response are
      records;
    - the process exit is an `exited` response;
+   - stdin EOF shutdown (`shutdown: "stdin"` on `spawnLineProcess` or
+     `closeLineProcess` for idle session disposal) is used only on runtimes
+     measured to exit on stdin EOF (active turns still terminate immediately);
+     runtimes that stay open after stdin closes (such as CodeBuddy `--acp`)
+     must not use it, and shared transports such as `startAcpProcess` must not
+     enable it globally;
    - a whole operation the runtime cannot do is a member the session lacks:
      no `steer` on a runtime that cannot inject, never a `steer` that always
      rejects; `capabilities` declares queue durability, the attribution tier

@@ -63,7 +63,7 @@ function reader<T>(read: (request: NativeInventoryRequest, scope: InventoryScope
     }
     const scope = workspaceScope(options);
     const answer = await inventoryRead(async (_signal, own) => {
-      const client = own(startAppServerClient(installation.command, options.env, {}, scope.cwd));
+      const client = own(startAppServerClient(installation.command, options.env, {}, scope.cwd, { shutdown: "stdin" }));
       client.handle({ onNotification: () => {}, onServerRequest: () => {} });
       await client.spawned;
       await client.request("initialize", { clientInfo: { name: "oar-inventory", version: "0.0.0" }, capabilities: { experimentalApi: true } });

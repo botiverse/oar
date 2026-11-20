@@ -12,6 +12,9 @@ export type ReadOutcome =
 
 export type StartAppServerClient = (command: string, env?: SessionOptions["env"]) => AppServerClient;
 
+const startAccountAppServer: StartAppServerClient = (command, env) =>
+  startAppServerClient(command, env, {}, undefined, { shutdown: "stdin" });
+
 /**
  * One account request. `legacyParams` is sent instead when the app-server
  * refuses `params` as one older than its fields (`invalid type: map,
@@ -73,7 +76,7 @@ export async function callAppServer(
   command: string,
   timeoutMs: number,
   call: AccountCall,
-  startClient: StartAppServerClient = startAppServerClient,
+  startClient: StartAppServerClient = startAccountAppServer,
   env?: SessionOptions["env"],
 ): Promise<ReadOutcome> {
   try {

@@ -59,6 +59,15 @@ function queuedClient(state: InitializingHome, start: () => AppServerClient): Ap
   const subscribe = (callback: (client: AppServerClient) => void): void => {
     if (actual !== null) { callback(actual); } else if (!cancelled) { subscriptions.push(callback); }
   };
+  const stop = (): void => {
+    if (actual !== null) { actual.kill(); return; }
+    if (cancelled) { return; }
+    cancelled = true;
+    state.waiting.delete(begin);
+    subscriptions.length = 0;
+    ready.reject(new Error("Codex app-server startup cancelled before spawn"));
+    for (const handler of exitHandlers.splice(0)) { handler(null); }
+  };
   return {
     spawned: spawn, exited: exit,
     rootPid: () => actual?.rootPid(),
@@ -88,15 +97,16 @@ function queuedClient(state: InitializingHome, start: () => AppServerClient): Ap
       if (actual === null) { exitHandlers.push(handler); }
       subscribe((client) => { client.onExit(handler); });
     },
-    kill() {
-      if (actual !== null) { actual.kill(); return; }
-      if (cancelled) { return; }
-      cancelled = true;
-      state.waiting.delete(begin);
-      subscriptions.length = 0;
-      ready.reject(new Error("Codex app-server startup cancelled before spawn"));
-      for (const handler of exitHandlers.splice(0)) { handler(null); }
+    async close() {
+      if (actual !== null) {
+        if (actual.close !== undefined) { await actual.close(); }
+        else { actual.kill(); await actual.exited; }
+        return;
+      }
+      stop();
+      await exit;
     },
+    kill: stop,
     // No process yet (waiting its turn to initialize the home), or none any more: nothing to read.
     resources: async () => {
       const reading = actual === null ? null : await actual.resources();
