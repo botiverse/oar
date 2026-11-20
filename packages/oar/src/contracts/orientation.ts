@@ -1,10 +1,11 @@
 import type { AccountUsageSnapshot, UtcInstant } from "./account-usage.js";
-import type { RuntimeCredentials, RuntimePlatform, SessionCapabilityDeclaration } from "./runtime.js";
+import type { RuntimePlatform, SessionCapabilityDeclaration } from "./runtime.js";
 import type { AuthStatus } from "./login.js";
 import type { InstallationSnapshot } from "./installation.js";
 import type { ModelEntry } from "./list-models.js";
 import type { ProviderAuthStatus } from "./provider-auth.js";
 import type { RuntimeBrand } from "./brand.js";
+import type { RuntimeCredentials } from "./credentials.js";
 import type { SessionOptions } from "./session-options.js";
 
 /** Facts, including missing evidence, without an embedded selection policy. */

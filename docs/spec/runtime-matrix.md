@@ -215,21 +215,29 @@ unknown, not unsupported. The claim covers the CI-pinned version; an older
 supported version may be unverified on some systems.
 
 `Runtime.credentials` describes what the runtime reads on its own, never a
-value: the environment variables, whether each is a secret, and every file
-or store a credential can come from, in the runtime's own precedence, with
-the variable that moves it, its default location, and whether it wins over
-the environment. A `.env` the runtime reads from the session's directory is
+value: scope (`single_account` or `per_provider`), management (`native` when
+the runtime owns credential management, or `external` when it has no native
+login and the person or host supplies credentials), sign-in paste kind
+(`signInPaste`: `none`, `code` or `code_or_url`), usage store directory env
+(`usageDirectoryEnv`), value-interpolation syntaxes (`interpolation`),
+controlled environment variables (`env`, each with `purpose`, `secret`,
+`field` and optional `provider`), and every file, directory or keychain store
+(`stores`, in the runtime's own precedence, with `directoryEnv`,
+`fallbackDirectoryEnvs`, `defaultDirectory`, `path`, `service` and
+`overridesEnv`). A `.env` the runtime reads from the session's directory is
 listed too, since it can supply a key the host never passed. A host isolates
-one agent's stores by setting `stores[].directoryEnv`. It clears or supplies
-the names in `env` to control inherited credentials and provider routes.
-These lists are disjoint so credential cleanup preserves the host's storage
-isolation. Hosts keep secrets off command lines. Native login is the `login` member and
-per-provider keys are `providers`. Each runtime page states its own shape
-(for example [dsh](../runtimes/dsh.md#credentials)). `orient()` carries both
-fields in every entry, installed or not.
+one agent's stores by setting `stores[].directoryEnv` (or a fallback in
+`fallbackDirectoryEnvs`). It clears or supplies the names in `env` to control
+inherited credentials and provider routes. These lists are strictly disjoint so
+credential cleanup preserves store isolation. Hosts keep secrets off command
+lines. Native login is the `login` member and per-provider keys are
+`providers`. Each built-in runtime's declaration is the single source of truth,
+exposed through `Runtime.credentials` and `orient()` whether or not the runtime
+is installed.
 
-A declared variable's `purpose` tells the host why it participates in credential isolation.
-Clients that read different sets of variables have separate precedence rules. See the
+A declared variable's `purpose` and `field` tell the host why it participates
+in credential isolation and which logical credential field owns it. Clients
+that read different sets of variables have separate precedence rules. See the
 [Claude credential sources and provider routes](../runtimes/claude.md#credentials).
 
 | Purpose | What the native runtime reads it for |

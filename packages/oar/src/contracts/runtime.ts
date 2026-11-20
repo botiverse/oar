@@ -14,6 +14,7 @@ import type { ManualCompaction } from "./compaction.js";
 import type { ModelLister } from "./list-models.js";
 import type { ProviderAuthReader } from "./provider-auth.js";
 import type { RuntimeBrand } from "./brand.js";
+import type { RuntimeCredentials } from "./credentials.js";
 import type { StartSession } from "./session.js";
 
 /**
@@ -71,43 +72,6 @@ export interface CompactionEvents {
 
 /** `process.platform` values a runtime can be verified on. */
 export type RuntimePlatform = "linux" | "darwin" | "win32";
-
-/**
- * The shape of the credentials a runtime reads on its own, never a value.
- * A host fills these from its own store; a variable marked `secret` never
- * goes on a command line. Every listed store is a place a credential can
- * come from, so a host that wants none supplied must account for each. Native login and logout are the `login` and
- * `logout` members; per-provider keys of a multi-provider runtime are
- * `providers`. Absent fields are unknown.
- */
-export interface RuntimeCredentials {
-  /** Variables that supply credentials or select their source, scope or destination. Store directory overrides are declared only in `stores`. Precedence applies within each native route. */
-  readonly env?: readonly CredentialVariable[];
-  /** Files and stores the runtime reads a credential from, in its own order of precedence, including ones the person edits (a `.env`). */
-  readonly stores?: readonly CredentialStore[];
-}
-
-export interface CredentialVariable {
-  readonly name: string;
-  readonly purpose: "api_key" | "token" | "base_url" | "provider_selector" | "region" | "account_scope"
-    | "model_route" | "credential_source" | "headers";
-  readonly secret: boolean;
-}
-
-/** A file or store the runtime reads credentials from; OAR neither reads nor writes the values. */
-export interface CredentialStore {
-  readonly kind: "file" | "dir" | "keychain";
-  /** The variable that moves the directory holding the store (`DSH_HOME`); a host gives each agent its own by setting it. */
-  readonly directoryEnv?: string;
-  /** The directory under the person's home when `directoryEnv` is unset (`.dsh`). */
-  readonly defaultDirectory?: string;
-  /** The store inside that directory (`.credentials.yaml`); absent for `keychain`. */
-  readonly path?: string;
-  /** `cwd`: `path` is relative to the session's working directory instead (a project `.env`). */
-  readonly relativeTo?: "cwd";
-  /** Whether a credential found here wins over the same one in the environment. */
-  readonly overridesEnv?: boolean;
-}
 
 /** Native behavior of an accepted option when reopening a saved session. */
 export interface ResumeOptionSemantics {

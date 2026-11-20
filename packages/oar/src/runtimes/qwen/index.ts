@@ -5,6 +5,7 @@ import { defineRuntime, type SessionCapabilityDeclaration } from "../../contract
 import { onFirstCall } from "../../shared/lazy.js";
 import { semverAtLeast, semverBelow } from "../../shared/semver.js";
 import { qwenInstallation } from "./installation.js";
+import { qwenCredentials } from "./credentials.js";
 import { qwenInstall, qwenInstallPlan } from "./install.js";
 import { qwenNativeMemoryRefusal, qwenRefusedSessionOptions } from "./options.js";
 
@@ -28,6 +29,7 @@ export const qwenRuntime = defineRuntime({
   id: "qwen",
   sessionCapabilities: qwenSessionCapabilities,
   manualCompaction: { kind: "unsupported", reason: "stream-json has no structural compaction completion signal and a user compress command can override the native operation." }, brand: runtimeBrands.qwen, verifiedPlatforms: verifiedPlatforms.qwen,
+  credentials: qwenCredentials,
   refusedSessionOptions: qwenRefusedSessionOptions,
   resumedSessionOptions: {
     systemPrompt: { provided: "immediate", omitted: "default" },

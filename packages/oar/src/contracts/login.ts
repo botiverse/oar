@@ -10,6 +10,8 @@ export interface LoginAccount {
   /** Native billing basis, omitted when the runtime does not establish it. */
   readonly metering?: "plan" | "usage";
   readonly email?: string;
+  /** Native stable account identifier when locally exposed (Claude `oauthAccount.accountUuid`, Codex `tokens.account_id`). */
+  readonly accountId?: string;
   /** The name the runtime shows the user for the plan (`Ultra`, `Google AI Ultra`, ...), or its native code (`max`, `pro`, ...) when it exposes no display name. */
   readonly plan?: string;
   /** The runtime's name for how it is signed in (`claude.ai`, `chatgpt`, `apiKey`, ...). */

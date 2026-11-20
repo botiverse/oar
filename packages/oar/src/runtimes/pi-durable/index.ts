@@ -26,6 +26,13 @@ export function createPiDurableRuntime({ harness, models }: PiDurableRuntimeOpti
     id: "pi-durable",
     sessionCapabilities: () => ({ steer: true, images: false, contextUsage: { tokens: false, contextWindow: false }, mcpTransports: [], stopTask: false }),
     brand: runtimeBrands["pi-durable"], verifiedPlatforms: verifiedPlatforms["pi-durable"],
+    // Pi Durable uses host-owned Harness providers and storage rather than a runtime-managed store.
+    credentials: {
+      scope: "per_provider",
+      management: "external",
+      env: [],
+      stores: [],
+    },
     refusedSessionOptions: piDurableRefusedSessionOptions,
     resumedSessionOptions: {
       appendSystemPrompt: { provided: "immediate", omitted: "saved" },

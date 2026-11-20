@@ -39,6 +39,31 @@ export async function rememberedClaudeAccount(env: NodeJS.ProcessEnv): Promise<L
   return { ...(email === undefined ? {} : { email }), ...(displayName === undefined ? {} : { displayName }) };
 }
 
+export interface ClaudeAccountProfile {
+  readonly planDisplayName?: string;
+  readonly accountId?: string;
+}
+
+/**
+ * Local non-credential profile fields from `.claude.json` `oauthAccount`:
+ * validated `planDisplayName` and stable `accountUuid`, used only when the
+ * stored record matches the currently signed-in account by email or orgId.
+ */
+export async function claudeAccountProfile(
+  env: NodeJS.ProcessEnv,
+  identity: ClaudeAccountIdentity,
+): Promise<ClaudeAccountProfile> {
+  const account = asRecord(await readClaudeConfigField(env, "oauthAccount"));
+  if (account === null || !matchesSignedInAccount(account, identity)) { return {}; }
+  const rawPlan = account.planDisplayName;
+  const planDisplayName = typeof rawPlan === "string" && PLAN_DISPLAY_NAME.test(rawPlan) ? rawPlan : undefined;
+  const accountId = text(account.accountUuid);
+  return {
+    ...(planDisplayName === undefined ? {} : { planDisplayName }),
+    ...(accountId === undefined ? {} : { accountId }),
+  };
+}
+
 /**
  * Claude Code's UI plan name (`oauthAccount.planDisplayName` in `.claude.json`),
  * validated against Claude's own regex and used only when `.claude.json` matches
@@ -48,9 +73,6 @@ export async function claudePlanDisplayName(
   env: NodeJS.ProcessEnv,
   identity: ClaudeAccountIdentity,
 ): Promise<string | undefined> {
-  const account = asRecord(await readClaudeConfigField(env, "oauthAccount"));
-  if (account === null) { return undefined; }
-  const raw = account.planDisplayName;
-  if (typeof raw !== "string" || !PLAN_DISPLAY_NAME.test(raw)) { return undefined; }
-  return matchesSignedInAccount(account, identity) ? raw : undefined;
+  const profile = await claudeAccountProfile(env, identity);
+  return profile.planDisplayName;
 }

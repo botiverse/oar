@@ -5,6 +5,7 @@ import type { ProviderAuthReader } from "../../contracts/provider-auth.js";
 import { createPiInventories } from "./inventory.js";
 import { defineRuntime, type Runtime } from "../../contracts/runtime.js";
 import { piInstallationFor, type piInstallation } from "./installation.js";
+import { piCredentials } from "./credential-shape.js";
 import { type piListModels, piModelLister } from "./list-models.js";
 import { piRefusedSessionOptions } from "./open.js";
 import { createPiSession } from "./session.js";
@@ -45,6 +46,7 @@ export function createPiRuntime(options: PiRuntimeOptions = {}): Runtime & { rea
     ...(subprocess ? { minVersion: PI_RPC_MINIMUM_VERSION } : {}),
     manualCompaction: { kind: "supported", activeTurn: "reject" },
     brand: runtimeBrands.pi, verifiedPlatforms: verifiedPlatforms.pi,
+    credentials: piCredentials,
     refusedSessionOptions: subprocess ? piRpcRefusedSessionOptions : piRefusedSessionOptions,
     resumedSessionOptions: {
       systemPrompt: { provided: "immediate", omitted: "default" },

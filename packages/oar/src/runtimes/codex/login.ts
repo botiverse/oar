@@ -6,6 +6,7 @@ import type { ProviderLoginInteraction } from "../../contracts/provider-auth.js"
 import { runExecutable } from "../../shared/executable/index.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { errorMessage, LoginSecrets, loginBounds, loginExecutable, stoppedResult, type LoginStop } from "../../shared/login.js";
+import { attachCodexAccountId, attachCodexStatusAccountId } from "./account-id.js";
 import { startAppServerClient, type AppServerClient } from "./app-server-client.js";
 
 /*
@@ -68,8 +69,9 @@ export async function readCodexAuthStatus(installation: AvailableInstallation, o
   if (installation.via !== "executable") {
     return { kind: "unknown", detail: "not a machine-installed executable" };
   }
-  const result = await runExecutable(installation.command, ["login", "status"], { env: sessionEnvironment(options.env), timeoutMs: options.timeoutMs ?? STATUS_TIMEOUT_MS, ...(options.signal === undefined ? {} : { signal: options.signal }) });
-  return projectCodexLoginStatus(result.ok ? 0 : result.exitCode, `${result.stdout}\n${result.stderr}`);
+  const env = sessionEnvironment(options.env);
+  const result = await runExecutable(installation.command, ["login", "status"], { env, timeoutMs: options.timeoutMs ?? STATUS_TIMEOUT_MS, ...(options.signal === undefined ? {} : { signal: options.signal }) });
+  return attachCodexStatusAccountId(projectCodexLoginStatus(result.ok ? 0 : result.exitCode, `${result.stdout}\n${result.stderr}`), env);
 }
 
 /** Native status can hydrate personal access tokens and identity credentials over the network. */
@@ -134,12 +136,12 @@ async function readAccount(client: AppServerClient, signal: AbortSignal | undefi
 }
 
 /** After codex reported success: logged in, with the account when `account/read` names one. */
-async function confirmed(client: AppServerClient, signal: AbortSignal | undefined): Promise<LoginResult> {
+async function confirmed(client: AppServerClient, signal: AbortSignal | undefined, env: LoginOptions["env"]): Promise<LoginResult> {
   const read = await readAccount(client, signal);
   if (read === undefined) {
     return { kind: "logged_in" };
   }
-  const account = projectCodexAccount(read);
+  const account = await attachCodexAccountId(projectCodexAccount(read), sessionEnvironment(env));
   return account === null
     ? { kind: "failed", reason: "not_logged_in", detail: "codex reported success, yet account/read shows no account" }
     : { kind: "logged_in", ...(Object.keys(account).length === 0 ? {} : { account }) };
@@ -167,7 +169,7 @@ async function runCodexLogin(command: string, interaction: ProviderLoginInteract
   };
   const complete = (params: JsonRecord): void => {
     if (params.success === true) {
-      flow.confirmation ??= confirmed(app, interaction.signal);
+      flow.confirmation ??= confirmed(app, interaction.signal, env);
     }
     completion.resolve({ kind: "completed", params });
   };

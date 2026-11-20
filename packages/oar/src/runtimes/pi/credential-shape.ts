@@ -1,0 +1,83 @@
+import type { CredentialVariable, RuntimeCredentials } from "../../contracts/credentials.js";
+
+const apiKey = (name: string, provider: string): CredentialVariable => ({
+  name, purpose: "api_key", secret: true, provider, field: "apiKey",
+});
+
+/**
+ * Bundled Pi credential shape, grounded in `@earendil-works/pi-ai`
+ * (`env-api-keys.js`, `auth/resolve.js`, `auth/oauth/anthropic.js`) and OAR's
+ * agent-dir pin (`pi/resolve.ts`). Stored credentials in `auth.json` own the
+ * provider ahead of environment variables (`auth/resolve.js:6-8`).
+ */
+export const piCredentials: RuntimeCredentials = {
+  scope: "per_provider",
+  management: "native",
+  signInPaste: "code_or_url",
+  interpolation: [
+    { syntax: "$VAR", target: "env" },
+    { syntax: "!command", target: "shell" },
+  ],
+  env: [
+    { name: "ANTHROPIC_AUTH_TOKEN", purpose: "token", secret: true, provider: "anthropic", field: "authToken" },
+    { name: "ANTHROPIC_OAUTH_TOKEN", purpose: "token", secret: true, provider: "anthropic", field: "authToken" },
+    apiKey("ANTHROPIC_API_KEY", "anthropic"),
+    { name: "ANTHROPIC_FEDERATION_RULE_ID", purpose: "account_scope", secret: false, provider: "anthropic", field: "accountScope" },
+    { name: "ANTHROPIC_ORGANIZATION_ID", purpose: "account_scope", secret: false, provider: "anthropic", field: "accountScope" },
+    { name: "ANTHROPIC_SERVICE_ACCOUNT_ID", purpose: "account_scope", secret: false, provider: "anthropic", field: "accountScope" },
+    { name: "ANTHROPIC_IDENTITY_TOKEN_FILE", purpose: "credential_source", secret: false, provider: "anthropic", field: "credentialSource" },
+    { name: "ANTHROPIC_WORKSPACE_ID", purpose: "account_scope", secret: false, provider: "anthropic", field: "accountScope" },
+    { name: "COPILOT_GITHUB_TOKEN", purpose: "token", secret: true, provider: "github-copilot", field: "authToken" },
+    apiKey("ANT_LING_API_KEY", "ant-ling"),
+    apiKey("QWEN_TOKEN_PLAN_API_KEY", "qwen-token-plan"),
+    apiKey("QWEN_TOKEN_PLAN_CN_API_KEY", "qwen-token-plan-cn"),
+    apiKey("OPENAI_API_KEY", "openai"),
+    apiKey("AZURE_OPENAI_API_KEY", "azure"),
+    apiKey("NVIDIA_API_KEY", "nvidia"),
+    apiKey("DEEPSEEK_API_KEY", "deepseek"),
+    apiKey("GEMINI_API_KEY", "google"),
+    apiKey("GOOGLE_CLOUD_API_KEY", "google-vertex"),
+    apiKey("GROQ_API_KEY", "groq"),
+    apiKey("CEREBRAS_API_KEY", "cerebras"),
+    apiKey("XAI_API_KEY", "xai"),
+    apiKey("TYPESAFE_API_KEY", "typesafe"),
+    apiKey("RADIUS_API_KEY", "radius"),
+    apiKey("OPENROUTER_API_KEY", "openrouter"),
+    apiKey("AI_GATEWAY_API_KEY", "vercel-ai-gateway"),
+    apiKey("ZAI_API_KEY", "zai"),
+    apiKey("ZAI_CODING_CN_API_KEY", "zai-coding-cn"),
+    apiKey("MISTRAL_API_KEY", "mistral"),
+    apiKey("MINIMAX_API_KEY", "minimax"),
+    apiKey("MINIMAX_CN_API_KEY", "minimax-cn"),
+    apiKey("MOONSHOT_API_KEY", "moonshotai"),
+    { name: "HF_TOKEN", purpose: "token", secret: true, provider: "huggingface", field: "authToken" },
+    apiKey("FIREWORKS_API_KEY", "fireworks"),
+    apiKey("TOGETHER_API_KEY", "together"),
+    apiKey("BASETEN_API_KEY", "baseten"),
+    apiKey("OPENCODE_API_KEY", "opencode"),
+    apiKey("KIMI_API_KEY", "kimi-coding"),
+    apiKey("META_API_KEY", "meta"),
+    apiKey("CLOUDFLARE_API_KEY", "cloudflare-workers-ai"),
+    apiKey("XIAOMI_API_KEY", "xiaomi"),
+    apiKey("XIAOMI_TOKEN_PLAN_CN_API_KEY", "xiaomi-token-plan-cn"),
+    apiKey("XIAOMI_TOKEN_PLAN_AMS_API_KEY", "xiaomi-token-plan-ams"),
+    apiKey("XIAOMI_TOKEN_PLAN_SGP_API_KEY", "xiaomi-token-plan-sgp"),
+    { name: "GOOGLE_APPLICATION_CREDENTIALS", purpose: "credential_source", secret: false, provider: "google-vertex", field: "credentialSource" },
+    { name: "GOOGLE_CLOUD_PROJECT", purpose: "account_scope", secret: false, provider: "google-vertex", field: "project" },
+    { name: "GCLOUD_PROJECT", purpose: "account_scope", secret: false, provider: "google-vertex", field: "project" },
+    { name: "GOOGLE_CLOUD_LOCATION", purpose: "region", secret: false, provider: "google-vertex", field: "region" },
+    { name: "AWS_PROFILE", purpose: "credential_source", secret: false, provider: "amazon-bedrock", field: "profile" },
+    apiKey("AWS_ACCESS_KEY_ID", "amazon-bedrock"),
+    apiKey("AWS_SECRET_ACCESS_KEY", "amazon-bedrock"),
+    { name: "AWS_BEARER_TOKEN_BEDROCK", purpose: "token", secret: true, provider: "amazon-bedrock", field: "authToken" },
+    { name: "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI", purpose: "credential_source", secret: false, provider: "amazon-bedrock", field: "credentialSource" },
+    { name: "AWS_CONTAINER_CREDENTIALS_FULL_URI", purpose: "credential_source", secret: false, provider: "amazon-bedrock", field: "credentialSource" },
+    { name: "AWS_WEB_IDENTITY_TOKEN_FILE", purpose: "credential_source", secret: false, provider: "amazon-bedrock", field: "credentialSource" },
+  ],
+  stores: [
+    { kind: "file", directoryEnv: "OAR_PI_AGENT_DIR", fallbackDirectoryEnvs: ["PI_CODING_AGENT_DIR"], defaultDirectory: ".pi/agent", path: "auth.json", overridesEnv: true },
+    { kind: "file", directoryEnv: "OAR_PI_AGENT_DIR", fallbackDirectoryEnvs: ["PI_CODING_AGENT_DIR"], defaultDirectory: ".pi/agent", path: "models.json", overridesEnv: false },
+    { kind: "file", defaultDirectory: ".config/gcloud", path: "application_default_credentials.json", overridesEnv: false },
+    { kind: "file", defaultDirectory: ".aws", path: "credentials", overridesEnv: false },
+  ],
+};

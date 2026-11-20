@@ -14,7 +14,9 @@ export const dshRuntime = defineRuntime({
   minVersion: DSH_MINIMUM_VERSION,
   // The default route reads DEEPSEEK_API_KEY; a key saved through DSH's own settings wins (docs/runtimes/dsh.md#credentials).
   credentials: {
-    env: [{ name: "DEEPSEEK_API_KEY", purpose: "api_key", secret: true }],
+    scope: "single_account",
+    management: "external",
+    env: [{ name: "DEEPSEEK_API_KEY", purpose: "api_key", secret: true, provider: "deepseek", field: "apiKey" }],
     stores: [
       { kind: "file", directoryEnv: "DSH_HOME", defaultDirectory: ".dsh", path: ".credentials.yaml", overridesEnv: true },
       { kind: "file", relativeTo: "cwd", path: ".env", overridesEnv: false },

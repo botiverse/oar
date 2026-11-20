@@ -11,6 +11,25 @@ export const factoryRuntime = defineRuntime({
   id: "factory",
   // mcpTransports is omitted until HTTP MCP tool invocation is verified (factory.vendor.test.ts covers stdio only).
   sessionCapabilities: () => ({ steer: true, images: true, contextUsage: { tokens: true, contextWindow: true }, stopTask: false }), brand: runtimeBrands.factory, verifiedPlatforms: verifiedPlatforms.factory,
+  // droid 1.12.1: FACTORY_API_KEY first, then OS keyring (auth.v2.keyring / auth.v2.loginkeychain) or keyfile (auth.v2.file + auth.v2.key) under $FACTORY_HOME_OVERRIDE/.factory.
+  credentials: {
+    scope: "single_account",
+    management: "native",
+    signInPaste: "none",
+    usageDirectoryEnv: "FACTORY_HOME_OVERRIDE",
+    env: [
+      { name: "FACTORY_API_KEY", purpose: "api_key", secret: true, provider: "factory", field: "apiKey" },
+      { name: "FACTORY_API_BASE_URL", purpose: "base_url", secret: false, provider: "factory", field: "baseUrl" },
+      { name: "FACTORY_API_BASE_URL_EU", purpose: "base_url", secret: false, provider: "factory", field: "baseUrl" },
+      { name: "FACTORY_DISABLE_KEYRING", purpose: "credential_source", secret: false, provider: "factory", field: "credentialSource" },
+    ],
+    stores: [
+      { kind: "keychain", directoryEnv: "FACTORY_HOME_OVERRIDE", defaultDirectory: ".", overridesEnv: false },
+      { kind: "file", directoryEnv: "FACTORY_HOME_OVERRIDE", defaultDirectory: ".", path: ".factory/auth.v2.file", overridesEnv: false },
+      { kind: "file", directoryEnv: "FACTORY_HOME_OVERRIDE", defaultDirectory: ".", path: ".factory/auth.v2.key", overridesEnv: false },
+      { kind: "file", directoryEnv: "FACTORY_HOME_OVERRIDE", defaultDirectory: ".", path: ".factory/settings.json" },
+    ],
+  },
   manualCompaction: { kind: "supported", activeTurn: "reject" },
   refusedSessionOptions: factoryRefusedSessionOptions,
   installation: factoryInstallation, install: factoryInstall, installPlan: factoryInstallPlan,

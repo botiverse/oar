@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { afterAll, beforeAll, expect, test, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest";
 import { codexAuthStatus, codexLogin, projectCodexLoginStatus } from "../../packages/oar/src/runtimes/codex/login.js";
 import { fakeLoginCli, reportedPid, type FakeCli } from "../fixtures/login-fixtures.js";
 import { recordedInteraction } from "../fixtures/login-interaction.js";
@@ -12,6 +12,14 @@ let dir = "";
 
 beforeAll(() => {
   dir = mkdtempSync(path.join(tmpdir(), "oar-codex-login-"));
+});
+
+beforeEach(() => {
+  vi.stubEnv("CODEX_HOME", dir);
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 afterAll(() => {
