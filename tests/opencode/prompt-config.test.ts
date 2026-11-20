@@ -258,7 +258,6 @@ test("a merged config rejected by native debug releases its temporary append fil
   await expect(access(file)).rejects.toMatchObject({ code: "ENOENT" });
 });
 
-
 test("v1 refuses when native debug moves the host append away from the last entry", async () => {
   // oxlint-disable-next-line typescript/promise-function-async -- Synchronous reply from a scripted native command.
   const run: ExecutableRunner = (_command, _args, options) => {
