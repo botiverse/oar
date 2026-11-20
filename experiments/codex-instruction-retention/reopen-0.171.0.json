@@ -1,0 +1,94 @@
+[
+  {
+    "version": "codex-cli 0.171.0",
+    "operation": "resume",
+    "supplied": "same",
+    "sameThreadId": true,
+    "original": [
+      "OAR_APPEND_ON_ORIGINAL_THREAD"
+    ],
+    "before": [
+      "OAR_APPEND_ON_ORIGINAL_THREAD"
+    ],
+    "compact": "completed",
+    "after": [
+      "OAR_APPEND_ON_ORIGINAL_THREAD"
+    ]
+  },
+  {
+    "version": "codex-cli 0.171.0",
+    "operation": "resume",
+    "supplied": "changed",
+    "sameThreadId": true,
+    "original": [
+      "OAR_APPEND_ON_ORIGINAL_THREAD"
+    ],
+    "before": [
+      "OAR_APPEND_ON_ORIGINAL_THREAD"
+    ],
+    "compact": "completed",
+    "after": [
+      "OAR_APPEND_ON_REOPEN"
+    ]
+  },
+  {
+    "version": "codex-cli 0.171.0",
+    "operation": "resume",
+    "supplied": "omitted",
+    "sameThreadId": true,
+    "original": [
+      "OAR_APPEND_ON_ORIGINAL_THREAD"
+    ],
+    "before": [
+      "OAR_APPEND_ON_ORIGINAL_THREAD"
+    ],
+    "compact": "completed",
+    "after": []
+  },
+  {
+    "version": "codex-cli 0.171.0",
+    "operation": "fork",
+    "supplied": "same",
+    "sameThreadId": false,
+    "original": [
+      "OAR_APPEND_ON_ORIGINAL_THREAD"
+    ],
+    "before": [
+      "OAR_APPEND_ON_ORIGINAL_THREAD"
+    ],
+    "compact": "completed",
+    "after": [
+      "OAR_APPEND_ON_ORIGINAL_THREAD"
+    ]
+  },
+  {
+    "version": "codex-cli 0.171.0",
+    "operation": "fork",
+    "supplied": "changed",
+    "sameThreadId": false,
+    "original": [
+      "OAR_APPEND_ON_ORIGINAL_THREAD"
+    ],
+    "before": [
+      "OAR_APPEND_ON_ORIGINAL_THREAD"
+    ],
+    "compact": "completed",
+    "after": [
+      "OAR_APPEND_ON_REOPEN"
+    ]
+  },
+  {
+    "version": "codex-cli 0.171.0",
+    "operation": "fork",
+    "supplied": "omitted",
+    "sameThreadId": false,
+    "original": [
+      "OAR_APPEND_ON_ORIGINAL_THREAD"
+    ],
+    "before": [
+      "OAR_APPEND_ON_ORIGINAL_THREAD"
+    ],
+    "compact": "completed",
+    "after": []
+  }
+]
