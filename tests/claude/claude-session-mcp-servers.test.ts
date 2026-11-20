@@ -160,6 +160,6 @@ test("no servers, or an empty list, pass no --mcp-config", async () => {
 });
 
 test("a name given twice refuses the open before claude starts", async () => {
-  await expect(claudeSession(installation, { cwd: "/work", mcpServers: [echo, { name: "echo", command: "other" }] })).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: mcpServers names "echo" twice; names are unique within a session]`);
+  await expect(claudeSession(installation, { cwd: "/work", mcpServers: [{ name: "echo", command: "first" }, { name: "echo", command: "other" }] })).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: mcpServers names "echo" twice; names are unique within a session]`);
   expect(spawnLineProcess).not.toHaveBeenCalled();
 });
