@@ -7,7 +7,7 @@ import type { AvailableInstallation } from "../../packages/oar/src/contracts/ins
 import type { Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
 import { experimentalGrokRuntime, grokCandidateRefusal } from "../../experiments/sharing/grok-candidate.js";
 import { promptAndWait, awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
-import { opening, text } from "../fixtures/acp-shared-support.js";
+import { launchId, opening, text } from "../fixtures/acp-shared-support.js";
 import acpFixtureMethodsByInstance from "../fixtures/acp-trace.js";
 // oxlint-disable-next-line import/no-namespace -- Preserve the real profile with only its executable fixture substituted.
 import type * as GrokSessionModule from "../../packages/oar/src/runtimes/grok/session.js";
@@ -45,8 +45,7 @@ async function fixture() {
 test.skipIf(platformRefusal === null)("unadmitted platforms use isolated processes and refuse explicit sharing with the platform reason", async () => {
   const f = await fixture(); const [a, b] = await Promise.all([f.open("a"), f.open("a")]);
   expect([a.placement, b.placement]).toEqual(["isolated", "isolated"]);
-  expect([opening(a)?.pid, opening(b)?.pid]).toEqual([expect.any(Number), expect.any(Number)]);
-  expect(opening(a)?.pid).not.toBe(opening(b)?.pid);
+  expect(launchId(a)).not.toBe(launchId(b));
   await expect(f.open("a", {}, f.runtime.withPlacement("shared"))).rejects.toMatchObject({
     name: "UnsupportedOptionError", option: "placement", message: platformRefusal,
   });
@@ -56,11 +55,11 @@ test.skipIf(platformRefusal === null)("unadmitted platforms use isolated process
 sharedTest.each(["grok 1.0.70 (f50904eaee6c)", "grok 1.0.70 (f50904eaee6c) [stable]"])("%s: same-directory concurrent roots and reuse keep sharing; a new Runtime owns a separate pool", async version => {
   const f = await fixture(); const i = { ...installation, version };
   const [a, b] = await Promise.all([f.open("a", {}, f.runtime, i), f.open("a", {}, f.runtime, i)]);
-  expect([a.placement, b.placement]).toEqual(["shared", "shared"]); expect(opening(a)?.pid).toBe(opening(b)?.pid);
+  expect([a.placement, b.placement]).toEqual(["shared", "shared"]); expect(launchId(a)).toBe(launchId(b));
   expect(opening(a)?.initialized).toBe(1); expect(opening(b)?.initialized).toBe(1);
-  await a.dispose(); const c = await f.open("a"); expect(c.placement).toBe("shared"); expect(opening(c)?.pid).toBe(opening(b)?.pid);
+  await a.dispose(); const c = await f.open("a"); expect(c.placement).toBe("shared"); expect(launchId(c)).toBe(launchId(b));
   expect(a.records().filter(r => r.kind === "response" && r.body.kind === "released")).toHaveLength(1);
-  const separate = await f.open("a", {}, f.runtime.withPlacement("shared")); expect(opening(separate)?.pid).not.toBe(opening(b)?.pid);
+  const separate = await f.open("a", {}, f.runtime.withPlacement("shared")); expect(launchId(separate)).not.toBe(launchId(b));
   expect(await promptAndWait(b, "peer")).toMatchObject({ kind: "ended" });
   await c.dispose(); await b.dispose(); expect(exits(b)).toHaveLength(1);
 });
@@ -68,11 +67,11 @@ sharedTest.each(["grok 1.0.70 (f50904eaee6c)", "grok 1.0.70 (f50904eaee6c) [stab
 sharedTest("cwd and MCP vary within a pool; environment and initialization system prompts split it", async () => {
   const f = await fixture(); const [a, b] = await Promise.all([f.open("a", { mcpServers: [{ name: "a", type: "http", url: "http://127.0.0.1/a" }] }), f.open("b", { mcpServers: [{ name: "b", type: "http", url: "http://127.0.0.1/b" }] })]);
   expect(opening(a)).toMatchObject({ cwd: path.join(f.root, "a"), servers: ["a"] });
-  expect(opening(b)).toMatchObject({ cwd: path.join(f.root, "b"), servers: ["b"] }); expect(opening(a)?.pid).toBe(opening(b)?.pid);
+  expect(opening(b)).toMatchObject({ cwd: path.join(f.root, "b"), servers: ["b"] }); expect(launchId(a)).toBe(launchId(b));
   const env = await f.open("a", { env: { ...f.env, GROK_DISABLE_AUTOUPDATER: "1" } });
   const prompt = await f.open("a", { systemPrompt: "a different system" });
   const rules = await f.open("a", { appendSystemPrompt: "a different rule" });
-  expect(new Set([a, env, prompt, rules].map(s => opening(s)?.pid)).size).toBe(4);
+  expect(new Set([a, env, prompt, rules].map(s => launchId(s))).size).toBe(4);
 });
 
 test("unknown version and launchArgs fall back under auto; explicit shared refuses with placement", async () => {
@@ -88,7 +87,7 @@ sharedTest.each(["", "1.0.71", "1.0.70-dev"])("stale installation cannot admit r
   const f = await fixture(); const trace = path.join(f.root, "trace.jsonl");
   const env = { ...f.env, FIXTURE_AGENT_VERSION: nativeVersion, FIXTURE_TRACE_FILE: trace };
   const [a, b] = await Promise.all([f.open("a", { env }), f.open("b", { env })]);
-  expect([a.placement, b.placement]).toEqual(["isolated", "isolated"]); expect(opening(a)?.pid).not.toBe(opening(b)?.pid);
+  expect([a.placement, b.placement]).toEqual(["isolated", "isolated"]); expect(launchId(a)).not.toBe(launchId(b));
   await expect(f.open("a", { env }, f.runtime.withPlacement("shared"))).rejects.toMatchObject({ option: "placement" });
   const contents = await readFile(trace, "utf8");
   const processes = acpFixtureMethodsByInstance(contents);
@@ -171,7 +170,7 @@ test.each([
   const f = await fixture();
   const peer = await f.open("a");
   const session = await f.open("b", { mcpServers: [server] });
-  expect(session.placement).toBe("isolated"); expect(opening(session)?.pid).not.toBe(opening(peer)?.pid);
+  expect(session.placement).toBe("isolated"); expect(launchId(session)).not.toBe(launchId(peer));
   expect(opening(session)).toMatchObject({ cwd: path.join(f.root, "b"), servers: [server.name] });
   await expect(f.open("b", { mcpServers: [server] }, f.runtime.withPlacement("shared"))).rejects.toMatchObject({ option: "placement" });
   expect(await promptAndWait(peer, "peer-after-refusal")).toMatchObject({ kind: "ended" });

@@ -45,7 +45,7 @@ async function handle(message) {
     send({ method: 'fixture/usage', params: { sessionId, key: 'before-open' } });
     let delay = nextSession === 1 ? 30 : 0;
     if (params.cwd.endsWith("slow-new")) { delay = 500; }
-    const answer = () => { result(id, { sessionId, pid: process.pid, initialized, cwd: params.cwd, servers: params.mcpServers.map(s => s.name) }); send({ method: 'fixture/usage', params: { sessionId, key: 'after-open' } }); };
+    const answer = () => { result(id, { sessionId, instanceId, pid: process.pid, initialized, cwd: params.cwd, servers: params.mcpServers.map(s => s.name) }); send({ method: 'fixture/usage', params: { sessionId, key: 'after-open' } }); };
     if (params.cwd.endsWith('late-new')) { lateNewReplies.set(id, answer); }
     else { setTimeout(answer, delay); }
   } else if (method === '$/cancel_request') {
@@ -54,7 +54,7 @@ async function handle(message) {
   } else if (method === 'session/resume' || method === 'session/load') {
     resumes++;
     if (params.cwd.endsWith('resume-failure')) { send({ id, error: { code: -32_000, message: 'native resume refused' } }); return; }
-    sessions.set(params.sessionId, { ...params, pending: null, ignore: false }); update(params.sessionId, 'resume-replay'); result(id, { pid: process.pid, initialized });
+    sessions.set(params.sessionId, { ...params, pending: null, ignore: false }); update(params.sessionId, 'resume-replay'); result(id, { instanceId, pid: process.pid, initialized });
   } else if (method === 'session/close') {
     const session = sessions.get(params.sessionId);
     if (session?.pending) { result(session.pending, { stopReason: 'cancelled' }); }

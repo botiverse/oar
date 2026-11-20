@@ -7,7 +7,7 @@ import { promptAndWait, awaitTurnEnd } from "../../packages/oar/src/observe/turn
 import { cleanupAcpOwner } from "../../packages/oar/src/shared/acp/shared-session.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 
-import { fixture, opening, text } from "../fixtures/acp-shared-support.js";
+import { fixture, launchId, opening, text } from "../fixtures/acp-shared-support.js";
 import relayAcpOutput from "../fixtures/acp-output-relay.js";
 // oxlint-disable-next-line import/no-namespace -- A shared abort must never collect ownership for the entire pool.
 import * as cancellation from "../../packages/oar/src/shared/executable/process-cancellation.js";
@@ -17,7 +17,7 @@ function alive(pid: number): boolean { try { process.kill(pid, 0); return true; 
 test("two simultaneous opens initialize once, keep cwd and MCP isolated, and route crossed answers", async () => {
   const f = await fixture();
   const [a, b] = await Promise.all([f.open("a", { mcpServers: [{ name: "a", command: "node", args: [] }] }), f.open("b", { mcpServers: [{ name: "b", command: "node", args: [] }] })]);
-  expect(opening(a)?.pid).toBe(opening(b)?.pid); expect(opening(a)?.initialized).toBe(1); expect(opening(b)?.initialized).toBe(1);
+  expect(launchId(a)).toBe(launchId(b)); expect(opening(a)?.initialized).toBe(1); expect(opening(b)?.initialized).toBe(1);
   expect(opening(a)?.servers).toEqual(["a"]); expect(opening(b)?.servers).toEqual(["b"]);
   const results = await Promise.all([promptAndWait(a, "hello-a"), promptAndWait(b, "hello-b")]);
   expect(results.map(result => result.kind)).toEqual(["ended", "ended"]);
@@ -62,7 +62,7 @@ test("retired id auto-resume opens isolated before sending; explicit shared repo
   await expect(f.open("retired", { resume: a.id }, "shared")).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "placement" });
   const resumed = await f.open("retired-auto", { resume: a.id });
   expect(resumed.id).toBe(a.id); expect(resumed.placement).toBe("isolated");
-  expect(opening(resumed, "session/resume")?.pid).not.toBe(opening(b)?.pid);
+  expect(launchId(resumed, "session/resume")).not.toBe(launchId(b));
   expect(resumed.records().find(record => record.kind === "request" && record.body.kind === "open")?.body).toEqual({ kind: "open", placement: "auto" });
   expect(resumed.records().find(record => record.kind === "response" && record.body.kind === "opened")?.body).toEqual({ kind: "opened", placement: "isolated" });
   expect(await promptAndWait(resumed, "resumed")).toMatchObject({ kind: "ended" });
@@ -149,12 +149,12 @@ test("buffered update time and usage replay boundary survive SDK parsing and lat
 test("connection settings and Runtime factory identity prevent accidental pool reuse", async () => {
   const f = await fixture({}, { initializeMeta: options => ({ root: options.cwd }) });
   const [a, b] = await Promise.all([f.open("a"), f.open("b")]);
-  expect(opening(a)?.pid).not.toBe(opening(b)?.pid);
+  expect(launchId(a)).not.toBe(launchId(b));
   const other = await fixture({ processCwd: () => f.cwd });
   const c = await other.open("a");
-  expect(opening(c)?.pid).not.toBe(opening(a)?.pid);
+  expect(launchId(c)).not.toBe(launchId(a));
   const d = await other.open("env", { env: { SHARED_CONFIGURATION: "different" } });
-  expect(opening(d)?.pid).not.toBe(opening(c)?.pid);
+  expect(launchId(d)).not.toBe(launchId(c));
 });
 
 test("session configuration failure cleans only its acquired id and leaves a peer usable", async () => {
