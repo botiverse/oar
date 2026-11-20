@@ -151,8 +151,7 @@ export class Deliveries {
     if (entry !== undefined && event.inputId !== undefined) {
       this.accepted.delete(event.inputId);
       this.unaccept([entry]);
-      this.inbox.unshift(...entry.batch);
-      this.changed();
+      this.requeue(entry.batch);
       void this.pump();
     }
   }
@@ -166,6 +165,17 @@ export class Deliveries {
     if (batches.length > 0) {
       this.host.store.journal({ agent: this.host.name, kind: "redelivering", why, seqs: batches.map((message) => message.seq) });
       this.inbox.unshift(...batches);
+    }
+    this.requeue([]);
+  }
+
+  /** Back to the inbox in channel order (the batch that was in flight included) and saved in the same step, so no reaction in between can persist a set without it. */
+  private requeue(batch: readonly Message[]): void {
+    const seqs = new Set(batch.map((message) => message.seq));
+    const kept = this.inbox.filter((message) => !seqs.has(message.seq));
+    this.inbox.splice(0, this.inbox.length, ...[...kept, ...batch].toSorted((left, right) => left.seq - right.seq));
+    if (batch.length > 0 && this.inFlight === batch) {
+      this.inFlight = [];
     }
     this.changed();
   }
@@ -218,13 +228,15 @@ export class Deliveries {
     const compactions = this.compactions;
     const seqs = batch.map((message) => message.seq);
     const started = Date.now();
+    // Outstanding until it is accepted or put back, whatever runs while the call is pending.
     this.inFlight = batch;
-    const result = await session.deliver(text).finally(() => {
-      this.inFlight = [];
+    const result = await session.deliver(text).catch((error: unknown) => {
+      this.requeue(batch);
+      throw error;
     });
     if (this.host.current() !== session) {
       // Restarted or exited during the call: the next session gets it.
-      this.inbox.unshift(...batch);
+      this.requeue(batch);
       this.host.store.journal({ agent: this.host.name, kind: "redelivering", why: "session changed during delivery", seqs });
       return false;
     }
@@ -238,11 +250,12 @@ export class Deliveries {
         this.awaitingReply = true;
       }
       this.accepted.set(result.inputId, { batch, landed: result.landed, people });
+      this.inFlight = [];
       this.changed();
       this.host.store.journal({ agent: this.host.name, kind: "delivered", seqs, landed: result.landed, inputId: result.inputId, ms: Date.now() - started });
       return true;
     }
-    this.inbox.unshift(...batch);
+    this.requeue(batch);
     if (SESSION_GONE.has(result.code)) {
       this.host.store.journal({ agent: this.host.name, kind: "delivery_deferred", seqs, code: result.code });
       return false;
@@ -253,7 +266,7 @@ export class Deliveries {
     }
     this.host.finding("delivery_rejected", { seqs, code: result.code, reason: result.reason, attempt });
     if (attempt >= MAX_ATTEMPTS) {
-      this.inbox.splice(0, batch.length);
+      this.inbox.splice(0, this.inbox.length, ...this.inbox.filter((message) => !seqs.includes(message.seq)));
       for (const seq of seqs) {
         this.fromPeople.delete(seq);
       }
