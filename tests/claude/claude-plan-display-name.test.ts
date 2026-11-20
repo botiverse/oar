@@ -91,8 +91,8 @@ test("claudeAuthStatus and claudeAccountUsage prefer matched planDisplayName ove
   const configDir = path.join(directory, "config");
   const homeDir = path.join(directory, "home");
   await Promise.all([mkdir(configDir, { recursive: true }), mkdir(homeDir, { recursive: true })]);
-  await writeClaudeConfig(homeDir, { emailAddress: "alice@example.test", organizationUuid: "org-ultra", planDisplayName: "HomePlan" });
-  await writeClaudeConfig(configDir, { emailAddress: "alice@example.test", organizationUuid: "org-ultra", organizationName: "Ultra Org", planDisplayName: "Ultra" });
+  await writeClaudeConfig(homeDir, { emailAddress: "alice@example.test", organizationUuid: "org-ultra", accountUuid: "acct-home", planDisplayName: "HomePlan" });
+  await writeClaudeConfig(configDir, { emailAddress: "alice@example.test", organizationUuid: "org-ultra", organizationName: "Ultra Org", accountUuid: "acct-ultra-1", planDisplayName: "Ultra" });
   const installation = await createFakeClaude("ultra", {
     statusJson: { loggedIn: true, authMethod: "claude.ai", email: "alice@example.test", orgId: "org-ultra", orgName: "Ultra Org", subscriptionType: "max" },
     usageResponse: { rate_limits_available: true, subscription_type: "max", rate_limits: { five_hour: { utilization: 10 } } },
@@ -102,14 +102,14 @@ test("claudeAuthStatus and claudeAccountUsage prefer matched planDisplayName ove
   expect(await claudeAuthStatus(installation, { env })).toEqual({
     kind: "logged_in",
     source: "claude auth status --json",
-    account: { credential: "account", metering: "plan", email: "alice@example.test", plan: "Ultra", method: "claude.ai" },
+    account: { credential: "account", metering: "plan", email: "alice@example.test", accountId: "acct-ultra-1", plan: "Ultra", method: "claude.ai" },
   });
   const usage = await claudeAccountUsage(installation, { env });
   expect(usage.kind === "available" ? usage.plan : undefined).toBe("Ultra");
 });
 
 test("claudeAuthStatus and claudeAccountUsage fall back to native subscription code on account mismatch", async () => {
-  await writeClaudeConfig(directory, { emailAddress: "other@example.test", organizationUuid: "org-other", planDisplayName: "Ultra" });
+  await writeClaudeConfig(directory, { emailAddress: "other@example.test", organizationUuid: "org-other", accountUuid: "acct-other", planDisplayName: "Ultra" });
   const env = { CLAUDE_CONFIG_DIR: directory };
   const installation = await createFakeClaude("mismatch", {
     statusJson: { loggedIn: true, authMethod: "claude.ai", email: "alice@example.test", orgId: "org-max", subscriptionType: "max" },
@@ -118,12 +118,13 @@ test("claudeAuthStatus and claudeAccountUsage fall back to native subscription c
   });
   const status = await claudeAuthStatus(installation, { env });
   expect(status.kind === "logged_in" ? status.account?.plan : undefined).toBe("max");
+  expect(status.kind === "logged_in" ? status.account?.accountId : undefined).toBeUndefined();
   const usage = await claudeAccountUsage(installation, { env });
   expect(usage.kind === "available" ? usage.plan : undefined).toBe("max");
 });
 
-test("claudeAuthStatus ignores stored planDisplayName for API-key logins", async () => {
-  await writeClaudeConfig(directory, { emailAddress: "alice@example.test", organizationUuid: "org-1", planDisplayName: "Ultra" });
+test("claudeAuthStatus ignores stored planDisplayName and accountUuid for API-key logins", async () => {
+  await writeClaudeConfig(directory, { emailAddress: "alice@example.test", organizationUuid: "org-1", accountUuid: "acct-1", planDisplayName: "Ultra" });
   const installation = await createFakeClaude("apikey", {
     statusJson: { loggedIn: true, authMethod: "api_key", email: "alice@example.test", orgId: "org-1" },
     usageResponse: { rate_limits_available: false },
@@ -131,4 +132,5 @@ test("claudeAuthStatus ignores stored planDisplayName for API-key logins", async
   });
   const status = await claudeAuthStatus(installation, { env: { CLAUDE_CONFIG_DIR: directory } });
   expect(status.kind === "logged_in" ? status.account?.plan : undefined).toBeUndefined();
+  expect(status.kind === "logged_in" ? status.account?.accountId : undefined).toBeUndefined();
 });

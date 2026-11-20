@@ -364,7 +364,10 @@ status without parsing `detail`. Readers omit the field rather than return
 an empty list.
 
 `LoginAccount.credential` optionally reports account versus API-key form;
-`metering` independently reports plan versus usage billing. Unknown facts stay
+`metering` independently reports plan versus usage billing; `accountId`
+optionally reports a stable native account identifier (Claude's matched
+`.claude.json` `oauthAccount.accountUuid` and Codex's `$CODEX_HOME/auth.json`
+`tokens.account_id`, read without returning tokens). Unknown facts stay
 absent. A configured key or stored login is not proof of remote validity.
 Native status may refresh credentials; only `AuthStatusReader.localOnly: true`
 declares no network, refresh or key-command execution. The

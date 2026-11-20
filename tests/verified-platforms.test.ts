@@ -80,7 +80,9 @@ test("every built-in runtime declares exactly the platforms a gating CI job runs
 
 test("DSH declares the key it reads and every file that can supply it, in precedence order, with no value", () => {
   expect(dshRuntime.credentials).toEqual({
-    env: [{ name: "DEEPSEEK_API_KEY", purpose: "api_key", secret: true }],
+    scope: "single_account",
+    management: "external",
+    env: [{ name: "DEEPSEEK_API_KEY", purpose: "api_key", secret: true, provider: "deepseek", field: "apiKey" }],
     stores: [
       { kind: "file", directoryEnv: "DSH_HOME", defaultDirectory: ".dsh", path: ".credentials.yaml", overridesEnv: true },
       { kind: "file", relativeTo: "cwd", path: ".env", overridesEnv: false },
@@ -93,8 +95,10 @@ test("credential cleanup preserves each runtime's store directory overrides", ()
   for (const runtime of defaultRuntimes.list()) {
     const env = new Set(runtime.credentials?.env?.map(variable => variable.name));
     for (const store of runtime.credentials?.stores ?? []) {
-      if (store.directoryEnv !== undefined) {
-        expect(env.has(store.directoryEnv), `${runtime.id} ${store.directoryEnv}`).toBe(false);
+      for (const name of [store.directoryEnv, ...(store.fallbackDirectoryEnvs ?? [])]) {
+        if (name !== undefined) {
+          expect(env.has(name), `${runtime.id} ${name}`).toBe(false);
+        }
       }
     }
   }

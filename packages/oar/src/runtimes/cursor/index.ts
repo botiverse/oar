@@ -92,6 +92,20 @@ function cursorRuntime(access: CursorSdkAccess, sdkModule?: string): CursorRunti
     sessionCapabilities: () => ({ steer: true, images: true, contextUsage: { tokens: true, contextWindow: false }, mcpTransports: ["stdio", "http"] as const, stopTask: false }),
     refusedSessionOptions: access.refusedSessionOptions,
     brand: runtimeBrands.cursor,
+    // @cursor/sdk 1.4.1: CURSOR_API_KEY takes precedence over ~/.cursor/sdk/auth.json (docs/runtimes/cursor.md).
+    credentials: {
+      scope: "single_account",
+      management: "native",
+      signInPaste: "none",
+      env: [
+        { name: "CURSOR_API_KEY", purpose: "api_key", secret: true, provider: "cursor", field: "apiKey" },
+        { name: "CURSOR_API_BASE_URL", purpose: "base_url", secret: false, provider: "cursor", field: "baseUrl" },
+        { name: "CURSOR_BACKEND_URL", purpose: "base_url", secret: false, provider: "cursor", field: "baseUrl" },
+      ],
+      stores: [
+        { kind: "file", defaultDirectory: ".cursor/sdk", path: "auth.json", overridesEnv: false },
+      ],
+    },
     installation: cursorInstallationFor(process.platform, process.arch, access.execution, sdkModule === undefined ? {} : { sdkModule }),
     listModels: cursorListModelsWith(access),
     login: cursorLoginWith(access),

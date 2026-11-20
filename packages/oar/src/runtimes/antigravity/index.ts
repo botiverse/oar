@@ -15,6 +15,21 @@ export const antigravityRuntime = defineRuntime({
   minVersion: ANTIGRAVITY_MINIMUM_VERSION,
   manualCompaction: { kind: "unsupported", reason: "The CLI advertises /compact, but no structured completion and attribution contract has been verified." },
   brand: runtimeBrands.antigravity, verifiedPlatforms: verifiedPlatforms.antigravity,
+  // agy 1.5.13: KeyringTokenStorage (go_keyring) first, then ~/.gemini/antigravity-cli/antigravity-oauth-token; GOOGLE_API_KEY takes precedence over GEMINI_API_KEY.
+  credentials: {
+    scope: "single_account",
+    management: "native",
+    signInPaste: "code_or_url",
+    env: [
+      { name: "GOOGLE_API_KEY", purpose: "api_key", secret: true, provider: "google", field: "apiKey" },
+      { name: "GEMINI_API_KEY", purpose: "api_key", secret: true, provider: "google", field: "apiKey" },
+      { name: "GOOGLE_GEMINI_BASE_URL", purpose: "base_url", secret: false, provider: "google", field: "baseUrl" },
+    ],
+    stores: [
+      { kind: "keychain" },
+      { kind: "file", defaultDirectory: ".gemini/antigravity-cli", path: "antigravity-oauth-token" },
+    ],
+  },
   installation: antigravityInstallation,
   installPlan: antigravityInstallPlan,
   install: antigravityInstall,

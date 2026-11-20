@@ -30,6 +30,24 @@ export const codexRuntime = defineRuntime({
     appendSystemPrompt: { provided: "next_compaction", omitted: "saved_until_compaction" },
   },
   brand: runtimeBrands.codex, verifiedPlatforms: verifiedPlatforms.codex,
+  // Codex 0.170.0: keyring service "Codex Auth" (login/src/auth/storage.rs:396) and $CODEX_HOME/auth.json + config.toml.
+  credentials: {
+    scope: "single_account",
+    management: "native",
+    signInPaste: "none",
+    usageDirectoryEnv: "CODEX_HOME",
+    env: [
+      { name: "OPENAI_API_KEY", purpose: "api_key", secret: true, provider: "openai", field: "apiKey" },
+      { name: "CODEX_API_KEY", purpose: "api_key", secret: true, provider: "openai", field: "apiKey" },
+      { name: "CODEX_ACCESS_TOKEN", purpose: "token", secret: true, provider: "openai", field: "authToken" },
+      { name: "OPENAI_BASE_URL", purpose: "base_url", secret: false, provider: "openai", field: "baseUrl" },
+    ],
+    stores: [
+      { kind: "keychain", directoryEnv: "CODEX_HOME", defaultDirectory: ".codex", service: "Codex Auth" },
+      { kind: "file", directoryEnv: "CODEX_HOME", defaultDirectory: ".codex", path: "auth.json" },
+      { kind: "file", directoryEnv: "CODEX_HOME", defaultDirectory: ".codex", path: "config.toml" },
+    ],
+  },
   skills: codexSkills,
   mcpServers: codexMcpServers,
   tools: codexTools,

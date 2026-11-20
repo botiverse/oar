@@ -215,21 +215,44 @@ unknown, not unsupported. The claim covers the CI-pinned version; an older
 supported version may be unverified on some systems.
 
 `Runtime.credentials` describes what the runtime reads on its own, never a
-value: the environment variables, whether each is a secret, and every file
-or store a credential can come from, in the runtime's own precedence, with
-the variable that moves it, its default location, and whether it wins over
-the environment. A `.env` the runtime reads from the session's directory is
+value: scope (`single_account` or `per_provider`), management (`native` or
+`external`), sign-in paste kind (`signInPaste`), usage store directory env
+(`usageDirectoryEnv`), value-interpolation syntaxes (`interpolation`),
+controlled environment variables (`env`, each with `purpose`, `secret`,
+`field` and optional `provider`), and every file, directory or keychain store
+(`stores`, in the runtime's own precedence, with `directoryEnv`,
+`fallbackDirectoryEnvs`, `defaultDirectory`, `path`, `service` and
+`overridesEnv`). A `.env` the runtime reads from the session's directory is
 listed too, since it can supply a key the host never passed. A host isolates
-one agent's stores by setting `stores[].directoryEnv`. It clears or supplies
-the names in `env` to control inherited credentials and provider routes.
-These lists are disjoint so credential cleanup preserves the host's storage
-isolation. Hosts keep secrets off command lines. Native login is the `login` member and
-per-provider keys are `providers`. Each runtime page states its own shape
-(for example [dsh](../runtimes/dsh.md#credentials)). `orient()` carries both
-fields in every entry, installed or not.
+one agent's stores by setting `stores[].directoryEnv` (or a fallback in
+`fallbackDirectoryEnvs`). It clears or supplies the names in `env` to control
+inherited credentials and provider routes. These lists are strictly disjoint so
+credential cleanup preserves store isolation. Hosts keep secrets off command
+lines. Native login is the `login` member and per-provider keys are
+`providers`. `orient()` carries both `verifiedPlatforms` and `credentials` in
+every entry, installed or not.
 
-A declared variable's `purpose` tells the host why it participates in credential isolation.
-Clients that read different sets of variables have separate precedence rules. See the
+| Runtime | Scope / management | Sign-in paste | Store directory env (`usageDirectoryEnv`) | Stores and keychain service | Interpolation |
+| --- | --- | --- | --- | --- | --- |
+| antigravity | `single_account` / `native` | `code_or_url` | none | OS keyring, `~/.gemini/antigravity-cli/antigravity-oauth-token` | none |
+| claude | `single_account` / `native` | `code` | `CLAUDE_CONFIG_DIR` (usage), `ANTHROPIC_CONFIG_DIR` | macOS Keychain (`Claude Code-credentials`), `.credentials.json`, `.claude.json`, `.config/anthropic`, AWS/gcloud/Azure/XDG stores | none |
+| codebuddy | `single_account` / `native` | `none` | `CODEBUDDY_CONFIG_DIR` | `.codebuddy/settings.json`, `.codebuddy.json`, cwd `.codebuddy/settings[.local].json`, `.codebuddy` dir | none |
+| codex | `single_account` / `native` | `none` | `CODEX_HOME` (usage) | OS keyring (`Codex Auth`), `auth.json`, `config.toml` | none |
+| cursor | `single_account` / `native` | `none` | none | `~/.cursor/sdk/auth.json` | none |
+| devin | `single_account` / `native` | none | `XDG_DATA_HOME` | `$XDG_DATA_HOME/devin/credentials.toml` | none |
+| dsh | `single_account` / `external` | none | `DSH_HOME` | `.credentials.yaml`, cwd `.env`, `$DSH_HOME/.env` | none |
+| factory | `single_account` / `native` | `none` | `FACTORY_HOME_OVERRIDE` (usage) | OS keyring, `.factory/auth.v2.file`, `.factory/auth.v2.key`, `.factory/settings.json` | none |
+| grok | `single_account` / `native` | `none` | `GROK_HOME` (usage) | `auth.json`, `mcp_credentials.json`, `config.toml` | none |
+| kimi | `single_account` / `native` | `none` | `KIMI_CODE_HOME` (usage) | `credentials/`, `config.toml` | none |
+| opencode | `per_provider` / `native` | `code` | `XDG_DATA_HOME`, `XDG_CONFIG_HOME`, `OPENCODE_CONFIG_DIR` | `opencode/auth.json`, `opencode/opencode.json`, config dir, cwd `opencode.json` | `{env:VAR}` |
+| pi | `per_provider` / `native` | `code_or_url` | `OAR_PI_AGENT_DIR` (fallback `PI_CODING_AGENT_DIR`) | `auth.json`, `models.json`, gcloud ADC, `~/.aws/credentials` | `$VAR`, `!command` |
+| pi-durable | `per_provider` / `external` | none | none | host-supplied | none |
+| qoder | `single_account` / `native` | `none` | `QODER_HOME` | `$QODER_HOME` dir (`<name>-credentials.json`, `.keychain-salt`) | none |
+| qwen | `per_provider` / `native` | none | `QWEN_HOME` | `settings.json`, `.env`, `~/.env`, cwd `.env`, `oauth_creds.json`, gcloud ADC | none |
+
+A declared variable's `purpose` and `field` tell the host why it participates
+in credential isolation and which logical credential field owns it. Clients
+that read different sets of variables have separate precedence rules. See the
 [Claude credential sources and provider routes](../runtimes/claude.md#credentials).
 
 | Purpose | What the native runtime reads it for |

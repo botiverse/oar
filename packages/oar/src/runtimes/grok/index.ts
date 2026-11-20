@@ -13,6 +13,19 @@ export const grokRuntime = defineRuntime({
   id: "grok",
   sessionCapabilities: grokSessionCapabilities,
   brand: runtimeBrands.grok, verifiedPlatforms: verifiedPlatforms.grok,
+  // Grok 1.0.89: $GROK_HOME/auth.json (overrides XAI_API_KEY when present), mcp_credentials.json, config.toml; XAI_API_KEY fallback.
+  credentials: {
+    scope: "single_account",
+    management: "native",
+    signInPaste: "none",
+    usageDirectoryEnv: "GROK_HOME",
+    env: [{ name: "XAI_API_KEY", purpose: "api_key", secret: true, provider: "xai", field: "apiKey" }],
+    stores: [
+      { kind: "file", directoryEnv: "GROK_HOME", defaultDirectory: ".grok", path: "auth.json", overridesEnv: true },
+      { kind: "file", directoryEnv: "GROK_HOME", defaultDirectory: ".grok", path: "mcp_credentials.json" },
+      { kind: "file", directoryEnv: "GROK_HOME", defaultDirectory: ".grok", path: "config.toml" },
+    ],
+  },
   manualCompaction: { kind: "supported", activeTurn: "reject" },
   refusedSessionOptions: grokRefusedSessionOptions,
   mcpToolsListChanged: "none",
