@@ -6,11 +6,12 @@ import type { SessionOptions, Session } from "../../packages/oar/src/contracts/s
 import { asRecord, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 import { fakeLineProcess, type FakeLineProcess } from "../fixtures/fake-line-process.js";
 
-const launch = vi.hoisted(() => ({ launchQoder: vi.fn(), closeQoder: vi.fn() }));
+const launch = vi.hoisted(() => ({ launchQoder: vi.fn() }));
+const closeLineProcess = vi.hoisted(() => vi.fn());
 vi.mock("../../packages/oar/src/runtimes/qoder/launch.js", () => launch);
+vi.mock("../../packages/oar/src/shared/executable/close.js", () => ({ closeLineProcess }));
 vi.mock("../../packages/oar/src/runtimes/qoder/auth-status.js", () => ({ readQoderAuthStatus: async () => ({ kind: "logged_in" }) }));
 afterEach(() => { vi.useRealTimers(); vi.clearAllMocks(); });
-
 const privateData = { email: "private@example.invalid", username: "private-user", org_id: "private-org", access_token: "fixture-private-token" };
 function privateControlPayload(subtype: unknown) {
   if (subtype === "stop_task") { return {}; }
@@ -29,7 +30,7 @@ function privateControlProcess() {
     process.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request?.request_id, response: payload } })}\n`);
   });
   launch.launchQoder.mockResolvedValue(Object.assign(child, { qoderVersion: "1.1.78" }));
-  launch.closeQoder.mockImplementation(async () => { child.end(0); await child.exited; });
+  closeLineProcess.mockImplementation(async () => { child.end(0); await child.exited; });
   return child;
 }
 function expectPrivateDataAbsent(records: string) {
@@ -65,7 +66,7 @@ function slowControlProcess(initializeMs: number | null, settingsMs: number | nu
     }, delay);
   });
   launch.launchQoder.mockResolvedValue(Object.assign(child, { qoderVersion: "1.1.78" }));
-  launch.closeQoder.mockImplementation(async () => { child.end(0); await child.exited; });
+  closeLineProcess.mockImplementation(async () => { child.end(0); await child.exited; });
   return child;
 }
 async function openSlowProcess() {
@@ -78,7 +79,7 @@ test("a slow native initialize can finish after the former 30-second deadline", 
   slowControlProcess(45_000);
   const opening = openSlowProcess();
   await vi.advanceTimersByTimeAsync(30_000);
-  expect(launch.closeQoder).not.toHaveBeenCalled();
+  expect(closeLineProcess).not.toHaveBeenCalled();
   await vi.advanceTimersByTimeAsync(15_001);
   const session = await opening;
   try { expect(session.status().value.kind).toBe("idle"); }
@@ -90,10 +91,10 @@ test("a silent initialize still fails and closes its process after 60 seconds", 
   const child = slowControlProcess(null);
   const rejected = expect(openSlowProcess()).rejects.toThrow("initialize within 60000 ms");
   await vi.advanceTimersByTimeAsync(59_999);
-  expect(launch.closeQoder).not.toHaveBeenCalled();
+  expect(closeLineProcess).not.toHaveBeenCalled();
   await vi.advanceTimersByTimeAsync(1);
   await rejected;
-  expect(launch.closeQoder).toHaveBeenCalledWith(child);
+  expect(closeLineProcess).toHaveBeenCalledWith(child);
   expect(await child.exited).toBe(0);
 });
 
@@ -103,7 +104,7 @@ test("the longer initialize budget does not extend later controls", async () => 
   const rejected = expect(openSlowProcess()).rejects.toThrow("get_settings within 30000 ms");
   await vi.advanceTimersByTimeAsync(30_001);
   await rejected;
-  expect(launch.closeQoder).toHaveBeenCalledWith(child);
+  expect(closeLineProcess).toHaveBeenCalledWith(child);
 });
 
 const catalog = [
@@ -146,7 +147,7 @@ function catalogProcesses(models: unknown = catalog, reported?: string | null, q
     children.push(child);
     return Object.assign(child, { qoderVersion: "1.1.78" });
   });
-  launch.closeQoder.mockImplementation(async (child: FakeLineProcess) => { child.end(0); await child.exited; });
+  closeLineProcess.mockImplementation(async (child: FakeLineProcess) => { child.end(0); await child.exited; });
   return children;
 }
 
@@ -200,7 +201,7 @@ test.each([
   await expect(opening).rejects.toBeInstanceOf(ModelConfirmationError);
   await expect(opening).rejects.toMatchObject({ name: "ModelConfirmationError", requested: "qfmodel", reported: "Qwen3.8-Flash",
     catalogSelectorIds: models.length === 0 ? [] : ["qfmodel"] });
-  expect(launch.closeQoder).toHaveBeenCalledWith(children[0]);
+  expect(closeLineProcess).toHaveBeenCalledWith(children[0]);
   expect(catalogStrategies(children[0])).toEqual(strategies);
 });
 
@@ -220,7 +221,7 @@ test.each(["cache", "live"] as const)("a failed %s catalog read refuses opening 
   await expect(opening).rejects.toMatchObject({ requested: "qfmodel", reported: "Qwen3.8-Flash", cause: { message: "Qoder refused get_models" },
     message: `Qoder could not read ${strategy} model catalog to confirm "qfmodel": Error: Qoder refused get_models` });
   await (strategy === "cache" ? expect(opening).rejects.not.toHaveProperty("catalogSelectorIds") : expect(opening).rejects.toHaveProperty("catalogSelectorIds", []));
-  expect(launch.closeQoder).toHaveBeenCalledWith(children[0]);
+  expect(closeLineProcess).toHaveBeenCalledWith(children[0]);
   expect(catalogStrategies(children[0])).toEqual(strategy === "cache" ? ["cache"] : ["cache", "live"]);
 });
 
@@ -252,17 +253,16 @@ test.each(["cache", "live"] as const)("a silent %s catalog read keeps the normal
   const rejected = expect(qoderSession(installation, { cwd: "/work", model: "qfmodel" })).rejects.toThrow("get_models within 30000 ms");
   await vi.advanceTimersByTimeAsync(30_000);
   await rejected;
-  expect(launch.closeQoder).toHaveBeenCalledWith(children[0]);
+  expect(closeLineProcess).toHaveBeenCalledWith(children[0]);
   expect(catalogStrategies(children[0])).toEqual(strategy === "cache" ? ["cache"] : ["cache", "live"]);
 });
-
 
 test("a model confirmation failure is not mislabeled as effort when both were requested", async () => {
   const children = catalogProcesses([], "wrong-model");
   await expect(qoderSession(installation, { cwd: "/work", model: "qfmodel", effort: "high" })).rejects.toMatchObject({
     message: 'Qoder model catalog did not contain requested selector "qfmodel"',
   });
-  expect(launch.closeQoder).toHaveBeenCalledWith(children[0]);
+  expect(closeLineProcess).toHaveBeenCalledWith(children[0]);
 });
 
 test("a failed effort settings query retains the effort context and closes the process", async () => {
@@ -271,7 +271,7 @@ test("a failed effort settings query retains the effort context and closes the p
   const rejected = expect(qoderSession(installation, { cwd: "/work", effort: "high" })).rejects.toThrow('Qoder could not confirm effort "high":');
   await vi.advanceTimersByTimeAsync(30_001);
   await rejected;
-  expect(launch.closeQoder).toHaveBeenCalledWith(child);
+  expect(closeLineProcess).toHaveBeenCalledWith(child);
 });
 
 test("native startup refusal retains the requested effort without blaming the effort", async () => {
@@ -280,9 +280,9 @@ test("native startup refusal retains the requested effort without blaming the ef
     process.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "error", request_id: frame?.request_id, error: "secret-token" } })}\n`);
   });
   launch.launchQoder.mockResolvedValue(Object.assign(child, { qoderVersion: "1.1.78" }));
-  launch.closeQoder.mockImplementation(async () => { child.end(0); await child.exited; });
+  closeLineProcess.mockImplementation(async () => { child.end(0); await child.exited; });
   await expect(qoderSession(installation, { cwd: "/work", effort: "oar-no-such-effort" })).rejects.toThrow('Qoder startup failed (requested effort "oar-no-such-effort"): Error: Qoder refused initialize');
-  expect(launch.closeQoder).toHaveBeenCalledWith(child);
+  expect(closeLineProcess).toHaveBeenCalledWith(child);
 });
 
 test("Qoder task stop uses its native control while task notifications stay public", async () => {

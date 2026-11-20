@@ -4,7 +4,7 @@ import { qoderSession } from "../../packages/oar/src/runtimes/qoder/session.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 import { fakeLineProcess, type FakeLineProcess } from "../fixtures/fake-line-process.js";
 
-const launch = vi.hoisted(() => ({ launchQoder: vi.fn(), closeQoder: vi.fn() }));
+const launch = vi.hoisted(() => ({ launchQoder: vi.fn() }));
 vi.mock("../../packages/oar/src/runtimes/qoder/launch.js", () => launch);
 afterEach(() => { vi.clearAllMocks(); });
 const installation = { kind: "available", via: "executable", command: "fixture", version: "1.1.81" } as const;
@@ -25,7 +25,6 @@ function daemonSessionProcesses(): FakeLineProcess[] {
     children.push(child);
     return { ...await qoderDaemonSession(child, id, [], "/work", {}), qoderVersion: "1.1.81" };
   });
-  launch.closeQoder.mockImplementation(async (child: FakeLineProcess) => { child.kill(); await child.exited; });
   return children;
 }
 

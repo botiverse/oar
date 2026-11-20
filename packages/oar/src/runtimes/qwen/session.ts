@@ -8,8 +8,8 @@ import { checkMcpServerNames, isHttpMcpServer } from "../../shared/mcp-servers.j
 import { semverBelow } from "../../shared/semver.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { streamJsonSession } from "../../shared/stream-json/session.js";
+import { closeLineProcess } from "../../shared/executable/close.js";
 import { qwenContextReadback } from "./context-usage.js";
-import { closeQwen } from "./close.js";
 import { launchQwen } from "./launch.js";
 import { qwenControl, qwenPermissionResponse } from "./control.js";
 import { initialQwenProjection, qwenProjectionProfile } from "./projection.js";
@@ -70,7 +70,7 @@ export const qwenSession: StartSession = withSessionCredentials(async (installat
       },
       exited: () => { control.end(); context.end(); }, disposing: () => { control.end(); context.end("disposed"); },
       permissionResponse: qwenPermissionResponse,
-      close: async (active) => { if (active) { child.kill(); await child.exited; } else { await closeQwen(child); } },
+      close: async (active) => { if (active) { child.kill(); await child.exited; } else { await closeLineProcess(child); } },
     });
-  } catch (error) { await closeQwen(child); throw appendCleanupFailure(error, cleanupFailureReason(child.diagnostics().cleanup)); }
+  } catch (error) { await closeLineProcess(child); throw appendCleanupFailure(error, cleanupFailureReason(child.diagnostics().cleanup)); }
 });

@@ -1,5 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { qwenListModels } from "../../packages/oar/src/runtimes/qwen/list-models.js";
+import { KILL_GRACE_MS } from "../../packages/oar/src/shared/executable/process-signals.js";
 import { launchQwen } from "../../packages/oar/src/runtimes/qwen/launch.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 import { fakeLineProcess } from "../fixtures/fake-line-process.js";
@@ -36,7 +37,7 @@ test("an explicit short bound fails and releases an unresponsive native process"
   const child = fakeLineProcess(undefined, { ignoreEof: true });
   vi.mocked(launchQwen).mockResolvedValue(child);
   const result = expect(qwenListModels(installation, { timeoutMs: 10 })).rejects.toThrow("Qwen model listing timed out");
-  await vi.advanceTimersByTimeAsync(5010);
+  await vi.advanceTimersByTimeAsync(KILL_GRACE_MS + 10);
   await result;
   expect(child.stdin.writableEnded).toBe(true);
   expect(child.killed()).toBe(true);

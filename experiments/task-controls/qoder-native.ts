@@ -6,7 +6,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { asRecord, asRecordList, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
-import { launchQoder, closeQoder } from "../../packages/oar/src/runtimes/qoder/launch.js";
+import { closeLineProcess } from "../../packages/oar/src/shared/executable/close.js";
+import { launchQoder } from "../../packages/oar/src/runtimes/qoder/launch.js";
 import { qoderControl } from "../../packages/oar/src/runtimes/qoder/control.js";
 import { nativeControl, NativeFailureError } from "../qoder-deepseek/native-control.js";
 
@@ -146,7 +147,7 @@ try {
   process.exitCode = 1;
 } finally {
   clearTimeout(deadline);
-  if (child !== null) { child.kill(); await closeQoder(child).catch(() => { report.cleanupFailed = true; }); }
+  if (child !== null) { child.kill(); await closeLineProcess(child).catch(() => { report.cleanupFailed = true; }); }
   if (created) {
     try {
       const current = await daemon.request("daemon.list_byok_configs");

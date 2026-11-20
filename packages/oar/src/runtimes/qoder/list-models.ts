@@ -7,7 +7,8 @@ import { sessionCredentialRedactor } from "../../shared/credential-redactor.js";
 import { effortLevelsOf } from "../../shared/effort-levels.js";
 import { asRecord, asRecordList, parseJson, type JsonRecord } from "../../shared/json.js";
 import { listingCwd } from "../../shared/listing-cwd.js";
-import { launchQoder, closeQoder } from "./launch.js";
+import { closeLineProcess } from "../../shared/executable/close.js";
+import { launchQoder } from "./launch.js";
 import { qoderControl, rememberQoderSecrets } from "./control.js";
 import { readQoderAuthStatus } from "./auth-status.js";
 import { qoderVersionInfo } from "./protocol.js";
@@ -62,7 +63,7 @@ async function readModels(command: string, options: SessionOptions, timeoutMs: n
       await control.request({ subtype: "initialize" });
       const answer = await control.request({ subtype: "get_models", fetchStrategy: "live" });
       return projectQoderModels(asRecord(answer.response)?.response, child.qoderVersion);
-    } finally { control.end(); await closeQoder(child); }
+    } finally { control.end(); await closeLineProcess(child); }
   } catch (error) { throw credentials.redactValue(error); }
 }
 

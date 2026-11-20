@@ -4,7 +4,8 @@ import { randomUUID } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { serveMcpTools } from "../../packages/oar/src/mcp/serve-tools.js";
-import { launchQoder, closeQoder } from "../../packages/oar/src/runtimes/qoder/launch.js";
+import { closeLineProcess } from "../../packages/oar/src/shared/executable/close.js";
+import { launchQoder } from "../../packages/oar/src/runtimes/qoder/launch.js";
 import { qoderControl } from "../../packages/oar/src/runtimes/qoder/control.js";
 import { asRecord, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 import { startQoderNative } from "../../sea-trial/harness/qoder-native.js";
@@ -102,12 +103,12 @@ export async function priorityScenario(priority: Priority, phase: Phase, capture
     if (phase === "tool") { events.push({ type: "tool_released" }); }
     toolRelease.resolve();
     await within(complete.promise, "both input lifecycles ending");
-    await closeQoder(child); child = undefined;
+    await closeLineProcess(child); child = undefined;
     return { priority, phase, capture, events, requests: await capturedRequests(env.home, id),
       finalText: frames.some((frame) => frame.type === "assistant" && JSON.stringify(frame.message).includes("OAR_AFTER_INJECTION")) };
   } finally {
     toolRelease.resolve();
-    if (child !== undefined) { await closeQoder(child); }
+    if (child !== undefined) { await closeLineProcess(child); }
     await server.close(); await env.stop();
   }
 }

@@ -82,6 +82,7 @@ class ScriptedLineProcess implements FakeLineProcess {
 
   kill(): void {
     this.wasKilled = true;
+    this.stdin.end();
     this.end(null);
   }
 

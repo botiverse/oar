@@ -3,12 +3,13 @@ import { appendCleanupFailure, cleanupFailureReason } from "../../shared/executa
 import { randomUUID } from "node:crypto";
 import type { StartSession } from "../../contracts/session.js";
 import { ModelConfirmationError } from "../../contracts/model-confirmation-error.js";
+import { closeLineProcess } from "../../shared/executable/close.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { streamJsonSession } from "../../shared/stream-json/session.js";
 import { asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
 import { qoderCompaction } from "./compaction.js";
 import { qoderControl, qoderInitializeTimeoutMs, rememberQoderSecrets } from "./control.js";
-import { launchQoder, closeQoder } from "./launch.js";
+import { launchQoder } from "./launch.js";
 import { initialQoderProjection, qoderProjectionProfile } from "./projection.js";
 import { qoderStartupError, qoderTerminationReason, qoderVersionInfo } from "./protocol.js";
 import { qoderPermissionResponse } from "./permission.js";
@@ -92,10 +93,10 @@ export const qoderSession: StartSession = withSessionCredentials(async (installa
       },
       exited: control.end, disposing: control.end, exitReason: () => qoderTerminationReason(child),
       permissionResponse: qoderPermissionResponse,
-      close: async (active) => { if (active) { child.kill(); await child.exited; } else { await closeQoder(child); } },
+      close: async (active) => { if (active) { child.kill(); await child.exited; } else { await closeLineProcess(child); } },
     });
   } catch (error) {
-    control.end(); await closeQoder(child);
+    control.end(); await closeLineProcess(child);
     throw appendCleanupFailure(error, cleanupFailureReason(child.diagnostics().cleanup));
   }
 });

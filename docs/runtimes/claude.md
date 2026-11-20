@@ -1475,24 +1475,24 @@ back, leave the file holding a retired token; the next refresh gets
 machine is logged out until someone signs in again
 ([claude-code#102265](https://github.com/anthropics/claude-code/issues/102265),
 [#88947](https://github.com/anthropics/claude-code/issues/88947),
-[#91009](https://github.com/anthropics/claude-code/issues/91009); open as of
-2.1.328: on a normal exit `claude -p` waits up to `2000 ms` for an in-flight
+[#91009](https://github.com/anthropics/claude-code/issues/91009)). As of
+2.1.328, `claude -p` waits up to `2000 ms` on a normal exit for an in-flight
 OAuth refresh and then exits without waiting further, leaving the retired
-refresh token on disk if the exchange takes longer, while only subcommands
-such as `auth status` enable the longer 8.5 s startup deadline). OAR closes
-its short-lived `claude -p` queries (`listModels`, `accountUsage`, and
-inventory reads) and idle Claude sessions on `dispose()` through `stdin` EOF
-(escalating to process-tree kill only after `KILL_GRACE_MS`, default 10 s;
-disposing a session with an active turn still kills immediately so dispose
-stays prompt). On Windows this replaces an immediate `taskkill /T /F` that
-killed `claude` at 0 ms before its shutdown refresh wait could run at all. On
-POSIX, 2.1.328 already gives `SIGTERM` the same `2000 ms` refresh wait bound
-as a normal `claude -p` exit (`shortenOAuthRefreshWait()` caps it there), so
-ending through `stdin` EOF mainly removes the race between EOF and `SIGTERM`
-(and avoids truncating any longer normal-exit wait if upstream raises it)
-rather than eliminating POSIX refresh losses. A host that runs many sessions
-or polls those queries still meets the upstream 2000 ms bound more often than
-one person at a terminal.
+refresh token on disk if the exchange takes longer; only subcommands such as
+`auth status` enable the longer 8.5 s startup deadline. OAR closes its
+short-lived `claude -p` queries (`listModels`, `accountUsage`, and inventory
+reads) and idle Claude sessions on `dispose()` through `stdin` EOF, escalating
+to process-tree kill only after `KILL_GRACE_MS` (default 10 s); disposing a
+session with an active turn still kills immediately so dispose stays prompt.
+On Windows this replaces an immediate `taskkill /T /F` that killed `claude` at
+0 ms before its shutdown refresh wait could run at all. On POSIX, 2.1.328
+already gives `SIGTERM` the same `2000 ms` refresh wait bound as a normal
+`claude -p` exit (`shortenOAuthRefreshWait()` caps it there), so ending
+through `stdin` EOF mainly removes the race between EOF and `SIGTERM` (and
+avoids truncating any longer normal-exit wait if upstream raises it) rather
+than eliminating POSIX refresh losses. A host that runs many sessions or polls
+those queries still meets the upstream 2000 ms bound more often than one
+person at a terminal.
 
 claude's own way around it is a long-lived token: `claude setup-token` (a
 browser sign-in, like `auth login`) prints an OAuth token valid for a year,

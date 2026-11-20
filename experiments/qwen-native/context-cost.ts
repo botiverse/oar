@@ -6,7 +6,7 @@ import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { startQwenAimock } from "../../sea-trial/harness/qwen-aimock.js";
 import { launchQwen } from "../../packages/oar/src/runtimes/qwen/launch.js";
-import { closeQwen } from "../../packages/oar/src/runtimes/qwen/close.js";
+import { closeLineProcess } from "../../packages/oar/src/shared/executable/close.js";
 import { qwenControl } from "../../packages/oar/src/runtimes/qwen/control.js";
 import { asRecord, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 
@@ -56,7 +56,7 @@ async function run(resume: boolean, turns: number): Promise<void> {
       const context = mode === "no-query" ? await delay(200, null) : await request({ subtype: "get_context_usage", show_details: false });
       samples.push({ resume, index, elapsedMs: performance.now() - start, requestStart, requestEnd: env.raw.length, result: answer, context });
     }
-  } finally { control.end(); await closeQwen(child); }
+  } finally { control.end(); await closeLineProcess(child); }
 }
 
 try {

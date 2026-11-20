@@ -5,7 +5,7 @@ import { qoderSession } from "../../packages/oar/src/runtimes/qoder/session.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { fakeLineProcess } from "../fixtures/fake-line-process.js";
 
-const launch = vi.hoisted(() => ({ launchQoder: vi.fn(), closeQoder: vi.fn() }));
+const launch = vi.hoisted(() => ({ launchQoder: vi.fn() }));
 vi.mock("../../packages/oar/src/runtimes/qoder/launch.js", () => launch);
 afterEach(() => { vi.clearAllMocks(); });
 const line = (value: unknown) => `${JSON.stringify(value)}\n`;
@@ -16,7 +16,6 @@ async function open() {
     process.emit(line({ type: "control_response", response: { subtype: "success", request_id: message.request_id, response: {} } }));
   });
   launch.launchQoder.mockResolvedValue(Object.assign(fake, { qoderVersion: "1.1.81" }));
-  launch.closeQoder.mockImplementation(async () => { fake.end(0); await fake.exited; });
   const session = await qoderSession({ kind: "available", via: "executable", command: "fixture", version: "1.1.81" }, { cwd: "/work" });
   assert.ok(session.compact !== undefined);
   return { session, compact: session.compact.bind(session), fake, emit: (value: unknown) => { fake.emit(line(value)); },

@@ -13,7 +13,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { qoderRuntime } from "../../packages/oar/src/index.js";
 import { qoderControl, qoderInitializeTimeoutMs } from "../../packages/oar/src/runtimes/qoder/control.js";
-import { closeQoder, launchQoder } from "../../packages/oar/src/runtimes/qoder/launch.js";
+import { closeLineProcess } from "../../packages/oar/src/shared/executable/close.js";
+import { launchQoder } from "../../packages/oar/src/runtimes/qoder/launch.js";
 import { asRecord, asRecordList, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 
 const installation = await qoderRuntime.installation();
@@ -64,7 +65,7 @@ async function observe(model?: string, live = false): Promise<ModelObservation> 
       catalogs, catalogMs, elapsedMs: Math.round(performance.now() - started) };
     observations.push(observation);
     return observation;
-  } finally { control.end(); await closeQoder(child); }
+  } finally { control.end(); await closeLineProcess(child); }
 }
 
 try {

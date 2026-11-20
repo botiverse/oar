@@ -8,7 +8,8 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { qoderSession } from "../../packages/oar/src/runtimes/qoder/session.js";
 import { qoderControl, qoderInitializeTimeoutMs } from "../../packages/oar/src/runtimes/qoder/control.js";
-import { closeQoder, launchQoder } from "../../packages/oar/src/runtimes/qoder/launch.js";
+import { closeLineProcess } from "../../packages/oar/src/shared/executable/close.js";
+import { launchQoder } from "../../packages/oar/src/runtimes/qoder/launch.js";
 import { asRecord, asRecordList, parseJson } from "../../packages/oar/src/shared/json.js";
 import { startQoderNative } from "../../sea-trial/harness/qoder-native.js";
 
@@ -42,7 +43,7 @@ try {
         nativeName: asRecord(selected.serverModel)?.display_name ?? null,
       } });
     }
-  } finally { control.end(); await closeQoder(child); }
+  } finally { control.end(); await closeLineProcess(child); }
   let opened: unknown = null;
   try {
     const session = await qoderSession({ kind: "available", via: "executable", command, version }, options);
