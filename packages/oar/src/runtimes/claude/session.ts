@@ -1,6 +1,5 @@
 import { openClaudeModelRequests } from "./model-requests.js";
 import { claudeCompaction, CLAUDE_COMPACTION_BUSY } from "./compaction.js";
-import { randomUUID } from "node:crypto";
 import type { StartSession } from "../../contracts/session.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { streamJsonSession } from "../../shared/stream-json/session.js";
@@ -16,7 +15,7 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
     throw new Error("The claude session adapter needs an executable installation");
   }
   // A fork (SessionOptions.fork) runs under a new id OAR assigns, like a new session.
-  const sessionId = options.fork === undefined ? options.resume ?? randomUUID() : randomUUID();
+  const sessionId = options.fork === undefined ? options.resume ?? globalThis.crypto.randomUUID() : globalThis.crypto.randomUUID();
   const requests = await openClaudeModelRequests(sessionId, options, installation.version);
   const child = await launchClaude(installation.command, sessionId, options, requests?.setting).catch((error: unknown) => { requests?.remove(); throw error; });
   if (requests !== undefined) { child.onExit(requests.remove); }
