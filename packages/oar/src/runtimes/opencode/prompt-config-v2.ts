@@ -4,7 +4,7 @@ import { sessionEnvironment } from "../../shared/environment.js";
 import { processFailure } from "../../shared/executable/diagnostics.js";
 import { runExecutable, type ExecutableRunner } from "../../shared/executable/run.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
-import { configContent, instructionsFile, openedAgent, validateOpenCodePrompts, type OpenCodePromptConfig } from "./prompt-config.js";
+import { preparePromptOptions, openedAgent, validateOpenCodePrompts, type OpenCodePromptConfig } from "./prompt-config.js";
 import { opencodeV2PromptRefusals } from "./options.js";
 import { acquireOpenCodeStartup } from "./startup-gate.js";
 import type { OpencodeRelease } from "./version.js";
@@ -55,12 +55,8 @@ export async function prepareOpenCodeV2Prompts(command: string, release: Opencod
     if (options[option] !== undefined && reason !== undefined) { throw new UnsupportedOptionError(option, reason); }
   }
   const agents = options.systemPrompt === undefined ? undefined : await primaryAgents(command, options, run);
-  const instructions = await instructionsFile(options.appendSystemPrompt);
-  const overlay = {
-    ...(agents === undefined ? {} : { agents: Object.fromEntries(agents.map((agent) => [agent, { system: options.systemPrompt }])) }),
-    ...(instructions.path === undefined ? {} : { instructions: [instructions.path] }),
-  };
-  return { options: { ...options, env: { ...options.env, OPENCODE_CONFIG_CONTENT: configContent(overlay) } }, ...(agents === undefined ? {} : { agents }), cleanup: instructions.cleanup };
+  const prepared = await preparePromptOptions(options, "agents", agents ?? [], async (merged) => { await primaryAgents(command, merged, run); });
+  return { ...prepared, ...(agents === undefined ? {} : { agents }) };
 }
 
 export function verifyOpenCodeAgents(response: JsonRecord, expected: readonly string[]): void {
