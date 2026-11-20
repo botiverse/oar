@@ -9,10 +9,11 @@ export function factoryInstalledExecutableCandidates(platform: NodeJS.Platform =
   return [paths.join(home, ".local", "bin", platform === "win32" ? "droid.exe" : "droid")];
 }
 
-/** `droid exec --help` must run: it is the entry OAR drives (stream-jsonrpc and the ACP sign-in). */
+/** `droid exec --help` must run and identify Factory Droid (measured on droid 1.12.1). */
 export const factoryInstallation = executableInstallation(
   "OAR_FACTORY_BIN",
   "droid",
   (env) => factoryInstalledExecutableCandidates(process.platform, environmentHome(env)),
   ["exec", "--help"],
+  { identity: { vendor: "Factory Droid", help: /\bUsage:\s+droid(?:\.exe)?\s+exec\b/iu } },
 );

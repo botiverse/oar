@@ -39,7 +39,9 @@ test("the public installer finds a global bin outside PATH and refuses to reinst
 test("prefix discovery uses the supplied environment and does not change the host", async () => {
   const otherPrefix = path.join(home, "other prefix"); const otherBin = process.platform === "win32" ? otherPrefix : path.join(otherPrefix, "bin");
   mkdirSync(otherBin, { recursive: true });
-  writeFileSync(path.join(otherBin, process.platform === "win32" ? "codebuddy.cmd" : "codebuddy"), process.platform === "win32" ? "@echo other-copy\r\n" : "#!/bin/sh\necho other-copy\n", { mode: 0o755 });
+  writeFileSync(path.join(otherBin, process.platform === "win32" ? "codebuddy.cmd" : "codebuddy"), process.platform === "win32"
+    ? "@if \"%1\"==\"--help\" (echo Usage: codebuddy) else (echo other-copy)\r\n"
+    : "#!/bin/sh\nif [ \"$1\" = \"--help\" ]; then echo 'Usage: codebuddy'; else echo other-copy; fi\n", { mode: 0o755 });
   expect(await codebuddyInstallation({ env: { npm_config_prefix: otherPrefix } })).toMatchObject({ kind: "available", version: "other-copy" });
   expect(process.env.npm_config_prefix).toBe(prefix);
 });
@@ -75,7 +77,8 @@ test("broken npm preserves discovery and returns the same typed refusal from pla
 
 test("an available copy bypasses a broken npm query during installation", async () => {
   writeFileSync(path.join(bin, process.platform === "win32" ? "codebuddy.cmd" : "codebuddy"), process.platform === "win32"
-    ? "@echo existing-copy\r\n" : "#!/bin/sh\necho existing-copy\n", { mode: 0o755 });
+    ? "@if \"%1\"==\"--help\" (echo Usage: codebuddy) else (echo existing-copy)\r\n"
+    : "#!/bin/sh\nif [ \"$1\" = \"--help\" ]; then echo 'Usage: codebuddy'; else echo existing-copy; fi\n", { mode: 0o755 });
   vi.stubEnv("OAR_NPM_TEST_FAIL", "1");
   expect(await codebuddyRuntime.install()).toMatchObject({ kind: "already_installed", installation: { version: "existing-copy" } });
   expect(readFileSync(log, "utf8")).toBe("");

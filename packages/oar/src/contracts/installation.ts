@@ -44,11 +44,50 @@ export interface VersionUnsupportedInstallation {
   readonly requiredVersion?: string;
 }
 
+/** A located executable that did not identify as this runtime's vendor CLI. */
+export interface UnrecognizedExecutableInstallation {
+  readonly kind: "unsupported";
+  readonly code: "unrecognized_executable";
+  readonly via: "executable";
+  readonly command: string;
+  readonly reason: string;
+}
+
+/** A located executable that failed the runtime's readiness check. */
+export interface ReadinessFailedInstallation {
+  readonly kind: "unsupported";
+  readonly code: "readiness_failed";
+  readonly via: "executable";
+  readonly command: string;
+  readonly reason: string;
+}
+
+/** Typed host-environment reasons a runtime cannot run on this machine or process. */
+export type UnsupportedHostCode =
+  | "unsupported_platform"
+  | "unsupported_node_version"
+  | "unsupported_host"
+  | "dependency_missing";
+
+/** The current platform, Node version, host build or required package cannot run this runtime. */
+export interface HostUnsupportedInstallation {
+  readonly kind: "unsupported";
+  readonly code: UnsupportedHostCode;
+  readonly reason: string;
+  readonly installedVersion?: string;
+  readonly requiredVersion?: string;
+}
+
+export type UnsupportedInstallation =
+  | VersionUnsupportedInstallation
+  | UnrecognizedExecutableInstallation
+  | ReadinessFailedInstallation
+  | HostUnsupportedInstallation;
+
 export type InstallationSnapshot =
   | AvailableInstallation
-  | VersionUnsupportedInstallation
-  | { readonly kind: "not_found" }
-  | { readonly kind: "unsupported"; readonly reason: string; readonly code?: never };
+  | UnsupportedInstallation
+  | { readonly kind: "not_found" };
 
 export interface InstallationProbeOptions {
   /** Same overlay as sessions: strings override, null removes, and the host is untouched. */

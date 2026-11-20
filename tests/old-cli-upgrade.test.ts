@@ -13,7 +13,7 @@ afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); for (const root of r
 function oldCli(mode: "upgrade" | "noop" | "fail", target = "1.5.9") {
   const root = mkdtempSync(path.join(tmpdir(), "oar-old-upgrade-"));
   roots.push(root);
-  const fake = fakeRuntime(root, "agy", { version: "1.4.9", target, mode, bareVersion: true });
+  const fake = fakeRuntime(root, "agy", { version: "1.4.9", target, mode, bareVersion: true, helpOutput: "Usage of agy:\n  --print-timeout\n" });
   vi.stubEnv("OAR_ANTIGRAVITY_BIN", fake.command);
   vi.spyOn(globalThis, "fetch").mockImplementation(async () => Response.json({ version: target }));
   return fake;

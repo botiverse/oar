@@ -105,7 +105,11 @@ test("a runtime whose probe throws is reported and fails the command without hid
 });
 
 
-test.each([{ kind: "not_found" } as const, { kind: "unsupported", reason: "wrong platform" } as const])("other unavailable installations never call an updater: %j", async (installation) => {
+test.each([
+  { kind: "not_found" } as const,
+  { kind: "unsupported", code: "unsupported_platform", reason: "wrong platform" } as const,
+  { kind: "unsupported", code: "unrecognized_executable", via: "executable", command: "/bin/foreign", reason: "not the vendor CLI" } as const,
+])("other unavailable installations never call an updater: %j", async (installation) => {
   let calls = 0;
   const report = await readUpgrade(runtime("fake", {
     installation: async () => installation,

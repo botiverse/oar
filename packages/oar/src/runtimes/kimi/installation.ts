@@ -28,5 +28,9 @@ export const kimiInstallation = executableInstallation(
   "kimi",
   (env) => kimiInstalledExecutableCandidates(process.platform, environmentHome(env), env),
   ["acp", "--help"],
-  { readinessTimeoutMs: 30_000, versionTimeoutMs: 30_000 },
+  {
+    readinessTimeoutMs: 30_000,
+    versionTimeoutMs: 30_000,
+    identity: { vendor: "Kimi CLI", help: /\bkimi\b/iu },
+  },
 );

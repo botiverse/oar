@@ -913,15 +913,20 @@ compile and everything else works; with it, cursor loads
 [capabilities](../design/capabilities.md#a-runtimes-own-settings).
 
 [Installation](../../packages/oar/src/runtimes/cursor/installation.ts) is
-`bundled`, like pi: versionless (the embedder pins the SDK) and available
-wherever the SDK ships a native package (darwin arm64 and x64, linux arm64
-and x64, win32 x64), `unsupported` elsewhere. It does not look for the
-package, which would mean loading the SDK; where the package is missing
-anyway (a plain JavaScript host, a deploy that left it out) the first call
-that needs the SDK fails with `cursor could not load @cursor/sdk through the
-host's sdk loader`, carrying the loader's error as its cause. There is no
-update check or upgrade: the supported SDK version moves with OAR's own,
-pinned exactly by the peer dependency.
+`bundled`, like pi: versionless (the embedder pins the SDK). It returns
+`unsupported` with a typed `code` when the host cannot run the SDK:
+`unsupported_platform` outside `@cursor/sdk` 1.4.1's five native companion
+packages (darwin arm64 and x64, linux arm64 and x64, win32 x64, per
+`package.json` `optionalDependencies`); `unsupported_node_version` below Node
+22.13.0 (per `package.json` `engines.node`); and, in subprocess mode,
+`unsupported_host` on a compiled single executable (Node SEA or Bun
+standalone) or `dependency_missing` when `sdkModule` cannot be resolved on
+disk. In-process mode does not call the host's `sdk()` loader during
+discovery; where the package is missing anyway, the first call that needs the
+SDK fails with `cursor could not load @cursor/sdk through the host's sdk
+loader`, carrying the loader's error as its cause. There is no update check or
+upgrade: the supported SDK version moves with OAR's own, pinned exactly by the
+peer dependency.
 
 Account usage is **unexposed**: `agent.getUsage()` answers `feature_unavailable`
 on this account (probed), and each run reports its own tokens.

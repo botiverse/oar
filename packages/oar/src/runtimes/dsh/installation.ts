@@ -1,13 +1,19 @@
-import type { InstallationProbe } from "../../contracts/installation.js";
 import { executableInstallation } from "../../shared/installation.js";
-import { dshVersionUnsupported } from "./version.js";
+import { DSH_MINIMUM_VERSION, dshVersionRefusal } from "./version.js";
 
-const located = executableInstallation("OAR_DSH_BIN", "dsh");
-
-/** `dsh` on PATH or `OAR_DSH_BIN`, with its real version at or above the floor. */
-export const dshInstallation: InstallationProbe = async (options = {}) => {
-  const snapshot = await located(options);
-  if (snapshot.kind !== "available" || snapshot.via !== "executable") { return snapshot; }
-  const refusal = dshVersionUnsupported(snapshot.version);
-  return refusal === null ? snapshot : { ...refusal, via: "executable", command: snapshot.command };
-};
+/** `dsh` on PATH or `OAR_DSH_BIN`, verified against DeepSeek Harness `--help` and its prerelease-aware version floor. */
+export const dshInstallation = executableInstallation(
+  "OAR_DSH_BIN",
+  "dsh",
+  [],
+  ["--help"],
+  {
+    identity: { vendor: "DeepSeek Harness (dsh)", help: /\bUsage:\s+dsh(?:\.exe)?\b|\bDeepSeek Harness\b/iu },
+    versionPolicy: {
+      label: "DSH",
+      lines: [{ min: DSH_MINIMUM_VERSION }],
+      required: DSH_MINIMUM_VERSION,
+      formatReason: (_command, _installed, raw) => dshVersionRefusal(raw) ?? `DSH requires ${DSH_MINIMUM_VERSION} or later`,
+    },
+  },
+);

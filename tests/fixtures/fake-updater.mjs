@@ -17,7 +17,9 @@ function save(changes) {
   writeFileSync(stateFile, JSON.stringify({ ...state, ...changes }));
 }
 
-if (command === "--version") {
+if (command === "--help") {
+  process.stdout.write(`${state.helpOutput ?? ""}\n`);
+} else if (command === "--version") {
   process.stdout.write(state.bareVersion === true ? `${state.version}\n` : `fake ${state.version} (fixture)\n`);
 } else if (command === "update" || command === "upgrade") {
   const seen = { updateArgs: process.argv.slice(4), sawUserAgent: process.env.npm_config_user_agent !== undefined, sawMessagingToken: process.env.CLAUDE_CODE_MESSAGING_TOKEN !== undefined };

@@ -5,7 +5,11 @@ import saveLoginState from "./login-state.mjs";
 
 const [file] = process.argv.slice(2);
 const state = JSON.parse(readFileSync(file, "utf8"));
-if (process.argv.includes("--version") || process.argv.includes("--help")) {
+if (process.argv.includes("--help")) {
+  console.log("Usage: codebuddy|cbc [options]\nCodeBuddy Code");
+  process.exit(0);
+}
+if (process.argv.includes("--version")) {
   console.log(state.version ?? "2.178.1");
   process.exit(0);
 }

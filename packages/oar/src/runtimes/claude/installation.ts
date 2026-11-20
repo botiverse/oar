@@ -19,4 +19,11 @@ export function claudeInstalledExecutableCandidates(
   return [paths.join(home, ".local", "bin", platform === "win32" ? "claude.exe" : "claude")];
 }
 
-export const claudeInstallation = executableInstallation("OAR_CLAUDE_BIN", "claude", (env) => claudeInstalledExecutableCandidates(process.platform, environmentHome(env)));
+/** `claude --version` reports `<semver> (Claude Code)` (measured on 2.1.292). */
+export const claudeInstallation = executableInstallation(
+  "OAR_CLAUDE_BIN",
+  "claude",
+  (env) => claudeInstalledExecutableCandidates(process.platform, environmentHome(env)),
+  undefined,
+  { identity: { vendor: "Claude Code", version: /\(Claude Code\)/iu } },
+);

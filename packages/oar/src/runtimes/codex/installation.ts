@@ -4,10 +4,17 @@ import { codexInstalledExecutableCandidates } from "./installation-candidates.js
 
 export { codexInstalledExecutableCandidates, desktopBuildExecutables } from "./installation-candidates.js";
 
-// OAR drives Codex through its app-server surface; a codex without it is unsupported.
+// OAR drives Codex through its app-server surface; a codex without it or a non-Codex executable is unsupported.
 export const codexInstallation = executableInstallation(
   "OAR_CODEX_BIN",
   "codex",
   (env) => codexInstalledExecutableCandidates(process.platform, environmentHome(env), env),
   ["app-server", "--help"],
+  {
+    identity: {
+      vendor: "Codex CLI",
+      help: /\bUsage:\s+codex(?:\.exe)?\s+app-server\b/iu,
+      version: /^codex(?:-cli)?\s+\d+\.\d+\.\d+/iu,
+    },
+  },
 );

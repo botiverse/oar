@@ -4,7 +4,7 @@ import { verifiedPlatforms } from "../../platforms.js";
 import type { ProviderAuthReader } from "../../contracts/provider-auth.js";
 import { createPiInventories } from "./inventory.js";
 import { defineRuntime, type Runtime } from "../../contracts/runtime.js";
-import { piInstallation } from "./installation.js";
+import { piInstallationFor, type piInstallation } from "./installation.js";
 import { type piListModels, piModelLister } from "./list-models.js";
 import { piRefusedSessionOptions } from "./open.js";
 import { createPiSession } from "./session.js";
@@ -55,7 +55,7 @@ export function createPiRuntime(options: PiRuntimeOptions = {}): Runtime & { rea
     skills: subprocess ? piReaderForEnvironment(inventories.skills, onFirstCall(async () => { const rpc = await import("./rpc/readers.js"); return rpc.piRpcSkillReader(options); })) : inventories.skills,
     commands: subprocess ? piReaderForEnvironment(inventories.commands, onFirstCall(async () => { const rpc = await import("./rpc/readers.js"); return rpc.piRpcCommandReader(options); })) : inventories.commands,
     tools,
-    installation: piInstallation,
+    installation: piInstallationFor(options),
     providers: async (installation, readOptions) => {
       if (subprocess) { refuseChangedPiReaderEnvironment(readOptions.env); }
       const result = await piProviders(installation, readOptions);

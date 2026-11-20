@@ -5,10 +5,14 @@ other inventory members remain unsupported. See [skill discovery](#independent-s
 See the [query contract](../spec/inventory.md) and [native probe evidence](inventory.md).
 
 The installed executable selects the adapter behavior: v1 (`opencode-ai`)
-and v2 (`@opencode/cli`) share the `opencode` runtime ID. OAR preserves the
-reported version string verbatim, including v2's `opencode v` prefix. Updating
-within a line and migrating to another line are separate user decisions.
-The sections below describe v1 unless they explicitly name v2.
+and v2 (`@opencode/cli`) share the `opencode` runtime ID. `installation()`
+verifies OpenCode identity via `--help`, retains the reported version string
+verbatim (including v2's `opencode v` prefix), and returns
+`unsupported` (`code: "version_unsupported"`) outside `>=1.18.30 <2.0.0` (the
+v1 baseline below) and `>=2.0.27 <3.0.0` (first v2 release with working cold
+`models --standalone`; `parseOpencodeRelease` handles majors 1 and 2 only).
+Updating within a line and migrating to another line are separate user
+decisions. The sections below describe v1 unless they explicitly name v2.
 
 Evidence baseline: **opencode 1.18.30** (linux x64, `opencode acp`, the free
 model `opencode/big-pickle` with no login) on 2026-10-06 through
