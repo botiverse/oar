@@ -59,10 +59,10 @@ describe("Runtime.sessionCapabilities", () => {
 
 it("offers side questions only on verified Claude installations", () => {
   for (const version of [undefined, "unreadable", "2.1.325", "2.1.326-rc.1"]) {
-    expect(claudeRuntime.sessionCapabilities(executable(version)).sideQuestion).toBe(false);
+    expect(claudeRuntime.sessionCapabilities(executable(version))).not.toHaveProperty("sideQuestion");
   }
   expect(claudeRuntime.sessionCapabilities(executable("2.1.326")).sideQuestion).toBe(true);
-  expect(claudeRuntime.sessionCapabilities({ kind: "available", via: "bundled" }).sideQuestion).toBe(false);
+  expect(claudeRuntime.sessionCapabilities({ kind: "available", via: "bundled" })).not.toHaveProperty("sideQuestion");
 });
 
 describe("SessionCapabilityDeclaration.contextUsage", () => {

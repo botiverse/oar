@@ -162,7 +162,7 @@ and the opened session stays authoritative.
 | runtime | `steer` | `images` | `stopTask` | `mcpTransports` | `contextUsage` | `fileChanges` | `nativeSessionFile` | `sideQuestion` |
 |---|---|---|---|---|---|---|---|---|
 | antigravity | true | absent: advertised by `initialize` | false | `["stdio", "http"]` (`minVersion` 1.5.0 with `--process-per-session`, credential-free only per `refusedSessionOptions.mcpServerCredentials`; [mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | absent | absent |
-| claude | true | true | true | `["stdio", "http"]` ([mcp-servers.vendor.test.ts](../../sea-trial/vendor/mcp-servers.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | absent | true from 2.1.326, false on older or unreadable versions |
+| claude | true | true | true | `["stdio", "http"]` ([mcp-servers.vendor.test.ts](../../sea-trial/vendor/mcp-servers.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | absent | true from 2.1.326, absent on older or unreadable versions |
 | codebuddy | false | absent: advertised by `initialize` | false | `["stdio", "http"]` on `>= 2.178.1` ([codebuddy.vendor.test.ts](../../sea-trial/vendor/codebuddy.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: false, contextWindow: false }` (native `0/0` when model limit is unknown is not trustworthy) | absent | absent | absent |
 | codex | true | true | true | `["stdio", "http"]` ([mcp-servers.vendor.test.ts](../../sea-trial/vendor/mcp-servers.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` on `>= 0.151.0`; absent on older or unreadable versions | true from 0.160.1, absent on older or unreadable versions | true from 0.169.0, absent on older or unreadable versions | absent |
 | cursor | true (an individual steer can still be rejected: `unsupported` with images, `runtime_refused` when the run cannot take it, as above) | true | false | `["stdio", "http"]` ([cursor-mcp.ts](../../experiments/cursor-mcp.ts)) | `{ tokens: true, contextWindow: false }` | absent | absent | absent |
@@ -251,6 +251,11 @@ from the history already saved by that native session. The source may be
 running or stopped. The host can also supply `env`, `model`, `timeoutMs` and
 `signal`. Claude declares `sessionCapabilities(installation).sideQuestion`
 from 2.1.326. Other runtimes omit the operation.
+
+Pass the source's environment overrides, including any `CLAUDE_CONFIG_DIR`,
+so Claude can find the session in the same native store. When `model` is
+omitted, Claude selects its configured default. Pass the source model
+explicitly when it should answer the side question.
 
 The fork has no tools or MCP servers, disables user and project hooks, and
 saves no transcript. Administrator policy still applies. The answer is

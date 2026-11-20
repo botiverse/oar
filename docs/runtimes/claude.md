@@ -2167,6 +2167,11 @@ and fall through to status.
 ### Side questions
 
 `sideQuestion` takes the native session UUID and its working directory.
+Pass the same `env` overrides used to open the source, including any
+`CLAUDE_CONFIG_DIR`. Claude looks up the UUID in that configuration's
+session store. The fork uses Claude's configured default model unless the
+host passes `model`. Pass the source model explicitly to use it again.
+
 Claude Code 2.1.326 answered from the stored history both while a source turn
 was waiting for its provider and after the source session was disposed. Each
 answer belonged to a new native fork. The fork saved no session file and
