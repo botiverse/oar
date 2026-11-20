@@ -1,6 +1,5 @@
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import type { SessionOptions } from "../../contracts/session.js";
-import type { AppServerClient } from "./app-server-client.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { RESERVED_MCP_SERVER_NAMES } from "../../shared/mcp-servers.js";
 
@@ -65,13 +64,4 @@ export function withCodexToolDenials(params: JsonRecord, denials: JsonRecord): J
     servers[server] = { ...asRecord(servers[server]), ...asRecord(denied) };
   }
   return { ...params, config: { ...config, mcp_servers: servers } };
-}
-
-/** Resolve filters before thread creation; the session opener owns failure cleanup. */
-export async function prepareCodexToolDenials(client: AppServerClient, options: SessionOptions, params: JsonRecord): Promise<JsonRecord> {
-  if ((options.disallowedTools?.length ?? 0) === 0) {
-    return params;
-  }
-  const effective = await client.request("config/read", { cwd: options.cwd, includeLayers: false });
-  return withCodexToolDenials(params, codexToolDenialsConfig(options, asRecord(effective.config) ?? {}));
 }

@@ -222,7 +222,7 @@ export interface SessionOptions {
    */
   readonly systemPrompt?: string;
   /**
-   * APPEND to the built-in prompt, keeping the native harness instructions.
+   * Append after the included native configuration and harness instructions, preserving both.
    * On Claude and Codex resume a different value takes effect after native
    * compaction. Omitting it retains the saved value only until compaction,
    * then uses the new-session default. Supply the current Claude/Codex prompt
