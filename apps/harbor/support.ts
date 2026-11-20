@@ -1,6 +1,7 @@
 import { lstatSync, readdirSync, readlinkSync } from "node:fs";
 import { join } from "node:path";
 import { UnsupportedOptionError, type Runtime, type Session, type SessionOptions } from "../../packages/oar/src/index.js";
+import type { RecyclePolicy } from "./budget.js";
 import type { AgentState, Message } from "./store.js";
 
 export interface AgentOptions {
@@ -8,6 +9,10 @@ export interface AgentOptions {
   readonly stallMs: number;
   /** Absolute path of this agent's own `harbor` executable (its name is baked in). */
   readonly bin: string;
+  /** Start a fresh session with a handoff instead of resuming one that sat idle with a large context; null never does. */
+  readonly recycle: RecyclePolicy | null;
+  /** Hold deliveries once an agent's sessions reported this many tokens in a UTC day; null sets no cap. */
+  readonly dayTokens: number | null;
 }
 
 export interface AgentStatusLine {

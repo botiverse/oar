@@ -8,6 +8,8 @@ export interface DeliveriesHost {
   readonly bin: string;
   readonly store: Store;
   current(): Session | null;
+  /** May a delivery start now? False holds it until `resume()`; the session identity stays `current()`. */
+  ready?(nextSeq: number): boolean;
   finding(check: string, detail: Record<string, unknown>): void;
 }
 
@@ -38,6 +40,8 @@ export class Deliveries {
   private rulesInPrompt = false;
   /** Counts reported compactions, so one that lands while a delivery is in flight still brings the rules back. */
   private compactions = 0;
+  /** Constructed context for a recycled session, prepended to its first delivery. */
+  private handoff: string | null = null;
   awaitingReply = false;
 
   constructor(private readonly host: DeliveriesHost) {}
@@ -55,9 +59,15 @@ export class Deliveries {
   }
 
   /** A session opened; a fresh one has never seen the channel rules, unless they are in its system prompt. */
-  opened(fresh: boolean, rulesInPrompt: boolean): void {
+  opened(fresh: boolean, rulesInPrompt: boolean, handoff: string | null = null): void {
     this.rulesInPrompt = rulesInPrompt;
     this.needsPreamble = !rulesInPrompt && (this.needsPreamble || fresh);
+    this.handoff = handoff;
+    void this.pump();
+  }
+
+  /** The host stopped holding deliveries (a recycle finished, or a new day lifted the token cap). */
+  resume(): void {
     void this.pump();
   }
 
@@ -124,7 +134,8 @@ export class Deliveries {
     try {
       for (;;) {
         const session = this.host.current();
-        if (session === null || this.inbox.length === 0) {
+        const next = this.inbox[0];
+        if (session === null || next === undefined || this.host.ready?.(next.seq) === false) {
           return;
         }
         const batch = this.inbox.splice(0);
@@ -148,7 +159,8 @@ export class Deliveries {
 
   /** One delivery attempt; false stops the pump until the next open or message. */
   private async send(session: Session, batch: readonly Message[]): Promise<boolean> {
-    const body = batch.map((message) => formatMessage(message)).join("\n");
+    const messages = batch.map((message) => formatMessage(message)).join("\n");
+    const body = this.handoff === null ? messages : `${this.handoff}\n\n${messages}`;
     const text = this.rulesInPrompt ? body : this.withRules(body);
     const compactions = this.compactions;
     const seqs = batch.map((message) => message.seq);
@@ -161,6 +173,7 @@ export class Deliveries {
       return false;
     }
     if (result.landed !== "rejected") {
+      this.handoff = null;
       if (this.compactions === compactions) {
         this.needsPreamble = false;
       }

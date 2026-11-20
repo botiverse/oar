@@ -24,6 +24,23 @@ Cursor's in-process mode refuses a session environment, so leave it unset there.
 the run directory grows past N GiB (checked every 5 minutes); both are
 journaled as `limit`.
 
+Sessions are recycled the way Raft's constructed initial context does: a
+session idle for more than `--recycle-idle-min` minutes (default 60) with more
+than `--recycle-context` tokens in its context (default 128000) is not resumed
+for the next message. Harbor opens a fresh one and puts a handoff in its first
+delivery: the agent's latest channel messages, about 10K tokens, oldest first
+(journaled as `recycle`; `--recycle-idle-min 0` turns it off). Without it a
+long conversation makes every later model call re-read the whole history,
+which on 11-19 used up a week of Antigravity's Gemini quota in 47 turns.
+Recycling is judged before each delivery, so work held by a cap is checked
+when it is finally sent, and a failed fresh open retries fresh with the same
+handoff. `--day-tokens N` holds an agent's deliveries once its sessions
+reported N tokens (input including cache, plus output, children included) in
+a UTC day, counted whenever the runtime reports usage or the session closes,
+and kept in state.json so a restart does not lift it; it is journaled as
+`limit` with `day_tokens` until the next UTC day. A malformed value for any of
+these flags stops `up` instead of turning the control off.
+
 `--dir` (or `HARBOR_DIR`) selects the run directory, default
 `~/.oar-harbor/default`, outside any repository so agents do not inherit a
 checkout's instructions. `up` on an existing run reopens every agent with its

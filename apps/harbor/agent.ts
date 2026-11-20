@@ -2,6 +2,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { openVoyage, type Event, type Session, type SessionOptions, type VoyageRecorder } from "../../packages/oar/src/index.js";
 import { allRuntimes } from "../../sea-trial/harness/runtimes.js";
+import { AgentBudget, handoff, openedState } from "./budget.js";
 import { Deliveries } from "./deliveries.js";
 import type { AgentState, Message, Store } from "./store.js";
 import { messageOf, openWithRules, preamble, processesIn, statusLine, type AgentOptions, type AgentStatusLine } from "./support.js";
@@ -29,21 +30,30 @@ export class HarborAgent {
   private turns = 0;
   private turnStartedAt: number | null = null;
   private lastOutcome: string | null = null;
+  private readonly budget: AgentBudget;
+  /** Set by a recycle until a fresh session opens, so a retry after a failed open stays fresh and keeps the handoff. */
+  private fresh: { readonly handoff: string | null } | null = null;
   private readonly stalled = new Set<string>();
   private readonly deliveries: Deliveries;
   state: AgentState;
 
   constructor(state: AgentState, private readonly store: Store, private readonly options: AgentOptions, private readonly onState: () => void) {
     this.state = state;
+    this.budget = new AgentBudget(options.recycle, options.dayTokens, {
+      name: state.name, store, state: (): AgentState => this.state,
+      setState: (next): void => { this.state = next; this.onState(); },
+      resume: (): void => { this.deliveries.resume(); },
+    });
     this.deliveries = new Deliveries({
-      name: state.name,
-      cwd: this.cwd,
-      bin: options.bin,
-      store,
+      name: state.name, cwd: this.cwd, bin: options.bin, store,
       current: (): Session | null => this.session,
-      finding: (check, detail): void => {
-        this.finding(check, detail);
-      },
+      // Judged before every delivery, so held work is checked when it is sent, not when it arrived.
+      ready: (nextSeq): boolean => this.budget.ready(this.session, async () => {
+        // Raft's constructed initial context: a fresh session whose first delivery carries a handoff, kept until one opens.
+        this.fresh = { handoff: handoff(this.store.messages(), this.name, nextSeq) };
+        await this.serial(async () => { await this.closeNow("recycle"); await this.openNow(true); });
+      }),
+      finding: (check, detail): void => { this.finding(check, detail); },
     });
   }
 
@@ -100,7 +110,8 @@ export class HarborAgent {
     }
   }
 
-  private async openNow(fresh: boolean): Promise<void> {
+  private async openNow(requested: boolean): Promise<void> {
+    const fresh = requested || this.fresh !== null;
     if (this.session !== null || !this.wanted) {
       return;
     }
@@ -115,7 +126,8 @@ export class HarborAgent {
           this.finding("resume_failed", { sessionId: resume, error: messageOf(error) });
         }
       }
-      await this.openSession(null);
+      await this.openSession(null, this.fresh?.handoff ?? null);
+      this.fresh = null;
     } catch (error) {
       this.openFailures += 1;
       this.finding("open_failed", { error: messageOf(error), attempt: this.openFailures });
@@ -125,7 +137,7 @@ export class HarborAgent {
     }
   }
 
-  private async openSession(resume: string | null): Promise<void> {
+  private async openSession(resume: string | null, constructed: string | null = null): Promise<void> {
     const runtime = allRuntimes.require(this.state.runtime);
     const env = this.state.env;
     const installation = await runtime.installation?.(env === undefined ? {} : { env });
@@ -150,11 +162,15 @@ export class HarborAgent {
     this.openedAt = Date.now();
     this.turns = 0;
     this.turnStartedAt = null;
+    this.budget.opened(session);
     this.openFailures = 0;
     const unRaw = session.rawEvents((record) => {
       recorder.record(record);
     }, { sessionId: session.id, afterSeq: -1 });
     const unEvents = session.events((event) => {
+      if (this.session === session && event.kind === "usage") {
+        this.budget.count(session);
+      }
       if (this.session === session && event.sessionId === session.id && event.agentPath.length === 0) {
         this.observe(event);
       }
@@ -163,10 +179,10 @@ export class HarborAgent {
       unRaw();
       unEvents();
     };
-    this.state = { ...this.state, sessionId: session.id, opens };
+    this.state = openedState(this.state, session.id, opens, resume !== null);
     this.onState();
     this.store.journal({ agent: this.name, kind: resume === null ? "opened" : "resumed", sessionId: session.id, ms: Date.now() - startedAt, voyage });
-    this.deliveries.opened(resume === null, rulesInPrompt);
+    this.deliveries.opened(resume === null, rulesInPrompt, constructed);
   }
 
   private observe(event: Event): void {
@@ -177,6 +193,7 @@ export class HarborAgent {
     } else if (event.kind === "turn_ended") {
       const ms = this.turnStartedAt === null ? null : event.receivedAt - this.turnStartedAt;
       this.turnStartedAt = null;
+      this.budget.turnEnded(this.session, event.receivedAt);
       this.lastOutcome = event.outcome.kind;
       const reason = event.outcome.kind === "failed" ? { reason: event.outcome.reason } : {};
       this.store.journal({ agent: this.name, kind: "turn_ended", session: this.state.opens, turn: this.turns, seq: event.seq, outcome: event.outcome.kind, ms, ...reason });
@@ -250,6 +267,7 @@ export class HarborAgent {
 
   /** Detach from the current session; its later events are ignored, and inputs it accepted but never consumed go back to the inbox. */
   private release(why: string): void {
+    if (this.session !== null) { this.budget.count(this.session); }
     this.recorder?.end(why);
     this.recorder = null;
     this.unsubscribe?.();
