@@ -107,37 +107,30 @@ not an additional OAR input or record.
 
 ### Native memory default
 
-In Qwen **0.26.0**, `mergeSettings` merges four layers in order:
-`systemDefaults < user < workspace < system`, where `systemDefaults` is read
-from `QWEN_CODE_SYSTEM_DEFAULTS_PATH` (defaulting to
-`<dirname(systemSettingsPath)>/system-defaults.json`). Built-in defaults enable
-`memory.enableManagedAutoMemory` and `memory.enableManagedAutoDream` (`true`)
-and disable `memory.enableAutoSkill` (`false`).
+`SessionOptions.nativeMemoryDefault: "off"` lowers Qwen's lowest settings
+layer (system defaults), so explicit user, workspace or system settings still
+win. OAR never edits the real file. It launches Qwen against a private merged
+copy with Qwen's memory features off, passed in
+`QWEN_CODE_SYSTEM_DEFAULTS_PATH`, and removes that copy when the child ends.
+The option is refused before launch below Qwen 0.26.0 or when the version
+cannot be read. A malformed existing system-defaults file fails the open; it
+is not ignored.
 
-When `SessionOptions.nativeMemoryDefault: "off"` is passed on `0.26.0+`, OAR
-reads any existing system-defaults file (JSONC and UTF-8 BOM supported, without
-mutating the original), preserves all other keys, sets
-`memory.enableManagedAutoMemory`, `memory.enableManagedAutoDream` and
-`memory.enableAutoSkill` to `false`, writes the merged copy to a `0600` file
-inside a `0700` `oar-qwen-defaults-<pid>-*` temporary directory, and passes
-that path to the child process in `QWEN_CODE_SYSTEM_DEFAULTS_PATH`. The
-directory is removed when the child exits or fails to start, and abandoned
-directories from dead host PIDs are swept on every launch. Versions below
-`0.26.0` (or unreadable versions) refuse `nativeMemoryDefault: "off"` before
-launch (`qwenNativeMemoryRefusal`).
+`Session.capabilities.nativeMemory` is computed at open from the same settings
+layers, without waiting for Qwen. It is `"on"` while any memory feature stays
+enabled. Absent means unknown, never `"off"`. OAR omits it below 0.26.0, and
+whenever something it does not model could change the answer: an unreadable
+settings layer, folder trust with workspace memory keys, sandbox settings, or
+certain Qwen environment variables or `launchArgs` flags. The layer order,
+keys, variables and flags are in
+[native-memory.ts](../../packages/oar/src/runtimes/qwen/native-memory.ts); the
+version gate is `qwenNativeMemoryRefusal` in
+[options.ts](../../packages/oar/src/runtimes/qwen/options.ts).
 
-`Session.capabilities.nativeMemory` (`"on"` or `"off"`) evaluates the same
-four layers at open without waiting for Qwen. Absent means unknown, never
-`"off"`: it is omitted below `0.26.0`, when any settings layer is unreadable or
-malformed, when `security.folderTrust.enabled` is `true` and workspace settings
-toggle memory keys, or when an unmodeled Qwen runtime gate is present
-(`QWEN_CODE_SIMPLE`, `QWEN_CODE_SAFE_MODE`, `QWEN_SANDBOX`, `SANDBOX`,
-`QWEN_CODE_MEMORY_TEAM*`, `QWEN_CODE_MEMORY_STRUCTURED_RECALL`, `launchArgs`
-flags `--bare`/`--safe-mode`/`--sandbox`/`-s`, or `tools.executionSandbox` /
-`tools.sandbox` in settings). Live scripted-provider evidence on Linux
-`0.26.0` covers default-off suppression of auto-memory injection and background
-extraction, user-settings override reporting `"on"`, existing
-`QWEN_CODE_SYSTEM_DEFAULTS_PATH` preservation, and temporary-directory cleanup
+Live scripted-provider evidence on Linux with Qwen 0.26.0 covers default-off
+suppression of memory injection and background extraction, a user setting
+overriding the default (reports `"on"`), an existing defaults path being
+preserved, and cleanup of the temporary directory
 ([vendor test](../../sea-trial/vendor/qwen-native-memory.vendor.test.ts),
 [unit tests](../../tests/qwen/native-memory.test.ts)).
 
