@@ -243,9 +243,12 @@ export function createAcpRouting<T>(options: {
       if (owner !== undefined) { return false; }
       ids.set(id, null); opened.delete(id); reserved.delete(id); flush(); return true;
     },
-    attach(target: T, credentials: CredentialRedactor): AcpOwner<T> {
+    registerCredentials(credentials): void {
+      redactors.set(credentials, credentials.values()); credentialsChanged = true;
+    },
+    attach(target: T): AcpOwner<T> {
       const owner: Owner<T> = { requests: true, target, ids: new Set(), opened: null, reserved: null, disposed: false };
-      owners.add(owner); redactors.set(credentials, credentials.values()); credentialsChanged = true;
+      owners.add(owner);
       return {
         target, bind: (id) => { bind(owner, id, false); }, reserve: (id) => { bind(owner, id, true); },
         opened: () => { owner.opened ??= ++sequence; },

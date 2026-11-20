@@ -135,6 +135,7 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
       }),
     }, "shared");
     const { runtime, routing, initialize } = lease.process;
+    routing.registerCredentials(credentials);
     // Ownership conflicts must not become a directory-policy fallback to another controller.
     let refusal: string | null = null;
     try {
@@ -166,7 +167,7 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
       throw new UnsupportedOptionError("placement", "ACP native session id is retired on this shared connection; resume requires an isolated process");
     }
     const state = createAcpSessionState(profile, options, environment, (method, params) => owner.associations(method, params), () => runtime.pid);
-    const owner = routing.attach({ terminal: state.terminalHost, hooks: state.hooks }, credentials);
+    const owner = routing.attach({ terminal: state.terminalHost, hooks: state.hooks });
     let nativeId: string | null = null;
     let initializationRefusal: string | null = null;
     const cleanup = async (request?: RequestRecord): Promise<SessionCleanup | void> => {

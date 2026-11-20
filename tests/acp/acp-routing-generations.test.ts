@@ -10,7 +10,7 @@ function fixture(maxFrames = 256) {
   const diagnostics: AcpUnattributed[] = []; const delivered: string[] = [];
   const router = createAcpRouting<string>({ diagnostic: entry => { diagnostics.push(entry); }, maxFrames,
     associations: (_method, params) => typeof params.parent === "string" && typeof params.child === "string" ? [{ parent: params.parent, child: params.child }] : [] });
-  const owner = router.attach("a", sessionCredentialRedactor({}));
+  const owner = router.attach("a");
   const notify = (sessionId: string, text: string, link?: readonly [string, string]): void => {
     const params = { sessionId, text, parent: link?.[0], child: link?.[1] }; router.ingress(params);
     router.notify("lineage", params, () => { delivered.push(text); });
@@ -44,7 +44,7 @@ test("delivered reverse-order lineage waits for the parent and proves grandchild
 
 test("unresolved delivered lineage shares the bounded buffer and reports real conflicts once", () => {
   const f = fixture(2); f.owner.bind("root");
-  const peer = f.router.attach("b", sessionCredentialRedactor({})); peer.bind("peer");
+  const peer = f.router.attach("b"); peer.bind("peer");
   f.notify("root", "evicted-link", ["unknown-1", "child-1"]);
   f.notify("root", "remaining-link", ["unknown-2", "child-2"]);
   f.notify("root", "latest-link", ["unknown-3", "child-3"]);
@@ -94,7 +94,8 @@ test("reserve on a closed connection or with an empty caller id is not a native 
 test("the credential union re-sorts only when a lease or a distinct credential is added", () => {
   const f = fixture(); const credentials = sessionCredentialRedactor({ env: { API_KEY: "prefix-secret" } });
   const sorting = vi.spyOn(Array.prototype, "toSorted");
-  const lease = f.router.attach("secret", credentials);
+  f.router.registerCredentials(credentials);
+  const lease = f.router.attach("secret");
   f.router.redact("prefix-secret"); const sorted = sorting.mock.calls.length;
   expect(sorted).toBeGreaterThan(0);
   for (let i = 0; i < 20; i += 1) { expect(f.router.redact("prefix-secret")).toBe("[redacted]"); }

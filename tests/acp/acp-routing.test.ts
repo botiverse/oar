@@ -16,8 +16,8 @@ function fixture(limits: { maxFrames?: number; maxBytes?: number; waitMs?: numbe
     associations: (_method, params) => typeof params.child === "string" && typeof params.sessionId === "string"
       ? [{ parent: params.sessionId, child: params.child }] : [],
   });
-  const a = router.attach("a", sessionCredentialRedactor({}));
-  const b = router.attach("b", sessionCredentialRedactor({}));
+  const a = router.attach("a");
+  const b = router.attach("b");
   const notify = (sessionId: string, text: string, child?: string): void => {
     const params = { sessionId, text, ...(child === undefined ? {} : { child }) };
     router.ingress(params);
@@ -86,7 +86,8 @@ test("connection diagnostics redact every lease, including delayed facts after a
   vi.useFakeTimers();
   const f = fixture({ waitMs: 20 });
   const secret = "peer-b-mcp-private-token";
-  const b = f.router.attach("secret-b", sessionCredentialRedactor({ mcpServers: [{ name: "b", command: "node", args: [], env: { API_KEY: secret } }] }));
+  f.router.registerCredentials(sessionCredentialRedactor({ mcpServers: [{ name: "b", command: "node", args: [], env: { API_KEY: secret } }] }));
+  const b = f.router.attach("secret-b");
   f.a.bind("A"); b.bind("B-secret");
   f.notify("unknown", secret); b.dispose();
   await vi.advanceTimersByTimeAsync(20);
@@ -161,7 +162,7 @@ test("only a frame from the parent's own root can prove a descendant link", () =
   const diagnostics: AcpUnattributed[] = []; const received: string[] = [];
   const router = createAcpRouting<string>({ diagnostic: entry => { diagnostics.push(entry); },
     associations: (_method, params) => typeof params.parent === "string" && typeof params.child === "string" ? [{ parent: params.parent, child: params.child }] : [] });
-  const a = router.attach("a", sessionCredentialRedactor({})); const b = router.attach("b", sessionCredentialRedactor({}));
+  const a = router.attach("a"); const b = router.attach("b");
   a.bind("A"); b.bind("B");
   router.notify("lineage", { sessionId: "A", parent: "B", child: "stolen" }, () => {});
   router.notify("session/update", { sessionId: "stolen" }, target => { received.push(target); });
@@ -176,7 +177,7 @@ test("a pending conflict is diagnosed once, and ordinary traffic does not revisi
   const diagnostics: AcpUnattributed[] = [];
   const associations = vi.fn((_method: string, params: { readonly sessionId?: unknown; readonly child?: unknown }) => typeof params.sessionId === "string" && typeof params.child === "string" ? [{ parent: params.sessionId, child: params.child }] : []);
   const router = createAcpRouting<string>({ diagnostic: entry => { diagnostics.push(entry); }, associations });
-  const a = router.attach("a", sessionCredentialRedactor({})); const b = router.attach("b", sessionCredentialRedactor({}));
+  const a = router.attach("a"); const b = router.attach("b");
   b.bind("B");
   router.notify("lineage", { sessionId: "A", child: "B" }, () => {});
   a.bind("A");
@@ -189,8 +190,10 @@ test("credential union replaces overlapping values longest first, including dyna
   const f = fixture();
   const short = "shared-prefix-secret"; const long = `${short}-more-secret-tail`;
   const a = sessionCredentialRedactor({ env: { API_KEY: short } }); const b = sessionCredentialRedactor({});
-  const first = f.router.attach("secret-a", a); first.bind("secret-A");
-  const second = f.router.attach("secret-b", b); second.bind("secret-B");
+  f.router.registerCredentials(a);
+  const first = f.router.attach("secret-a"); first.bind("secret-A");
+  f.router.registerCredentials(b);
+  const second = f.router.attach("secret-b"); second.bind("secret-B");
   b.add(long); second.dispose();
   expect(f.router.redact(`${long}|${short}`)).toBe("[redacted]|[redacted]");
   f.router.diagnostic("test", { message: long, cause: new Error(long) });

@@ -20,6 +20,24 @@ test("a failed shared open retains its directory reservation while a peer keeps 
   expect(await promptAndWait(a, "alive")).toMatchObject({ kind: "ended" });
 });
 
+test("a refused auto lease registers its redactor before it starts shared initialization", async ({ onTestFinished }) => {
+  onTestFinished(() => { vi.restoreAllMocks(); });
+  const marker = "reservation-test-marker";
+  const launches = vi.spyOn(acp, "startAcpProcess");
+  const actual = initialize.initializeAcpConnection;
+  let registered = false;
+  vi.spyOn(initialize, "initializeAcpConnection").mockImplementationOnce(async (...args) => {
+    registered = launches.mock.calls[0]?.[3]?.redact?.(marker) === "[redacted]";
+    return actual(...args);
+  });
+  const f = await fixture({ reserveSession: async () => "directory reserved" });
+  const session = await f.open("fallback", {
+    mcpServers: [{ name: "fixture", command: process.execPath, args: [], env: { FIXTURE_KEY: marker } }],
+  });
+  expect(session.placement).toBe("isolated");
+  expect(registered).toBe(true);
+});
+
 // oxlint-disable-next-line eslint/max-statements -- The gate proves ordering without relying on process startup speed.
 test("same-directory auto fallback waits for the shared process initialization before launching another", async () => {
   const entered = Promise.withResolvers<void>();
