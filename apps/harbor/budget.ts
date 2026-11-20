@@ -162,20 +162,24 @@ export class AgentBudget {
     this.holdIfExhausted(now);
   }
 
-  /** Past the day's cap, deliveries wait for the next UTC day. */
-  private holdIfExhausted(now: number): void {
+  /** Past the day's cap, deliveries wait for the next UTC day; true while held. */
+  private holdIfExhausted(now: number): boolean {
     const dayTokens = this.host.state().dayTokens;
     if (this.paused || !dayExhausted(dayTokens, this.dayTokens, now)) {
-      return;
+      return this.paused;
     }
     this.paused = true;
     const resumeInMs = msUntilNextDay(now);
     this.host.store.journal({ agent: this.host.name, kind: "limit", limit: "day_tokens", tokens: dayTokens?.tokens, max: this.dayTokens, resumeInMs });
     setTimeout(() => {
+      // Usage that landed after midnight may already fill the new day: check again before letting work through.
       this.paused = false;
-      this.host.store.journal({ agent: this.host.name, kind: "resumed_after_limit", limit: "day_tokens" });
-      this.host.resume();
+      if (!this.holdIfExhausted(Date.now())) {
+        this.host.store.journal({ agent: this.host.name, kind: "resumed_after_limit", limit: "day_tokens" });
+        this.host.resume();
+      }
     }, resumeInMs);
+    return true;
   }
 
   /** May a delivery start? Not while held; a stale session is replaced first by `reopen`, and deliveries resume after it. */

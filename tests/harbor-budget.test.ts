@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import type { Session } from "../packages/oar/src/index.js";
 import { addDayTokens, AgentBudget, dayExhausted, handoff, limitValue, msUntilNextDay, openedState, recyclePolicy, sessionTokens, shouldRecycle, utcDay } from "../apps/harbor/budget.js";
 import type { AgentState, Message, Store } from "../apps/harbor/store.js";
@@ -107,4 +107,28 @@ test("usage is counted when reported, once, from the open baseline", () => {
   expect(counting.holding).toBe(false);
   counting.count(sessionWith(1500));
   expect(counting.holding).toBe(true);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+function heldAtCap(): { counting: AgentBudget; resumed: number[] } {
+  const { budget, resumed } = host({ name: "a", runtime: "claude", opens: 1 });
+  const counting = budget(100);
+  counting.opened(sessionWith(0));
+  counting.count(sessionWith(150));
+  expect(counting.holding).toBe(true);
+  return { counting, resumed };
+}
+
+test("the midnight wakeup holds again when the new day is already full", () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(Date.parse("2026-11-20T23:59:00Z"));
+  const { counting, resumed } = heldAtCap();
+  vi.setSystemTime(Date.parse("2026-11-21T00:00:00Z"));
+  counting.count(sessionWith(260));
+  vi.advanceTimersByTime(60_000);
+  expect(counting.holding).toBe(true);
+  expect(resumed).toHaveLength(0);
 });
