@@ -1,5 +1,6 @@
 import { claudeModelRequestRefusal, claudeRefusedSessionOptions } from "./options.js";
 /* oxlint-disable import/max-dependencies -- The runtime declaration imports one module per capability. */
+import { semverAtLeast } from "../../shared/semver.js";
 import { runtimeBrands } from "../../brands.js";
 import { verifiedPlatforms } from "../../platforms.js";
 import { claudeCommands, claudeSkills, claudeMcpServers, claudeTools } from "./inventory.js";
@@ -19,7 +20,14 @@ import { claudeSession } from "./session.js";
 export const claudeRuntime = defineRuntime({
   id: "claude",
   sideQuestion: claudeSideQuestion,
-  sessionCapabilities: (installation) => ({ ...(supportsClaudeSideQuestion(installation) ? { sideQuestion: true } : {}), refusedSessionOptions: claudeModelRequestRefusal(installation.via === "executable" ? installation.version : undefined), steer: true, images: true, contextUsage: { tokens: true, contextWindow: true }, mcpTransports: ["stdio", "http"], stopTask: true }),
+  sessionCapabilities: (installation) => ({
+    ...(installation.via === "executable" && semverAtLeast(installation.version, "2.1.292")
+      ? { taskEventTypes: semverAtLeast(installation.version, "2.1.318") ? ["agent", "shell", "workflow"] : ["workflow"] } : {}),
+    ...(installation.via === "executable" && semverAtLeast(installation.version, "2.1.326") ? { subagentResults: { foreground: "parent_tool_result", background: "child_text" } } : {}),
+    ...(supportsClaudeSideQuestion(installation) ? { sideQuestion: true } : {}),
+    refusedSessionOptions: claudeModelRequestRefusal(installation.via === "executable" ? installation.version : undefined),
+    steer: true, images: true, contextUsage: { tokens: true, contextWindow: true }, mcpTransports: ["stdio", "http"], stopTask: true,
+  }),
   manualCompaction: { kind: "supported", activeTurn: "reject" },
   refusedSessionOptions: claudeRefusedSessionOptions,
   resumedSessionOptions: {

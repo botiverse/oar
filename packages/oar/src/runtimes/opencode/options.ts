@@ -1,5 +1,5 @@
 import { semverAtLeast } from "../../shared/semver.js";
-import { atLeastV2, parseOpencodeRelease, type OpencodeRelease } from "./version.js";
+import { atLeastV2, hasBackgroundChildUpdates, parseOpencodeRelease, type OpencodeRelease } from "./version.js";
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { RefusedSessionOptions, SessionCapabilityDeclaration } from "../../contracts/runtime.js";
 
@@ -47,17 +47,22 @@ export function opencodeSessionCapabilities(installation: AvailableInstallation)
   const release = parseOpencodeRelease(installation.version);
   if (release?.major === 1) {
     return {
+      taskEventTypes: [],
+      ...(semverAtLeast(installation.version, "1.19.5") ? { subagentResults: { foreground: "parent_tool_result" } } : {}),
       steer: true, stopTask: false, contextUsage: { tokens: true, contextWindow: true }, refusedSessionOptions: opencodeV1RefusedSessionOptions,
       // 1.18.30: oldest v1 release observed advertising mcpCapabilities.http and tested calling stdio/HTTP echo tools in mcp-servers-acp.vendor.test.ts.
       ...(semverAtLeast(installation.version, "1.18.30") ? { mcpTransports: ["stdio", "http"] as const } : {}),
       manualCompaction: { kind: "unsupported", reason: "OpenCode v1 ACP has no verified structural completion signal for /compact" },
     };
   }
-  return release?.major === 2
-    ? {
-      stopTask: false, contextUsage: { tokens: true, contextWindow: true },
-      ...(atLeastV2(release, V2_MCP_HTTP) ? { mcpTransports: ["stdio", "http"] as const } : {}),
-      refusedSessionOptions: opencodeV2PromptRefusals(release), manualCompaction: { kind: "supported", activeTurn: "reject" },
-    }
-    : { stopTask: false };
+  if (release?.major !== 2) { return { stopTask: false }; }
+  const background = hasBackgroundChildUpdates(release);
+  return {
+    taskEventTypes: background ? ["agent"] : [],
+    ...(background ? { subagentResults: { background: "child_text" } as const } : {}),
+    ...(!background && atLeastV2(release, { minor: 2, patch: 7 }) ? { subagentResults: { foreground: "parent_tool_result" } as const } : {}),
+    stopTask: false, contextUsage: { tokens: true, contextWindow: true },
+    ...(atLeastV2(release, V2_MCP_HTTP) ? { mcpTransports: ["stdio", "http"] as const } : {}),
+    refusedSessionOptions: opencodeV2PromptRefusals(release), manualCompaction: { kind: "supported", activeTurn: "reject" },
+  };
 }

@@ -476,9 +476,8 @@ covers 2.0.27.
   session that goes idle between the agent's check and its submission keeps
   the steer queued natively and still answers `injected`: OAR reports
   `accepted`, but that input would wait for the next native turn (not
-  exercised). During the parent's own reply (below) OAR has no turn, so no
-  steering request is sent although the status says `running`; `deliver`
-  queues and the adapter queue sends the input at once, as before. The
+  exercised). During the parent's own reply (below), OAR reports `idle`.
+  `deliver` submits a prompt directly and reports `prompted`. The
   [replay](../../tests/opencode/background-own-reply.test.ts) pins that
   case from the recorded 2.3.0 wire, and
   [`acp-session-opencode-v2-steer.test.ts`](../../tests/acp/acp-session-opencode-v2-steer.test.ts)
@@ -551,6 +550,14 @@ covers 2.0.27.
   under the child and as the parent's task, without reopening or ending the
   root turn. The disabled experimental shared adapter accepts only 2.2.3 and
   2.2.5 and never declares the capability.
+- **While a child runs (2.3.2):** with a background child's model reply held,
+  the completed parent's `status()` reported `idle` while `tasksOf()` showed
+  the child as `running`. Releasing the child produced its own `text_delta`
+  after the root turn ended, then the terminal task record. One host prompt
+  was sufficient for the parent model to receive the completion report.
+  Foreground controls on 1.19.5 and 2.2.7 kept the parent running and
+  reported the child's text in the parent tool result before turn end.
+  On 2.2.7 the host also received the child's separately attributed text.
 - **Background children (2.3.0), verification:** the two recorded native
   runs replay through the real session, projection and record stream in
   [`background-child.test.ts`](../../tests/opencode/background-child.test.ts):

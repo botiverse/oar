@@ -822,7 +822,7 @@ interface FrameBody {
 //   retry {attempt, maxAttempts?, delayMs?, reason?} |
 //   task_started {taskId, taskType, nativeType?, description?, toolCallId?, childSessionId?, background?, ambient?} |
 //   task_updated {taskId, status?, background?, description?, error?} |   // status: pending | running | paused | completed | failed | stopped
-//   task_ended {taskId, status: completed | failed | stopped, summary?, outputFile?}
+//   task_ended {taskId, status: completed | failed | stopped, summary?, output?, outputFile?}
 // TurnOutcome: {kind: completed, structuredOutput?: unknown} | {kind: aborted} | FailedTurn, tagged by `failure`:
 //   {kind: failed, failure: auth, reason, status?, credential?} |
 //   {kind: failed, failure: quota, reason, status?, resetsAt?, rateLimitType?} |

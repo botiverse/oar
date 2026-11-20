@@ -2,6 +2,7 @@ import { runtimeBrands } from "../../brands.js";
 import { verifiedPlatforms } from "../../platforms.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { onFirstCall } from "../../shared/lazy.js";
+import { semverAtLeast } from "../../shared/semver.js";
 import { dshInstallation } from "./installation.js";
 import { dshInstall, dshInstallPlan } from "./install.js";
 import { dshDirectoryRefusal, dshRefusedSessionOptions, dshSessionLogUploadRefusal, dshSupportsNativeSessionFile } from "./options.js";
@@ -15,6 +16,8 @@ export const dshRuntime = defineRuntime({
     const nativeSessionFile = dshSupportsNativeSessionFile(version);
     return {
       ...(nativeSessionFile === undefined ? {} : { nativeSessionFile }),
+      ...(semverAtLeast(version, DSH_MINIMUM_VERSION) ? { taskEventTypes: ["agent", "shell"] } : {}),
+      ...(semverAtLeast(version, "0.2.2-rc.5") ? { subagentResults: { background: "child_text" } } : {}),
       compactionEvents: { started: true, ended: true },
       contextUsage: { tokens: true, contextWindow: true },
       mcpTransports: ["stdio"],

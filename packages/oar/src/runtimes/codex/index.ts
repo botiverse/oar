@@ -18,6 +18,8 @@ import { codexSession } from "./session.js";
 export const codexRuntime = defineRuntime({
   id: "codex",
   sessionCapabilities: (installation) => ({
+    ...(installation.via === "executable" && semverAtLeast(installation.version, "0.158.0") ? { taskEventTypes: ["agent"] } : {}),
+    ...(installation.via === "executable" && semverAtLeast(installation.version, "0.169.0") ? { subagentResults: { background: "child_text" } } : {}),
     steer: true, images: true, mcpTransports: ["stdio", "http"], stopTask: true,
     ...(installation.via === "executable" && semverAtLeast(installation.version, "0.160.1") ? { fileChanges: true } : {}),
     ...(installation.via === "executable" && semverAtLeast(installation.version, "0.169.0") ? { nativeSessionFile: true, mcpStartup: { kind: "per_server", firstModelRequest: "may_start_pending" } } : {}),

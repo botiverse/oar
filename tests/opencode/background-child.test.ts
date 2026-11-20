@@ -47,6 +47,10 @@ test("2.3.0 replay: the declared capability delivers background child text and c
     assert.ok(childText !== undefined && completed !== undefined && turnEnds[0] !== undefined);
     expect(childText.seq).toBeGreaterThan(turnEnds[0].seq);
     expect(completed.seq).toBeGreaterThan(childText.seq);
+    const endSeq = turnEnds[0].seq;
+    const whileChildRuns = records.filter(record => record.seq <= endSeq);
+    expect(statusOf(whileChildRuns, "session-1").value.kind).toBe("idle");
+    expect(tasksOf(whileChildRuns, "session-1").value).toMatchObject([{ childSessionId: "session-2", status: "running" }]);
     expect(eventsOf(records, "session-2")).toMatchInlineSnapshot(`
       [
         {

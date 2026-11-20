@@ -24,7 +24,7 @@ export function createPiDurableRuntime({ harness, models }: PiDurableRuntimeOpti
   const currentModels = typeof models === "function" ? models : (): DurableModels => models;
   const runtime = defineRuntime({
     id: "pi-durable",
-    sessionCapabilities: () => ({ steer: true, images: false, contextUsage: { tokens: false, contextWindow: false }, mcpTransports: [], stopTask: false }),
+    sessionCapabilities: () => ({ taskEventTypes: [], steer: true, images: false, contextUsage: { tokens: false, contextWindow: false }, mcpTransports: [], stopTask: false }),
     brand: runtimeBrands["pi-durable"], verifiedPlatforms: verifiedPlatforms["pi-durable"],
     // Pi Durable uses host-owned Harness providers and storage rather than a runtime-managed store.
     credentials: {

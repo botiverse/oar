@@ -11,7 +11,7 @@ export interface ScriptedTaskSpec {
 export interface ScriptedTask {
   readonly taskId: string;
   update(patch: { readonly status?: TaskStatus; readonly description?: string }): void;
-  end(status?: "completed" | "failed" | "stopped", detail?: { readonly summary?: string; readonly outputFile?: string }): void;
+  end(status?: "completed" | "failed" | "stopped", detail?: { readonly summary?: string; readonly output?: string; readonly outputFile?: string }): void;
 }
 
 type Emit = (type: string, native: unknown, events: readonly RuntimeEventBody[]) => void;

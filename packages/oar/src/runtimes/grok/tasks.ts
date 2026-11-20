@@ -15,7 +15,8 @@ export function grokTaskViews(method: string, params: JsonRecord): TaskEventBody
     }];
   }
   if (update.sessionUpdate === "subagent_finished" && (update.status === "completed" || update.status === "failed" || update.status === "stopped")) {
-    return [{ kind: "task_ended", taskId, status: update.status }];
+    return [{ kind: "task_ended", taskId, status: update.status,
+      ...(typeof update.output === "string" ? { output: update.output } : {}) }];
   }
   return [];
 }

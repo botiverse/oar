@@ -52,6 +52,9 @@ test("grok lineage: subagent_finished names only the child; the parent is the en
     _meta: { eventId: `${PARENT}-100`, agentTimestampMs: 1_789_110_195_312 },
   };
   assert.deepEqual(acpLineageOf(finished), { parent: PARENT, child: CHILD });
+  assert.deepEqual(grokTaskViews("_x.ai/session_notification", finished), [
+    { kind: "task_ended", taskId: CHILD, status: "completed", output: "CHILD-OK-7731" },
+  ]);
 });
 
 test("lineage is never fabricated: no pair, a self pair, or a vendor kind without ids yields null", () => {
@@ -144,7 +147,7 @@ test("a grok child session gets its graph edge from the vendor session_notificat
   assert.equal(Object.hasOwn(session, "stopTask"), false);
   assert.deepEqual(lifecycle.flatMap(record => record.kind === "frame" ? record.body.events.filter(event => event.kind.startsWith("task_")) : []), [
     { kind: "task_started", taskId: "fake-child-grok", taskType: "agent", nativeType: "general-purpose", description: "Echo", childSessionId: "fake-child-grok" },
-    { kind: "task_ended", taskId: "fake-child-grok", status: "completed" },
+    { kind: "task_ended", taskId: "fake-child-grok", status: "completed", output: "child-says-hi" },
   ]);
   const [spawned] = lifecycle;
   assert.ok(spawned?.kind === "frame");

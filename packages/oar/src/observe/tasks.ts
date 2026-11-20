@@ -22,6 +22,7 @@ export interface TaskView {
   readonly toolCallId?: string;
   readonly childSessionId?: string;
   readonly summary?: string;
+  readonly output?: string;
   readonly outputFile?: string;
   readonly error?: string;
   readonly startedAt?: number;
@@ -43,7 +44,7 @@ function placeholder(event: TaskEvent): TaskView {
 
 /** The row without what its last end said: a task running again has no end yet. */
 function reopened(view: TaskView): TaskView {
-  const { endedAt: _endedAt, summary: _summary, outputFile: _outputFile, ...open } = view;
+  const { endedAt: _endedAt, summary: _summary, output: _output, outputFile: _outputFile, ...open } = view;
   return open;
 }
 

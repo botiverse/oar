@@ -103,7 +103,7 @@ describe("the cybion runtime", () => {
     const installation = await runtime.installation?.();
     expect(installation).toEqual({ kind: "available", via: "bundled" });
     // The installation's answer carries the static refusals too (Runtime.sessionCapabilities, #992).
-    expect(runtime.sessionCapabilities?.({ kind: "available", via: "bundled" })).toEqual({ steer: true, images: true, refusedSessionOptions: runtime.refusedSessionOptions });
+    expect(runtime.sessionCapabilities?.({ kind: "available", via: "bundled" })).toEqual({ steer: true, images: true, taskEventTypes: [], refusedSessionOptions: runtime.refusedSessionOptions });
     expect(runtime.refusedSessionOptions?.systemPrompt).toBeDefined();
   });
 
