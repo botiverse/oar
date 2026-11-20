@@ -47,6 +47,9 @@ test("codex projection preserves typed rate-limit windows", () => {
           "durationMs": 18000000,
           "label": "5 hours",
           "resetsAt": "2027-01-15T08:00:00.000Z",
+          "scope": {
+            "kind": "account",
+          },
           "usedRatio": 0.25,
         },
       ],
@@ -125,6 +128,9 @@ test("codex projection merges an extra-only indexed view", () => {
           "durationMs": 604800000,
           "label": "1 week",
           "resetsAt": "2027-01-15T08:00:00.000Z",
+          "scope": {
+            "kind": "account",
+          },
           "usedRatio": 0.5,
         },
         {

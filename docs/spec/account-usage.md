@@ -46,6 +46,7 @@ start, which an even-burn line needs. Sources:
 
 | Runtime | `id` | `durationMs` |
 | --- | --- | --- |
+| antigravity | native `bucket.id` | 5 h for `5h`, 7 days for `weekly`; none for unknown window names |
 | claude | the native key (`five_hour`, `seven_day`, `seven_day_oauth_apps`, `seven_day_opus`, `seven_day_sonnet`, `extra_usage`), and `model_scoped:<display name>` for a model-scoped week (claude names it only by display name) | 5 h for `five_hour`, 7 days for the weekly keys (claude's own `limits[].group` says session or weekly); none for extra usage |
 | codex | `<limitId>:primary` or `<limitId>:secondary` | `windowDurationMins` as reported |
 | factory | `standard.<bucket>` and `core.<bucket>` (`fiveHour`, `weekly`, `monthly`), droid's own bucket keys | 5 h for `fiveHour`, 7 days for `weekly`; none for `monthly` (droid gives its end, not its length) |
@@ -67,18 +68,25 @@ usage can carry an account past a full subscription window.
 | --- | --- | --- | --- |
 | antigravity | none | `models`: each bucket, by its group ("Gemini Models", "Claude and GPT models") | a bucket outside a named group |
 | claude | `five_hour`, `seven_day`, extra usage | `seven_day_opus` ("Opus"), `seven_day_sonnet` ("Sonnet"), each `model_scoped` row (its display name, such as "Fable") | `seven_day_oauth_apps` (third-party apps' use) |
-| codex | the unnamed `codex` bucket | a bucket with a `limitName` (such as "GPT-5.3-Codex-Spark") | any other unnamed bucket |
+| codex | the unnamed `codex` bucket and the legacy single-bucket unnamed account view | a bucket with a `limitName` (such as "GPT-5.3-Codex-Spark") | any other unnamed bucket |
 | factory | Standard Usage buckets | `models`: Droid Core buckets ("Droid Core") | none |
 | grok | included usage, pay-as-you-go | none | none |
 | kimi | timed windows, Extra Usage | none | a row with only a name |
 
-For Codex, a bucket contributes to `rateLimited` only when its native
-`rateLimitReachedType` is non-null and it has no reported usable credits.
-`credits.hasCredits === true` or `credits.unlimited === true` permits continued
-use of that bucket. Missing or unrecognized credits do not clear a native
-reached flag; OAR does not infer availability or units from `balance`.
-A 100% window remains visible but does not by itself imply `rateLimited`.
-Credits on one bucket do not clear another bucket's native refusal.
+Top-level `rateLimited` is account-wide: it is true only when no model can run
+on the account (account-level windows are exhausted without usable extra usage
+or credits, or every model group is exhausted). Single-model limits, individual
+model groups, and unknown-scope windows stay in `windows` without setting
+top-level `rateLimited`.
+
+For Codex, only the account bucket (`codex` or the legacy unnamed account view)
+contributes to `rateLimited`, when its native `rateLimitReachedType` is non-null
+and it has no reported usable credits. `credits.hasCredits === true` or
+`credits.unlimited === true` permits continued use of the account. Missing or
+unrecognized credits do not clear a native reached flag; OAR does not infer
+availability or units from `balance`. A 100% window remains visible but does not
+by itself imply `rateLimited`. A separate model bucket's limit shows in its
+model-scoped windows and does not set top-level `rateLimited`.
 
 An available snapshot may also carry `credits: { available, unlimited?, balance? }`
 when the runtime reports extra usage credits. `balance` is the exact native
@@ -87,10 +95,9 @@ information omits this field; it does not mean `available: false`. Codex
 currently supplies it from its default `codex` bucket (or the legacy unnamed
 account view), never by adding model buckets' balances. A host can display
 the full subscription window alongside remaining credits. Usable credits
-clear that bucket's limit flag even when the window remains full; a separate
-model bucket can still report its own refusal. Antigravity supplies the numeric
-`remaining_credits` as a decimal string when all model groups are exhausted
-and its separate `/credits` call returns a balance.
+clear the account bucket's limit flag even when its window remains full.
+Antigravity supplies the numeric `remaining_credits` as a decimal string when
+all model groups are exhausted and its separate `/credits` call returns a balance.
 
 ## Limit resets
 
@@ -381,7 +388,8 @@ used-up bucket and agy's own `/credits` answer (`-p "/credits" --output-format j
 reports none left (AI credits
 can carry a model past its quota where the account turned them on). Only
 when all groups are exhausted does OAR ask for `/credits`. A positive balance
-sets `credits.available` to true. Zero yields `{ available: false, balance: "0" }`.
+sets `credits.available` to true. Zero or negative yields `{ available: false,
+balance }` and sets `rateLimited` true.
 When the reply lacks a numeric balance, OAR omits `credits` and leaves
 `rateLimited` false. A stalled query rejects at its deadline. One used-up group shows in its windows, not in `rateLimited`.
 
@@ -398,4 +406,9 @@ Claude account usage delegates to its native stream-json `get_usage` request
 HTTP quota endpoint. A native `rate_limits_available: false` becomes
 `quota_unavailable`; it does not prove invalid credentials. Older CLIs that
 reject the control request return `endpoint_unavailable`. Query-process session
-totals are not returned as account usage.
+totals are not returned as account usage. `rateLimited` is true only when an
+account-scoped subscription window (`five_hour` or `seven_day`) is at 100% and
+Extra Usage is not usable (either disabled, or capped and at 100%; enabled Extra
+Usage with `monthly_limit: null` and no utilization cap clears `rateLimited`).
+Model-scoped windows (`seven_day_opus`, `seven_day_sonnet`, `model_scoped`) and
+`seven_day_oauth_apps` stay in `windows` without setting `rateLimited`.

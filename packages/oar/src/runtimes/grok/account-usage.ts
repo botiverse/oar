@@ -1,6 +1,6 @@
+/* oxlint-disable import/max-dependencies, typescript/promise-function-async -- Grok usage composes ACP auth/billing transport, shared deadline/time/ratio helpers, and account-info helpers; deadline callbacks return the SDK's native promises. */
 import { withQueryDeadline } from "../../shared/executable/query.js";
 import { sessionEnvironment } from "../../shared/environment.js";
-/* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
 import {
   methods,
   RequestError,
@@ -14,8 +14,8 @@ import { withAcpDeadline } from "../../shared/acp/process.js";
 import { remainingMs } from "../../shared/deadline.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
+import { usedRatioFromCounts, usedRatioFromPercent } from "../../shared/usage-ratio.js";
 import { selectGrokAuthMethod } from "./session.js";
-
 import { grokAccountEmail, initializeGrokReader, readGrokAccountInfo, signedOutEmail, startGrokReader } from "./account-info.js";
 
 function centValue(value: unknown): number | null {
@@ -64,16 +64,16 @@ export function projectGrokUsage(result: unknown, email?: string): AccountUsageS
   const legacyOnDemandUsed = used !== null && limit !== null ? Math.max(0, used - limit) : 0;
   const onDemandUsed = centValue(config.onDemandUsed) ?? legacyOnDemandUsed;
   const onDemandRatio = onDemandCap > 0
-    ? Math.max(0, Math.min(1, onDemandUsed / onDemandCap))
+    ? usedRatioFromCounts(onDemandUsed, onDemandCap)
     : null;
   const windows = [{
     label: periodLabel(period?.type),
-    usedRatio: Number(Math.min(1, usedPercent / 100).toFixed(6)),
+    usedRatio: usedRatioFromPercent(usedPercent),
     ...(resetsAt === undefined ? {} : { resetsAt }),
     scope: { kind: "account" } as const,
   }, ...(onDemandRatio === null ? [] : [{
     label: "Pay-as-you-go",
-    usedRatio: Number(onDemandRatio.toFixed(6)),
+    usedRatio: onDemandRatio,
     ...(resetsAt === undefined ? {} : { resetsAt }),
     scope: { kind: "account" } as const,
   }])];
@@ -147,8 +147,9 @@ async function readBilling(command: string, timeoutMs: number, env: NodeJS.Proce
         signal.throwIfAborted();
         return payload;
       } catch (error) {
-        if (error instanceof RequestError && error.code !== -32_601
-          && (error.code === -32_000 || /auth(?:entication)?|log(?:ged)? ?in/iu.test(error.message))) {
+        // Only the structured ACP auth_required error (-32000) means reauth;
+        // internal errors (-32603) such as TLS/proxy failures reject with cause.
+        if (error instanceof RequestError && error.code === -32_000) {
           return initializedForIdentity ? "reauth_required" as const : "initialize_refused" as const;
         }
         throw error;

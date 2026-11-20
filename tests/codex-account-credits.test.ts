@@ -39,7 +39,7 @@ test("codex keeps the native refusal even before a window reports 100 percent", 
   } })).toMatchObject({ rateLimited: true });
 });
 
-test("codex credits only clear the reached flag on their own bucket", () => {
+test("codex top-level rateLimited reflects only the account bucket, not single-model buckets", () => {
   const rateLimits = {
     limitId: "codex",
     primary: { usedPercent: 100, windowDurationMins: 10_080 },
@@ -52,10 +52,13 @@ test("codex credits only clear the reached flag on their own bucket", () => {
     rateLimitReachedType: "rate_limit_reached",
     credits: { hasCredits: false, unlimited: false },
   };
-  expect(projectCodexUsage({ rateLimits, rateLimitsByLimitId: { other } })).toMatchObject({ rateLimited: true });
-  expect(projectCodexUsage({ rateLimits, rateLimitsByLimitId: {
-    other: { ...other, credits: { hasCredits: true, unlimited: false } },
-  } })).toMatchObject({ rateLimited: false });
+  // Account bucket has credits, so single-model refusal stays in windows only.
+  expect(projectCodexUsage({ rateLimits, rateLimitsByLimitId: { other } })).toMatchObject({ rateLimited: false });
+  // Account bucket without credits sets account-wide rateLimited even if a model bucket has credits.
+  expect(projectCodexUsage({
+    rateLimits: { ...rateLimits, credits: { hasCredits: false, unlimited: false } },
+    rateLimitsByLimitId: { other: { ...other, credits: { hasCredits: true, unlimited: false } } },
+  })).toMatchObject({ rateLimited: true });
 });
 
 test("codex reports the default bucket's credit balance without parsing or adding model balances", () => {

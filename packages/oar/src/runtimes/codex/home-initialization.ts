@@ -2,6 +2,7 @@ import { realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import type { CancellationObservation } from "../../shared/executable/process-cancellation.js";
+import { environmentValue } from "../../shared/environment.js";
 import type { AppServerClient } from "./app-server-client.js";
 
 interface InitializingHome { readonly waiting: Set<() => void> }
@@ -10,11 +11,17 @@ const initializing = new Map<string, InitializingHome>();
 // identity invalidates it when a host replaces a temporary home at the same path.
 const initialized = new Map<string, string>();
 
-function homePath(env: NodeJS.ProcessEnv, cwd: string): string {
-  const userHome = process.platform === "win32" ? homedir() : env.HOME;
-  const fallback = path.join(userHome === undefined || userHome === "" ? homedir() : userHome, ".codex");
-  const configured = env.CODEX_HOME;
-  const directory = path.resolve(cwd, configured === undefined || configured === "" ? fallback : configured);
+export function codexHomePath(
+  env: Readonly<NodeJS.ProcessEnv>,
+  cwd: string,
+  platform: NodeJS.Platform = process.platform,
+): string {
+  const pathLib = platform === "win32" ? path.win32 : path;
+  const userHome = environmentValue(env, platform === "win32" ? "USERPROFILE" : "HOME", platform);
+  const fallback = pathLib.join(userHome === undefined || userHome === "" ? homedir() : userHome, ".codex");
+  const configured = environmentValue(env, "CODEX_HOME", platform);
+  const directory = pathLib.resolve(cwd, configured === undefined || configured === "" ? fallback : configured);
+  if (platform !== process.platform) { return directory; }
   try { return realpathSync(directory); } catch { return directory; }
 }
 
@@ -111,7 +118,7 @@ export function coordinateHomeInitialization(
   cwd: string,
   create: () => AppServerClient,
 ): AppServerClient {
-  const home = homePath(env, cwd);
+  const home = codexHomePath(env, cwd);
   const active = initializing.get(home);
   if (active !== undefined) {
     return queuedClient(active, () => coordinateHomeInitialization(env, cwd, create));

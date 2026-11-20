@@ -1,5 +1,5 @@
+/* oxlint-disable import/max-dependencies -- Kimi usage composes direct HTTP/OAuth, native Web fallback, profile identity, and shared deadline/time/ratio helpers. */
 import { kimiNativeUsage } from "./native-usage.js";
-import { kimiUsageEnvironment, kimiUsageHasNativeLock } from "./usage-environment.js";
 import type {
   AccountUsageReader,
   AccountUsageSnapshot,
@@ -10,9 +10,11 @@ import { utcInstantFromDate } from "../../shared/instant.js";
 import { remainingMs } from "../../shared/deadline.js";
 import { credentialHeaderValue, requestFailure } from "../../shared/credential-http.js";
 import { asNumber, asRecord, parseJson } from "../../shared/json.js";
+import { usedRatioFromCounts } from "../../shared/usage-ratio.js";
 import { KIMI_USAGE, resolveKimiAuth, type KimiAuthContext } from "./auth-config.js";
 import { readKimiToken } from "./oauth-token.js";
 import { fetchKimiAccountIdentity } from "./profile.js";
+import { kimiUsageEnvironment, kimiUsageHasNativeLock } from "./usage-environment.js";
 
 interface UsageWindowSpec {
   readonly duration: number;
@@ -123,7 +125,7 @@ function projectWindow(row: UsageRow): AccountUsageWindow | null {
   }
   return {
     label: usageLabel(row),
-    usedRatio: Number(Math.max(0, Math.min(1, row.used / row.limit)).toFixed(6)),
+    usedRatio: usedRatioFromCounts(row.used, row.limit),
     ...(row.resetsAt === undefined ? {} : { resetsAt: row.resetsAt }),
     // A timed window is the subscription's; a row with only a name says nothing of what it covers.
     ...(row.window === undefined ? {} : { scope: { kind: "account" } as const }),
@@ -194,7 +196,7 @@ export function projectKimiUsage(
   if (extraUsage?.monthlyLimit !== null && extraUsage?.monthlyLimit !== undefined) {
     windows.push({
       label: "Extra Usage monthly limit",
-      usedRatio: Number(Math.min(1, extraUsage.monthlyUsed / extraUsage.monthlyLimit).toFixed(6)),
+      usedRatio: usedRatioFromCounts(extraUsage.monthlyUsed, extraUsage.monthlyLimit),
       scope: { kind: "account" },
     });
   }

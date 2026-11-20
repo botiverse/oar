@@ -1,11 +1,11 @@
 import { withQueryDeadline } from "../../shared/executable/query.js";
-import type { SessionOptions } from "../../contracts/session-options.js";
-import type { AccountUsageReader, AccountUsageSnapshot, AccountUsageWindow, AccountUsageWindowScope } from "../../contracts/account-usage.js";
+import type { AccountUsageReader, AccountUsageReadOptions, AccountUsageSnapshot, AccountUsageWindow, AccountUsageWindowScope } from "../../contracts/account-usage.js";
 import { runExecutable, spawnLineProcess } from "../../shared/executable/index.js";
 import { assertRan } from "../../shared/executable/diagnostics.js";
 import { remainingMs } from "../../shared/deadline.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord, asRecordList, parseJson, type JsonRecord } from "../../shared/json.js";
+import { usedRatioFromPercent } from "../../shared/usage-ratio.js";
 import { rememberedClaudeAccount } from "./last-account.js";
 import { claudeEnv } from "./environment.js";
 
@@ -28,7 +28,7 @@ function windowOf(label: string, value: unknown, key?: WindowKey): AccountUsageW
   const reset = typeof entry?.resets_at === "string" ? utcInstantFromDate(new Date(entry.resets_at)) : null;
   return {
     label,
-    usedRatio: Math.min(1, Number((percent / 100).toFixed(6))),
+    usedRatio: usedRatioFromPercent(percent),
     ...(reset === null ? {} : { resetsAt: reset }),
     ...(key === undefined ? {} : { id: key.id }),
     ...(key?.durationMs === undefined ? {} : { durationMs: key.durationMs }),
@@ -65,21 +65,32 @@ export function projectClaudeUsage(payload: unknown, email?: string): AccountUsa
   add("Current week (OAuth apps)", limits.seven_day_oauth_apps, { id: "seven_day_oauth_apps", durationMs: WEEK_MS });
   if (Array.isArray(limits.model_scoped)) {
     for (const entry of asRecordList(limits.model_scoped)) {
-      if (typeof entry.display_name === "string" && entry.display_name.trim().length > 0) {
+      const displayName = typeof entry.display_name === "string" ? entry.display_name.trim() : "";
+      if (displayName.length > 0) {
         // A scoped entry names its model only by display name (2.1.288: `scope.model.id` is null).
-        add(`Current week (${entry.display_name})`, entry, { id: `model_scoped:${entry.display_name}`, durationMs: WEEK_MS, scope: { kind: "model", name: entry.display_name } });
+        add(`Current week (${displayName})`, entry, { id: `model_scoped:${displayName}`, durationMs: WEEK_MS, scope: { kind: "model", name: displayName } });
       }
     }
   } else {
     add("Current week (Opus)", limits.seven_day_opus, { id: "seven_day_opus", durationMs: WEEK_MS, scope: { kind: "model", name: "Opus" } });
     add("Current week (Sonnet)", limits.seven_day_sonnet, { id: "seven_day_sonnet", durationMs: WEEK_MS, scope: { kind: "model", name: "Sonnet" } });
   }
-  const includedExhausted = windows.some((window) => window.usedRatio >= 1);
+  // Top-level rateLimited is account-wide: single-model windows and unknown-scope
+  // windows (seven_day_oauth_apps) stay in windows without blocking the whole account.
+  const includedExhausted = windows.some((window) => window.scope?.kind === "account" && window.usedRatio >= 1);
   const extra = asRecord(limits.extra_usage);
   const extraWindow = extra?.is_enabled === true ? windowOf("Extra usage", extra, { id: "extra_usage", scope: { kind: "account" } }) : null;
   if (extraWindow !== null) {
     windows.push(extraWindow);
   }
+  // Claude 2.1.292's get_usage schema models unlimited Extra Usage as
+  // `{ is_enabled: true, monthly_limit: null, utilization: null }` (and renders
+  // it as "Unlimited" / "unlimited usage credits", while exhausted credits flip
+  // `is_enabled` to false).
+  const extraUnlimited = extra?.is_enabled === true
+    && extra.monthly_limit === null
+    && (extra.utilization === null || extra.utilization === undefined);
+  const extraHeadroom = extraUnlimited || (extraWindow !== null && extraWindow.usedRatio < 1);
   if (windows.length === 0) {
     throw new Error("Claude get_usage returned no usable windows");
   }
@@ -88,7 +99,7 @@ export function projectClaudeUsage(payload: unknown, email?: string): AccountUsa
     kind: "available",
     ...(plan.length === 0 ? {} : { plan }),
     ...(email === undefined ? {} : { email }),
-    rateLimited: includedExhausted && !(extraWindow !== null && extraWindow.usedRatio < 1),
+    rateLimited: includedExhausted && !extraHeadroom,
     windows,
   };
 }
@@ -115,7 +126,7 @@ async function controlFailure(reply: JsonRecord, env: NodeJS.ProcessEnv, email?:
  */
 const USAGE = "Claude account usage";
 const safeModeSupport = new Map<string, boolean>();
-async function supportsSafeMode(command: string, version: string | undefined, deadline: number, env: SessionOptions["env"], signal: AbortSignal): Promise<boolean> {
+async function supportsSafeMode(command: string, version: string | undefined, deadline: number, env: AccountUsageReadOptions["env"], signal: AbortSignal): Promise<boolean> {
   const key = `${command}\0${version ?? ""}`;
   const cacheable = Object.keys(env ?? {}).length === 0;
   const known = cacheable ? safeModeSupport.get(key) : undefined;

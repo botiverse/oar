@@ -1,14 +1,14 @@
 import { withQueryDeadline } from "../../shared/executable/query.js";
 import type { SessionOptions } from "../../contracts/session-options.js";
 import type { AccountUsageReauthReason, AccountUsageUnsupportedReason } from "../../contracts/account-usage.js";
-import { startAppServerClient, type AppServerClient } from "./app-server-client.js";
+import { startAppServerClient, type AppServerClient, type RpcOutcome } from "./app-server-client.js";
 import { asRecord } from "../../shared/json.js";
 
 export type ReadOutcome =
   | { readonly kind: "ok"; readonly result: unknown; readonly email: string | undefined }
   | { readonly kind: "reauth_required"; readonly reason: AccountUsageReauthReason }
   | { readonly kind: "unsupported"; readonly reason: AccountUsageUnsupportedReason }
-  | { readonly kind: "error" };
+  | { readonly kind: "error"; readonly cause?: unknown };
 
 export type StartAppServerClient = (command: string, env?: SessionOptions["env"]) => AppServerClient;
 
@@ -23,17 +23,50 @@ export interface AccountCall {
   readonly legacyParams?: Record<string, unknown>;
 }
 
-async function request(client: AppServerClient, call: AccountCall, signal: AbortSignal): Promise<unknown> {
+async function request(
+  client: AppServerClient,
+  call: AccountCall,
+  signal: AbortSignal,
+  onSettled: (outcome: RpcOutcome) => void,
+): Promise<unknown> {
   signal.throwIfAborted();
+  const state: { outcome?: RpcOutcome } = {};
+  const record = (outcome: RpcOutcome): void => {
+    state.outcome = outcome;
+    onSettled(outcome);
+  };
   try {
-    return await client.request(call.method, call.params);
+    return await client.request(call.method, call.params, record);
   } catch (error) {
-    if (call.legacyParams === undefined || !(error instanceof Error) || !/expected unit/iu.test(error.message)) {
+    if (call.legacyParams === undefined || state.outcome?.kind === "exited" || !(error instanceof Error) || !/expected unit/iu.test(error.message)) {
       throw error;
     }
     signal.throwIfAborted();
-    return client.request(call.method, call.legacyParams);
+    return client.request(call.method, call.legacyParams, record);
   }
+}
+
+function classifyAccountError(call: AccountCall, error: unknown, outcome: RpcOutcome | undefined): ReadOutcome {
+  // Never classify process exit/crash stderr as auth or unsupported.
+  if (outcome?.kind === "exited") {
+    return { kind: "error", cause: error };
+  }
+  const native = outcome?.kind === "error" ? outcome.native : undefined;
+  const nativeCode = typeof native?.code === "number" ? native.code : undefined;
+  const message = typeof native?.message === "string" ? native.message : (error instanceof Error ? error.message : "");
+  if (/chatgpt authentication required for rate limit reset/iu.test(message)) {
+    return { kind: "unsupported", reason: "unsupported_auth_mode" };
+  }
+  // Only matches the native JSON-RPC error message of `call.method` itself
+  // (never process-exit stderr or `initialize`, which are ruled out above).
+  if (/authentication required/iu.test(message)) {
+    return { kind: "reauth_required", reason: "not_authenticated" };
+  }
+  // Codex answers a method it predates with JSON-RPC -32601 or `unknown variant` naming the method.
+  if (nativeCode === -32_601 || /\bmethod not found\b/iu.test(message) || message.includes(`unknown variant \`${call.method}\``)) {
+    return { kind: "unsupported", reason: "endpoint_unavailable" };
+  }
+  return { kind: "error", cause: error };
 }
 
 /**
@@ -76,8 +109,13 @@ export async function callAppServer(
   startClient: StartAppServerClient = startAppServerClient,
   env?: SessionOptions["env"],
 ): Promise<ReadOutcome> {
+  const state: { inAccountCall: boolean; aborted: boolean; callOutcome?: RpcOutcome } = {
+    inAccountCall: false,
+    aborted: false,
+  };
   try {
     return await withQueryDeadline("Codex account request", timeoutMs, async (signal, own): Promise<ReadOutcome> => {
+      signal.addEventListener("abort", () => { state.aborted = true; }, { once: true });
       const client = own(startClient(command, env));
       await client.request("initialize", {
         clientInfo: { name: "oar", version: "0.0.0" },
@@ -102,21 +140,13 @@ export async function callAppServer(
         return { kind: "unsupported", reason: "unsupported_auth_mode" };
       }
 
-      const result = await request(client, call, signal);
+      state.inAccountCall = true;
+      const result = await request(client, call, signal, (outcome) => { state.callOutcome = outcome; });
       return { kind: "ok", result, email: accountEmail(account) };
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "";
-    if (/chatgpt authentication required for rate limit reset/iu.test(message)) {
-      return { kind: "unsupported", reason: "unsupported_auth_mode" };
-    }
-    if (/authentication required/iu.test(message)) {
-      return { kind: "reauth_required", reason: "not_authenticated" };
-    }
-    // Codex answers a method it predates with `unknown variant` and the method name.
-    if (/method not found|not supported/iu.test(message) || message.includes(`unknown variant \`${call.method}\``)) {
-      return { kind: "unsupported", reason: "endpoint_unavailable" };
-    }
-    return { kind: "error" };
+    if (error instanceof RangeError) { throw error; }
+    if (!state.inAccountCall || state.aborted) { return { kind: "error", cause: error }; }
+    return classifyAccountError(call, error, state.callOutcome);
   }
 }

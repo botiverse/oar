@@ -162,4 +162,12 @@ test("kimi Extra Usage headroom bypasses exhausted subscription windows", () => 
     kind: "available",
     rateLimited: true,
   });
+
+  expect(projectKimiUsage({
+    usage: { used: "9999999", limit: "10000000" },
+  })).toMatchObject({
+    kind: "available",
+    rateLimited: false,
+    windows: [{ usedRatio: 0.999999 }],
+  });
 });

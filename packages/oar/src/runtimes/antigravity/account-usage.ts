@@ -1,12 +1,12 @@
 import { antigravityUsesDefaultState } from "./state-directory.js";
 import type { AccountUsageReader, AccountUsageSnapshot, AccountUsageWindow } from "../../contracts/account-usage.js";
-import type { LoginAccount } from "../../contracts/login.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { runExecutable } from "../../shared/executable/index.js";
 import { withQueryDeadline } from "../../shared/executable/query.js";
 import { remainingMs } from "../../shared/deadline.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord, asRecordList, parseJson } from "../../shared/json.js";
+import { usedRatioFromRemaining } from "../../shared/usage-ratio.js";
 import { readAntigravityAuthStatus } from "./auth.js";
 
 /*
@@ -57,11 +57,10 @@ function readUsage(payload: unknown): UsageReading {
       const reset = typeof bucket.reset_time === "string" ? utcInstantFromDate(new Date(bucket.reset_time)) : null;
       const durationMs = windowMs(bucket.window);
       groupExhausted ||= remaining <= 0;
-      const used = Number((1 - remaining).toFixed(6));
       windows.push({
         label: groupName === undefined ? name : `${groupName} · ${name}`,
         // Rounding never turns a bucket with quota left into a used-up one.
-        usedRatio: remaining > 0 ? Math.min(0.999999, used) : 1,
+        usedRatio: usedRatioFromRemaining(remaining),
         ...(reset === null ? {} : { resetsAt: reset }),
         ...(typeof bucket.id === "string" && bucket.id !== "" ? { id: bucket.id } : {}),
         ...(durationMs === undefined ? {} : { durationMs }),
@@ -93,13 +92,13 @@ export function projectAntigravityCredits(payload: unknown): number | null {
 export function projectAntigravityUsage(
   payload: unknown,
   remainingCredits?: number | null,
-  account?: Pick<LoginAccount, "email" | "plan">,
+  account?: { readonly email?: string; readonly plan?: string },
 ): AccountUsageSnapshot {
   const reading = readUsage(payload);
   const plan = account?.plan?.trim();
   const email = account?.email?.trim();
   return {
-    kind: "available", rateLimited: reading.everyGroupExhausted && remainingCredits === 0, windows: reading.windows,
+    kind: "available", rateLimited: reading.everyGroupExhausted && remainingCredits !== undefined && remainingCredits !== null && remainingCredits <= 0, windows: reading.windows,
     ...(plan === undefined || plan === "" ? {} : { plan }),
     ...(email === undefined || email === "" ? {} : { email }),
     ...(remainingCredits === undefined || remainingCredits === null ? {} : { credits: { available: remainingCredits > 0, balance: String(remainingCredits) } }),

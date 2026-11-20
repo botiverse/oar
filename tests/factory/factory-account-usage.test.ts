@@ -138,6 +138,8 @@ it("a damaged keyfile rejects without its contents, and no subscription has no q
   expect(projectFactoryUsage({ hasActiveSubscription: false })).toEqual({ kind: "unsupported", reason: "quota_unavailable" });
   expect(projectFactoryUsage({ limits: { standard: { fiveHour: { usedPercent: 0, windowEnd: null, unlimited: true } } } })).toEqual({ kind: "available", rateLimited: false, windows: [] });
   expect(projectFactoryUsage({ ...limits, overagePreference: "extraUsage", extraUsageAllowed: true, extraUsageBalanceCents: 500 })).toMatchObject({ rateLimited: false });
+  expect(projectFactoryUsage({ limits: { standard: { fiveHour: { usedPercent: 99.99999, windowEnd: "2099-01-01T00:00:00Z" } } } }))
+    .toMatchObject({ rateLimited: false, windows: [{ usedRatio: 0.999999 }] });
 });
 
 it("a credential that cannot be a header value is refused before any request, without the credential in the error chain", async () => {

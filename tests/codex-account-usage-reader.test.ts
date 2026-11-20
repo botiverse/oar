@@ -211,11 +211,59 @@ test.each(["initialize", "account/read", "account/rateLimits/read"])("a late %s 
   const late = Promise.withResolvers<Record<string, unknown>>();
   const server = fakeAppServer(async (method) => method === stage ? late.promise : {});
   const kill = vi.spyOn(server.client, "kill");
-  await expect(readFromAppServer("codex", 20, () => server.client)).resolves.toEqual({ kind: "error" });
+  const outcome = await readFromAppServer("codex", 20, () => server.client);
+  expect(outcome.kind).toBe("error");
+  expect(outcome.kind === "error" && outcome.cause instanceof Error).toBe(true);
   expect(kill).toHaveBeenCalled();
   const sent = [...server.calls];
   if (stage === "account/rateLimits/read") { late.reject(new Error("invalid type: map, expected unit")); }
   else { late.resolve({}); }
   await tick();
   expect(server.calls).toEqual(sent);
+});
+
+test.each([
+  "app-server exited (exit 1)\nstderr (tail):\nHTTP 407 Proxy Authentication Required",
+  "app-server exited (exit 1)\nstderr (tail):\nTLS 1.2 is not supported",
+])("codex process exit stderr containing auth or not-supported phrases stays an operational error with cause", async (stderrMessage) => {
+  const exitError = new Error(stderrMessage);
+  const client: AppServerClient = {
+    ...fakeAppServer(async () => ({})).client,
+    async request(method, _params, onSettled) {
+      if (method === "initialize") { onSettled?.({ kind: "result", result: {} }); return {}; }
+      if (method === "account/read") {
+        const result = { account: { type: "chatgpt" } };
+        onSettled?.({ kind: "result", result });
+        return result;
+      }
+      onSettled?.({ kind: "exited", error: exitError });
+      throw exitError;
+    },
+  };
+  const outcome = await readFromAppServer("codex", 1000, () => client);
+  expect(outcome).toEqual({ kind: "error", cause: exitError });
+});
+
+test("codex initialize failure is never misclassified as reauth_required or unsupported", async () => {
+  const initError = new Error("Proxy Authentication Required");
+  const server = fakeAppServer(async (method) => {
+    if (method === "initialize") { throw initError; }
+    return {};
+  });
+  await expect(readFromAppServer("codex", 1000, () => server.client)).resolves.toEqual({ kind: "error", cause: initError });
+});
+
+test("codex JSON-RPC -32601 on account/rateLimits/read maps to endpoint_unavailable and invalid timeoutMs throws RangeError", async () => {
+  const rpcError = new Error("Unsupported RPC");
+  const client: AppServerClient = {
+    ...fakeAppServer(async () => ({})).client,
+    async request(method, _params, onSettled) {
+      if (method === "initialize") { onSettled?.({ kind: "result", result: {} }); return {}; }
+      if (method === "account/read") { const res = { account: { type: "chatgpt" } }; onSettled?.({ kind: "result", result: res }); return res; }
+      onSettled?.({ kind: "error", error: rpcError, native: { code: -32_601, message: "Unsupported RPC" } });
+      throw rpcError;
+    },
+  };
+  await expect(readFromAppServer("codex", 1000, () => client)).resolves.toEqual({ kind: "unsupported", reason: "endpoint_unavailable" });
+  await expect(readFromAppServer("codex", 0, () => client)).rejects.toThrow(RangeError);
 });

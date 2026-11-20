@@ -7,6 +7,7 @@ import type {
 import { callAppServer, type ReadOutcome, type StartAppServerClient } from "./account-request.js";
 import { startAppServerClient } from "./app-server-client.js";
 import { asEpochInstant, asNumber, asRecord } from "../../shared/json.js";
+import { usedRatioFromPercent } from "../../shared/usage-ratio.js";
 import { projectLimitResets } from "./reset-credits.js";
 
 function text(value: unknown): string | undefined {
@@ -132,17 +133,17 @@ export function projectCodexUsage(result: unknown, email?: string): AccountUsage
     ?? asRecord(indexed?.codex);
   const accountCredits = projectCredits(accountBucket?.credits);
   const windows: AccountUsageWindow[] = [];
-  let rateLimited = false;
+  // Top-level rateLimited is account-wide: only the account bucket contributes,
+  // while single-model buckets stay in windows without marking the account exhausted.
+  const rateLimited = accountBucket !== null
+    && accountBucket.rateLimitReachedType !== null
+    && accountBucket.rateLimitReachedType !== undefined
+    && accountCredits?.available !== true;
   let plan: string | undefined = undefined;
 
   for (const bucket of buckets) {
     const sourceLabel = limitLabel(bucket);
     plan ??= text(bucket.planType);
-    const credits = asRecord(bucket.credits);
-    const canUseCredits = credits?.hasCredits === true || credits?.unlimited === true;
-    rateLimited ||= bucket.rateLimitReachedType !== null
-      && bucket.rateLimitReachedType !== undefined
-      && !canUseCredits;
 
     for (const kind of ["primary", "secondary"] as const) {
       const candidate = asRecord(bucket[kind]);
@@ -158,13 +159,14 @@ export function projectCodexUsage(result: unknown, email?: string): AccountUsage
       const minutes = asNumber(candidate.windowDurationMins);
       const limitId = text(bucket.limitId);
       // A named bucket is one model's (`limitName` is the model's name); the
-      // unnamed `codex` bucket is the account's. Any other is neither, as far as codex says.
+      // unnamed `codex` bucket and the legacy single-bucket account view are
+      // the account's. Any other unnamed bucket is neither, as far as codex says.
       const modelName = text(bucket.limitName);
       const scope = modelName !== undefined ? { kind: "model", name: modelName } as const
-        : (limitId === "codex" ? { kind: "account" } as const : undefined);
+        : (limitId === "codex" || bucket === accountBucket ? { kind: "account" } as const : undefined);
       windows.push({
         label: sourceLabel === undefined ? durationLabel : `${sourceLabel} · ${durationLabel}`,
-        usedRatio: Number((usedPercent / 100).toFixed(6)),
+        usedRatio: usedRatioFromPercent(usedPercent),
         ...(resetsAt === null ? {} : { resetsAt }),
         ...(limitId === undefined ? {} : { id: `${limitId}:${kind}` }),
         ...(minutes === null || minutes <= 0 ? {} : { durationMs: minutes * 60_000 }),
@@ -216,7 +218,8 @@ export const codexAccountUsage: AccountUsageReader = async (installation, option
     case "unsupported":
       return outcome;
     case "error":
-      break;
+      throw new Error("Failed to read Codex account usage", { cause: outcome.cause });
+    default:
+      throw new Error("Failed to read Codex account usage");
   }
-  throw new Error("Failed to read Codex account usage");
 };

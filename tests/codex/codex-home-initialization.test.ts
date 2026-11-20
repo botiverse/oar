@@ -202,11 +202,9 @@ test("an account query keeps its existing deadline while queued for initializati
   const first = startAppServerClient("codex");
   const usage = readFromAppServer("codex", 321);
   await vi.advanceTimersByTimeAsync(321);
-  expect(await usage).toMatchInlineSnapshot(`
-    {
-      "kind": "error",
-    }
-  `);
+  const outcome = await usage;
+  expect(outcome.kind).toBe("error");
+  expect(outcome.kind === "error" && outcome.cause instanceof Error).toBe(true);
   expect(native.children.length).toBe(1);
   first.kill();
   expect(native.children.length).toBe(1);
