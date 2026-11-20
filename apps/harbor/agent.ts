@@ -2,7 +2,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { openVoyage, type Event, type Session, type SessionOptions, type VoyageRecorder } from "../../packages/oar/src/index.js";
 import { allRuntimes } from "../../sea-trial/harness/runtimes.js";
-import { AgentBudget, handoff } from "./budget.js";
+import { AgentBudget, handoff, openedState } from "./budget.js";
 import { Deliveries } from "./deliveries.js";
 import type { AgentState, Message, Store } from "./store.js";
 import { messageOf, openWithRules, preamble, processesIn, statusLine, type AgentOptions, type AgentStatusLine } from "./support.js";
@@ -180,7 +180,7 @@ export class HarborAgent {
       unRaw();
       unEvents();
     };
-    this.state = { ...this.state, sessionId: session.id, opens };
+    this.state = openedState(this.state, session.id, opens, resume !== null);
     this.onState();
     this.store.journal({ agent: this.name, kind: resume === null ? "opened" : "resumed", sessionId: session.id, ms: Date.now() - startedAt, voyage });
     this.deliveries.opened(resume === null, rulesInPrompt, constructed);

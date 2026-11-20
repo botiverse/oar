@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { addDayTokens, dayExhausted, handoff, msUntilNextDay, sessionTokens, shouldRecycle } from "../apps/harbor/budget.js";
+import { addDayTokens, dayExhausted, handoff, msUntilNextDay, openedState, sessionTokens, shouldRecycle } from "../apps/harbor/budget.js";
 import type { Message } from "../apps/harbor/store.js";
 
 const policy = { idleMs: 3_600_000, contextTokens: 128_000 };
@@ -50,4 +50,10 @@ test("the day count starts over at UTC midnight", () => {
   expect(new Date(next).toISOString()).toBe("2026-11-21T00:00:00.000Z");
   expect(dayExhausted(day, 1000, next)).toBe(false);
   expect(addDayTokens(day, 5, next)).toEqual({ day: "2026-11-21", tokens: 5 });
+});
+
+test("a resumed session keeps the last context size; a fresh one drops it", () => {
+  const state = { name: "a", runtime: "claude", opens: 3, sessionId: "old", contextTokens: 400_000 };
+  expect(openedState(state, "old", 4, true)).toMatchObject({ sessionId: "old", opens: 4, contextTokens: 400_000 });
+  expect(openedState(state, "new", 4, false)).not.toHaveProperty("contextTokens");
 });

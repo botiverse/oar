@@ -49,6 +49,8 @@ export interface AgentState extends AgentSpec {
   readonly opens: number;
   /** Tokens this agent's sessions reported in the current UTC day, for `--day-tokens`. */
   readonly dayTokens?: DayTokens;
+  /** The context size the session last reported, so a session resumed after a harbor restart can be recycled before it reports again. */
+  readonly contextTokens?: number;
 }
 
 export interface RunState {

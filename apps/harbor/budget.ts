@@ -78,6 +78,12 @@ export function msUntilNextDay(now: number): number {
   return next.getTime() - now;
 }
 
+/** The agent's state after an open: a fresh session drops the old session's context size. */
+export function openedState(state: AgentState, sessionId: string, opens: number, resumed: boolean): AgentState {
+  const { contextTokens, ...kept } = state;
+  return { ...kept, sessionId, opens, ...(resumed && contextTokens !== undefined ? { contextTokens } : {}) };
+}
+
 export interface BudgetHost {
   readonly name: string;
   readonly store: Store;
@@ -117,7 +123,7 @@ export class AgentBudget {
     if (this.recycling || session === null || session.status().value.kind !== "idle") {
       return false;
     }
-    return shouldRecycle(this.policy, this.idleMs(), session.contextUsage().value?.tokens ?? null);
+    return shouldRecycle(this.policy, this.idleMs(), session.contextUsage().value?.tokens ?? this.host.state().contextTokens ?? null);
   }
 
   /** Holds deliveries while `reopen` replaces the session, then lets them flow to the new one. */
@@ -142,7 +148,8 @@ export class AgentBudget {
     const now = Date.now();
     const dayTokens = addDayTokens(this.host.state().dayTokens, Math.max(0, tokens - this.counted), now);
     this.counted = tokens;
-    this.host.setState({ ...this.host.state(), dayTokens });
+    const contextTokens = session.contextUsage().value?.tokens;
+    this.host.setState({ ...this.host.state(), dayTokens, ...(contextTokens === undefined || contextTokens === null ? {} : { contextTokens }) });
     if (this.paused || !dayExhausted(dayTokens, this.dayTokens, now)) {
       return;
     }
