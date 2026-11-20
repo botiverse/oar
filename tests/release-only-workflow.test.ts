@@ -18,15 +18,30 @@ function readBlock(workflow: string, marker: string, indent: number): string {
   return lines.join("\n");
 }
 
-async function workflowScripts(): Promise<{ readonly filter: string; readonly gate: string; readonly recovery: string; readonly raw: string }> {
+function readStep(job: string, name: string): { readonly header: string; readonly run: string } {
+  const [, after] = job.split(`      - name: ${name}\n`);
+  expect(after, name).toBeDefined();
+  const [header = ""] = (after ?? "").split("        run: |\n");
+  return { header, run: readBlock(after ?? "", "        run: |\n", 10) };
+}
+
+async function workflowScripts(): Promise<{
+  readonly filter: string;
+  readonly gate: string;
+  readonly tagGate: string;
+  readonly tagHeader: string;
+  readonly recovery: string;
+  readonly raw: string;
+}> {
   const content = await readFile(".github/workflows/release.yml", "utf8");
   const raw = content.replaceAll("\r\n", "\n");
   const filter = readBlock(raw, "  RELEASE_PR_FILTER: |\n", 4);
-  const [, publishJob] = raw.split("\n  publish:\n");
-  const gate = readBlock(publishJob ?? "", "        run: |\n", 10);
-  const [, recoveryJob] = raw.split("\n  release_only:\n");
-  const recovery = readBlock(recoveryJob ?? "", "        run: |\n", 10);
-  return { filter, gate, recovery, raw };
+  const [, publishJob = ""] = raw.split("\n  publish:\n");
+  const gate = readStep(publishJob, "gate a dispatched release on main's CI").run;
+  const tag = readStep(publishJob, "gate a tagged release on its release PR");
+  const [, recoveryJob = ""] = raw.split("\n  release_only:\n");
+  const recovery = readStep(recoveryJob, "verify publication and recover the GitHub release").run;
+  return { filter, gate, tagGate: tag.run, tagHeader: tag.header, recovery, raw };
 }
 
 async function prepare(directory: string, scenario: Record<string, unknown>, filter: string): Promise<NodeJS.ProcessEnv> {
@@ -53,7 +68,7 @@ async function execute(script: string, directory: string, env: NodeJS.ProcessEnv
 // Execute the actual bash step with command responses controlled at the network boundary.
 // The job itself runs only on ubuntu-latest; other systems do not need bash/jq installed.
 async function runStep(
-  step: "gate" | "recovery",
+  step: "gate" | "tagGate" | "recovery",
   scenario: Record<string, unknown> = {},
   env: Record<string, string> = {},
 ): Promise<{ ok: boolean; calls: ReturnType<typeof asRecord>[]; output: string }> {
@@ -77,12 +92,45 @@ const dispatchGate = async (scenario: Record<string, unknown> = {}, env: Record<
   return result;
 };
 
-test("publish declares pull-requests: read and shares RELEASE_PR_FILTER with release_only", async () => {
-  const { gate, recovery: recoveryCode, raw } = await workflowScripts();
+const tagGate = async (scenario: Record<string, unknown> = {}, env: Record<string, string> = {}): ReturnType<typeof runStep> => {
+  const result = await runStep("tagGate", scenario, { GITHUB_REF: "refs/tags/v0.80.2", ...env });
+  return result;
+};
+
+test("publish declares pull-requests: read and shares RELEASE_PR_FILTER across dispatch, tag, and recovery", async () => {
+  const { gate, tagGate: tagCode, tagHeader, recovery: recoveryCode, raw } = await workflowScripts();
   const publishPermissions = readBlock(raw.split("\n  publish:\n")[1] ?? "", "    permissions:\n", 6);
   expect(publishPermissions).toContain("pull-requests: read");
+  expect(tagHeader).toContain("if: github.event_name == 'push'");
+  expect(tagHeader).toMatch(/GH_TOKEN:\s+\$\{\{\s*github\.token\s*\}\}/u);
   expect(gate).toContain('"$RELEASE_PR_FILTER"');
+  expect(tagCode).toContain('"$RELEASE_PR_FILTER"');
   expect(recoveryCode).toContain('"$RELEASE_PR_FILTER"');
+});
+
+test.skipIf(process.platform !== "linux")("tag gate accepts a matching merged release PR without dispatch-only checks", async () => {
+  const result = await tagGate({ existingTag: true, ciConclusion: "failure" });
+  expect(result.ok, result.output).toBe(true);
+  expect(result.calls.map(call => call?.args)).toEqual([
+    ["api", "--paginate", "--slurp", `repos/botiverse/oar/commits/${"a".repeat(40)}/pulls?per_page=100`],
+  ]);
+});
+
+test.skipIf(process.platform !== "linux").each([
+  { nonReleasePr: true }, { wrongCommit: true }, { unmerged: true }, { ambiguous: true },
+  { nullNotes: true }, { apiFailure: true },
+])("tag gate refuses a tag on a non-release or mismatched commit: %j", async scenario => {
+  const result = await tagGate(scenario);
+  expect(result.ok, result.output).toBe(false);
+  expect(result.calls.map(call => call?.args)).toEqual([
+    ["api", "--paginate", "--slurp", `repos/botiverse/oar/commits/${"a".repeat(40)}/pulls?per_page=100`],
+  ]);
+});
+
+test.skipIf(process.platform !== "linux")("tag gate rejects a non-version tag before any network command", async () => {
+  const result = await tagGate({}, { TAG: "v0.80.2; touch forbidden" });
+  expect(result.ok, result.output).toBe(false);
+  expect(result.calls).toEqual([]);
 });
 
 test.skipIf(process.platform !== "linux")("dispatch gate accepts a matching merged release PR whose CI succeeded", async () => {

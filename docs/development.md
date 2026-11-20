@@ -679,8 +679,9 @@ flaked on the release commit, start a fresh run with
 `stamp workflow run ci.yml --repo botiverse/oar` and dispatch again once it
 passes. npm trusted
 publishing (OIDC) authenticates the publish job; the repo holds no npm
-token. Pushing a `vX.Y.Z` tag by hand still publishes that commit, without
-the CI gate or the GitHub release.
+token. Pushing a `vX.Y.Z` tag by hand still publishes that commit when it is
+the matching merged release pull request, without the CI gate or the GitHub
+release.
 
 ### Recover after npm publication
 
