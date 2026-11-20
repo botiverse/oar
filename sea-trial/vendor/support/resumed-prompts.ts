@@ -49,17 +49,34 @@ export function resumeCompaction(): { readonly summaries: string[]; readonly arm
   };
 }
 
+function matchesTurnInput(text: unknown, input: string): boolean {
+  if (typeof text !== "string") { return false; }
+  return text === input // Plain user text (Codex, Claude, OpenCode, Qwen, Pi, Pi Durable, DSH, Factory)
+    || text === `<user_query>\n${input}\n</user_query>` // Grok 1.0.89 ACP user envelope
+    || text.startsWith(`<USER_REQUEST>\n${input}\n</USER_REQUEST>`) // Antigravity agy 1.5.13 Gemini user envelope
+    || (text.startsWith("<system-reminder>") && text.endsWith(`\n\n${input}`)); // Qoder 1.1.78 chatAsk combined reminder + user prompt
+}
+
 /** Select by the last user input, never by the system markers being tested. */
 export function requestsForTurn(requests: readonly RawProviderRequest[], input: string): { readonly system: string; readonly history: string }[] {
   return requests.flatMap(({ body }) => {
     const request = asRecord(body);
+    if (Array.isArray(request?.contents)) {
+      if (!Array.isArray(request.tools) || request.tools.length === 0) { return []; }
+      const contents = request.contents.map((entry: unknown) => asRecord(entry));
+      const parts = contents.findLast((entry) => entry?.role === "user")?.parts;
+      const texts = Array.isArray(parts) ? parts.map((part) => asRecord(part)?.text) : [];
+      if (!texts.some((text) => matchesTurnInput(text, input))) { return []; }
+      return [{ system: JSON.stringify([request.systemInstruction]), history: JSON.stringify(contents) }];
+    }
     const rawMessages = request?.messages ?? request?.input;
     const messages = Array.isArray(rawMessages) ? rawMessages.map((message: unknown) => asRecord(message)) : [];
     // Memory extraction, naming and compaction may include saved conversation
     // messages, but their final user message is not this main turn's input.
-    const content = messages.findLast((message) => message?.role === "user")?.content;
+    // DSH appends a synthetic runtime-context snapshot after the user's turn.
+    const content = messages.findLast((message) => message?.role === "user" && !(typeof message.content === "string" && message.content.startsWith("Current runtime context.")))?.content;
     const texts = typeof content === "string" ? [content] : (Array.isArray(content) ? content.map((part) => asRecord(part)?.text) : []);
-    if (!texts.includes(input)) { return []; }
+    if (!texts.some((text) => matchesTurnInput(text, input))) { return []; }
     return [{
       system: JSON.stringify([request?.system, request?.instructions, ...messages.filter((message) => message?.role === "system" || message?.role === "developer")]),
       history: JSON.stringify(messages.filter((message) => message?.role === "user" || message?.role === "assistant")),

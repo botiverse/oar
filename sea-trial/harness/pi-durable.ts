@@ -5,12 +5,14 @@ import { createRegistry, Harness, MemoryStorage, type Storage, type Registry, ty
 import { LLMock } from "@copilotkit/aimock";
 import { createPiDurableRuntime } from "../../packages/oar/src/runtimes/pi-durable/index.js";
 import type { Runtime } from "../../packages/oar/src/contracts/runtime.js";
+import { startRawCapture, type RawProviderRequest } from "./raw-capture.js";
 
 export interface DurableFixture {
   readonly harness: Harness;
   readonly models: ReturnType<typeof createModels>;
   readonly registry: Registry;
   readonly mock: LLMock;
+  readonly raw: readonly RawProviderRequest[];
   readonly runtime: Runtime;
   close(): Promise<void>;
 }
@@ -22,11 +24,12 @@ export async function startDurableFixture(configure?: (mock: LLMock) => void, st
     mock.onMessage(/^(?![\s\S]*slow)[\s\S]*$/u, { content: "ok" }, { latency: 80 });
   } else { configure(mock); }
   await mock.start();
+  const capture = await startRawCapture(mock.url);
   const models = createModels();
-  models.setProvider(createProvider({ id: "aimock", baseUrl: mock.url, api: anthropicMessagesApi(),
+  models.setProvider(createProvider({ id: "aimock", baseUrl: capture.url, api: anthropicMessagesApi(),
     auth: { apiKey: { name: "aimock", resolve: async () => { await Promise.resolve(); return { auth: { apiKey: "aimock" }, source: "test" }; } } },
-    models: [{ api: "anthropic-messages", provider: "aimock", baseUrl: mock.url, id: "aimock-model", name: "aimock", reasoning: false, input: ["text"], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 200_000, maxTokens: 16_384 }],
+    models: [{ api: "anthropic-messages", provider: "aimock", baseUrl: capture.url, id: "aimock-model", name: "aimock", reasoning: false, input: ["text"], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 200_000, maxTokens: 16_384 }],
   }));
   const harness = await Harness.open(storage, { models, registry, ...(env === undefined ? {} : { env }), settings: { ...settings, retry: { enabled: false }, progress: { partialIntervalMs: 0 } } }, BACKGROUND_CONTEXT);
-  return { harness, models, registry, mock, runtime: createPiDurableRuntime({ harness, models }), close: async () => { await harness.close(BACKGROUND_CONTEXT); await mock.stop(); } };
+  return { harness, models, registry, mock, raw: capture.requests, runtime: createPiDurableRuntime({ harness, models }), close: async () => { await harness.close(BACKGROUND_CONTEXT); await capture.stop(); await mock.stop(); } };
 }
