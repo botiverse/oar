@@ -10,18 +10,25 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { createPiRuntime, type SessionOptions } from "../../packages/oar/src/index.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 import { killGraceMs } from "../../packages/oar/src/shared/executable/index.js";
-import { eventually, gone } from "../../tests/fixtures/process-tree.js";
+import { processStart } from "../../tests/fixtures/process-start.js";
+import { eventually } from "../../tests/fixtures/process-tree.js";
 
+const identityModule = new URL("../../tests/fixtures/process-start.ts", import.meta.url).href;
 const installed = { kind: "available", via: "bundled" } as const;
 afterEach(() => { vi.unstubAllEnvs(); });
 
-function children(file: string): { pid: number; noSession: boolean; directory: string | undefined }[] {
+function children(file: string): { pid: number; start: string; noSession: boolean; directory: string | undefined }[] {
   return readFileSync(file, "utf8").trim().split("\n").map((line) => {
     const row = asRecord(parseJson(line));
-    assert.ok(row !== null && typeof row.pid === "number");
+    assert.ok(row !== null && typeof row.pid === "number" && typeof row.start === "string");
     assert.ok(row.directory === undefined || typeof row.directory === "string");
-    return { pid: row.pid, noSession: row.noSession === true, directory: row.directory };
+    return { pid: row.pid, start: row.start, noSession: row.noSession === true, directory: row.directory };
   });
+}
+
+async function expectExited(child: { pid: number; start: string }, withinMs: number): Promise<void> {
+  const exited = await eventually(() => processStart(child.pid) !== child.start, withinMs);
+  expect(exited, `Pi reader ${String(child.pid)} started at ${child.start} is still present`).toBe(true);
 }
 
 async function fixture() {
@@ -42,9 +49,10 @@ async function fixture() {
   await mkdir(path.join(agentDir, "skills", "broken"));
   await writeFile(path.join(agentDir, "skills", "broken", "SKILL.md"), "---\nname: [invalid\n---\nPRIVATE BROKEN SKILL\n");
   await writeFile(path.join(agentDir, "extensions", "reader.ts"), `import { appendFileSync } from "node:fs";
+import { currentProcessStart } from ${JSON.stringify(identityModule)};
 export default function(pi) {
   pi.registerCommand(process.env.OAR_READER_COMMAND, { description: "Environment command", handler: async () => {} });
-  pi.on("session_start", () => appendFileSync(${JSON.stringify(capture)}, JSON.stringify({ pid: process.pid,
+  pi.on("session_start", () => appendFileSync(${JSON.stringify(capture)}, JSON.stringify({ pid: process.pid, start: currentProcessStart(),
     noSession: process.argv.includes("--no-session"), directory: process.env.OAR_PI_RPC_DIRECTORY }) + "\\n"));
 }`);
   vi.stubEnv("OAR_PI_AGENT_DIR", hostDir);
@@ -85,7 +93,7 @@ describe.skipIf(process.env.OAR_TEST !== "pi-rpc-aimock")("native Pi RPC readers
       for (const child of processes) {
         expect(child.noSession).toBe(true);
         // oxlint-disable-next-line no-await-in-loop -- Each native read has its own process lifecycle.
-        expect(await gone(child.pid)).toBe(true);
+        await expectExited(child, 5000);
         assert.ok(child.directory !== undefined);
         expect(existsSync(child.directory)).toBe(false);
       }
@@ -97,9 +105,10 @@ describe.skipIf(process.env.OAR_TEST !== "pi-rpc-aimock")("native Pi RPC readers
     const pidFile = path.join(f.root, "stalled.json"), script = path.join(f.root, "stalled-pi.mjs");
     const { PI_AI_VERSION } = await import("@earendil-works/pi-ai");
     await writeFile(script, `import { writeFileSync } from "node:fs";
+import { currentProcessStart } from ${JSON.stringify(identityModule)};
 if (process.argv.includes("--version") && ${JSON.stringify(stage)} !== "version") { console.log(${JSON.stringify(PI_AI_VERSION)}); }
-else { writeFileSync(${JSON.stringify(pidFile)}, JSON.stringify({ pid: process.pid, directory: process.env.OAR_PI_RPC_DIRECTORY })); setInterval(() => {}, 1000); }`);
-    const runtime = createPiRuntime({ execution: "subprocess", command: process.execPath, args: [script] });
+else { writeFileSync(${JSON.stringify(pidFile)}, JSON.stringify({ pid: process.pid, start: currentProcessStart(), directory: process.env.OAR_PI_RPC_DIRECTORY })); setInterval(() => {}, 1000); }`);
+    const runtime = createPiRuntime({ execution: "subprocess", command: process.execPath, args: ["--import", import.meta.resolve("tsx"), script] });
     try {
       const options = { cwd: f.cwd, env: f.env, timeoutMs: 8000 };
       if (reader === "models") {
@@ -111,7 +120,7 @@ else { writeFileSync(${JSON.stringify(pidFile)}, JSON.stringify({ pid: process.p
       const child = children(pidFile)[0];
       assert.ok(child !== undefined);
       // Timeout begins the same bounded native shutdown as a session dispose.
-      expect(await gone(child.pid, killGraceMs() + 2000)).toBe(true);
+      await expectExited(child, killGraceMs() + 2000);
       const directory = child.directory;
       if (stage === "query") { expect(directory).toBeTypeOf("string"); }
       if (directory !== undefined) { expect(await eventually(() => !existsSync(directory), 5000)).toBe(true); }
