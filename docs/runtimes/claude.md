@@ -645,7 +645,8 @@ fastMode true still reports off and is correctly refused before a model call.
 
 On Claude 2.1.329, `get_settings` reported only the last `--settings`
 value when given an inline object and a settings file in either order.
-When OAR supplies settings for an explicit service tier or an instruction exclusion,
+Whenever OAR supplies its own settings
+([`claudeSettingsArgs`](../../packages/oar/src/runtimes/claude/launch-args.ts)),
 open refuses both `--settings VALUE` and `--settings=VALUE` in `launchArgs`
 with `UnsupportedOptionError("launchArgs")` before starting Claude.
 When OAR supplies no settings, the host may pass a settings file or inline JSON.
