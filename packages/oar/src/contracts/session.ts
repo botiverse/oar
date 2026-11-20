@@ -198,8 +198,7 @@ export interface AdapterSession {
   rawEvents(observer: RawEventObserver, cursor?: Cursor): Unsubscribe; // the stream itself, one record at a time. Side-tap: sync, never awaited; a throwing observer must not affect the run or other observers. With a cursor: replays every retained record after `afterSeq` synchronously, then continues live: no loss, no duplication.
   records(): readonly RawEvent[]; // every record this process observed, in seq order
   graph(): SessionGraph;
-  /** Path the runtime gave its session file, once the file exists. The format belongs to the runtime. */
-  nativeSessionFile?(): Promise<string | null>;
+  nativeSessionFile?(): Promise<string | null>; // Path reported by the runtime once the file exists. The runtime owns its format.
   resources?(): Promise<SessionResources | null>; // the runtime's memory, read now (`SessionResources`); null once its process has exited, and on Windows (no reader yet). ABSENT where the runtime has no process of its own (in-process pi, in-process cursor: its memory is the host's) and for cursor's subprocess mode (no reader).
   /** Only when opened with modelRequests. Null before this open's first attributed request and from dispose or exit. */
   lastModelRequest?(): Promise<ModelRequest | null>;
