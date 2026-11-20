@@ -31,11 +31,10 @@ export function writeHeldInput<S extends StreamJsonProjectionState>(state: Strea
     state.active = next.request;
     if (driver.commandLifecycle && next.inputId !== undefined) { driver.writtenQueues.set(next.inputId, next.request); }
     state.projection = streamJsonPrompted(state.projection, next.inputId, false, driver.commandLifecycle);
-    if (!driver.commandLifecycle) { state.spontaneous = true; }
     state.child.write(message);
     return { kind: "accepted" };
   } catch (error) {
-    state.active = null; state.spontaneous = false; state.projection = before;
+    state.active = null; state.projection = before;
     if (next.inputId !== undefined) { driver.writtenQueues.delete(next.inputId); }
     // A thrown write is not a native refusal. Keep ownership without retrying;
     // the host can withdraw the held input or release the session.

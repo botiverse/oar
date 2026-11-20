@@ -14,6 +14,23 @@ test("Qoder's startup init does not invent an active turn", () => {
   expect(next.commands.flatMap((command) => command.kind === "frame" ? command.body.events : []).some((event) => event.kind === "turn_active")).toBe(false);
 });
 
+test("only an unowned root init after startup adopts a Qoder turn", () => {
+  let state = initialQoderProjection();
+  const fold = (native: Record<string, unknown>) => {
+    const result = foldStreamJsonStdout(qoderProjectionProfile, state, native);
+    ({ state } = result);
+    return result.commands.flatMap(c => c.kind === "frame" ? c.body.events.filter(e => e.kind === "turn_active") : []);
+  };
+  const init = { type: "system", subtype: "init" };
+  expect([{ ...init, parent_tool_use_id: "child" }, init].flatMap(frame => fold(frame))).toEqual([]);
+  state = streamJsonPrompted(state, "host");
+  const command = { type: "command_lifecycle", command_uuid: "host" };
+  expect([{ ...command, state: "queued" }, init, { ...command, state: "started" }].map(frame => fold(frame)))
+    .toEqual([[], [], [{ kind: "turn_active", inputId: "host" }]]);
+  expect([{ type: "result", subtype: "success" }, { ...init, parent_tool_use_id: "child" }, init, init].map(frame => fold(frame)))
+    .toEqual([[], [], [{ kind: "turn_active" }], []]);
+});
+
 test("native cancellation before start drops only that input without inventing a turn end", () => {
   const [queued, dropped] = cancelled; assert.ok(queued && dropped);
   const prompted = streamJsonPrompted(initialQoderProjection(), queued.command_uuid);

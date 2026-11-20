@@ -370,6 +370,12 @@ turn boundary: it follows the prompt's result, but for a steer can precede
 that result. Without a matching queued report, the existing
 request/init/result behavior remains.
 
+On Claude 2.1.326 a background shell finishing after idle triggered a root
+`system/init`. OAR reported the notification turn running from that frame.
+Input delivered during its foreground tool call joined the turn. With a
+text-only reply, Claude started the input after the notification result.
+[Native delivery controls](../../sea-trial/vendor/stream-json-notification-delivery.vendor.test.ts)
+
 `input_queued` only arms the pending input: it changes neither status nor
 the input's place in the view (a prompt stays `running/waiting_model` from
 its request). A conflicting native turn moves its input to pending and

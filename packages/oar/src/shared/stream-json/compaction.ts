@@ -10,13 +10,13 @@ import type { StreamJsonProjectionState } from "./state.js";
 export function streamJsonCompaction<S extends StreamJsonProjectionState>(
   kernel: SessionKernel,
   profile: StreamJsonSessionProfile<S>,
-  state: { readonly child: LineProcess; active: RequestRecord | null; spontaneous: boolean; projection: S },
+  state: { readonly child: LineProcess; active: RequestRecord | null; projection: S },
   released: () => void,
   queued: () => boolean,
 ): ReturnType<typeof manualCompaction> | null {
   const control = profile.compaction;
   if (control === undefined) { return null; }
-  const busy = (): boolean => state.active !== null || state.spontaneous || queued() || state.projection.unstartedInputs.size > 0;
+  const busy = (): boolean => state.active !== null || state.projection.nativeTurnActive || queued() || state.projection.unstartedInputs.size > 0;
   return manualCompaction(kernel, {
     busy, busyReason: control.busyReason, released, ...(control.settledBy === undefined ? {} : { settledBy: control.settledBy }),
     create: () => control.create((request) => {

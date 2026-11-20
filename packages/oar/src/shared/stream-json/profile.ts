@@ -18,8 +18,6 @@ export interface StreamJsonProjectionProfile<S extends StreamJsonProjectionState
   readonly commandLifecycle?: boolean;
   /** This dialect reports the start of compaction with system/status compacting. */
   readonly compactingStatus?: boolean;
-  /** Whether init starts a turn; false for dialects that emit it while idle and report command_lifecycle starts. */
-  readonly initStartsTurn?: boolean;
   /** Keep the streamed prefix when a dialect emits its full assistant after message_stop. */
   readonly assistantAfterMessageStop?: boolean;
   /** False when native partial events omit message_start and the API message id. */

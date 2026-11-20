@@ -29,13 +29,13 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   const kernel = credentials.kernel(sessionId);
   const tasks = profile.stopTask === undefined ? undefined : streamJsonTaskControl(kernel, child, profile.stopTask);
   const userMessage = profile.userMessage ?? streamJsonUserMessage;
-  const state: StreamJsonSessionState<S> = { child, active: null, spontaneous: false, projection: profile.initial };
+  const state: StreamJsonSessionState<S> = { child, active: null, projection: profile.initial };
   // Hold queues until turn end; active-turn writes may steer or become an irreversible native queue.
   const commandLifecycle = profile.projection.commandLifecycle !== false;
   const writtenQueues = new Map<string, RequestRecord>();
   const heldQueue: HeldStreamJsonInput[] = [];
   let dispatching = false;
-  const nativeBusy = (): boolean => !messages.settling() && (state.active !== null || state.spontaneous);
+  const nativeBusy = (): boolean => !messages.settling() && (state.active !== null || state.projection.nativeTurnActive);
   const compaction = streamJsonCompaction(kernel, profile, state, drainHeld, () => heldQueue.length > 0);
   const busy = (): boolean => dispatching || messages.settling() || nativeBusy() || compaction?.busy() === true;
   let canCancelQueued = false;
@@ -68,6 +68,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     if (response.kind === "accepted") { drainHeld(); }
   }
   const processMessage = (message: JsonRecord, receivedAt: number): void => {
+    const wasBusy = busy();
     const { state: nextProjection, commands } = foldStreamJsonStdout(profile.projection, state.projection, message);
     state.projection = nextProjection;
     if (message.type === "command_lifecycle" && message.state === "queued" && typeof message.command_uuid === "string") {
@@ -77,19 +78,14 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     if (message.type === "command_lifecycle" && (message.state === "completed" || message.state === "cancelled") && typeof message.command_uuid === "string") {
       writtenQueues.delete(message.command_uuid);
     }
-    if (message.type === "command_lifecycle" && message.state === "started"
-      && state.active !== null && "inputId" in state.active.body && message.command_uuid === state.active.body.inputId) {
-      state.spontaneous = false;
-    }
     let ended = false;
     let dropped = false;
     for (const command of commands) {
       switch (command.kind) {
         case "frame": {
           // A spontaneous start can arrive at init or at a later queued receipt.
-          if (command.agentPath.length === 0 && command.body.events.some((event) => event.kind === "turn_active" && event.inputId === undefined)) {
-            if (!busy()) { turnRevision += 1; }
-            state.spontaneous = true;
+          if (!wasBusy && command.agentPath.length === 0 && command.body.events.some((event) => event.kind === "turn_active" && event.inputId === undefined)) {
+            turnRevision += 1;
           }
           const nativeResponse = profile.compaction?.responseTo?.(message);
           const correlated = command.agentPath.length === 0 && nativeResponse !== undefined && nativeResponse === compaction?.requestId();
@@ -97,7 +93,9 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
           if (closes) {
             abortFallback.clear(); completeCancellation(); turnRevision += 1;
             if (state.projection.pendingInputId === null) { state.active = null; }
-            state.spontaneous = false;
+            if (correlated && state.projection.nativeTurnActive) {
+              state.projection = { ...state.projection, nativeTurnActive: false, turnActive: false };
+            }
           }
           const cancelled = command.body.events.find((event) => event.kind === "input_dropped");
           if (command.agentPath.length === 0 && cancelled?.kind === "input_dropped" && cancelled.inputId !== undefined) {
@@ -134,7 +132,6 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     if (dropped && !ended && !busy()) {
       abortFallback.clear(); completeCancellation(); turnRevision += 1;
       if (state.projection.pendingInputId === null) { state.active = null; }
-      state.spontaneous = false;
     }
     if (ended || (dropped && !busy())) { drainHeld(); }
   };
@@ -167,7 +164,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     // This Session owns one child. Its projection, including open compactions, ends here.
     kernel.processExited(code, reason);
     state.active = null;
-    state.spontaneous = false;
+    state.projection = { ...state.projection, nativeTurnActive: false, turnActive: false };
     for (const requestId of pendingInterrupts.keys()) {
       pendingInterrupts.delete(requestId);
       kernel.respond(requestId, { kind: "rejected", code: "runtime_exited", reason: "runtime exited" });

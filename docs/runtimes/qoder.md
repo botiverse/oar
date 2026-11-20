@@ -136,7 +136,13 @@ same-directory controls remain part of admission. Reproduce with
 
 `initialize` establishes the control channel. User messages carry a UUID;
 `command_lifecycle` reports queued, started, completed or cancelled inputs.
-`system/init` can arrive while idle and is not evidence that a turn began.
+The opening `system/init` reports configuration while the session is idle.
+After startup, a root `system/init` with no outstanding host input starts a
+native turn, including the reply to a background task. OAR emits
+`turn_active` on that frame and accepts steering. During a tool call,
+next-priority input can join the notification turn. In a text-only reply,
+Qoder starts the input after the notification's result. The user echo and
+command lifecycle show when the input lands. [Native delivery controls](../../sea-trial/vendor/stream-json-notification-delivery.vendor.test.ts)
 The final `result` carries the turn outcome. Native cancellation before an
 input starts can produce only `command_lifecycle cancelled`, without a result.
 

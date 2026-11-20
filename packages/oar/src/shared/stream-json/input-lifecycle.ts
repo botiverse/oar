@@ -16,6 +16,12 @@ export function streamJsonInitialized<S extends StreamJsonProjectionState>(state
   readonly state: S; readonly events: readonly RuntimeEventBody[];
 } {
   if (!root) { return { state, events: [] }; }
+  if (state.startupInit === "pending") {
+    return { state: { ...state, startupInit: "received" }, events: [] };
+  }
+  // In this dialect a host input gets its own started receipt after init.
+  // An init with no outstanding prompt belongs to the runtime's own turn.
+  if (state.startupInit === "received" && state.promptInputId !== null) { return { state, events: [] }; }
   if (!commandLifecycle) {
     return { state: { ...state, turnActive: true, nativeTurnActive: true },
       events: [{ kind: "turn_active", ...(state.promptInputId === null ? {} : { inputId: state.promptInputId }) }] };
