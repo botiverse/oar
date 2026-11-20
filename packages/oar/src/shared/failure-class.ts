@@ -83,6 +83,14 @@ export function anthropicLimitText(message: string): FailureClass | null {
   return null;
 }
 
+/** Explicit input overflow from a provider or ACP's wrapper around its message. */
+export function isContextOverflowMessage(reason: string): boolean {
+  const message = reason.replace(/^Internal error: /iu, "");
+  return /^This model's maximum context length is [\d,]+ tokens\. However, (?:your messages resulted in|you requested) [\d,]+ tokens\b/iu.test(message)
+    || /^Your input exceeds the context window of this model(?:\.|$)/iu.test(message)
+    || /^Prompt (?:is )?too long(?:$|[.:]|\s+·)/iu.test(message);
+}
+
 /**
  * A provider's JSON error body, as Anthropic (`{type: "error", error: {type,
  * message}}`) and OpenAI (`{error: {code, type, message}}`) send it: the
@@ -100,7 +108,7 @@ export function failureFromErrorBody(text: string): FailureClass | null {
   }
   const message = typeof error.message === "string" ? error.message : "";
   if (error.type === "invalid_request_error") {
-    return anthropicLimitText(message) ?? "invalid_request";
+    return isContextOverflowMessage(message) ? "input_too_large" : anthropicLimitText(message) ?? "invalid_request";
   }
   return typeof error.type === "string" ? failureFromErrorCode(error.type) : null;
 }
@@ -113,6 +121,7 @@ export function failureFromErrorBody(text: string): FailureClass | null {
  * moves and this table gets a conscious update.
  */
 export function classifyFailure(reason: string): FailureClass {
+  if (isContextOverflowMessage(reason)) { return "input_too_large"; }
   if (/\b401\b|authenticat(?:e|ed|ion)|\boauth\b|unauthorized|invalid (?:user )?(?:x-)?api[- ]?key|x-api-key|log(?:ged)? ?in/iu.test(reason)) {
     return "auth";
   }

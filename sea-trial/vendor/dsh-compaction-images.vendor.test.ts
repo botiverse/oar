@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test } from "vitest";
-import { awaitTurnEnd, type Session } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, promptAndWait, type Session } from "../../packages/oar/src/index.js";
 import { dshEnabled, eventsOf, say, withDshFixture } from "./support/dsh-fixture.js";
 
 const png = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAKElEQVR4nO3NsQ0AAAzCMP5/un0CNkuZ41wybXsHAAAAAAAAAAAAxR4yw/wuPL6QkAAAAABJRU5ErkJggg==";
@@ -93,4 +93,47 @@ test.skipIf(!dshEnabled).each([true, false])("DSH abort reaches the active compa
     await expect.poll(() => session.status().value.kind).toBe("idle");
     await prompt(session, "after cancellation");
   }, { ...vision, homePatch: [{ id: "compaction-basic", config: { auto: false, retainTokens: 200, headroomTokens: 128, maxTokens: 1024 } }] });
+}, 90_000);
+
+test.skipIf(!dshEnabled)("DSH accepts another input after its compaction provider fails", async () => {
+  let failing = false;
+  await withDshFixture(() => failing
+    ? { kind: "error", status: 400, body: { message: "Controlled compaction failure", type: "invalid_request_error" } }
+    : say("ok"), async ({ open }) => {
+    const session = await open({ model: "aimock/aimock-model" });
+    assert.ok(session.compact !== undefined);
+    await prompt(session, `alpha${" source".repeat(1600)}`);
+    await prompt(session, `bravo${" source".repeat(1600)}`);
+    failing = true;
+    expect(await session.compact({ timeoutMs: 30_000 })).toMatchObject({ kind: "failed", code: "native_failed" });
+    expect(session.status().value.kind).toBe("idle");
+    failing = false;
+    await prompt(session, "continue after failure");
+  }, { ...vision, homePatch: [{ id: "compaction-basic", config: { auto: false, retainTokens: 200, headroomTokens: 128, maxTokens: 1024 } }] });
+}, 90_000);
+
+test.skipIf(!dshEnabled)("DSH preserves the active turn's overflow failure when automatic compaction fails", async () => {
+  let failing = false;
+  let faultCalls = 0;
+  await withDshFixture(() => {
+    if (!failing) { return say("Source information. ".repeat(90)); }
+    faultCalls += 1;
+    const first = faultCalls === 1;
+    return { kind: "error", status: 400, body: { type: "invalid_request_error", code: first ? "context_length_exceeded" : "invalid_request_error",
+      message: first ? "This model's maximum context length is 10000 tokens. However, your messages resulted in 18000 tokens." : "Controlled summary failure" } };
+  }, async ({ open }) => {
+    const session = await open({ model: "aimock/aimock-model" });
+    await prompt(session, "alpha source ".repeat(300));
+    await prompt(session, "beta source ".repeat(300));
+    const before = session.records().length;
+    failing = true;
+    expect(await promptAndWait(session, "overflow")).toMatchObject({ kind: "ended", outcome: { kind: "failed", failure: "input_too_large" } });
+    const events = eventsOf(session.records().slice(before), session.id);
+    const ended = events.find(event => event.kind === "compaction_ended");
+    expect(ended?.outcome).toBe("failed");
+    expect(ended?.reason).toContain("Controlled summary failure");
+    expect(session.status().value.kind).toBe("idle");
+    failing = false;
+    await prompt(session, "after recovery");
+  }, { homePatch: [{ id: "compaction-basic", config: { auto: true, retainTokens: 200, headroomTokens: 128, maxTokens: 1024 } }] });
 }, 90_000);

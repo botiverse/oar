@@ -1,6 +1,6 @@
 import type { UtcInstant } from "../../contracts/account-usage.js";
 import type { FailedTurn, FailureClass } from "../../contracts/session.js";
-import { anthropicLimitText, failureFromStatus } from "../../shared/failure-class.js";
+import { anthropicLimitText, failureFromStatus, isContextOverflowMessage } from "../../shared/failure-class.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 
@@ -119,6 +119,7 @@ export function claudeFailure(reason: string, facts: ClaudeFailureFacts): Failed
     // A subscription limit refuses requests until a reset claude named: a usage limit, not throttling.
     return { kind: "failed", reason, failure: "quota", ...withStatus, resetsAt: limitResetsAt };
   }
+  if ((category === "invalid_request" || (category === null && status === 400)) && isContextOverflowMessage(reason)) { return failed("input_too_large"); }
   const named = category === null ? undefined : CATEGORIES[category];
   if (named !== undefined) {
     return failed(named);

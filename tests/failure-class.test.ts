@@ -40,7 +40,7 @@ test.each([
   ['{"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed the rate limit"}}', "rate_limited"],
   ['{"type":"error","error":{"type":"invalid_request_error","message":"You have reached your specified API usage limits. You will regain access on 2026-11-01 at 00:00 UTC."}}', "quota"],
   ['{"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API."}}', "billing"],
-  ['{"type":"error","error":{"type":"invalid_request_error","message":"prompt is too long: 250000 tokens > 200000 maximum"}}', "invalid_request"],
+  ['{"type":"error","error":{"type":"invalid_request_error","message":"prompt is too long: 250000 tokens > 200000 maximum"}}', "input_too_large"],
   ['{"type":"error","error":{"type":"billing_error","message":"This organization has a billing issue."}}', "billing"],
   ['{"type":"error","error":{"type":"api_error","message":"Internal server error"}}', "provider"],
   ['{"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}', "overloaded"],
