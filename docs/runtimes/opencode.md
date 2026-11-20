@@ -352,6 +352,8 @@ The inspected 2.2.1 bootstrap semaphore is process-local. These observations
 do not establish that every startup failure has this cause, or that warmup
 is a general fix.
 
+On Windows, the full suite twice recorded `configure database / disk I/O error` on an initialized OpenCode 2.2.7 database. The cause is unknown. All 20 opens that overlapped disposal of a busy peer reached the expected effort refusal without a database error. [Paired Windows run](https://github.com/botiverse/oar/actions/runs/44724750356/job/136249201784)
+
 OAR serializes isolated ACP process startup in-process, per resolved
 OpenCode data directory (XDG_DATA_HOME/opencode, or the native HOME fallback).
 The gate starts before spawn and ends at the ACP initialize response, process
