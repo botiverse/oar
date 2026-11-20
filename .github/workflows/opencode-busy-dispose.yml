@@ -1,0 +1,30 @@
+name: OpenCode busy disposal on Windows
+on:
+  pull_request:
+    paths:
+      - 'experiments/opencode-busy-dispose/**'
+      - '.github/workflows/opencode-busy-dispose.yml'
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - run: node .github/scripts/runtime-install.mjs opencode-cleanup
+      - name: Compare overlapping and settled disposal on a prepared home
+        shell: pwsh
+        run: |
+          pnpm exec tsx experiments/opencode-busy-dispose/compare.ts | Tee-Object -FilePath "$env:RUNNER_TEMP/pairs.jsonl"
+          exit $LASTEXITCODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: opencode-windows-disposal
+          path: ${{ runner.temp }}/pairs.jsonl
