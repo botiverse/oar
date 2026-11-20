@@ -96,14 +96,15 @@ test("concurrent sessions on a fresh home wait for the first native initializati
   `);
 });
 
-test("a queued client can be killed without spawning later or blocking the initializer", async () => {
+test.each(["kill", "close"] as const)("%s cancels a queued client without spawning it or blocking the initializer", async (method) => {
   const home = await freshHome();
   const native = coldNativeHome();
   const first = startAppServerClient("codex", { CODEX_HOME: home });
   const initialize = first.request("initialize", {});
   const queued = startAppServerClient("codex", { CODEX_HOME: home });
   const failed = expect(queued.request("initialize", {})).rejects.toThrow("cancelled before spawn");
-  queued.kill();
+  if (method === "kill") { queued.kill(); }
+  else { assert.equal(typeof queued.close, "function"); await queued.close?.(); }
   await failed;
   expect(await queued.exited).toBeNull();
   (await native.firstReady)();
