@@ -1136,6 +1136,29 @@ MCP-only (2026-09-16; [query contract](../spec/inventory.md),
 
 ### Session MCP servers
 
+Codex 0.169.0 and 0.170.0 report startup per server before the first input.
+Both can send the first model request while a server is still starting. In
+a local provider control, holding `tools/list` for 6.5 seconds left that
+tool out of the first request on both versions. Waiting for the named
+server's native `ready` report included its tool on turn one, even when a
+second server failed.
+
+On these two installations, `sessionCapabilities(installation).mcpStartup`
+reports `{ kind: "per_server", firstModelRequest: "may_start_pending" }`.
+Other Codex versions return `{ kind: "unknown" }` until measured. Read the
+latest reported states with `mcpStartupOf(session.records(), session.id)`.
+A missing name has no observed state. Native startup messages with a
+thread ID produce `mcp_server_startup` events with the server name and
+`pending`, `ready`, `failed` or `cancelled`. A ready report covers startup;
+tool filters and subsequent configuration can still change the catalog.
+
+A host that needs specific servers on turn one can subscribe with
+`session.events(observer, { cursor: { sessionId: session.id, afterSeq: -1 } })`.
+The subscription replays startup reports and continues live without a gap.
+Filter on the session ID and required names before submitting input. Hosts
+choose how to handle a failed server, cancellation or session exit. OAR
+leaves ordinary input available while optional servers start.
+
 `SessionOptions.mcpServers` is the `config` override `mcp_servers` on both
 `thread/start` and `thread/resume`, one table entry per server: stdio
 `{command, args, env, enabled: true}`, http `{url, http_headers, enabled:

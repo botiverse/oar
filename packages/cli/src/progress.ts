@@ -134,6 +134,7 @@ export function createProgressRenderer(
       case "input_handled": case "input_dropped":
       case "session_linked":
       case "user_message":
+      case "mcp_server_startup":
       case "goal_changed":
       case "usage":
       case "model":

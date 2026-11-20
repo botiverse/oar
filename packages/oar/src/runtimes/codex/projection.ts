@@ -173,12 +173,26 @@ function errorDetail(params: JsonRecord): string {
   return [message, details].filter((part) => part.length > 0).join(": ");
 }
 
+function codexMcpStartup(server: string, status: unknown): RuntimeEventBody[] {
+  switch (status) {
+    case "starting": return [{ kind: "mcp_server_startup", server, status: "pending" }];
+    case "ready": case "failed": case "cancelled":
+      return [{ kind: "mcp_server_startup", server, status }];
+    default: return [];
+  }
+}
+
 function viewsFor(state: CodexProjectionState, reporter: string, method: string, params: JsonRecord): RuntimeEventBody[] {
   switch (method) {
     case "error": {
       if (params.willRetry !== true) { return []; }
       const reason = errorDetail(params);
       return [{ kind: "retry", attempt: (state.retries.get(reporter) ?? 0) + 1, ...(reason.length > 0 ? { reason } : {}) }];
+    }
+    case "mcpServer/startupStatus/updated": {
+      // Codex can also send connection-wide reports with no thread identity.
+      if (typeof params.threadId !== "string" || params.threadId.length === 0 || typeof params.name !== "string" || params.name.length === 0) { return []; }
+      return codexMcpStartup(params.name, params.status);
     }
     case "thread/goal/updated":
     case "thread/goal/cleared":
