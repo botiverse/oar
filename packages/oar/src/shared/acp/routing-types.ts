@@ -35,7 +35,9 @@ export interface AcpRouting<T> {
   retired(id: string): boolean;
   inUse(id: string): boolean;
   retireUnowned(id: string): boolean;
-  attach(target: T, credentials: CredentialRedactor): AcpOwner<T>;
+  /** Register every acquired lease, including one that falls back before it has a session owner. */
+  registerCredentials(credentials: CredentialRedactor): void;
+  attach(target: T): AcpOwner<T>;
   notify(method: string, params: unknown, deliver: (target: T, ingress: AcpIngress) => void): void;
   request(method: string, params: unknown, requestId?: JsonRpcId): Promise<{ readonly target: T; readonly ingress: AcpIngress; readonly active: () => boolean }>;
   diagnostic(method: string, params: unknown, reason?: AcpUnattributed["reason"]): void;

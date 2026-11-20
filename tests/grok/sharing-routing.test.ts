@@ -11,8 +11,10 @@ function fixture() {
   const deliveries: { owner: string; params: unknown; receivedAt: number }[] = [];
   const routing = createAcpRouting<string>({ associations: grokSharedAssociations, associationChecks: grokSharedAssociationChecks, requestWaitMs: 1000,
     diagnostic: d => { diagnostics.push(d); } });
-  const a = routing.attach("A", sessionCredentialRedactor({ env: { API_KEY: "fixture-private-value" } })); a.bind("A");
-  const b = routing.attach("B", sessionCredentialRedactor({ env: { API_KEY: "fixture-private-value-long-tail" } })); b.bind("B");
+  routing.registerCredentials(sessionCredentialRedactor({ env: { API_KEY: "fixture-private-value" } }));
+  const a = routing.attach("A"); a.bind("A");
+  routing.registerCredentials(sessionCredentialRedactor({ env: { API_KEY: "fixture-private-value-long-tail" } }));
+  const b = routing.attach("B"); b.bind("B");
   const notify = (method: string, params: JsonRecord): void => {
     routing.ingress(params); routing.notify(method, params, (owner, ingress) => { deliveries.push({ owner, params, receivedAt: ingress.receivedAt }); });
   };
