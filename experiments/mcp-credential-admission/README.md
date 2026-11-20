@@ -34,6 +34,11 @@ and the [bundled SDK dependencies](../../packages/oar/package.json).
 | Antigravity and DSH | 1.5.11 and 0.2.1-rc.5 | Credential-free entries | Both already refuse credentials. |
 | Pi Durable, Cybion and Morph | Adapter declarations | No per-session attachment | All three already refuse session MCP servers. |
 
+Hosts using `serveMcpTools` supply a bearer header on every entry. Managed
+MCP tools therefore cannot attach on Cursor, Devin, Pi RPC or Windows Claude
+with these refusals. Check the installed runtime's refusal declaration before
+opening the session. [Admission contract](../../docs/spec/runtime-matrix.md#refused-session-options)
+
 “Passed” means both recipients received their value, the ordinary tool
 reported neither, and neither value was observed in the file or command-line
 samples. The [counts](samples.json) are from the pre-refusal implementation.

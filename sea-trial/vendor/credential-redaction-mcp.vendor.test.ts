@@ -1,4 +1,4 @@
-import { isPiBackend, piSession } from "./support/pi-runtime.js";
+import { isPiBackend, piRpc, piSession } from "./support/pi-runtime.js";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -9,7 +9,7 @@ import { runTurn } from "./support/asserts.js";
 
 const firstKey = "oar-provider-echo-secret-one";
 
-test.skipIf(!isPiBackend)("Pi MCP metadata stays readable while Authorization and its bare token are redacted", async () => {
+test.skipIf(!isPiBackend)("Pi isolates credentialed MCP metadata in process and refuses it in RPC mode", async () => {
   const directory = await mkdtemp(path.join(tmpdir(), "oar-pi-mcp-credential-test-"));
   const http = await startHttpEcho();
   const password = "oar-database:password/sentinel";
@@ -22,13 +22,18 @@ test.skipIf(!isPiBackend)("Pi MCP metadata stays readable while Authorization an
     mock.on({ hasToolResult: true }, { content: "done" });
   });
   try {
-    const session = await piSession({ kind: "available", via: "bundled" }, {
+    const opening = piSession({ kind: "available", via: "bundled" }, {
       cwd: directory, model: "aimock/aimock-model", env: { DATABASE_URL: databaseUrl },
       mcpServers: [
         { name: "local", command: process.execPath, args: [ECHO_SERVER], env: { DEBUG: "true", LOG_LEVEL: "debug", NODE_ENV: "production", MONGODB_URI: mongoUrl } },
         { name: "remote", type: "http", url: http.url, headers: { "Content-Type": "application/json", Authorization: `Bearer ${firstKey}` } },
       ],
     });
+    if (piRpc) {
+      await expect(opening).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "mcpServers" });
+      return;
+    }
+    const session = await opening;
     try {
       let text = "";
       session.events((event) => { if (event.kind === "tool_call_ended") { text += JSON.stringify(event.content); } });

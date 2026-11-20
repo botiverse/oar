@@ -130,7 +130,9 @@ export async function handOverMcpConfigFile(prefix: string, content: string, fil
     if (await makeFifo(file)) {
       return fifoHandoff(file, content, directory);
     }
-    if (fileRefusal !== undefined) { throw new UnsupportedOptionError("mcpServers", fileRefusal); }
+    if (fileRefusal !== undefined) {
+      throw new UnsupportedOptionError("mcpServers", fileRefusal);
+    }
     await writeFile(file, content, { mode: 0o600, flag: "wx" });
   } catch (error) {
     directory.remove();

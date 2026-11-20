@@ -875,6 +875,14 @@ entry, non-empty `headers` on an http one). Its error names `mcpServers`
 and ends with the entries' names
 ([#392](https://github.com/botiverse/oar/issues/392)).
 
+A runtime may accept a credentialed entry only when OAR has verified that
+the values reach only the designated MCP server. The values must stay out
+of process arguments and the agent's tool environment. A private startup
+file is permitted if it is removed after native initialization and before
+the first turn can run. A runtime that cannot meet this rule or whose
+isolation is unverified declares `mcpServerCredentials`. Every
+`serveMcpTools` entry carries a bearer token, so the same rule applies to it.
+
 `goals: true` is refused everywhere except Codex and DSH ([native goals](#native-goals)),
 `endTurnProcessesOnAbort: true` everywhere except Codex in an isolated
 app-server and Grok ([ending a turn's processes](#ending-a-turns-processes-on-abort)),
@@ -896,21 +904,21 @@ in [user configuration](#user-configuration).
 
 | runtime | refuses | why |
 |---|---|---|
-| cursor | `mcpServerCredentials`, `systemPrompt`, `appendSystemPrompt`, `env` (in process only), `launchArgs`, `serviceTier`, `outputSchema`, `name` | the SDK's local agent fails a run given a system prompt and has no append; in process it runs in the host process with no environment or command line of its own; in subprocess mode `env` is its child's ([execution modes](../runtimes/cursor.md#execution-modes)) |
+| cursor | `mcpServerCredentials`, `systemPrompt`, `appendSystemPrompt`, `env` (in process only), `launchArgs`, `serviceTier`, `outputSchema`, `name` | the SDK's local agent fails a run given a system prompt and has no append; in process it runs in the host process with no environment or command line of its own; in subprocess mode `env` is its child's ([execution modes](../runtimes/cursor.md#execution-modes)). Credential isolation on SDK 1.4.1 is unverified in both modes. [Isolation measurements](../../experiments/mcp-credential-admission/README.md) |
 | codebuddy | `appendSystemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified private prompt-append input; replacement uses a private file ([mapping](../runtimes/codebuddy.md)) |
-| devin | `mcpServerCredentials`, `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | `devin acp` has no verified prompt or tool-denial channel, and `initialize` advertises `sessionCapabilities.additionalDirectories` without verified primary-cwd and tool scoping ([mapping](../runtimes/devin.md)) |
+| devin | `mcpServerCredentials`, `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | `devin acp` has no verified prompt or tool-denial channel, and `initialize` advertises `sessionCapabilities.additionalDirectories` without verified primary-cwd and tool scoping ([mapping](../runtimes/devin.md)). Existing storage evidence covers only its SQLite database. [Isolation measurements](../../experiments/mcp-credential-admission/README.md) |
 | kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)) |
 | antigravity | `disallowedTools`, `systemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `mcpServerCredentials`, `userConfiguration: "exclude"` | the CLI adapter has no verified system prompt replacement channel (append is supported) ([audit](../runtimes/antigravity.md#models-instructions-and-context)); it would store an entry's `env` and `headers` values in plain text in its conversation database ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
 | grok | `disallowedTools`, `serviceTier`, `additionalDirectories`, `name`, `userConfiguration: "exclude"` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay |
 | opencode, both lines | `disallowedTools`, `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | agent permissions can override global denies; permission names do not consistently match tool names |
 | pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping |
-| pi | `mcpServerCredentials` in subprocess mode, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `userConfiguration: "exclude"` | it runs in the host process through its SDK, with no command line |
+| pi | `mcpServerCredentials` in subprocess mode, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `userConfiguration: "exclude"` | it runs in the host process through its SDK, with no command line. Subprocess mode keeps the private MCP configuration file through the first turn. [Isolation measurements](../../experiments/mcp-credential-admission/README.md) |
 | qwen | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
 | dsh | `mcpServerCredentials`, `launchArgs`, `serviceTier`, `outputSchema`, `userConfiguration: "exclude"` | MCP credentials have no verified persistence boundary; launcher overlays can disable the bridge; root `agentOptions.outputSchema` is ignored while the native child API supports it; the other options remain unverified through the bridge ([mapping](../runtimes/dsh.md#session-options)) |
 | factory | `serviceTier`, `outputSchema`, `name`, `additionalDirectories`, `disallowedTools`, `userConfiguration: "exclude"` | no tier; structured output, session titles and tool denials not yet verified; no extra-directory or user-configuration exclusion channel ([mapping](../runtimes/factory.md#session-options)) |
 | qoder | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
 | codex | `userConfiguration: "exclude"`; `endTurnProcessesOnAbort: true` only with shared placement | temporary clean homes break shared history paths after cleanup ([evidence](../runtimes/codex.md#user-configuration)); a shared app-server's process table does not say which session's turn started a process |
-| claude | `goals: true`, `endTurnProcessesOnAbort: true`, `mcpServerCredentials` on Windows | no structured native goal controls on the chosen transport; other value-specific refusals are described on its runtime page |
+| claude | `goals: true`, `endTurnProcessesOnAbort: true`, `mcpServerCredentials` on Windows | no structured native goal controls on the chosen transport; other value-specific refusals are described on its runtime page. Regular-file MCP startup on Windows has no verified point at which the file can be removed before the first turn. [Isolation measurements](../../experiments/mcp-credential-admission/README.md) |
 
 `mcpServers` is refused until a runtime's channel is shown to make its agent
 call an attached server's tool, with the evidence on its runtime page

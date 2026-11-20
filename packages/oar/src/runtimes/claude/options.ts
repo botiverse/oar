@@ -1,6 +1,6 @@
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 
-export const claudeMcpCredentialRefusal = "Claude requires a FIFO for MCP entries with env or headers";
+export const claudeMcpCredentialRefusal = "OAR has not verified that Claude reads a regular-file MCP configuration only at startup";
 
 export const claudeRefusedSessionOptions: RefusedSessionOptions = {
   ...(process.platform === "win32" ? { mcpServerCredentials: claudeMcpCredentialRefusal } : {}),
