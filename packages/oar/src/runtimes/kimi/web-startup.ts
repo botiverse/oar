@@ -1,5 +1,6 @@
-import { readFileSync, realpathSync } from "node:fs";
-import { basename, dirname, join, resolve as resolvePath } from "node:path";
+import { canonicalHomePath } from "../../shared/native-home-initialization.js";
+import { readFileSync } from "node:fs";
+import { join, resolve as resolvePath } from "node:path";
 import { environmentHome } from "../../shared/environment-home.js";
 import { environmentValue } from "../../shared/environment.js";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
@@ -8,15 +9,6 @@ import { kimiWebEndpoint, type WebEndpoint } from "./web-query.js";
 interface Waiter { readonly grant: () => void }
 const homes = new Map<string, Waiter[]>();
 
-function canonical(directory: string): string {
-  try { return realpathSync.native(directory); }
-  catch (error) {
-    if (!(error instanceof Error) || !("code" in error) || error.code !== "ENOENT") { throw error; }
-    const parent = dirname(directory);
-    if (parent === directory) { throw error; }
-    return join(canonical(parent), basename(directory));
-  }
-}
 
 /**
  * Match native trim/nonempty acceptance; never retain or return the token.
@@ -69,7 +61,7 @@ export async function acquireKimiWebStartup(env: NodeJS.ProcessEnv, cwd: string,
   signal.throwIfAborted();
   const configured = environmentValue(env, "KIMI_CODE_HOME");
   const root = configured === undefined || configured === "" ? join(environmentHome(env), ".kimi-code") : configured;
-  const home = canonical(resolvePath(cwd, root));
+  const home = canonicalHomePath(resolvePath(cwd, root));
   if (tokenExists(home)) { return () => {}; }
   const release = await acquire(home, signal);
   try {

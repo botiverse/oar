@@ -43,7 +43,7 @@ export interface DshControl {
  * The bridge's JSON lines. Every line but a command answer goes to `receive` in
  * order, a line that is not an object included, so nothing the process said is lost.
  */
-export function dshControl(child: LineProcess, receive: (message: JsonRecord) => void, redact?: (text: string) => string): DshControl {
+export function dshControl(child: LineProcess & { profileReady?(): void }, receive: (message: JsonRecord) => void, redact?: (text: string) => string): DshControl {
   const stderr = (): string => reportedStderr(child.diagnostics(), redact);
   let sequence = 0;
   let ended = false;
@@ -66,7 +66,7 @@ export function dshControl(child: LineProcess, receive: (message: JsonRecord) =>
     receive(message ?? { type: "stdout", line });
     if (message?.type === "ready") {
       clearTimeout(readyTimer);
-      if (message.protocol === DSH_BRIDGE_PROTOCOL) { resolveReady({ protocol: DSH_BRIDGE_PROTOCOL, services: asRecord(message.services) ?? {} }); }
+      if (message.protocol === DSH_BRIDGE_PROTOCOL) { child.profileReady?.(); resolveReady({ protocol: DSH_BRIDGE_PROTOCOL, services: asRecord(message.services) ?? {} }); }
       else { rejectReady(new Error(`The OAR bridge spoke protocol ${String(message.protocol)}, not ${String(DSH_BRIDGE_PROTOCOL)}`)); }
     } else if (message?.type === "startup-error") {
       clearTimeout(readyTimer);

@@ -1,15 +1,11 @@
-import { realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import type { CancellationObservation } from "../../shared/executable/process-cancellation.js";
 import { environmentValue } from "../../shared/environment.js";
+import { canonicalHomePath, NativeHomeInitialization, type WaitingForInitialization } from "../../shared/native-home-initialization.js";
 import type { AppServerClient } from "./app-server-client.js";
 
-interface InitializingHome { readonly waiting: Set<() => void> }
-const initializing = new Map<string, InitializingHome>();
-// Only an observed successful handshake establishes readiness. Directory
-// identity invalidates it when a host replaces a temporary home at the same path.
-const initialized = new Map<string, string>();
+const homes = new NativeHomeInitialization();
 
 export function codexHomePath(
   env: Readonly<NodeJS.ProcessEnv>,
@@ -22,18 +18,11 @@ export function codexHomePath(
   const configured = environmentValue(env, "CODEX_HOME", platform);
   const directory = pathLib.resolve(cwd, configured === undefined || configured === "" ? fallback : configured);
   if (platform !== process.platform) { return directory; }
-  try { return realpathSync(directory); } catch { return directory; }
-}
-
-function identity(home: string): string | null {
-  try {
-    const stat = statSync(home);
-    return stat.isDirectory() ? `${String(stat.dev)}:${String(stat.ino)}:${String(stat.birthtimeMs)}` : null;
-  } catch { return null; }
+  try { return canonicalHomePath(directory); } catch { return directory; }
 }
 
 /** A queued reader's existing deadline can cancel it before any process starts. */
-function queuedClient(state: InitializingHome, start: () => AppServerClient): AppServerClient {
+function queuedClient(state: WaitingForInitialization, start: () => AppServerClient): AppServerClient {
   const ready = Promise.withResolvers<AppServerClient>();
   const subscriptions: ((client: AppServerClient) => void)[] = [];
   const exitHandlers: ((code: number | null) => void)[] = [];
@@ -62,7 +51,7 @@ function queuedClient(state: InitializingHome, start: () => AppServerClient): Ap
       for (const handler of exitHandlers.splice(0)) { handler(null); }
     }
   };
-  state.waiting.add(begin);
+  const unsubscribe = state.subscribe(begin);
   const subscribe = (callback: (client: AppServerClient) => void): void => {
     if (actual !== null) { callback(actual); } else if (!cancelled) { subscriptions.push(callback); }
   };
@@ -70,7 +59,7 @@ function queuedClient(state: InitializingHome, start: () => AppServerClient): Ap
     if (actual !== null) { actual.kill(); return; }
     if (cancelled) { return; }
     cancelled = true;
-    state.waiting.delete(begin);
+    unsubscribe();
     subscriptions.length = 0;
     ready.reject(new Error("Codex app-server startup cancelled before spawn"));
     for (const handler of exitHandlers.splice(0)) { handler(null); }
@@ -129,25 +118,9 @@ export function coordinateHomeInitialization(
   create: () => AppServerClient,
 ): AppServerClient {
   const home = codexHomePath(env, cwd);
-  const active = initializing.get(home);
-  if (active !== undefined) {
-    return queuedClient(active, () => coordinateHomeInitialization(env, cwd, create));
-  }
-  const current = identity(home);
-  if (current !== null && initialized.get(home) === current) { return create(); }
-  initialized.delete(home);
-  const state: InitializingHome = { waiting: new Set() };
-  initializing.set(home, state);
-  let released = false;
-  const release = (success: boolean): void => {
-    if (released) { return; }
-    released = true;
-    const observed = success ? identity(home) : null;
-    if (observed !== null) { initialized.set(home, observed); }
-    initializing.delete(home);
-    for (const begin of state.waiting) { begin(); }
-    state.waiting.clear();
-  };
+  const release = homes.enter(home);
+  if (release === "ready") { return create(); }
+  if (typeof release !== "function") { return queuedClient(release, () => coordinateHomeInitialization(env, cwd, create)); }
   const createOwner = (): AppServerClient => {
     try { return create(); } catch (error) { release(false); throw error; }
   };

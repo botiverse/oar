@@ -7,9 +7,10 @@ import { spawnLineProcess, type LineProcess } from "../../shared/executable/inde
 import type { JsonRecord } from "../../shared/json.js";
 import { privateTempDir, type PrivateTempDir } from "../../shared/private-temp.js";
 import { dshBridgeSource } from "./bridge.js";
+import { acquireDshProfile } from "./profile-startup.js";
 
 export interface LaunchedDsh {
-  readonly child: LineProcess;
+  readonly child: LineProcess & { profileReady(): void };
   readonly directory: PrivateTempDir;
 }
 
@@ -28,16 +29,20 @@ export function dshEnvironment(env: SessionOptions["env"]): NodeJS.ProcessEnv {
  * bridge on. The profile supplies the native core and its stdin shutdown; no ACP
  * message is exchanged. The overlay is an invocation layer: it edits no user file.
  */
-export async function launchDsh(command: string, cwd: string, env: NodeJS.ProcessEnv, mcpRows: readonly JsonRecord[] = []): Promise<LaunchedDsh> {
+export async function launchDsh(command: string, cwd: string, env: NodeJS.ProcessEnv, mcpRows: readonly JsonRecord[] = [], signal?: AbortSignal): Promise<LaunchedDsh> {
   const directory = await privateTempDir("oar-dsh-");
+  let release: ((ready: boolean) => void) | undefined = undefined;
   try {
     const bridge = path.join(directory.path, "bridge.mjs");
     const patch = path.join(directory.path, "patch.json");
     await writeFile(bridge, dshBridgeSource, { mode: 0o600, flag: "wx" });
     await writeFile(patch, JSON.stringify([{ id: "acp", disabled: true }, { insert: [...mcpRows, { id: "oar-dsh-bridge", name: pathToFileURL(bridge).href, config: { mcpEntries: mcpRows.map((row) => row.id) } }] }]), { mode: 0o600, flag: "wx" });
+    const finish = await acquireDshProfile(env, cwd, signal);
+    release = finish;
+    signal?.throwIfAborted();
     const child = spawnLineProcess(command, ["--profile", "acp", "--patch", patch], { cwd, env, killTree: true, shutdown: "stdin" });
-    child.onExit(() => { directory.remove(); });
+    child.onExit(() => { finish(false); directory.remove(); });
     await child.spawned;
-    return { child, directory };
-  } catch (error) { directory.remove(); throw error; }
+    return { child: { ...child, profileReady: () => { finish(true); } }, directory };
+  } catch (error) { release?.(false); directory.remove(); throw error; }
 }

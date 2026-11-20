@@ -452,7 +452,12 @@ start creates `profiles/acp/{package.json,pnpm-workspace.yaml,cordis.yml,cordis.
 and sessions write `sessions/<cwd key>/<id>/` logs and locks and
 `storages/session_projcache/`. Telemetry and session-log settings stay the user's; the
 test home turns them off with `DSH_TELEMETRY_DISABLED` and disabled plugin rows.
-Six concurrent cold opens on one fresh home all succeeded (four rounds, Linux).
+DSH 0.2.1-rc.5 and 0.2.2-rc.5 write the first `profiles/acp/package.json`
+in place. On 0.2.2-rc.5, two native loaders starting together failed to parse
+the manifest in 3 of 100 fresh shared profiles. All 100 pairs with separate
+profiles loaded successfully. In one OAR process, sessions, model listings and
+skill listings sharing that profile wait for the first bridge to report ready.
+Independent OAR processes sharing a fresh profile can still race.
 DSH also creates `dsh-spill-*` and `dsh-subprocess-*` directories in the system
 temporary directory and leaves them there empty; with one process per session they
 accumulate. They are DSH's own, so OAR does not remove them.
