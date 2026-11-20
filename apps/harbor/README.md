@@ -24,6 +24,14 @@ Cursor's in-process mode refuses a session environment, so leave it unset there.
 the run directory grows past N GiB (checked every 5 minutes); both are
 journaled as `limit`.
 
+`harbor op <agent> <op> [arg]` runs one operation on the agent's current
+session and journals what OAR returned (`kind: "op"`): `abort`, `steer TEXT`,
+`compact`, `stop-task ID`, `usage` (usage, context and status) and
+`breakdown`. Harbor checks the promise each one carries and records a finding
+when it is broken, so a run judges OAR by its contracts rather than by what an
+agent reports. Runs are on demand: exercise the paths a change touches, or the
+ones production data says users hit.
+
 Sessions are recycled the way Raft's constructed initial context does: a
 session idle for more than `--recycle-idle-min` minutes (default 60) with more
 than `--recycle-context` tokens in its context (default 128000) is not resumed
@@ -95,6 +103,11 @@ Turn numbers count per session, as `trace --session N --turn T` does.
 | --- | --- |
 | `turn_failed` | the runtime ended a turn as failed (its reason is kept) |
 | `stalled` | a running turn produced no record for `--stall-min` minutes (default 10) |
+| `declaration_mismatch` | an opened session's `steer`, `stopTask`, `images` or `compact` disagrees with what the installation declared before open |
+| `context_usage_missing` | a completed root turn left `contextUsage()` without the `tokens` or `contextWindow` its declaration promises |
+| `usage_decreased` | the session's token total went down |
+| `abort_without_turn_end` | `harbor op <agent> abort` was accepted but no root `turn_ended` followed within 30 s |
+| `abort_rejected_while_running` | an abort was rejected while the session reported a running turn (review: may be a late race) |
 | `unexpected_exit` | the runtime process exited while nobody was stopping it; harbor resumes the session after 5 s |
 | `resume_loop` | the session exited within 30 s of opening twice in a row; harbor opens a fresh one |
 | `resume_failed` | reopening the recorded session failed; harbor opens a fresh one |

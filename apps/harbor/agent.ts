@@ -1,8 +1,9 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { openVoyage, type Event, type Session, type SessionOptions, type VoyageRecorder } from "../../packages/oar/src/index.js";
+import { installedSessionCapabilities, openVoyage, type Event, type Session, type SessionOptions, type VoyageRecorder } from "../../packages/oar/src/index.js";
 import { allRuntimes } from "../../sea-trial/harness/runtimes.js";
 import { AgentBudget, handoff, openedState } from "./budget.js";
+import { Contracts, type Op } from "./contracts.js";
 import { Deliveries } from "./deliveries.js";
 import type { AgentState, Message, Store } from "./store.js";
 import { messageOf, openWithRules, preamble, processesIn, statusLine, type AgentOptions, type AgentStatusLine } from "./support.js";
@@ -33,7 +34,7 @@ export class HarborAgent {
   private readonly budget: AgentBudget;
   /** Set by a recycle until a fresh session opens, so a retry after a failed open stays fresh and keeps the handoff. */
   private fresh: { readonly handoff: string | null } | null = null;
-  private readonly stalled = new Set<string>();
+  private readonly contracts: Contracts;
   private readonly deliveries: Deliveries;
   state: AgentState;
 
@@ -43,6 +44,10 @@ export class HarborAgent {
       name: state.name, store, state: (): AgentState => this.state,
       setState: (next): void => { this.state = next; this.onState(); },
       resume: (): void => { this.deliveries.resume(); },
+    });
+    this.contracts = new Contracts({
+      name: state.name, store, stallMs: options.stallMs, session: (): Session | null => this.session, opens: (): number => this.state.opens,
+      finding: (check, detail): void => { this.finding(check, detail); },
     });
     this.deliveries = new Deliveries({
       name: state.name, cwd: this.cwd, bin: options.bin, store,
@@ -163,6 +168,7 @@ export class HarborAgent {
     this.turns = 0;
     this.turnStartedAt = null;
     this.budget.opened(session);
+    this.contracts.opened(session, installedSessionCapabilities(runtime, installation));
     this.openFailures = 0;
     const unRaw = session.rawEvents((record) => {
       recorder.record(record);
@@ -194,6 +200,7 @@ export class HarborAgent {
       const ms = this.turnStartedAt === null ? null : event.receivedAt - this.turnStartedAt;
       this.turnStartedAt = null;
       this.budget.turnEnded(this.session, event.receivedAt);
+      if (this.session !== null) { this.contracts.turnEnded(this.session, event); }
       this.lastOutcome = event.outcome.kind;
       const reason = event.outcome.kind === "failed" ? { reason: event.outcome.reason } : {};
       this.store.journal({ agent: this.name, kind: "turn_ended", session: this.state.opens, turn: this.turns, seq: event.seq, outcome: event.outcome.kind, ms, ...reason });
@@ -278,17 +285,10 @@ export class HarborAgent {
   }
 
   /** Called by the daemon's watchdog. */
-  tick(now: number): void {
-    const status = this.session?.status().value;
-    if (status?.kind !== "running" || now - status.lastEventAt <= this.options.stallMs) {
-      return;
-    }
-    const key = `${this.state.opens}:${status.sinceSeq}`;
-    if (!this.stalled.has(key)) {
-      this.stalled.add(key);
-      this.finding("stalled", { session: this.state.opens, sinceSeq: status.sinceSeq, silentMs: now - status.lastEventAt, phase: status.phase });
-    }
-  }
+  tick(now: number): void { this.contracts.tick(now); }
+
+  /** A QA operation on the current session (`harbor op`), checked against what OAR promises. */
+  async op(op: Op, arg?: string): Promise<Record<string, unknown>> { const result = await this.contracts.run(op, arg); return result; }
 
   status(now: number): AgentStatusLine {
     return statusLine({ session: this.session, state: this.state, starting: this.starting, turnStartedAt: this.turnStartedAt, turns: this.turns, lastOutcome: this.lastOutcome, pending: this.deliveries.pending, awaitingReply: this.deliveries.awaitingReply }, now);

@@ -3,6 +3,7 @@ import { chmodSync, mkdirSync, openSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { join, resolve as resolvePath } from "node:path";
 import { HarborAgent } from "./agent.js";
+import { isOp, OPS } from "./contracts.js";
 import { daemonInfo, mentionsIn, parseAgentEnv, parseAgentSpec, Store, type AgentState } from "./store.js";
 import { directoryBytes, type AgentOptions } from "./support.js";
 
@@ -152,6 +153,19 @@ export async function up(dir: string, specs: readonly string[], upOptions: UpOpt
       }
       await agent.restart(body.fresh === true);
       return agent.status(Date.now());
+    },
+    "/op": async (body) => {
+      const name = field(body, "agent") ?? "";
+      const agent = agents.get(name);
+      const op = field(body, "op") ?? "";
+      if (agent === undefined) {
+        throw new Error(`no agent ${name}`);
+      }
+      if (!isOp(op)) {
+        throw new Error(`unknown op ${op}; one of ${OPS.join(", ")}`);
+      }
+      const result = await agent.op(op, field(body, "arg"));
+      return result;
     },
     "/down": () => {
       setImmediate(() => {
