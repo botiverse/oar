@@ -16,13 +16,13 @@ afterEach(async () => { await Promise.all(directories.splice(0).map(async (dir) 
 async function fixture(mode: string, loggedIn = false) {
   const dir = await mkdtemp(path.join(tmpdir(), "oar-agy-login-")); directories.push(dir);
   const fake = fakeLoginCli({ dir, name: "agy", script: "fake-agy-login.mjs", state: { mode, loggedIn } });
-  return { fake, installation: { kind: "available" as const, via: "executable" as const, command: fake.command, version: "1.5.5" } };
+  return { fake, env: { HOME: dir, USERPROFILE: dir }, installation: { kind: "available" as const, via: "executable" as const, command: fake.command, version: "1.5.5" } };
 }
 
 it.skipIf(process.platform === "win32")("relays the Google URL, writes only the pasted code to agy's stdin, and confirms with agy models", async () => {
-  const { fake, installation } = await fixture("success");
+  const { fake, env, installation } = await fixture("success");
   const interaction = recordedInteraction(["  synthetic-private-code  "]);
-  expect(await antigravityLogin(installation, interaction, { openBrowser: false })).toEqual({ kind: "logged_in" });
+  expect(await antigravityLogin(installation, interaction, { openBrowser: false, env })).toEqual({ kind: "logged_in" });
   expect(interaction.events).toEqual([{ kind: "auth_url", url: "https://accounts.google.com/o/oauth2/auth?client_id=synthetic&code_challenge=synthetic&state=synthetic", instructions: "Open this URL and sign in with Google, then paste the code the page shows (or its full address)." }]);
   expect(interaction.prompts.map((prompt) => prompt.kind)).toEqual(["manual_code"]);
   expect(fake.read()).toMatchObject({ calls: [["acp", "--login"], ["models"]], pasted: "synthetic-private-code" });
@@ -36,9 +36,9 @@ it.runIf(process.platform === "win32")("Windows refuses openBrowser: false befor
 });
 
 it("an empty answer is never sent: agy would only keep waiting, so OAR asks again", async () => {
-  const { fake, installation } = await fixture("success");
+  const { fake, env, installation } = await fixture("success");
   const interaction = recordedInteraction([" ", "synthetic-private-code"]);
-  expect(await antigravityLogin(installation, interaction)).toEqual({ kind: "logged_in" });
+  expect(await antigravityLogin(installation, interaction, { env })).toEqual({ kind: "logged_in" });
   expect(interaction.prompts).toHaveLength(2);
   expect(fake.read()).toMatchObject({ pasted: "synthetic-private-code" });
   expect(fake.read().emptyLines).toBeUndefined();
@@ -74,9 +74,9 @@ it("status is agy models: listed, asked to sign in, or unknown", async () => {
   const signedIn = await fixture("idle", true);
   const signedOut = await fixture("idle", false);
   const failing = await fixture("models-error", true);
-  expect(await antigravityAuthStatus(signedIn.installation)).toEqual({ kind: "logged_in", source: "agy models" });
-  expect(await antigravityAuthStatus(signedOut.installation)).toEqual({ kind: "logged_out", source: "agy models" });
-  expect(await antigravityAuthStatus(failing.installation)).toMatchObject({ kind: "unknown", source: "agy models" });
+  expect(await antigravityAuthStatus(signedIn.installation, { env: signedIn.env })).toEqual({ kind: "logged_in", source: "agy models" });
+  expect(await antigravityAuthStatus(signedOut.installation, { env: signedOut.env })).toEqual({ kind: "logged_out", source: "agy models" });
+  expect(await antigravityAuthStatus(failing.installation, { env: failing.env })).toMatchObject({ kind: "unknown", source: "agy models" });
 });
 
 it("the runtime signs in, reads status and signs out", () => {

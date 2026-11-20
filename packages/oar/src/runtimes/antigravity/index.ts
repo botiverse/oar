@@ -6,7 +6,6 @@ import { antigravityInstallation } from "./installation.js";
 import { antigravityInstall, antigravityInstallPlan } from "./install.js";
 import { antigravityCheckUpdate, antigravityUpgrade } from "./update.js";
 import { antigravityRefusedSessionOptions } from "./options.js";
-import { antigravityAuthStatus, antigravityLogin } from "./auth.js";
 import { ANTIGRAVITY_MINIMUM_VERSION } from "./version.js";
 
 export const antigravityRuntime = defineRuntime({
@@ -30,9 +29,9 @@ export const antigravityRuntime = defineRuntime({
   skills: onFirstCall(async () => { const { antigravitySkills } = await import("./skills.js"); return antigravitySkills; }),
   checkUpdate: antigravityCheckUpdate,
   upgrade: antigravityUpgrade,
-  login: antigravityLogin,
+  login: onFirstCall(async () => { const { antigravityLogin } = await import("./auth.js"); return antigravityLogin; }),
   logout: onFirstCall(async () => { const { antigravityLogout } = await import("./logout.js"); return antigravityLogout; }),
-  authStatus: antigravityAuthStatus,
+  authStatus: onFirstCall(async () => { const { antigravityAuthStatus } = await import("./auth-status.js"); return antigravityAuthStatus; }),
   accountUsage: onFirstCall(async () => { const { antigravityAccountUsage } = await import("./account-usage.js"); return antigravityAccountUsage; }),
   refusedSessionOptions: antigravityRefusedSessionOptions,
   mcpToolsListChanged: "none",

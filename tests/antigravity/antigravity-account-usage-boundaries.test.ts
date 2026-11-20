@@ -53,32 +53,35 @@ function fakeAgy(mode: "unknown" | "logged_out" | "logged_in", stall?: "models" 
     `if (process.argv[2] === "models") { process.stderr.write(${JSON.stringify(mode === "logged_out" ? "Please sign in to view available models" : "unavailable")}); process.exit(${String(MODELS_EXIT[mode])}); }`,
     `process.stdout.write(${JSON.stringify(reply)});`,
   ].join("\n"));
-  return { installation: { kind: "available", via: "executable", command: fakeAgentBinary(dir, [script]), version: "1.5.7" } as const,
-    calls: () => existsSync(calls) ? readFileSync(calls, "utf8").trim().split("\n") : [], pid: () => Number(readFileSync(pid, "utf8")) };
+  return {
+    installation: { kind: "available", via: "executable", command: fakeAgentBinary(dir, [script]), version: "1.5.7" } as const,
+    env: { HOME: dir, USERPROFILE: dir },
+    calls: () => existsSync(calls) ? readFileSync(calls, "utf8").trim().split("\n") : [], pid: () => Number(readFileSync(pid, "utf8")),
+  };
 }
 
 test("unknown authentication does not dispatch the potentially interactive usage command", async () => {
   const fake = fakeAgy("unknown");
-  await expect(antigravityAccountUsage(fake.installation)).rejects.toThrow(/did not confirm a login/u);
+  await expect(antigravityAccountUsage(fake.installation, { env: fake.env })).rejects.toThrow(/did not confirm a login/u);
   expect(fake.calls()).toEqual(["models"]);
 });
 
 test("explicit signed-out refusal prevents usage dispatch", async () => {
   const fake = fakeAgy("logged_out");
-  expect(await antigravityAccountUsage(fake.installation)).toEqual({ kind: "reauth_required", reason: "not_authenticated" });
+  expect(await antigravityAccountUsage(fake.installation, { env: fake.env })).toEqual({ kind: "reauth_required", reason: "not_authenticated" });
   expect(fake.calls()).toEqual(["models"]);
 });
 
 test("successful auth preflight dispatches exactly one usage query", async () => {
   const fake = fakeAgy("logged_in");
-  expect(await antigravityAccountUsage(fake.installation)).toMatchObject({ kind: "available", rateLimited: false });
+  expect(await antigravityAccountUsage(fake.installation, { env: fake.env })).toMatchObject({ kind: "available", rateLimited: false });
   expect(fake.calls()).toEqual(["models", "-p /usage --output-format json"]);
 });
 
 test.each(["models", "usage"] as const)("the overall deadline bounds a stalled %s process", async stage => {
   const fake = fakeAgy("logged_in", stage);
   const started = performance.now();
-  await expect(antigravityAccountUsage(fake.installation, { timeoutMs: 500 })).rejects.toThrow(/timed out/u);
+  await expect(antigravityAccountUsage(fake.installation, { env: fake.env, timeoutMs: 500 })).rejects.toThrow(/timed out/u);
   expect(performance.now() - started).toBeLessThan(1500);
   expect(await gone(fake.pid())).toBe(true);
   expect(fake.calls()).toEqual(stage === "models" ? ["models"] : ["models", "-p /usage --output-format json"]);

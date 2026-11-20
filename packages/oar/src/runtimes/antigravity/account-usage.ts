@@ -1,5 +1,6 @@
 import { antigravityUsesDefaultState } from "./state-directory.js";
 import type { AccountUsageReader, AccountUsageSnapshot, AccountUsageWindow } from "../../contracts/account-usage.js";
+import type { LoginAccount } from "../../contracts/login.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { runExecutable } from "../../shared/executable/index.js";
 import { withQueryDeadline } from "../../shared/executable/query.js";
@@ -89,15 +90,23 @@ export function projectAntigravityCredits(payload: unknown): number | null {
  * quota where the account turned them on. Credits not read (undefined, or
  * null when agy did not say) leave it false.
  */
-export function projectAntigravityUsage(payload: unknown, remainingCredits?: number | null): AccountUsageSnapshot {
+export function projectAntigravityUsage(
+  payload: unknown,
+  remainingCredits?: number | null,
+  account?: Pick<LoginAccount, "email" | "plan">,
+): AccountUsageSnapshot {
   const reading = readUsage(payload);
+  const plan = account?.plan?.trim();
+  const email = account?.email?.trim();
   return {
     kind: "available", rateLimited: reading.everyGroupExhausted && remainingCredits === 0, windows: reading.windows,
+    ...(plan === undefined || plan === "" ? {} : { plan }),
+    ...(email === undefined || email === "" ? {} : { email }),
     ...(remainingCredits === undefined || remainingCredits === null ? {} : { credits: { available: remainingCredits > 0, balance: String(remainingCredits) } }),
   };
 }
 
-/** Quota through agy's own `/usage` answer, after its login check; no credential read, no HTTP call of OAR's. */
+/** Quota through agy's own `/usage` answer, after its login check; no HTTP call of OAR's. */
 export const antigravityAccountUsage: AccountUsageReader = async (installation, options = {}) => {
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "unsupported_installation" };
@@ -107,14 +116,14 @@ export const antigravityAccountUsage: AccountUsageReader = async (installation, 
   const timeoutMs = options.timeoutMs ?? 30_000;
   const deadline = Date.now() + timeoutMs;
   const snapshot = await withQueryDeadline<AccountUsageSnapshot>(USAGE, timeoutMs, async (signal) => {
-    const status = await readAntigravityAuthStatus(installation, { ...(options.env === undefined ? {} : { env: options.env }), timeoutMs: remainingMs(deadline, USAGE), signal });
+    const status = await readAntigravityAuthStatus(installation, { ...(options.env === undefined ? {} : { env: options.env }), timeoutMs: remainingMs(deadline, USAGE), includeAccount: true, signal });
     if (status.kind === "unknown" && status.code === "version_unsupported") {
       return { kind: "unsupported", reason: "version_unsupported",
         ...(status.installedVersion === undefined ? {} : { installedVersion: status.installedVersion }),
         ...(status.requiredVersion === undefined ? {} : { requiredVersion: status.requiredVersion }) };
     }
     if (status.kind === "logged_out") {
-      return { kind: "reauth_required", reason: "not_authenticated" };
+      return { kind: "reauth_required", reason: "not_authenticated", ...(status.lastAccount === undefined ? {} : { lastAccount: status.lastAccount }) };
     }
     // Without a confirmed login, /usage could start agy's interactive login and wait.
     if (status.kind !== "logged_in") {
@@ -128,12 +137,12 @@ export const antigravityAccountUsage: AccountUsageReader = async (installation, 
       throw new Error(`${USAGE}: agy -p /usage ${result.ok ? "printed no JSON" : `failed (exit ${String(result.exitCode)})`}`);
     }
     // Credits matter only when no group has quota left; read them then.
-    if (!readUsage(reply).everyGroupExhausted) { return projectAntigravityUsage(reply); }
+    if (!readUsage(reply).everyGroupExhausted) { return projectAntigravityUsage(reply, undefined, status.account); }
     const credits = await runExecutable(installation.command, ["-p", "/credits", "--output-format", "json"], {
       env, timeoutMs: remainingMs(deadline, USAGE), signal,
     });
     const creditsReply = parseJson(credits.stdout.trim());
-    return projectAntigravityUsage(reply, projectAntigravityCredits(creditsReply));
+    return projectAntigravityUsage(reply, projectAntigravityCredits(creditsReply), status.account);
   });
   return snapshot;
 };
