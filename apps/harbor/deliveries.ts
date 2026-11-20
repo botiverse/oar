@@ -8,6 +8,8 @@ export interface DeliveriesHost {
   readonly bin: string;
   readonly store: Store;
   current(): Session | null;
+  /** May a delivery start now? False holds it until `resume()`; the session identity stays `current()`. */
+  ready?(nextSeq: number): boolean;
   finding(check: string, detail: Record<string, unknown>): void;
 }
 
@@ -132,7 +134,8 @@ export class Deliveries {
     try {
       for (;;) {
         const session = this.host.current();
-        if (session === null || this.inbox.length === 0) {
+        const next = this.inbox[0];
+        if (session === null || next === undefined || this.host.ready?.(next.seq) === false) {
           return;
         }
         const batch = this.inbox.splice(0);

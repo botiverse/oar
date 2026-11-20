@@ -31,6 +31,8 @@ export class HarborAgent {
   private turnStartedAt: number | null = null;
   private lastOutcome: string | null = null;
   private readonly budget: AgentBudget;
+  /** Set by a recycle until a fresh session opens, so a retry after a failed open stays fresh and keeps the handoff. */
+  private fresh: { readonly handoff: string | null } | null = null;
   private readonly stalled = new Set<string>();
   private readonly deliveries: Deliveries;
   state: AgentState;
@@ -43,14 +45,15 @@ export class HarborAgent {
       resume: (): void => { this.deliveries.resume(); },
     });
     this.deliveries = new Deliveries({
-      name: state.name,
-      cwd: this.cwd,
-      bin: options.bin,
-      store,
-      current: (): Session | null => (this.budget.holding ? null : this.session),
-      finding: (check, detail): void => {
-        this.finding(check, detail);
-      },
+      name: state.name, cwd: this.cwd, bin: options.bin, store,
+      current: (): Session | null => this.session,
+      // Judged before every delivery, so held work is checked when it is sent, not when it arrived.
+      ready: (nextSeq): boolean => this.budget.ready(this.session, async () => {
+        // Raft's constructed initial context: a fresh session whose first delivery carries a handoff, kept until one opens.
+        this.fresh = { handoff: handoff(this.store.messages(), this.name, nextSeq) };
+        await this.serial(async () => { await this.closeNow("recycle"); await this.openNow(true); });
+      }),
+      finding: (check, detail): void => { this.finding(check, detail); },
     });
   }
 
@@ -86,15 +89,6 @@ export class HarborAgent {
   }
 
   deliver(message: Message, fromPerson: boolean): void {
-    if (this.budget.stale(this.session)) {
-      // Raft's constructed initial context: a fresh session whose first delivery carries a handoff.
-      void this.budget.recycle(this.session, async () => {
-        await this.serial(async () => {
-          await this.closeNow("recycle");
-          await this.openNow(true, handoff(this.store.messages(), this.name, message.seq));
-        });
-      });
-    }
     this.deliveries.add(message, fromPerson);
   }
 
@@ -116,7 +110,8 @@ export class HarborAgent {
     }
   }
 
-  private async openNow(fresh: boolean, constructed: string | null = null): Promise<void> {
+  private async openNow(requested: boolean): Promise<void> {
+    const fresh = requested || this.fresh !== null;
     if (this.session !== null || !this.wanted) {
       return;
     }
@@ -131,7 +126,8 @@ export class HarborAgent {
           this.finding("resume_failed", { sessionId: resume, error: messageOf(error) });
         }
       }
-      await this.openSession(null, constructed);
+      await this.openSession(null, this.fresh?.handoff ?? null);
+      this.fresh = null;
     } catch (error) {
       this.openFailures += 1;
       this.finding("open_failed", { error: messageOf(error), attempt: this.openFailures });
@@ -172,6 +168,9 @@ export class HarborAgent {
       recorder.record(record);
     }, { sessionId: session.id, afterSeq: -1 });
     const unEvents = session.events((event) => {
+      if (this.session === session && event.kind === "usage") {
+        this.budget.count(session);
+      }
       if (this.session === session && event.sessionId === session.id && event.agentPath.length === 0) {
         this.observe(event);
       }
@@ -268,6 +267,7 @@ export class HarborAgent {
 
   /** Detach from the current session; its later events are ignored, and inputs it accepted but never consumed go back to the inbox. */
   private release(why: string): void {
+    if (this.session !== null) { this.budget.count(this.session); }
     this.recorder?.end(why);
     this.recorder = null;
     this.unsubscribe?.();

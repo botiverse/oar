@@ -1,5 +1,5 @@
 import { parseArgs } from "node:util";
-import type { RecyclePolicy } from "./budget.js";
+import { limitValue, recyclePolicy } from "./budget.js";
 import type { AgentStatusLine } from "./support.js";
 import { call, detach, up } from "./daemon.js";
 import { formatEntry, printStatus, read, trace, watch } from "./inspect.js";
@@ -51,13 +51,6 @@ const OPTIONS = {
   fresh: { type: "boolean" },
 } as const;
 
-/** Raft's defaults: an hour idle and 128K of context. */
-function recyclePolicy(idleMin: string | undefined, context: string | undefined): RecyclePolicy | null {
-  const idleMs = Number(idleMin ?? "60") * 60_000;
-  const contextTokens = Number(context ?? "128000");
-  return idleMs > 0 && contextTokens > 0 ? { idleMs, contextTokens } : null;
-}
-
 async function main(argv: readonly string[]): Promise<void> {
   const [command = "help", ...rest] = argv;
   const { values, positionals } = parseArgs({ args: rest, allowPositionals: true, options: OPTIONS });
@@ -73,7 +66,7 @@ async function main(argv: readonly string[]): Promise<void> {
       ...(values.for === undefined ? {} : { forMs: Number(values.for) * 3_600_000 }),
       ...(values["max-disk-gb"] === undefined ? {} : { maxBytes: Number(values["max-disk-gb"]) * 1024 ** 3 }),
       recycle: recyclePolicy(values["recycle-idle-min"], values["recycle-context"]),
-      dayTokens: values["day-tokens"] === undefined ? null : Number(values["day-tokens"]),
+      dayTokens: values["day-tokens"] === undefined ? null : limitValue("day-tokens", values["day-tokens"], 0, 1),
     });
   } else if (command === "add") {
     console.log(JSON.stringify(await call(dir, "/add", { spec: positionals[0] })));

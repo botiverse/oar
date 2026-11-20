@@ -18,8 +18,28 @@ export function shouldRecycle(policy: RecyclePolicy | null, idleMs: number | nul
   return policy !== null && idleMs !== null && contextTokens !== null && idleMs > policy.idleMs && contextTokens > policy.contextTokens;
 }
 
+/** A whole number of at least `min`; anything else stops `up` before it starts, so a typo never silently turns a limit off. */
+export function limitValue(flag: string, value: string | undefined, fallback: number, min: number): number {
+  if (value === undefined) {
+    return fallback;
+  }
+  const parsed = /^\d+$/u.test(value) ? Number(value) : Number.NaN;
+  if (!Number.isSafeInteger(parsed) || parsed < min) {
+    throw new Error(`--${flag} needs a whole number of at least ${String(min)}, got ${JSON.stringify(value)}`);
+  }
+  return parsed;
+}
+
+/** Raft's defaults: an hour idle and 128K of context; `--recycle-idle-min 0` turns recycling off. */
+export function recyclePolicy(idleMin: string | undefined, context: string | undefined): RecyclePolicy | null {
+  const idleMs = limitValue("recycle-idle-min", idleMin, 60, 0) * 60_000;
+  const contextTokens = limitValue("recycle-context", context, 128_000, 1);
+  return idleMs === 0 ? null : { idleMs, contextTokens };
+}
+
 /** About 10K tokens, as Raft's constructed context. */
 const HANDOFF_CHARS = 40_000;
+const TRUNCATED = " [truncated; harbor read shows it whole]";
 
 /** The constructed context: the newest channel messages this agent sent or received before `beforeSeq`, oldest first, within the budget. */
 export function handoff(messages: readonly Message[], name: string, beforeSeq: number, maxChars = HANDOFF_CHARS): string | null {
@@ -29,7 +49,9 @@ export function handoff(messages: readonly Message[], name: string, beforeSeq: n
     if (message.seq >= beforeSeq || (message.from !== name && !message.to.includes(name))) {
       continue;
     }
-    const line = formatMessage(message);
+    const full = formatMessage(message);
+    // An oversized newest message still leaves an excerpt rather than no handoff at all.
+    const line = lines.length === 0 && full.length > maxChars ? `${full.slice(0, maxChars - TRUNCATED.length)}${TRUNCATED}` : full;
     if (used + line.length > maxChars) {
       break;
     }
@@ -102,7 +124,10 @@ export class AgentBudget {
   /** Tokens the session had reported when they were last added to the day's count. */
   private counted = 0;
 
-  constructor(private readonly policy: RecyclePolicy | null, private readonly dayTokens: number | null, private readonly host: BudgetHost) {}
+  constructor(private readonly policy: RecyclePolicy | null, private readonly dayTokens: number | null, private readonly host: BudgetHost) {
+    // A cap already reached today, before a harbor restart, still holds.
+    this.holdIfExhausted(Date.now());
+  }
 
   get holding(): boolean {
     return this.recycling || this.paused;
@@ -126,8 +151,46 @@ export class AgentBudget {
     return shouldRecycle(this.policy, this.idleMs(), session.contextUsage().value?.tokens ?? this.host.state().contextTokens ?? null);
   }
 
-  /** Holds deliveries while `reopen` replaces the session, then lets them flow to the new one. */
-  async recycle(session: Session | null, reopen: () => Promise<void>): Promise<void> {
+  /** Adds what the session reported since the last count (children included), whenever it reports or closes. */
+  count(session: Session): void {
+    const tokens = sessionTokens(session.usage().value);
+    const now = Date.now();
+    const dayTokens = addDayTokens(this.host.state().dayTokens, Math.max(0, tokens - this.counted), now);
+    this.counted = Math.max(this.counted, tokens);
+    const contextTokens = session.contextUsage().value?.tokens;
+    this.host.setState({ ...this.host.state(), dayTokens, ...(contextTokens === undefined || contextTokens === null ? {} : { contextTokens }) });
+    this.holdIfExhausted(now);
+  }
+
+  /** Past the day's cap, deliveries wait for the next UTC day. */
+  private holdIfExhausted(now: number): void {
+    const dayTokens = this.host.state().dayTokens;
+    if (this.paused || !dayExhausted(dayTokens, this.dayTokens, now)) {
+      return;
+    }
+    this.paused = true;
+    const resumeInMs = msUntilNextDay(now);
+    this.host.store.journal({ agent: this.host.name, kind: "limit", limit: "day_tokens", tokens: dayTokens?.tokens, max: this.dayTokens, resumeInMs });
+    setTimeout(() => {
+      this.paused = false;
+      this.host.store.journal({ agent: this.host.name, kind: "resumed_after_limit", limit: "day_tokens" });
+      this.host.resume();
+    }, resumeInMs);
+  }
+
+  /** May a delivery start? Not while held; a stale session is replaced first by `reopen`, and deliveries resume after it. */
+  ready(session: Session | null, reopen: () => Promise<void>): boolean {
+    if (this.holding) {
+      return false;
+    }
+    if (!this.stale(session)) {
+      return true;
+    }
+    void this.recycle(session, reopen);
+    return false;
+  }
+
+  private async recycle(session: Session | null, reopen: () => Promise<void>): Promise<void> {
     this.recycling = true;
     this.host.store.journal({ agent: this.host.name, kind: "recycle", session: this.host.state().opens, idleMs: this.idleMs(), contextTokens: session?.contextUsage().value?.tokens ?? null });
     try {
@@ -138,28 +201,10 @@ export class AgentBudget {
     }
   }
 
-  /** Adds what the session reported since the last count; past the day's cap, deliveries wait for the next UTC day. */
   turnEnded(session: Session | null, at: number): void {
     this.lastTurnEndedAt = at;
-    if (session === null) {
-      return;
+    if (session !== null) {
+      this.count(session);
     }
-    const tokens = sessionTokens(session.usage().value);
-    const now = Date.now();
-    const dayTokens = addDayTokens(this.host.state().dayTokens, Math.max(0, tokens - this.counted), now);
-    this.counted = tokens;
-    const contextTokens = session.contextUsage().value?.tokens;
-    this.host.setState({ ...this.host.state(), dayTokens, ...(contextTokens === undefined || contextTokens === null ? {} : { contextTokens }) });
-    if (this.paused || !dayExhausted(dayTokens, this.dayTokens, now)) {
-      return;
-    }
-    this.paused = true;
-    const resumeInMs = msUntilNextDay(now);
-    this.host.store.journal({ agent: this.host.name, kind: "limit", limit: "day_tokens", tokens: dayTokens.tokens, max: this.dayTokens, resumeInMs });
-    setTimeout(() => {
-      this.paused = false;
-      this.host.store.journal({ agent: this.host.name, kind: "resumed_after_limit", limit: "day_tokens" });
-      this.host.resume();
-    }, resumeInMs);
   }
 }

@@ -159,3 +159,25 @@ test("a recycled session gets the handoff in its first delivery only", async () 
   expect(sent[0]?.startsWith("HANDOFF\n\n")).toBe(true);
   expect(sent[1]).not.toContain("HANDOFF");
 });
+
+function heldHarness(gate: { open: boolean }): { deliveries: Deliveries; sent: string[] } {
+  const sent: string[] = [];
+  const recording = { ...sessionStandIn, deliver: async (text: string) => { sent.push(text); return { landed: "queued", inputId: `input-${String(sent.length)}` }; } };
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion, typescript/consistent-type-assertions -- Only deliver and status are used.
+  const current = recording as unknown as Session;
+  const deliveries = new Deliveries({ name: "a", cwd: "/work", bin: "/bin", store, current: () => current, ready: () => gate.open, finding: () => undefined });
+  return { deliveries, sent };
+}
+
+test("a hold stops new sends without hiding the session, and resume sends each message once", async () => {
+  const gate = { open: false };
+  const { deliveries, sent } = heldHarness(gate);
+  deliveries.add(message("qa"), true);
+  await Promise.resolve();
+  expect(sent).toHaveLength(0);
+  gate.open = true;
+  deliveries.resume();
+  deliveries.resume();
+  await vi.waitFor(() => { expect(sent).toHaveLength(1); });
+  expect(deliveries.pending).toBe(0);
+});
