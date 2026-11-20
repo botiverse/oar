@@ -491,6 +491,10 @@ Artifact upload warns when no trace directory was created; the failed test
 or startup step still fails the job. Codex RPC exit errors also retain a
 bounded stderr tail without this setting, so use that evidence before
 changing a timeout or assertion to address an intermittent startup failure.
+After a rejected Windows OpenCode fixture open, the trace records recognized database
+operations, SQLite codes and error categories from the native log during that open.
+The log is shared by processes using the same data directory, so an entry can come
+from a concurrent peer. Messages, paths and SQL stay in the fixture.
 Installation readiness and `--version` execution failures retain the native
 error, signal, timeout, exit code and stderr tail in their exception too.
 On a one-shot command timeout, diagnostics also snapshot whether Node had
