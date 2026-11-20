@@ -18,10 +18,10 @@ jobs:
           node-version: 24
       - run: pnpm install --frozen-lockfile
       - run: node .github/scripts/runtime-install.mjs opencode-cleanup
-      - name: Compare peer tree stop and fresh shared database initialization
+      - name: Compare fresh shared database opens through OAR
         shell: pwsh
         run: |
-          python -u experiments/opencode-simultaneous-start/compare.py --layouts peer-stop fresh | Tee-Object -FilePath "$env:RUNNER_TEMP/pairs.jsonl"
+          pnpm exec tsx experiments/opencode-simultaneous-start/oar-pairs.ts | Tee-Object -FilePath "$env:RUNNER_TEMP/pairs.jsonl"
           exit $LASTEXITCODE
       - uses: actions/upload-artifact@v4
         if: always()
