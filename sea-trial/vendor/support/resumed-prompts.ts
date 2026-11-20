@@ -57,16 +57,25 @@ function matchesTurnInput(text: unknown, input: string): boolean {
     || (text.startsWith("<system-reminder>") && text.endsWith(`\n\n${input}`)); // Qoder 1.1.78 chatAsk combined reminder + user prompt
 }
 
+/** Bounded excerpts from the synthetic user turn; omit system, tool and image contents. */
+function unmatchedPrompt(texts: readonly unknown[], prompts?: string[]): [] {
+  if (prompts !== undefined) {
+    const text = texts.filter((value): value is string => typeof value === "string").join("\n");
+    const excerpt = text.length <= 240 ? text : `${text.slice(0, 120)}...${text.slice(-120)}`;
+    prompts.push(excerpt || "(no user text)");
+  }
+  return [];
+}
+
 /** Select by the last user input, never by the system markers being tested. */
-export function requestsForTurn(requests: readonly RawProviderRequest[], input: string): { readonly system: string; readonly history: string }[] {
+export function requestsForTurn(requests: readonly RawProviderRequest[], input: string, unmatched?: string[]): { readonly system: string; readonly history: string }[] {
   return requests.flatMap(({ body }) => {
     const request = asRecord(body);
     if (Array.isArray(request?.contents)) {
-      if (!Array.isArray(request.tools) || request.tools.length === 0) { return []; }
       const contents = request.contents.map((entry: unknown) => asRecord(entry));
       const parts = contents.findLast((entry) => entry?.role === "user")?.parts;
       const texts = Array.isArray(parts) ? parts.map((part) => asRecord(part)?.text) : [];
-      if (!texts.some((text) => matchesTurnInput(text, input))) { return []; }
+      if (!Array.isArray(request.tools) || request.tools.length === 0 || !texts.some((text) => matchesTurnInput(text, input))) { return unmatchedPrompt(texts, unmatched); }
       return [{ system: JSON.stringify([request.systemInstruction]), history: JSON.stringify(contents) }];
     }
     const rawMessages = request?.messages ?? request?.input;
@@ -76,7 +85,7 @@ export function requestsForTurn(requests: readonly RawProviderRequest[], input: 
     // DSH appends a synthetic runtime-context snapshot after the user's turn.
     const content = messages.findLast((message) => message?.role === "user" && !(typeof message.content === "string" && message.content.startsWith("Current runtime context.")))?.content;
     const texts = typeof content === "string" ? [content] : (Array.isArray(content) ? content.map((part) => asRecord(part)?.text) : []);
-    if (!texts.some((text) => matchesTurnInput(text, input))) { return []; }
+    if (!texts.some((text) => matchesTurnInput(text, input))) { return unmatchedPrompt(texts, unmatched); }
     return [{
       system: JSON.stringify([request?.system, request?.instructions, ...messages.filter((message) => message?.role === "system" || message?.role === "developer")]),
       history: JSON.stringify(messages.filter((message) => message?.role === "user" || message?.role === "assistant")),

@@ -26,12 +26,11 @@ export interface ConfiguredAppendFixture {
 const MARKERS = /OAR_CONFIGURED_AT_START|OAR_CONFIGURED_AT_REOPEN|OAR_HOST_APPEND_MARKER/gu;
 
 /** Assert presence, order, multiplicity and absence of stale text across a turn's captured provider requests. */
-export function assertConfiguredAppendRequests(
+function assertConfiguredAppendRequests(
   requests: readonly { readonly system: string; readonly history: string }[],
   configured: string,
   placement: ConfiguredPlacement = "system",
 ): void {
-  expect(requests.length).toBeGreaterThan(0);
   for (const { system, history } of requests) {
     if (placement === "system") {
       expect(system.match(MARKERS)).toEqual([configured, hostAppend]);
@@ -56,5 +55,10 @@ export async function expectConfiguredAppend(
     return raw.slice(cursor);
   };
   const captured = options.captureTurn === undefined ? await captureDefault() : await options.captureTurn(session, prompt);
-  assertConfiguredAppendRequests(requestsForTurn(captured, prompt), configured, options.placement ?? "system");
+  const unmatched: string[] = [];
+  const matched = requestsForTurn(captured, prompt, unmatched);
+  if (matched.length === 0) {
+    throw new Error(`Expected a provider request for ${JSON.stringify(prompt)}. Captured ${String(captured.length)} requests. Unmatched user prompts: ${JSON.stringify(unmatched)}`);
+  }
+  assertConfiguredAppendRequests(matched, configured, options.placement ?? "system");
 }
