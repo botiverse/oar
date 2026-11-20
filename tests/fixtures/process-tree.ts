@@ -73,7 +73,7 @@ export function processStart(pid: number): string | undefined {
   if (process.platform === "linux") { return procfsStart(pid); }
   const result = process.platform === "win32"
     ? spawnSync(prepareProcessStart(), [String(pid)], { encoding: "utf8", timeout: 5000, windowsHide: true })
-    : spawnSync("ps", ["-p", String(pid), "-o", "lstart="], { env: { ...process.env, LC_ALL: "C" }, encoding: "utf8", timeout: 5000 });
+    : spawnSync("/bin/ps", ["-p", String(pid), "-o", "lstart="], { env: { ...process.env, LC_ALL: "C" }, encoding: "utf8", timeout: 5000 });
   if (result.error !== undefined) { throw result.error; }
   if (result.status === 1 && result.stdout.trim() === "" && result.stderr.trim() === "") { return undefined; }
   assert.ok(result.status === 0 && result.stdout.trim() !== "", `Unable to identify fixture process ${String(pid)}: ${result.stderr.trim()}`);
