@@ -605,8 +605,10 @@ Further rules:
   Processes spawned internally by an embedded SDK are outside this registry.
 - **Locating a native session file.** `await session.nativeSessionFile?.()`
   returns the absolute path reported by the runtime once a regular file exists
-  there. A fresh session can return `null` until its first turn is saved. The
-  locator still works after disposal for a file the runtime kept. OAR only
+  there. Compare files by filesystem identity because the runtime's path spelling
+  can change between opens of the same session (Codex on Windows can add the
+  `\\?\` prefix on resume). A fresh session can return `null` until its first turn
+  is saved. The locator still works after disposal for a file the runtime kept. OAR only
   checks the path and leaves the file format to its owner.
 - **A runtime's memory is read, never recorded.** `Session.resources()`
   answers `{ rss, processes }`: the resident bytes of the runtime process,
