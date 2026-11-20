@@ -48,6 +48,18 @@ test.each([undefined, "old-id"])("per-process settings and initialization confir
   await session.dispose();
 });
 
+test.each([
+  { serviceTier: "fast", launchArgs: ["--settings", "host-settings.json"] },
+  { serviceTier: "fast", launchArgs: ['--settings={"fastMode":true}'] },
+  { serviceTier: "default", launchArgs: ["--settings=host-settings.json"] },
+])("refuses host settings before spawning Claude for $serviceTier with $launchArgs", async ({ serviceTier, launchArgs }) => {
+  scripted({ fast_mode_state: serviceTier === "fast" ? "on" : "off" });
+  await expect(claudeSession(installation, { cwd: "/work", serviceTier, launchArgs })).rejects.toMatchObject({
+    name: "UnsupportedOptionError", option: "launchArgs",
+  });
+  expect(spawnLineProcess).not.toHaveBeenCalled();
+});
+
 test("explicit default disables fast instead of inheriting user settings", async () => {
   scripted({ fast_mode_state: "off" });
   const session = await claudeSession(installation, { cwd: "/work", serviceTier: "default" });

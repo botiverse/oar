@@ -76,7 +76,7 @@ export function claudeUserConfiguration(options: SessionOptions): { readonly arg
   const args = [...(settings ? ["--setting-sources", "project,local"] : []), ...(mcp ? ["--strict-mcp-config"] : [])];
   for (const arg of options.launchArgs ?? []) {
     const flag = arg.split("=", 1)[0] ?? arg;
-    if ((settings && flag === "--setting-sources") || (mcp && flag === "--strict-mcp-config") || (instructions && flag === "--settings")) {
+    if ((settings && flag === "--setting-sources") || (mcp && flag === "--strict-mcp-config")) {
       throw new UnsupportedOptionError("launchArgs", `claude launchArgs cannot include ${flag} with userConfiguration: exclude; OAR manages the exclusion settings`);
     }
   }
