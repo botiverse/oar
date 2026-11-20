@@ -845,14 +845,14 @@ built on a vendor's server. A record per request would grow the stream with
 the square of the conversation's length; like `contextBreakdown()`, this is
 a reading, and a host that wants every request stores it itself.
 
-
 ## Using a runtime's stored credentials (2026-11-20)
 
 **Considered:** a blanket rule that OAR never reads a runtime's stored
 login credentials. It was stated in review on 2026-11-20 to rule out
-showing the Antigravity account email, which `agy` 1.5.13 keeps only in its
-stored OIDC `id_token`: no CLI command, print-mode command or ACP method
-returns it, while the TUI banner shows it.
+showing the Antigravity account email. `agy` 1.5.13 returns it from no CLI
+command, print-mode command or ACP method, while its TUI banner shows it;
+the only local copy is the `id_token_email` field `agy` saves beside the
+token at login, taken from the OIDC `id_token`.
 
 **Refused as a rule.** OAR already reads stored credentials: Kimi and
 Factory account usage resolve their credential files and call the vendor's
@@ -861,8 +861,8 @@ project owner stated the actual principle: OAR does not create usage the
 runtime's own client would not create.
 
 1. **Reading without a request is allowed.** Anything OAR can learn
-   locally, a stored credential included, it may read. Decoding the email
-   claim from a stored `id_token` sends nothing anywhere.
+   locally, a stored credential included, it may read. Reading the email
+   `agy` saved at login sends nothing anywhere.
 2. **A request is allowed when the native client makes the same one** in
    ordinary use, for example its usage or user-info call, at a comparable
    rate. OAR does not invent request patterns a person using the client
@@ -875,19 +875,31 @@ runtime's own client would not create.
    replies never reach results, records, logs or error text.
 4. **An OS keychain or credential manager needs its own decision.** A read
    there can prompt the person or be attributed to OAR rather than the
-   runtime. Status and usage polls do not read it; a runtime that keeps its
-   only copy there gets a decision of its own before OAR reads it.
-5. **Private storage only feeds what fails safely.** A value used only for
-   display, such as an email or plan name, may come from a private format,
-   version-gated and omitted when unrecognised. A fact a host acts on, such
-   as a turn's outcome or a session's liveness, may not
+   runtime, so status and usage polls do not read it, and a runtime that
+   keeps its only copy there gets a decision of its own first. When a
+   runtime can keep the login in either a keychain or a plain file, OAR
+   reads the file only once it has shown the file is the store the runtime
+   uses: the runtime's own record says so (Kimi's OAuth `storage`
+   setting, no keyring-sealed `auth.v2.*` entry for Factory), or no keychain service
+   is present for it to prefer (Antigravity on Linux without Secret
+   Service). Otherwise the value is omitted or `unsupported`, because a
+   file the keychain shadows can name an account the person has since left.
+5. **A private format only feeds answers that fail closed.** OAR checks
+   what it reads against the format it knows, and an unrecognised or
+   unreadable store gives a missing field, `unsupported` or
+   `reauth_required`, never a guess. That covers display values such as an
+   email or plan name, and a credential passed to a request the native
+   client also makes, where the vendor rejects a wrong one (Kimi and
+   Factory usage). Facts about the session itself, such as a turn's outcome
+   or a session's liveness, do not come from private storage
    ([Reading a runtime's internal conversation database](#reading-a-runtimes-internal-conversation-database-2026-11-15)),
-   because a silent format change would become a wrong answer instead of a
-   missing one.
+   because there a silent format change would become a wrong answer
+   instead of a missing one.
 
 The runtime's own interface still comes first where it gives the fact
 (Claude account usage through `get_usage`, Grok identity through its ACP
-method): it is cheaper to keep correct than a private format.
+method, the Antigravity plan through ACP `authenticate`): it is cheaper to
+keep correct than a private format.
 
 **What would change it:** a vendor stating that a specific use in 1 or 2
 violates its terms in a way that affects users, or a measured case where a
