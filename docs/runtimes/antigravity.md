@@ -62,16 +62,30 @@ Implementation: [profile](../../packages/oar/src/runtimes/antigravity/session.ts
 
 ## Gemini quota notices and whole-turn usage
 
-agy 1.5.12 can end a refused turn with a normal `end_turn`. OAR reports
-`failure: "quota"` when the entire output is agy's exact “Individual quota
-reached” notice with its reset countdown and the prompt response omits
-`usage`. The native notice has no structured failure code. Its countdown
-starts at receipt of the last notice chunk. A prompt RPC error supplies `resetsAt` only when its classification and
-countdown match the [native quota rules](../../packages/oar/src/runtimes/antigravity/quota.ts). The estimate has the precision
-of the smallest unit agy prints. For example, `4h12m` can put the estimate
-up to a minute early, and an hours-only countdown up to an hour early.
-A retry at that time can still meet the same limit. Other text, tool
-activity, or a reply with usage leaves an ordinary `end_turn` completed.
+agy 1.5.12 and 1.5.13 can end a quota-refused turn with a normal `end_turn`,
+either at turn start (omitting `usage`) or mid-turn after earlier tool work
+(carrying `usage` from the earlier model calls, or omitting it when an earlier
+superseded steer already settled that spend). OAR reports `failure: "quota"`
+when the turn's final assistant text after any prior tool call or superseded
+`session/prompt` is agy's exact "Individual quota reached" notice with its
+reset countdown, with no preceding `agent_thought_chunk` in that final step,
+no trailing `usage_update` after the notice, and (when no prior tool ran in
+the current prompt window) no `usage` on `session/prompt`. Across 37 recorded
+normal Gemini turns and local 1.5.13 provider controls, model text replies emit
+a trailing `usage_update` whenever context size changes, whereas agy's
+synthetic quota notice emits none. A synthetic model reply after a tool call
+that emits zero thought chunks, echoes the exact `\n⚠ ...\n` notice, and
+returns the exact same context token count as the previous step is
+indistinguishable on ACP frames and would also match. The native notice has no
+structured failure code. Its countdown starts at receipt of the last notice
+chunk, and earlier whole-turn `usage` on `session/prompt` is still recorded. A
+prompt RPC error supplies `resetsAt` only when its classification and countdown
+match the [native quota rules](../../packages/oar/src/runtimes/antigravity/quota.ts).
+The estimate has the precision of the smallest unit agy prints. For example,
+`4h12m` can put the estimate up to a minute early, and an hours-only countdown
+up to an hour early. A retry at that time can still meet the same limit. Other
+surrounding text, reasoning in the final step, a trailing `usage_update`, or a
+turn-start reply with `usage` leaves an ordinary `end_turn` completed.
 
 Gemini's prompt response reports spend across the turn's model calls. OAR
 accumulates `totalTokens - outputTokens` as input, including cache reads,
@@ -782,7 +796,7 @@ Measured on Antigravity ACP server **1.3.0** (2026-10-08) and CLI **1.5.9** /
 |---|---|---|
 | missing login | open `-32000` "Authentication required", `data.message` "No authentication method selected..." | `RuntimeFailureError` (`auth`) |
 | unknown model | open `-32602` "Model ... is not available for the current authentication method" | `RuntimeFailureError` (`model_unavailable`); catalog mismatch is `ModelConfirmationError` |
-| signed-in individual quota (1.5.12 `[rec]`) | standalone warning text `"Individual quota reached. Please upgrade your subscription to increase your limits. Resets in ..."` followed by `end_turn` without `usage`, or wrapped in a prompt error | `quota` with `resetsAt` from receipt time plus countdown ([observations](../../experiments/antigravity-prompt-usage/README.md)) |
+| signed-in individual quota (1.5.12/1.5.13 `[rec]`) | exact `\n⚠ Individual quota reached. Please upgrade your subscription to increase your limits. Resets in ...\n` notice as the final step (at turn start without `usage`, or mid-turn after tool work with or without prior `usage`), with no trailing `usage_update` or final-step thought chunk, followed by `end_turn`, or wrapped in a prompt error | `quota` with `resetsAt` from receipt time plus countdown, preserving earlier turn `usage` ([observations](../../experiments/antigravity-prompt-usage/README.md)) |
 | scripted Gemini API key 401, 404, 400 billing/overflow, 500 | turn completes (`end_turn`), some with warning or provider text as agent text | completed turn (no failure) |
 | scripted Gemini API key 429, 503, stalled stream | no frame within 150 s (1.3.0) / 180 s (1.5.9); 401/429/504 after tool call on 1.5.9 emit warning text then `end_turn` | completed turn or unanswered ([follow-up](../../experiments/antigravity-native-gaps-2026-11-15/README.md), [upstream #1570](https://github.com/google-antigravity/antigravity-cli/issues/1570)) |
 
