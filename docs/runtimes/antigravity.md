@@ -565,6 +565,30 @@ confirmed.
 - `authStatus` runs `agy models`: exit 0 is `logged_in`; exit 1 with `Please
   sign in to view available models` is `logged_out`; anything else
   (network, a crash) is `unknown`. It is a remote call, not `localOnly`.
+  When `agy models` confirms a sign-in, OAR reads two optional account fields
+  without opening a model session or spending quota ([account.ts](../../packages/oar/src/runtimes/antigravity/account.ts)):
+  `account.plan` from ACP `authenticate` (`_meta.antigravity.tier.name`, `[env]`
+  agy 1.5.13) using only the single OAuth `methodId` persisted in
+  `cache/acp-auth-state.json` when `initialize` advertises
+  `_meta.antigravity.tier: true`, bounded to 5 s with `SSH_CONNECTION` set and
+  display variables cleared as a browser-launch backstop (`[sym]` agy 1.5.13
+  `auth.browserUnavailableReason`), cached for 5 minutes per home and email
+  (cleared on `login` and `logout`); and `account.email` read-only from the
+  plain token file's `id_token_email` (or unverified `id_token` JWT payload).
+  Because agy 1.5.13 `compositeTokenStorage.LoadToken` reads the OS keyring
+  first (`[sym]`) and only purges the plain file best-effort on keyring saves,
+  a leftover plain file on a keyring-capable host could name an earlier account.
+  OAR therefore reads the plain file only on Linux when `org.freedesktop.secrets`
+  is proved unreachable (no session bus, or D-Bus `NameHasOwner` is false and
+  `ListActivatableNames` omits it), and omits `email` and `lastAccount` on
+  macOS, Windows, and Linux hosts where Secret Service is reachable or
+  unverifiable. On headless Linux, if `agy models` reports `logged_out` while
+  an authoritative plain token file remains, its email populates `lastAccount`.
+  Either field is omitted when absent or unreadable.
+  Measured on signed-in agy 1.5.13 (Linux x64, 2026-11-20, `[env]`): `agy
+  models` alone took ~1.0 s, full `authStatus` with the uncached ACP tier read
+  took ~2.0 s, and `accountUsage` (reusing that single status read before
+  `/usage`) took ~3.9 s.
 - `logout` sends ACP `logout` on a fresh `agy acp`. agy 1.5.5 declares it in
   `initialize` (`agentCapabilities.auth.logout`), answers `{}`, and removes its
   stored token file itself (checked in an empty HOME holding a placeholder
@@ -578,9 +602,13 @@ confirmed.
   credentials, an effect that outlives the run)`), and OAR never deletes the
   token itself.
 
-The CLI chooses where the token lives: on a machine without a keyring it was a
-0600 file, `<gemini-directory>/antigravity-cli/antigravity-oauth-token`, and its
-binary names keyring detection, so a desktop may differ. OAR reads neither.
+The CLI chooses where the token lives: on a machine without a keyring it is a
+0600 JSON file, `<gemini-directory>/antigravity-cli/antigravity-oauth-token`,
+and on desktop platforms `compositeTokenStorage` prefers the OS keyring
+(`go_keyring`, `[sym]` agy 1.5.13). OAR never writes or refreshes credentials
+and never queries OS keyrings; when the plain file is present, it reads only
+`id_token_email` (or an unverified `id_token` JWT payload) for display without
+logging or exposing token contents.
 
 The vendor's [FAQ](https://antigravity.google/docs/faq) warns that third-party
 access using Antigravity login violates its terms and may lead to suspension
@@ -640,10 +668,14 @@ before launch: this adapter has no verified native channel for them
 
 Model listing creates a temporary native session, and can do native
 configuration or account/catalog I/O, but submits no prompt. `authStatus`
-runs `agy models`, a remote call (not `localOnly`). `accountUsage` runs `agy
-models`, then `agy -p "/usage" --output-format json` (no agent turn, signed-in
-1.5.7), and `agy -p "/credits"` only when every model group has a used-up
-bucket ([account usage](../spec/account-usage.md)).
+runs `agy models`, a remote call (not `localOnly`), plus one silent ACP
+`authenticate` call on `agy acp` (no `session/new`, bounded to 5 s) when
+`cache/acp-auth-state.json` names an OAuth method to read the plan tier (~2.0 s
+total on signed-in Linux agy 1.5.13). `accountUsage` reuses that single
+`authStatus` read for `plan` and `email`, then runs `agy -p "/usage"
+--output-format json` (no agent turn, signed-in 1.5.7; ~3.9 s total on 1.5.13),
+and `agy -p "/credits"` only when every model group has a used-up bucket
+([account usage](../spec/account-usage.md)).
 
 ## Reader environment
 

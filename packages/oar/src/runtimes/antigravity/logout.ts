@@ -5,6 +5,7 @@ import { queryAcpAuth } from "../../shared/acp/auth-query.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { loginExecutable } from "../../shared/login.js";
 import { confirmedLogout, statusAfterLogout, type NativeLogout } from "../../shared/logout.js";
+import { clearAntigravityPlanCache } from "./account.js";
 import { readAntigravityAuthStatus } from "./auth.js";
 
 /**
@@ -21,6 +22,7 @@ export async function antigravityLogout(installation: AvailableInstallation, opt
   const target = loginExecutable(installation, "agy", undefined, env);
   if (target.kind === "settled") { return target.result; }
   const result = await queryAcpAuth(target.installation.command, { method: "logout" }, "Antigravity", { ...options, args: ["acp", ...antigravityStateArgs(env)], timeoutMs: options.timeoutMs ?? 60_000 }).catch(() => "failed" as const);
+  clearAntigravityPlanCache();
   if (result === "unsupported") { return { kind: "unsupported", reason: "version_unsupported", detail: "This agy build has no ACP logout" }; }
   const native: NativeLogout = result === "ok" ? { kind: "done" } : {
     kind: "failed", reason: result === "timed_out" ? "timed_out" : "process_failed", detail: "agy ACP logout did not complete",

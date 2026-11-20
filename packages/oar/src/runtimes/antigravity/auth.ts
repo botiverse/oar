@@ -1,13 +1,14 @@
-import { antigravityStateArgs, antigravityUsesDefaultState, ANTIGRAVITY_STATE_QUERY_UNAVAILABLE } from "./state-directory.js";
+import { antigravityStateArgs } from "./state-directory.js";
 import type { AvailableInstallation } from "../../contracts/installation.js";
-import type { AuthStatus, AuthStatusOptions, LoginOptions, LoginResult } from "../../contracts/login.js";
+import type { LoginOptions, LoginResult } from "../../contracts/login.js";
 import type { ProviderLoginInteraction } from "../../contracts/provider-auth.js";
 import { sessionEnvironment } from "../../shared/environment.js";
-import { runExecutable } from "../../shared/executable/index.js";
-import { withQueryDeadline } from "../../shared/executable/query.js";
-import { antigravityVersionPreflight } from "./version.js";
 import { antigravityNoBrowserEnv } from "./login-browser.js";
+import { clearAntigravityPlanCache } from "./account.js";
+import { readAntigravityAuthStatus } from "./auth-status.js";
 import { errorMessage, LoginSecrets, loginBounds, loginExecutable, spawnLoginProcess, stoppedResult, type LoginProcess, type LoginProcessExit, type LoginStop } from "../../shared/login.js";
+
+export { antigravityAuthStatus, readAntigravityAuthStatus } from "./auth-status.js";
 
 /*
  * Antigravity's own login (agy 1.5.5, 2026-11-10; experiments and notes in
@@ -21,47 +22,13 @@ import { errorMessage, LoginSecrets, loginBounds, loginExecutable, spawnLoginPro
  * and reads that line from stdin; with none it ends `login cancelled: no
  * authorization code was entered` (exit 1). The CLI decides where the token
  * goes (a 0600 file under `<gemini-directory>/antigravity-cli/`, or a keyring it
- * detects); OAR never reads or writes it. Status is `agy models`, which
- * refuses with "Please sign in" when there is no login. Logout is agy's ACP
- * `logout` (logout.ts); print mode refuses `/logout`.
+ * detects); OAR never writes it. Status is `agy models`, which refuses with
+ * "Please sign in" when there is no login. Logout is agy's ACP `logout`
+ * (logout.ts); print mode refuses `/logout`.
  */
-const SOURCE = "agy models";
 const LOGIN_TIMEOUT_MS = 15 * 60_000;
 const URL_LINE = /^(https:\/\/accounts\.google\.com\/\S+)$/u;
 const PASTE_PROMPT = /Then paste the authorization code\b/u;
-const SIGNED_OUT = /Please sign in\b/iu;
-
-export async function readAntigravityAuthStatus(installation: AvailableInstallation, options: AuthStatusOptions & { readonly signal?: AbortSignal } = {}): Promise<AuthStatus> {
-  if (installation.via !== "executable") { return { kind: "unknown", detail: "not a machine-installed executable" }; }
-  const env = sessionEnvironment(options.env);
-  if (!antigravityUsesDefaultState(env)) { return { kind: "unknown", detail: ANTIGRAVITY_STATE_QUERY_UNAVAILABLE }; }
-  const timeoutMs = options.timeoutMs ?? 30_000;
-  const version = await antigravityVersionPreflight(installation, env, { timeoutMs, ...(options.signal === undefined ? {} : { signal: options.signal }) });
-  if (version.kind === "unsupported") {
-    const { kind: _kind, reason, ...versions } = version;
-    return { kind: "unknown", ...versions, detail: reason };
-  }
-  const result = await runExecutable(installation.command, ["models"], {
-    env, timeoutMs: version.timeoutMs, ...(options.signal === undefined ? {} : { signal: options.signal }),
-  });
-  if (result.ok) { return { kind: "logged_in", source: SOURCE }; }
-  // Its refusal names the missing login; any other failure (network, a crash) says nothing about it.
-  if (result.exitCode === 1 && SIGNED_OUT.test(`${result.stdout}\n${result.stderr}`)) { return { kind: "logged_out", source: SOURCE }; }
-  return { kind: "unknown", source: SOURCE, detail: "agy models ended without saying whether it is signed in" };
-}
-
-/** Whether Antigravity is signed in, by its own model listing (a remote call: not localOnly). */
-export async function antigravityAuthStatus(installation: AvailableInstallation, options: AuthStatusOptions = {}): Promise<AuthStatus> {
-  try {
-    const status = await withQueryDeadline<AuthStatus>("Antigravity auth status", options.timeoutMs ?? 30_000, async (signal) => {
-      const read = await readAntigravityAuthStatus(installation, { ...options, signal });
-      return read;
-    }, { kind: "unknown", source: SOURCE, detail: "Antigravity auth status timed out" });
-    return status;
-  } catch {
-    return { kind: "unknown", detail: "Antigravity authentication status could not be read" };
-  }
-}
 
 /** The secret query values of a pasted landing URL (`code`, also percent-decoded); none for a bare code. */
 function landingCodes(answer: string): readonly string[] {
@@ -79,12 +46,13 @@ type Ending =
 
 /** Exit 0 is only agy's word: its status decides, and an unanswered status leaves a login without an account. */
 async function confirmed(installation: AvailableInstallation, signal: AbortSignal | undefined, env: LoginOptions["env"]): Promise<LoginResult> {
+  clearAntigravityPlanCache();
   // The status query after a success is bounded like every runtime's (docs/spec/login.md: up to 20 s).
-  const status = signal?.aborted === true ? undefined : await readAntigravityAuthStatus(installation, { env, timeoutMs: 20_000, ...(signal === undefined ? {} : { signal }) });
+  const status = signal?.aborted === true ? undefined : await readAntigravityAuthStatus(installation, { env, timeoutMs: 20_000, includeAccount: true, ...(signal === undefined ? {} : { signal }) });
   if (status?.kind === "logged_out") {
     return { kind: "failed", reason: "not_logged_in", detail: "agy acp --login exited 0, yet agy models asks to sign in" };
   }
-  return { kind: "logged_in" };
+  return { kind: "logged_in", ...(status?.kind === "logged_in" && status.account !== undefined ? { account: status.account } : {}) };
 }
 
 // oxlint-disable-next-line eslint/max-lines-per-function, eslint/max-statements -- One native flow: relay, ask, write, then settle every ending.

@@ -34,7 +34,11 @@ function fakeAgy(signedIn: boolean | "broken", reply: unknown = recorded) {
     `if [ "$1" = -p ] && [ "$2" = /credits ]; then echo '{"status":"SUCCESS","command":{"name":"credits","data":{"remaining_credits":0}}}'; exit 0; fi`,
     "exit 2",
   ].join("\n"), { mode: 0o700 });
-  return { installation: { kind: "available", via: "executable", command, version: "1.5.7" } as const, calls: () => readFileSync(calls, "utf8").trim().split("\n") };
+  return {
+    installation: { kind: "available", via: "executable", command, version: "1.5.7" } as const,
+    env: { HOME: dir, USERPROFILE: dir },
+    calls: () => readFileSync(calls, "utf8").trim().split("\n"),
+  };
 }
 
 test("antigravity declares account usage", () => {
@@ -102,18 +106,18 @@ test("a sliver of quota left is not used up", () => {
 
 test.skipIf(process.platform === "win32")("signed out: reauth_required, and /usage (which would start a login) never runs", async () => {
   const agy = fakeAgy(false);
-  expect(await antigravityAccountUsage(agy.installation)).toEqual({ kind: "reauth_required", reason: "not_authenticated" });
+  expect(await antigravityAccountUsage(agy.installation, { env: agy.env })).toEqual({ kind: "reauth_required", reason: "not_authenticated" });
   expect(agy.calls()).toEqual(["models"]);
 });
 
 test.skipIf(process.platform === "win32")("a login agy models cannot confirm rejects, and /usage never runs", async () => {
   const agy = fakeAgy("broken");
-  await expect(antigravityAccountUsage(agy.installation)).rejects.toThrow(/did not confirm a login/u);
+  await expect(antigravityAccountUsage(agy.installation, { env: agy.env })).rejects.toThrow(/did not confirm a login/u);
   expect(agy.calls()).toEqual(["models"]);
 });
 
 test.skipIf(process.platform === "win32")("with every group used up, agy's /credits decides; otherwise it is never asked", async () => {
   const gone = fakeAgy(true, withUsedUp(GEMINI_5H, THIRD_PARTY_WEEKLY));
-  expect(await antigravityAccountUsage(gone.installation)).toMatchObject({ kind: "available", rateLimited: true });
+  expect(await antigravityAccountUsage(gone.installation, { env: gone.env })).toMatchObject({ kind: "available", rateLimited: true });
   expect(gone.calls()).toEqual(["models", "-p /usage --output-format json", "-p /credits --output-format json"]);
 });
