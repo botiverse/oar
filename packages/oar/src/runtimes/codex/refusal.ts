@@ -81,9 +81,9 @@ export function codexOpenFailure(method: string, native: JsonRecord | null, cont
 }
 
 /**
- * A control (turn/start, turn/steer, thread/queue/add) codex refused, as
- * the rejection to record. `thread not found: <id>` (-32600) means this
- * process no longer has the session: `session_not_found`. Otherwise
+ * A control (turn/start, turn/steer, thread/queue/add, turn/interrupt) codex
+ * refused, as the rejection to record. `thread not found: <id>` (-32600) means
+ * this process no longer has the session: `session_not_found`. Otherwise
  * `runtime_refused`, with a `failure` where codex's code or data says one:
  * -32602 with `data.input_error_code: "input_too_large"` (its input limit),
  * -32001 (its request queue is full: `overloaded`), and -32600 for an

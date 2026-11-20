@@ -134,12 +134,16 @@ original error rather than being classified as missing.
 | OAR operation | Native operation | Meaning |
 |---|---|---|
 | `session({ resume })` | conversation lookup, configure, `observeConversation`, `Harness.resume()` | Attaches to saved work and enables scheduling of unfinished tasks; no new input is submitted |
-| `prompt` | `submit({ whenBusy: "reject" })` | Fresh input while locally running is refused busy; an unseen native run is runtime_refused |
-| `steer` | `submit({ whenBusy: "steer" })` | Joins an active run at its next input boundary; idle requests are refused |
+| `prompt` | `submit({ whenBusy: "reject" })` | Fresh input while running is refused `busy` |
+| `steer` | `submit({ whenBusy: "steer", whenIdle: "reject" })` | Joins an active run at its next input boundary; idle requests are refused `no_active_turn` |
 | `queue` | `submit({ whenBusy: "followUp" })` | Durable follow-up input; `capabilities.queue.durable` is true |
 | `withdraw(inputId)` | lookup by request id, `submission.abort()` | Accepted only while native cancellation says `aborted`; already placed/settled or missing is `not_queued` |
-| `abort` | `conversation.abort()` | Stops the native run and its pending inputs; outcome comes from native submission receipts |
+| `abort` | `conversation.abort()` | Bounded at 10 s; stops the native run and withdraws queued inputs, with turn outcome and `input_dropped` from native submission receipts |
 | `dispose` | `observation.detach()` | Detaches this controller, preserving the conversation, running work, storage and Harness |
+
+Because Pi Durable runs in the host process with no child process to stop, a
+hung native `conversation.abort()` reports `accepted` after the 10 s bound and
+the turn ends when the native abort lands.
 
 Dispose is idempotent and records an accepted response. It emits no process
 exit and does not infer a turn outcome. To stop work, call `abort` before
@@ -267,6 +271,7 @@ view frame. A missing receipt or failed query cannot prove completion.
 |---|---|
 | `pi.live.run` present at attachment or newly started | `turn_active` |
 | old run removed, terminal submission receipts | `turn_ended`: done → completed; unanswered/aborted → aborted; other unanswered → failed |
+| unplaced `pi.inbox` input removed with `unanswered/aborted` receipt (not withdrawn) | `input_dropped` with `reason: "turn_interrupted"` |
 | answered run's `afterRun` wait ends | completed, including for a controller attached after the input receipts settled |
 | `generation.message` and appended assistant entries | text and reasoning suffixes without duplicating completed blocks |
 | appended user entry | `user_message`, native entry id and inputId where a submission names that entry |

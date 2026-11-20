@@ -113,6 +113,16 @@ it("an abort whose turn never ends stops droid after the fallback", async () => 
   await expect.poll(() => opened.records().some(record => record.kind === "response" && record.body.kind === "exited"), { timeout: 5000 }).toBe(true);
 });
 
+it("a refused abort rolls back abortingTurn so a retry still reaches droid", async () => {
+  const opened = await session("refuse-interrupt", 10_000);
+  const prompt = await opened.prompt("running");
+  const refused = await opened.abort();
+  expect(refused.response.body).toMatchObject({ kind: "rejected", code: "runtime_refused" });
+  const retried = await opened.abort();
+  expect(retried.response.body).toMatchObject({ kind: "accepted" });
+  expect(await awaitTurnEnd(opened, prompt.request.seq)).toEqual({ kind: "aborted" });
+});
+
 it("every native line is one record in arrival order: stray lines, a failed context read and the resume settings answer", async () => {
   const opened = await session("noisy");
   await expect.poll(() => opened.records().some(record => record.kind === "frame" && record.body.type === "droid.get_context_stats"), { timeout: 5000 }).toBe(true);

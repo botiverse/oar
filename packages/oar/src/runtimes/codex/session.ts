@@ -250,9 +250,9 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
         method: "turn/interrupt",
         params: () => ({ threadId, turnId }),
         onReply: (reply) => ({ kind: "accepted", native: reply }),
-        onError: (message) => {
+        onError: (message, native) => {
           refused?.();
-          return { kind: "rejected", code: "runtime_refused", reason: message };
+          return codexControlRefusal(message, native);
         },
       };
     };

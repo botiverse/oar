@@ -264,7 +264,7 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
         // Use the complete SDK cancellation path, including its run-aborted
         // flag, retries, compaction and branch summaries. Before agent_start,
         // hold the intent until Pi has created the run that owns that flag.
-        if (piAgentSession.isStreaming || compaction.busy()) {
+        if (nativeActive || piAgentSession.isStreaming || compaction.busy()) {
           void abortNative();
         } else {
           for (const admission of admissions.values()) { admission.abort = true; }

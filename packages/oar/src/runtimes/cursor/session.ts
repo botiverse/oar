@@ -2,6 +2,7 @@ import settleQueuedSend from "./held-input.js";
 import { asRecord } from "../../shared/json.js";
 /* oxlint-disable import/max-dependencies -- Session profiles and assembly wire the native control, projection and lifecycle helpers. */
 import type { ControlResult, InputOptions, RequestRecord, ResponseBody, Session, StartSession } from "../../contracts/session.js";
+import { createAbortFallback } from "../../shared/abort-fallback.js";
 import { manualCompaction } from "../../shared/manual-compaction.js";
 import { cursorCompaction } from "./compaction.js";
 import { enqueueHeld, withdrawControl } from "../../shared/held-input.js";
@@ -18,7 +19,7 @@ import {
   type CursorFrame,
   type CursorProjectionState,
 } from "./projection.js";
-import { giveUp, newLaunch, observeRun, steerRun, stopOrphan, type ActiveRun, type Launch } from "./run.js";
+import { cancelActiveRun, giveUp, newLaunch, observeRun, steerRun, stopOrphan, type ActiveRun, type Launch } from "./run.js";
 import type { CursorDeltaListener, CursorRun } from "./sdk.js";
 /**
  * One local SDK agent, one active run. Summary runs share the same lifecycle
@@ -29,7 +30,10 @@ const message = (error: unknown): string => (error instanceof Error ? error.mess
 const DISPOSE_SETTLE_MS = 5000;
 /** How long a `send` may take to return its run (a cold start took about 4 s in the probes). */
 const SEND_TIMEOUT_MS = 60_000;
-export function cursorSessionWith(source: CursorSdkSource): StartSession {
+/** Default bound for `abort()` cancellation and subprocess stop fallback. */
+const ABORT_TIMEOUT_MS = 10_000;
+export function cursorSessionWith(source: CursorSdkSource, timings: { readonly abortTimeoutMs?: number } = {}): StartSession {
+  const abortTimeoutMs = timings.abortTimeoutMs ?? ABORT_TIMEOUT_MS;
   const access = cursorSdkAccess(source);
   // MCP entries can carry credentials: records and errors go through the session's redactor.
   return withSessionCredentials(async (installation, options, credentials) => {
@@ -55,6 +59,8 @@ export function cursorSessionWith(source: CursorSdkSource): StartSession {
     const held: { readonly request: RequestRecord; readonly input: string; readonly inputId: string | undefined; readonly options: InputOptions; readonly images: readonly LoadedImage[]; accepted?: true }[] = [];
     let dispatching = false;
     // Subprocess mode: a child that exits drops the held inputs, and its exit is recorded once the turn ended.
+    const abortFallback = lease.child === null ? null : createAbortFallback(() => { void lease.release(); }, abortTimeoutMs);
+    lease.child?.onExit(() => { abortFallback?.clear(); });
     const end = cursorSessionEnd(kernel, lease, async () => { held.splice(0); await active?.ended; });
     const record = (frame: CursorFrame): void => {
       // A failed SDK wait is lost observation, not the native end of a summary run.
@@ -71,6 +77,7 @@ export function cursorSessionWith(source: CursorSdkSource): StartSession {
         active = null;
       }
       gate.running = false;
+      abortFallback?.clear();
       record(frame);
       drainHeld();
     };
@@ -244,20 +251,11 @@ export function cursorSessionWith(source: CursorSdkSource): StartSession {
       },
       withdraw: withdrawControl(kernel, held),
       abort: async (): Promise<ControlResult> => {
-        const result = await kernel.control({ kind: "abort" }, async () => {
-          if (!gate.running) {
-            return { kind: "rejected", code: "no_active_turn", reason: "no active turn" };
-          }
-          if (active === null) {
-            // The run does not exist yet: cancelled as soon as `send` returns it.
-            if (launching !== null) {
-              launching.abortRequested = true;
-            }
-            return { kind: "accepted" };
-          }
-          // Accepted means taken over; the outcome is the run's own `cancelled`.
-          await active.run.cancel();
-          return { kind: "accepted" };
+        const result = await kernel.control({ kind: "abort" }, (): ResponseBody | Promise<ResponseBody> => {
+          if (!gate.running) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
+          if (active === null) { if (launching !== null) { launching.abortRequested = true; } abortFallback?.arm(); return { kind: "accepted" }; }
+          const current = active;
+          return cancelActiveRun(current, () => active === current, () => kernel.unreachable(), abortFallback === null ? undefined : (onFallback): (() => void) => abortFallback.arm(onFallback), abortTimeoutMs);
         });
         return result;
       },
@@ -266,6 +264,7 @@ export function cursorSessionWith(source: CursorSdkSource): StartSession {
       graph: () => kernel.graph(),
       dispose: async () => {
         await kernel.dispose(async request => {
+          abortFallback?.clear();
           held.splice(0);
           if (launching !== null) {
             // A send still on its way: its run, if it comes, is stopped, not adopted.
@@ -273,15 +272,11 @@ export function cursorSessionWith(source: CursorSdkSource): StartSession {
           }
           const current = active;
           if (current !== null) {
-            // The run's own `cancelled` ends the turn in the stream.
-            try {
-              await current.run.cancel();
-            } catch {
-              // The run may have ended on its own meanwhile.
-            }
-            await Promise.race([current.ended, new Promise<void>((resolve) => {
-              setTimeout(resolve, DISPOSE_SETTLE_MS).unref();
-            })]);
+            const deadline = Promise.withResolvers<void>();
+            const timer = setTimeout(deadline.resolve, DISPOSE_SETTLE_MS);
+            timer.unref();
+            const cancelDone = (async (): Promise<void> => { try { await current.run.cancel(); } catch { /* The run may have ended on its own meanwhile. */ } })();
+            try { await Promise.race([Promise.all([cancelDone, current.ended]), deadline.promise]); } finally { clearTimeout(timer); }
           }
           agent.close();
           await end.disposed(request);

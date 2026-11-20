@@ -559,10 +559,13 @@ refusal, abort and disposal. The
 withdrawal observers and replay; these synthetic cases make no claim about
 Cursor backend timing or delivery.
 
-**Abort (mapped):** `abort()` is `run.cancel()`; the run answers `cancelled`
-within about two seconds, recorded as `turn_ended: aborted` (`abort`). An
-abort that arrives before the SDK has returned the run is held and delivered
-as soon as it exists.
+**Abort (mapped):** `abort()` is `run.cancel()`, bounded at 10 seconds; the run
+answers `cancelled` within about two seconds, recorded as `turn_ended: aborted`
+(`abort`). An abort that arrives before the SDK has returned the run is held and
+delivered as soon as it exists. In subprocess mode, a 10-second fallback stops
+the child process if the run ignores cancellation. In-process mode has no
+subprocess fallback, so a hung `run.cancel()` reports `accepted` after 10
+seconds with the run possibly still going until the native cancel lands.
 
 **Outcomes:** `run.wait()`'s `finished` is completed, `cancelled` aborted,
 and `error` failed with the SDK's `error.message` classified from its words,
