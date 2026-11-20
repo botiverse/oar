@@ -280,9 +280,8 @@ resume, a fork does not keep the source's model and effort: without `model`
 and `effort` it runs the configured default, with a `config` override
 (`mcpServers`) and without one (0.169.0 and 0.169.1: a `gpt-5.2`/`high`
 source forked onto `gpt-5.1` with no effort). A given effort is set afterwards with `thread/settings/update`; no
-`experimentalRawEvents`; `name` is set as on a new thread; when
-`baseInstructions` and `developerInstructions` take effect on a fork is
-untested. Failed and aborted turns, manual compaction turns and goal
+`experimentalRawEvents`; `name` is set as on a new thread; the timing of `baseInstructions` on a fork is untested. The append timing is
+covered under [models, instructions, and context](#models-instructions-and-context). Failed and aborted turns, manual compaction turns and goal
 continuation turns (codex's own, with no client prompt) carry anchors, and a
 fork through one carries what the source's next prompt carried (compaction
 and goal turns: 0.169.1); copied turns keep their ids, so a source anchor
@@ -916,13 +915,18 @@ base prompt) and `appendSystemPrompt` to `developerInstructions` (appended as
 a developer message); `instructions` / `userInstructions` are silently
 ignored by `thread/start`. Cwd and the process environment overlay are
 forwarded. Requested and effective configuration remain distinct.
+On an open thread, the append reached the model as developer text after
+manual and automatic compaction and across collaboration-mode changes
+([env], 0.170.0 and 0.171.0, local summarization and scripted remote-v2).
+Catalog mode text takes precedence over the instruction nested inside
+`collaborationMode.settings`. [Provider requests and native sources](../../experiments/codex-instruction-retention/README.md).
+
 On resume (Codex 0.166.0), a supplied `systemPrompt` (`baseInstructions`)
 applies immediately, and an omitted one keeps the saved replacement, after
-compaction too. A supplied `appendSystemPrompt` (`developerInstructions`) is
-accepted, but the saved developer message stays until the next native
-compaction, after which requests use the new value; an omitted one disappears
-at that compaction and the new-session default applies. **Pass the current
-prompts on every open** when they must remain in effect. OAR forwards the
+compaction too. On a cold resume or fork (0.171.0), the first request still carries the saved
+append. At the next compaction a supplied `appendSystemPrompt` replaces it.
+Omitting it restores the new-session default. **Pass the current append on
+every resume and fork** when it must stay in effect. [Reopen evidence](../../experiments/codex-instruction-retention/README.md#cold-resume-and-fork). OAR forwards the
 values without comparing prompts or injecting an extra user message.
 `Runtime.resumedSessionOptions` declares replacement as `immediate` / `saved`
 and append as `next_compaction` / `saved_until_compaction`.
