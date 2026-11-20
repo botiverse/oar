@@ -9,7 +9,11 @@ permissions:
 jobs:
   measure:
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        workers: [2, 1]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -18,6 +22,14 @@ jobs:
           node-version: 24
       - run: pnpm install --frozen-lockfile
       - run: node .github/scripts/runtime-install.mjs opencode-cleanup
-      - name: Compare serial and overlapping opens on the same runner
+      - name: Repeat the original behavior gate with native process diagnostics
         shell: pwsh
+        env:
+          OAR_TEST: opencode-aimock
+          OAR_TEST_CONCURRENCY: ${{ matrix.workers }}
+          OAR_TEST_MCP_PROGRESS: '1'
+          OAR_TEST_REQUIRE_AVAILABLE: '1'
+          OAR_CHILD_STDERR: inherit
+          OPENCODE_PRINT_LOGS: '1'
+          OAR_TRIAL_RUN_DIR: ${{ runner.temp }}/readiness-suite
         run: ./experiments/opencode-windows-readiness/measure.ps1

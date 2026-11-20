@@ -6,8 +6,40 @@ try {
     $data = "SELECT * FROM Win32_Process${kind}Trace WHERE ProcessName='opencode.exe'"
     $watch += Register-CimIndicationEvent -Query $data -SourceIdentifier "oar-opencode-$kind"
   }
-  pnpm exec tsx experiments/opencode-windows-readiness/probe.ts 8
-  $trialStatus = $LASTEXITCODE
+  $trialStatus = 0
+  $patterns = [ordered]@{
+    readiness = 'Standalone server exited before reporting readiness'
+    effort = 'effort not found: oar-no-such-effort'
+    sqlite = 'SQLITE_BUSY|SQLITE_LOCKED|database is (locked|busy)'
+    dbOpen = 'SQLITE_CANTOPEN|unable to open database file'
+    dbIO = 'SQLITE_IOERR|disk I/O error|locking protocol'
+    dbCorrupt = 'SQLITE_CORRUPT|database disk image is malformed'
+    bind = 'EADDRINUSE|WSAEADDRINUSE|address already in use'
+    busy = 'EBUSY|sharing violation|used by another process'
+    missing = 'ENOENT|the system cannot find'
+    access = 'EACCES|EPERM|access is denied'
+    pipe = 'EPIPE|broken pipe|ERR_STREAM_PREMATURE_CLOSE'
+    memory = 'out of memory|allocation failed|pagefile'
+    crash = 'panic|segmentation fault|access violation|Bun has crashed'
+    fatal = '\b(FATAL|uncaught exception|unhandled rejection)\b'
+  }
+  # Stream only fixed diagnostics and sea-trial case identifiers. Verbose native
+  # logs and synthetic provider traces stay on the ephemeral runner.
+  for ($round = 1; $round -le 3; $round++) {
+    [ordered]@{ round = $round; workers = $env:OAR_TEST_CONCURRENCY; at = [DateTime]::UtcNow.ToString('o') } | ConvertTo-Json -Compress
+    pnpm run sea-trial 2>&1 | ForEach-Object {
+      $line = [string]$_
+      $signals = @($patterns.Keys | Where-Object { $line -match $patterns[$_] })
+      $case = $null
+      if ($line -match '^(PASS|FAIL|SKIP)\s+([a-z0-9][a-z0-9.-]+)') { $case = "$($Matches[1]) $($Matches[2])" }
+      if ($signals.Count -or $case) {
+        [ordered]@{ at = [DateTime]::UtcNow.ToString('o'); round = $round; signals = $signals; result = $case } | ConvertTo-Json -Compress
+      }
+    }
+    $code = $LASTEXITCODE
+    [ordered]@{ at = [DateTime]::UtcNow.ToString('o'); round = $round; suiteExit = $code } | ConvertTo-Json -Compress
+    if ($code -ne 0) { $trialStatus = $code }
+  }
   Start-Sleep -Seconds 1
   foreach ($event in Get-Event | Where-Object SourceIdentifier -like 'oar-opencode-*') {
     $process = $event.SourceEventArgs.NewEvent
