@@ -88,3 +88,26 @@ test.skipIf(backend !== "claude-aimock" && backend !== "qoder-native").each(["to
       await session.dispose();
     }
   }, 90_000);
+
+test.skipIf(backend !== "qoder-native")("abort ends a native Qoder notification turn and permits a fresh prompt", async () => {
+  const { session, cwd } = await open("tool");
+  const release = async (name: string) => writeFile(path.join(cwd, `release-${name}`), "done");
+  try {
+    expect(await runTurn(session, "start the background job")).toEqual({ kind: "completed" });
+    const notification = observeNotification(session, "");
+    await release("background");
+    await vi.waitFor(() => { expect(notification.toolStarted && notification.activeAtInit).toBe(true); }, { timeout: 30_000 });
+    const abort = await session.abort();
+    expect(abort.kind).toBe("accepted");
+    await vi.waitFor(() => {
+      expect(notification.ends).toBe(1);
+      expect(session.status().value.kind).toBe("idle");
+    }, { timeout: 15_000 });
+    const result = session.records().findLast(r => r.kind === "frame" && r.body.events.some(event => event.kind === "turn_ended"));
+    expect(result?.kind === "frame" && result.body.events).toContainEqual({ kind: "turn_ended", outcome: { kind: "aborted" } });
+    expect(await runTurn(session, "fresh prompt after abort")).toEqual({ kind: "completed" });
+  } finally {
+    await Promise.all([release("foreground"), release("background")]);
+    await session.dispose();
+  }
+}, 90_000);

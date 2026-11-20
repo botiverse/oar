@@ -31,6 +31,25 @@ test("only an unowned root init after startup adopts a Qoder turn", () => {
     .toEqual([[], [], [{ kind: "turn_active" }], []]);
 });
 
+test("an overlapping notification result never inherits the pending host input ID", () => {
+  const init = { type: "system", subtype: "init" };
+  const result = { type: "result", subtype: "success" };
+  const command = { type: "command_lifecycle", command_uuid: "host" };
+  const startup = foldStreamJsonStdout(qoderProjectionProfile, initialQoderProjection(), init);
+  let state = streamJsonPrompted(startup.state, "host");
+  // Notification init wins the race after the write. Qoder subsequently
+  // acknowledges the host command as queued, then starts it after this result.
+  const records = [init, { ...command, state: "queued" }, result, init,
+    { ...command, state: "started" }, { ...result, user_message_uuid: "host" }].map(frame => {
+    const folded = foldStreamJsonStdout(qoderProjectionProfile, state, frame);
+    ({ state } = folded);
+    return folded.commands.flatMap(entry => entry.kind === "frame" ? entry.body.events : []);
+  });
+  expect(records).toEqual([[], [{ kind: "input_queued", inputId: "host" }],
+    [{ kind: "turn_ended", outcome: { kind: "completed" } }], [],
+    [{ kind: "turn_active", inputId: "host" }], [{ kind: "turn_ended", inputId: "host", outcome: { kind: "completed" } }]]);
+});
+
 test("native cancellation before start drops only that input without inventing a turn end", () => {
   const [queued, dropped] = cancelled; assert.ok(queued && dropped);
   const prompted = streamJsonPrompted(initialQoderProjection(), queued.command_uuid);
