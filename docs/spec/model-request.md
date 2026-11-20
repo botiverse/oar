@@ -23,17 +23,17 @@ OAR offers one surface for it: a session opened with `modelRequests:
 readonly modelRequests?: "latest";
 
 // Session, present only on a session opened with modelRequests
-/** The most recent main-loop request the root agent sent to its model in this open; null before the first one, from the start of a dispose, and once the process has exited; rejects when a main-loop response arrived without its body. */
+/** The most recent main-loop request the runtime attributed to the root agent in this open; null before the first one, from the start of a dispose, and once the process has exited; rejects when an attribution OAR was waiting for did not arrive (see Checked). */
 lastModelRequest?(): Promise<ModelRequest | null>;
 
 export interface ModelRequest {
-  /** When OAR captured it (ISO 8601). */
+  /** When the runtime built the request (ISO 8601), not when OAR read it. */
   readonly at: string;
   /** The schema of `body`: `anthropic.messages`, `openai.responses`, `openai.chat` or `google.generate_content`. */
   readonly format: string;
-  /** The provider body as the runtime built it, the whole context of that call, unchanged except for the redactions below. */
-  readonly body: unknown;
-  /** Parts the runtime itself withheld before OAR saw the body (claude replaces thinking text), as the runtime names them. */
+  /** The request as the runtime recorded it, the whole context of that call; absent when the runtime withheld it whole. Not byte-identical to the wire: see `withheld` and the runtime's row. */
+  readonly body?: unknown;
+  /** What the runtime replaced or removed before OAR saw the body (claude: thinking text, account memory, or the whole body), named by OAR from the runtime's row, since a runtime may not name its own rewrites. */
   readonly withheld?: readonly string[];
   readonly provider?: string;
   readonly model?: string;
@@ -81,17 +81,23 @@ export interface ModelRequest {
   extraction), never replace the kept request. A runtime that cannot tell
   them from the root's main-loop requests refuses the option until it can.
 - **Current as soon as the runtime attributes it.** OAR replaces the kept
-  request when it can tell that the runtime sent a new main-loop request, and
-  the reading is valid at any moment, including mid-turn. Where the runtime
-  attributes a request when it sends it, that is before the response. Where
-  the attribution arrives with the response (claude's file mode, below), the
-  kept request changes when the response completes, and until then the
-  reading is the previous main-loop request. Either way, while a tool runs,
-  the latest request is the one whose response called it, so a host that
-  indexes requests by something it observes during a turn (a message the
-  agent sent through a tool) reads at that moment. Where the native mechanism
-  writes a file, a file is complete only when it parses as a whole; a partly
-  written file is never returned.
+  request when the runtime attributes a new main-loop request to the root.
+  Where the runtime attributes a request when it sends it, that is before
+  the response. Where attribution follows the response (claude's file mode,
+  below), OAR knows from the session's own events that a main-loop response
+  arrived before its attribution lands; a read in that gap waits for it,
+  bounded (the runtime page states the bound), so while a tool runs the
+  reading is the request whose response called it, and a host that indexes
+  requests by something it observes during a turn (a message the agent sent
+  through a tool) reads at that moment. Where the native mechanism writes a
+  file, a file is complete only when it parses as a whole; a partly written
+  file is never returned.
+- **Attributed attempts only.** A request that is never attributed (claude
+  attributes only a call that was answered: a refused, failed, interrupted
+  or retried attempt leaves no attribution) never becomes the kept request.
+  After a failed turn the reading can therefore be an earlier request; `at`
+  tells the host when it was built. Of a retried call, the kept request is
+  the attempt that was answered.
 - **This open only.** A resumed session returns `null` until it sends its
   first request in this open. OAR does not read bodies an earlier process
   left behind.
@@ -113,19 +119,30 @@ export interface ModelRequest {
   stays a per-installation declaration that does not depend on placement.
 - **Checked, never assumed.** Where the user's or the project's
   configuration can redirect or disable the mechanism, OAR sets it at the
-  highest precedence it controls without writing user configuration. A
-  main-loop response that completes with no body where OAR pointed the
-  runtime makes `lastModelRequest()` reject with the cause, rather than
-  return an older request or `null`.
+  highest precedence it controls without writing user configuration, and
+  reads the effective setting back at open where the runtime reports it: a
+  setting other than OAR's refuses the option at open
+  (`UnsupportedOptionError` naming `modelRequests` and the winning source).
+  A setting can still change after open (claude re-reads its environment on
+  every request, and managed settings can refresh), so the wait above is
+  also the check: when a main-loop response's attribution does not arrive
+  within the bound, `lastModelRequest()` rejects with the cause from then
+  on, rather than return an older request or `null`.
 - **Body only.** OAR never captures transport headers. The body passes
   through the session's credential redactor
   ([`shared/credential-redactor.ts`](../../packages/oar/src/shared/credential-redactor.ts))
   before it is returned, as every other value OAR returns does.
 - **OAR cleans up what it enables.** Where a runtime dumps bodies to files,
-  OAR points it at a directory it creates for that session, readable only by
-  the user (0700) and outside the session's working directory, removes older
-  files as new ones arrive, and removes the directory at dispose. It writes
-  no user configuration.
+  OAR points it at a private directory it creates for that session before
+  spawn, outside the session's working directory
+  ([`shared/private-temp.ts`](../../packages/oar/src/shared/private-temp.ts),
+  which also sweeps directories a dead host left behind), and removes the
+  directory at dispose. While the session runs it deletes only files it no
+  longer needs: those its attribution already named, other than the kept
+  request, and unattributed request files built before the kept request (an
+  attempt that will never be attributed). It never deletes a request newer
+  than the kept one, which may still be in flight, and never rotates the
+  runtime's own index. It writes no user configuration.
 
 ## What runtimes expose
 
@@ -137,9 +154,9 @@ been run; each "to verify" item must be checked live before the runtime ships.
 
 | runtime | mechanism | to verify |
 | --- | --- | --- |
-| claude | `OTEL_LOG_RAW_API_BODIES=file:<dir>` (`[sym]`). Each request writes `<uuid>.request.json` when the request is built, before the response, with no rename, so a reader can meet it half written. After the response claude writes `<request_id>.response.json` and appends one line to `index.jsonl` naming the request file, `session_id` and `query_source`. The request file itself carries no source. Main loop: `query_source` `sdk` under OAR's stream-json launch (`repl_main_thread*` in the interactive REPL), the two claude itself classifies as main; sub-agents `agent:builtin:<type>`, `agent:custom:<type>`, `agent:default` and `hook_agent`; auxiliary calls name their own source (`compact`, `generate_session_title`, classifiers, memory extraction and others). File mode needs no telemetry exporter. Thinking text is replaced with `<REDACTED>`; memory operations and a summary with account memory are withheld whole. Claude creates a missing directory with default permissions and never deletes files. Settings `env` entries are written over the launch environment, so a user's settings would replace a value OAR put in the process environment (project and local settings cannot set this variable). OAR passes it in the `env` of the one `--settings` object it builds (which also carries `fastMode` and `claudeMdExcludes` when those are set), and refuses a host `--settings` in `launchArgs` whenever it sends its own, since claude replaces a repeated `--settings` ([`claudeSettingsArgs`](../../packages/oar/src/runtimes/claude/launch-args.ts)). That source is applied after user, project and local settings, in trusted and untrusted workspaces alike, and only managed policy settings (or `CLAUDE_CODE_REMOTE_TOOLS_PIN_STORED_LOGIN`, which withholds non-policy settings env) override it. OAR reads the effective value back through the `get_settings` read-back OAR already uses for effort, which also names the winning source; a value other than OAR's makes `lastModelRequest()` reject with that source. The directory is created 0700 before spawn, on fresh, resumed and forked launches alike. The gate that disables the mechanism is `diskless`, which only an embedding claude-code-server sets; a CLI launch is never diskless. Any other truthy value selects inline mode, which puts bodies in the telemetry event; OAR never uses it | first version (2.1.304 and 2.1.322 have the same code; 2.1.292 not checked); a live run under OAR's launch (`[env]`) |
+| claude | `OTEL_LOG_RAW_API_BODIES=file:<dir>` (`[sym]`). Each request writes `<uuid>.request.json` when the request is built, before the response, with no rename, so a reader can meet it half written. After an answered response claude writes `<request_id>.response.json` and appends, asynchronously, one line to `index.jsonl` naming the request file, `session_id`, `query_source` and the response's message id, which OAR joins to the root `assistant` frame on stream-json to know an attribution is pending. The request file itself carries no source; `at` is its build time (the file's modification time). A refused, failed, interrupted or retried attempt writes a request file and no index line. Main loop: `query_source` `sdk` under OAR's stream-json launch (`repl_main_thread*` in the interactive REPL), the two claude itself classifies as main; sub-agents `agent:builtin:<type>`, `agent:custom:<type>`, `agent:default` and `hook_agent`; auxiliary calls name their own source (`compact`, `generate_session_title`, classifiers, memory extraction and others). File mode needs no telemetry exporter. Claude rewrites the file without naming it: thinking text becomes `<REDACTED>` and account memory text is substituted; it withholds a body whole (`{not_recorded: …}`, any source including `sdk`) for memory operations and account memory it cannot identify or redact. OAR names these in `withheld` and leaves `body` absent for a whole withhold. Under Bedrock, Vertex, Foundry or a gateway the file holds the Messages request claude built, not the transport wrapper, so `format` is `anthropic.messages` and `provider` comes from claude's provider selection. Claude creates a missing directory with default permissions and never deletes files. Settings `env` entries are written over the launch environment, so a user's settings would replace a value OAR put in the process environment (project and local settings cannot set this variable). OAR passes it in the `env` of the one `--settings` object it builds (which also carries `fastMode` and `claudeMdExcludes` when those are set), and refuses a host `--settings` in `launchArgs` whenever it sends its own, since claude replaces a repeated `--settings` ([`claudeSettingsArgs`](../../packages/oar/src/runtimes/claude/launch-args.ts)). That source is applied after user, project and local settings, in trusted and untrusted workspaces alike, and only managed policy settings (or `CLAUDE_CODE_REMOTE_TOOLS_PIN_STORED_LOGIN`, which withholds non-policy settings env) override it. OAR reads the effective value back through the `get_settings` read-back OAR already uses for effort, which also names the winning source; a value other than OAR's makes `lastModelRequest()` reject with that source. The directory is created 0700 before spawn, on fresh, resumed and forked launches alike. The gate that disables the mechanism is `diskless`, which only an embedding claude-code-server sets; a CLI launch is never diskless. Any other truthy value selects inline mode, which puts bodies in the telemetry event; OAR never uses it | first version, which sets the declared floor (2.1.304 and 2.1.322 have the same code; 2.1.292 not checked); a live run under OAR's launch (`[env]`), including how long after the `assistant` frame the index line lands, which sets the read bound |
 | pi | extension event `before_provider_request` (`[src]` pi-coding-agent `extensions/runner.js`), wired as the Agent's `onPayload`. Every provider adapter calls it with its built request. The Anthropic adapter builds the full history, system prompt and tools whether or not message threads are on (the flag only adds a beta header), calls the hook, and only then lets `prepareThreadRequest` trim to a thread delta. A handler's return value replaces the body, so OAR's handler returns nothing. Only the main loop passes `onPayload`: compaction and branch summaries build their options without it, cache warming calls the model runtime directly, and 1.5.2 makes no title call. In RPC mode the event runs in the pi child, and the JSON-line stdout carries every control response, so a body leaves through a side channel, never that line: the RPC protocol relays no extension data channel, and every surface an extension can reach (UI requests, notifications) is a line on that stdout. A file, or a separate pipe like the fd 3 credential pipe OAR's own Pi extension already opens | a live run: one hook call per main-loop request and none for compaction (`[env]`) |
-| opencode 2.x | a plugin in the config OAR already passes in `OPENCODE_CONFIG_CONTENT` (loaded as a virtual document, no file; `[sym]` 2.3.2), using two hooks. `model.request` receives the provider-neutral prompt with its `kind` (`primary`, `title`, `code`, `task`, `image`) and headers a plugin may write; `http.request` receives the final HTTP `Request` after the provider adapter. The plugin tags the request's headers in `model.request` and, in `http.request`, keeps the body only of a request tagged `primary`, as OpenCode's own Claude agent and Copilot plugins already pair them. No hook sees a WebSocket frame, so a WebSocket transport (OpenAI Codex's default) refuses | that the tag reaches every HTTP provider's `Request`; how a large body leaves the server process |
+| opencode 2.x | a plugin in the config OAR already passes in `OPENCODE_CONFIG_CONTENT` (loaded as a virtual document, no file; `[sym]` 2.3.2), using two hooks; OAR injects no plugin today. `model.request` receives the provider-neutral prompt with its `kind` (`primary`, `title`, `code`, `task`, `image`) and headers a plugin may write; `http.request` receives the final HTTP `Request` after the provider adapter. The plugin tags the request's headers in `model.request` and, in `http.request`, keeps the body only of a request tagged `primary`, as OpenCode's own Claude agent and Copilot plugins already pair them. No hook sees a WebSocket frame, so a WebSocket transport (OpenAI Codex's default) refuses | that the tag reaches every HTTP provider's `Request`. A body cannot go back over ACP stdout, which carries every control response and event as one JSON line each, so the plugin writes it to a file in OAR's per-session directory, as claude does |
 | codex | `CODEX_ROLLOUT_TRACE_ROOT` rollout trace | payload shape; whether WebSocket incremental requests leave a full body to read; auxiliary calls distinguishable |
 | qwen | `--openai-logging` | OpenAI-compatible providers only; whether the log directory can be per session; whether background memory extraction lands in the same log |
 | opencode 1.x, dsh | request exposed only before the provider adapter converts it | refuse until a provider-body hook is found |
