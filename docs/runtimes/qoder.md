@@ -143,6 +143,16 @@ native turn, including the reply to a background task. OAR emits
 next-priority input can join the notification turn. In a text-only reply,
 Qoder starts the input after the notification's result. The user echo and
 command lifecycle show when the input lands. [Native delivery controls](../../sea-trial/vendor/stream-json-notification-delivery.vendor.test.ts)
+
+If a host prompt races a background notification, the root init carries no
+input ID. OAR waits for Qoder's matching command lifecycle to attribute
+the host input. A root result without `user_message_uuid` remains unlabelled.
+An input-specific turn wait skips an intervening end once it has seen that
+input queued. Before any native admission receipt, the first root end can
+still satisfy the wait. Qoder 1.1.81 accepted an interrupt during a
+notification's foreground tool, returned an aborted root result, reported
+idle and accepted the next prompt on the same session.
+
 The final `result` carries the turn outcome. Native cancellation before an
 input starts can produce only `command_lifecycle cancelled`, without a result.
 
