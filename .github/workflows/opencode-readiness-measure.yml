@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        workers: [2, 1]
+        layout: [shared, separate, full-suite]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -22,11 +22,12 @@ jobs:
           node-version: 24
       - run: pnpm install --frozen-lockfile
       - run: node .github/scripts/runtime-install.mjs opencode-cleanup
-      - name: Repeat the original behavior gate with native process diagnostics
+      - name: Compare concurrent agents using shared or separate native data
         shell: pwsh
         env:
           OAR_TEST: opencode-aimock
-          OAR_TEST_CONCURRENCY: ${{ matrix.workers }}
+          OAR_TEST_CONCURRENCY: '2'
+          OAR_EXPERIMENT_LAYOUT: ${{ matrix.layout }}
           OAR_TEST_MCP_PROGRESS: '1'
           OAR_TEST_REQUIRE_AVAILABLE: '1'
           OAR_CHILD_STDERR: inherit

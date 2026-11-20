@@ -12,7 +12,16 @@ try {
     effort = 'effort not found: oar-no-such-effort'
     sqlite = 'SQLITE_BUSY|SQLITE_LOCKED|database is (locked|busy)'
     dbOpen = 'SQLITE_CANTOPEN|unable to open database file'
-    dbIO = 'SQLITE_IOERR|disk I/O error|locking protocol'
+    dbIO = 'SQLITE_IOERR|disk I/O error'
+    protocol = 'SQLITE_PROTOCOL|locking protocol'
+    wal = 'journal_mode|wal_checkpoint|wal_autocheckpoint'
+    pragma = '\bPRAGMA\b'
+    migrations = 'migrat(e|ing|ion)'
+    walFile = 'opencode[^\s/\\]*\.db-wal'
+    shmFile = 'opencode[^\s/\\]*\.db-shm'
+    opencodeDb = 'opencode[^\s/\\]*\.db\b'
+    databaseOpen = 'DatabaseImpl|new Database|Database\.open'
+    windowsIo = 'LockFileEx|UnlockFileEx|CreateFileW|ReadFile|WriteFile|FlushFileBuffers'
     dbCorrupt = 'SQLITE_CORRUPT|database disk image is malformed'
     bind = 'EADDRINUSE|WSAEADDRINUSE|address already in use'
     busy = 'EBUSY|sharing violation|used by another process'
@@ -25,15 +34,20 @@ try {
   }
   # Stream only fixed diagnostics and sea-trial case identifiers. Verbose native
   # logs and synthetic provider traces stay on the ephemeral runner.
-  for ($round = 1; $round -le 3; $round++) {
+  $full = $env:OAR_EXPERIMENT_LAYOUT -eq 'full-suite'
+  $rounds = if ($full) { 4 } else { 1 }
+  $arguments = if ($full) { @('run', 'sea-trial') } else { @('exec', 'tsx', 'experiments/opencode-windows-readiness/agents.ts') }
+  for ($round = 1; $round -le $rounds; $round++) {
     [ordered]@{ round = $round; workers = $env:OAR_TEST_CONCURRENCY; at = [DateTime]::UtcNow.ToString('o') } | ConvertTo-Json -Compress
-    pnpm run sea-trial 2>&1 | ForEach-Object {
+    pnpm @arguments 2>&1 | ForEach-Object {
       $line = [string]$_
       $signals = @($patterns.Keys | Where-Object { $line -match $patterns[$_] })
       $case = $null
       if ($line -match '^(PASS|FAIL|SKIP)\s+([a-z0-9][a-z0-9.-]+)') { $case = "$($Matches[1]) $($Matches[2])" }
-      if ($signals.Count -or $case) {
-        [ordered]@{ at = [DateTime]::UtcNow.ToString('o'); round = $round; signals = $signals; result = $case } | ConvertTo-Json -Compress
+      if ($line -match '^AGENT (worker=[12] round=[0-9]+ stage=(opening|opened|disposing|done|readiness_failure|other_failure)|layout=(shared|separate) failures=[0-9]+,[0-9]+)$') { $case = $Matches[0] }
+      $sql = [regex]::Matches($line, '\bSQLITE_(?:IOERR|BUSY|CANTOPEN|PROTOCOL|LOCKED)(?:_[A-Z0-9]{1,20})?\b') | ForEach-Object { $_.Value }
+      if ($signals.Count -or $case -or $sql) {
+        [ordered]@{ at = [DateTime]::UtcNow.ToString('o'); round = $round; signals = $signals; sqlite = @($sql); result = $case } | ConvertTo-Json -Compress
       }
     }
     $code = $LASTEXITCODE
