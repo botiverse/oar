@@ -730,6 +730,11 @@ Further rules:
   (a signal), absent otherwise (claude, pi-durable, whose 1.5 conversation
   views carry no exit code, and a tool that runs no command). pi reports a
   signal as 128 plus its number, never `null`.
+- **Applied file changes come from the runtime.** `tool_call_ended.fileChanges`
+  lists paths and their native change kinds (`added`, `modified`, `deleted`
+  or `unknown`). A move can include its destination in `moveTo`. OAR leaves
+  the field absent when the runtime has no applied change list. It never
+  derives changes from tool input, output text or a filesystem comparison.
 - **A tool result is its parts.** `tool_call_ended.content` is the result
   as the runtime reported it, in its order: `{type: "text", text}`,
   `{type: "image", mediaType, data}` (base64, normalized from Anthropic
@@ -788,7 +793,7 @@ interface FrameBody {
 //   tool_call_input {callId, input} |
 //   tool_call_input_delta {callId, delta} |
 //   tool_call_progress {callId, output?, outputDelta?} |
-//   tool_call_ended {callId, content?: ToolOutputPart[], result?: "ok" | "failed", exitCode?: number | null} |
+//   tool_call_ended {callId, content?: ToolOutputPart[], result?: "ok" | "failed", exitCode?: number | null, fileChanges?: FileChange[]} |
 //   turn_ended {outcome, inputId?, inputIds?, forkAnchor?} | usage {usage: {context?, tokens?: {input, output, reasoning?, cacheRead?, cacheWrite?}, total?: <same>}} | model {model} |
 //   goal_changed {goal: GoalSnapshot | null} |
 //   effort {effort} | service_tier {serviceTier} | app_request_cancelled {requestId} |

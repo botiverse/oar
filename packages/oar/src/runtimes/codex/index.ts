@@ -19,7 +19,7 @@ export const codexRuntime = defineRuntime({
   id: "codex",
   sessionCapabilities: (installation) => ({
     steer: true, images: true, mcpTransports: ["stdio", "http"], stopTask: true,
-    ...(installation.via === "executable" && semverAtLeast(installation.version, "0.160.1") ? { fileChangeKinds: true } : {}),
+    ...(installation.via === "executable" && semverAtLeast(installation.version, "0.160.1") ? { fileChanges: true } : {}),
     ...(installation.via === "executable" && semverAtLeast(installation.version, "0.151.0") ? { contextUsage: { tokens: true, contextWindow: true } } : {}),
   }),
   manualCompaction: { kind: "supported", activeTurn: "reject" },

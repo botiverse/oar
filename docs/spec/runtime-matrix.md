@@ -124,24 +124,24 @@ of a `prompt` request that reentrantly calls `queue` places the queued entry
 before that `prompt` decides, so adapter-held sessions refuse the `prompt` as
 `busy` and drain the queued entry instead.
 
-| runtime | `steer` | `withdraw` | `capabilities.queue.durable` |
-|---|---|---|---|
-| dsh | yes where the bridge reports the agent's `steer` at open: `agent.steer`, the native next-step inbox | yes: native `inbox.remove`, for input held for a later turn | no: native dispose clears the inbox; a crash can leave input that runs at the next wake ([mapping](../runtimes/dsh.md#session-options)) |
-| factory | yes: a second `droid.add_user_message`, queued `end_of_turn` and drained into the running turn, which ends once | yes, while held | no ([mapping](../runtimes/factory.md#prompting-steering-queueing-and-abort)) |
-| qoder | yes: stdin user message with `priority: next`, joining at a tool boundary or following a text-only turn | yes, while held | no |
-| qwen | no: native busy writes queue | yes, while held | no |
-| claude | yes: a user message written to stdin mid-turn | yes | no |
-| codex | yes: `turn/steer` with `expectedTurnId` | no: the queue is codex's own (`thread/queue/add`; [why](record-stream.md#withdrawing-held-input)) | yes |
-| pi-durable | yes: native `submit`, `whenBusy: steer` | yes: `submission.abort()` | yes |
-| pi | yes: the SDK session's `steer` | yes | no |
-| cursor (`@cursor/sdk`) | yes, text only: `run.steer` (images are rejected `unsupported`); `complete_delivered` and SDK 1.4.0 `queued` are accepted (a queued steer is Cursor's follow-up, unobserved by OAR), `revert_to_followup` is refused ([mapping](../runtimes/cursor.md#prompt-steering-queueing-and-abort)) | yes | no |
-| grok (ACP) | yes: `_x.ai/interject`, taken into the running turn at its next safe point without cancelling it; one that misses the turn runs as Grok's own ([mapping](../runtimes/grok.md#prompting-steering-queuing-and-cancellation)) | yes | no |
-| codebuddy (ACP) | absent: no verified injection interface | yes | no |
-| devin (ACP) | absent: no verified injection interface | yes | no |
-| kimi (ACP) | no | yes | no |
-| antigravity (CLI ACP) | yes | yes | no |
-| opencode v1 (ACP) | yes: a plain prompt RPC mid-turn, which joins the running loop at its next step; both prompts are answered at idle | yes | no |
-| opencode v2 (ACP) | yes where `initialize` advertises `_meta.steering.supported` (2.2.7 and later): `_session/steering`, `injected` is accepted into the running turn, `promptRequired` is `no_active_turn` ([mapping](../runtimes/opencode.md#v2-session-behavior); verified natively on 2.3.0, including that abort keeps an accepted steer and slash commands steer as text). Otherwise absent: concurrent native prompts are refused; `steerOrQueue` and `deliver` use the host queue | yes | no |
+| runtime | `steer` | `withdraw` | `capabilities.queue.durable` | `fileChanges` |
+|---|---|---|---|---|
+| dsh | yes where the bridge reports the agent's `steer` at open: `agent.steer`, the native next-step inbox | yes: native `inbox.remove`, for input held for a later turn | no: native dispose clears the inbox; a crash can leave input that runs at the next wake ([mapping](../runtimes/dsh.md#session-options)) | absent |
+| factory | yes: a second `droid.add_user_message`, queued `end_of_turn` and drained into the running turn, which ends once | yes, while held | no ([mapping](../runtimes/factory.md#prompting-steering-queueing-and-abort)) | absent |
+| qoder | yes: stdin user message with `priority: next`, joining at a tool boundary or following a text-only turn | yes, while held | no | absent |
+| qwen | no: native busy writes queue | yes, while held | no | absent |
+| claude | yes: a user message written to stdin mid-turn | yes | no | absent |
+| codex | yes: `turn/steer` with `expectedTurnId` | no: the queue is codex's own (`thread/queue/add`; [why](record-stream.md#withdrawing-held-input)) | yes | true from 0.160.1, absent on older or unreadable versions |
+| pi-durable | yes: native `submit`, `whenBusy: steer` | yes: `submission.abort()` | yes | absent |
+| pi | yes: the SDK session's `steer` | yes | no | absent |
+| cursor (`@cursor/sdk`) | yes, text only: `run.steer` (images are rejected `unsupported`); `complete_delivered` and SDK 1.4.0 `queued` are accepted (a queued steer is Cursor's follow-up, unobserved by OAR), `revert_to_followup` is refused ([mapping](../runtimes/cursor.md#prompt-steering-queueing-and-abort)) | yes | no | absent |
+| grok (ACP) | yes: `_x.ai/interject`, taken into the running turn at its next safe point without cancelling it; one that misses the turn runs as Grok's own ([mapping](../runtimes/grok.md#prompting-steering-queuing-and-cancellation)) | yes | no | absent |
+| codebuddy (ACP) | absent: no verified injection interface | yes | no | absent |
+| devin (ACP) | absent: no verified injection interface | yes | no | absent |
+| kimi (ACP) | no | yes | no | absent |
+| antigravity (CLI ACP) | yes | yes | no | absent |
+| opencode v1 (ACP) | yes: a plain prompt RPC mid-turn, which joins the running loop at its next step; both prompts are answered at idle | yes | no | absent |
+| opencode v2 (ACP) | yes where `initialize` advertises `_meta.steering.supported` (2.2.7 and later): `_session/steering`, `injected` is accepted into the running turn, `promptRequired` is `no_active_turn` ([mapping](../runtimes/opencode.md#v2-session-behavior); verified natively on 2.3.0, including that abort keeps an accepted steer and slash commands steer as text). Otherwise absent: concurrent native prompts are refused; `steerOrQueue` and `deliver` use the host queue | yes | no | absent |
 
 For ACP runtimes with `steer` (Grok, Antigravity, OpenCode v1 and v2), OAR
 rechecks the original active turn after startup waits and at SDK dispatch.
@@ -368,6 +368,10 @@ never derived is in [record-stream.md](record-stream.md#the-rules)):
 | pi | `tool_execution_end.result.content` blocks, else the whole result | `tool_execution_end.isError` false/true ([src]) | CodingTools' `result.structuredContent.exit_code` ([env] Pi 1.3.0, [test](../../sea-trial/vendor/pi-exit-code.vendor.test.ts)) |
 | grok, kimi, antigravity, opencode (ACP) | the closing `tool_call_update.content` blocks, else `rawOutput`; text parts are cut at 10,000 characters (`native` keeps them whole) | `tool_call_update.status` `completed`/`failed` ([src]) | `rawOutput.exit_code` on the closing `tool_call_update`: grok ([src] grok 1.0.25), antigravity ([env] agy_acp_server 1.2.1) |
 | cursor (`@cursor/sdk`) | a shell call's stdout and stderr (one empty text part when it printed nothing), a read's file text, an edit's or write's diff, an error's message, else one `other` part ([env] SDK 1.0.35) | `tool-call-completed` `toolCall.result.status` `success`/`error` ([env] SDK 1.0.35) | a shell call's `result.value.exitCode`, `null` when `signal` names one ([env]) |
+
+Codex also reports `fileChanges` on a completed `fileChange` item. Each
+`changes[].path` keeps the kind from `kind.type`, plus `kind.move_path`
+for a move. See the [recorded patch replay](../../tests/replay/codex-file-changes.test.ts).
 
 A frame without the corresponding native field leaves the key absent; the
 native frame stays verbatim beside the event. pi reports a signal as 128

@@ -60,7 +60,7 @@ export interface SessionCapabilityDeclaration {
   /** Whether an opened session exposes `Session.stopTask(taskId)`. */
   readonly stopTask?: boolean;
   /** A completed native file-edit tool can report applied changes by path and kind. */
-  readonly fileChangeKinds?: boolean;
+  readonly fileChanges?: boolean;
 }
 
 /** Which compaction lifecycle events a runtime's own automatic compaction produces. */

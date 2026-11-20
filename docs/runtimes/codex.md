@@ -1095,7 +1095,7 @@ view's tool part carry each native path and its kind (`added`, `modified`,
 with its source path and `moveTo` destination. Failed and declined patches
 supply no applied changes. Codex 0.160.1 and 0.169.0 reported all four
 operations in a scripted patch. From the first verified version,
-`sessionCapabilities(installation).fileChangeKinds` advertises this detail.
+`sessionCapabilities(installation).fileChanges` advertises this detail.
 
 OAR projects command execution, file changes, MCP calls, web search and
 sleeps ([outcomes](#tool-call-outcome-reporting)), but exposes no tool registration,
