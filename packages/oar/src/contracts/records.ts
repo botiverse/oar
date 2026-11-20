@@ -1,7 +1,7 @@
+import type { FileChange, ToolCallProgress, ToolOutputPart } from "./tool-output.js";
 import type { GoalSetOptions, GoalSnapshot } from "./goal.js";
 import type { InputImage, InputOrigin, InputReference, UserMessage } from "./input.js";
 import type { PlacementRequest, SessionCleanup, SessionPlacement, SessionRelease } from "./placement.js";
-import type { ToolCallProgress, ToolOutputPart } from "./tool-output.js";
 import type { ContextUsage } from "./context-usage.js";
 import type { FailureClass } from "./failure.js";
 import type { TaskEventBody } from "./tasks.js";
@@ -166,6 +166,8 @@ export type RuntimeEventBody =
       readonly result?: "ok" | "failed";
       /** The process exit status the runtime reported for a command it ran (codex `commandExecution.exitCode`, grok and antigravity `rawOutput.exit_code`, a cursor shell result's `exitCode`, pi's CodingTools `structuredContent.exit_code`, pi-durable's nested-call `result.structuredOutput.exitCode`). pi and pi-durable encode a signal as a number, 128 plus the signal number, so SIGTERM is 143, never null; a pi-durable ordinary (non-nested) tool call does not carry it and stays absent. `null` only when a runtime itself reports a numeric-less exit. Absent when the runtime reports none (claude, and any tool that is not a command run), never derived from `result` or output. */
       readonly exitCode?: number | null;
+      /** Native per-path changes confirmed by this completion. Absent when the tool reports none. */
+      readonly fileChanges?: readonly FileChange[];
     }
   | ToolCallProgress
   /** The runtime's OWN completion report for a turn (claude `result`, codex `turn/completed`, pi `agent_settled`, an ACP prompt answer). A prompt request produces `turn_started`; a native active-run report produces `turn_active`. Neither implies an outcome: if a runtime reports no end, none appears. `inputId` and ordered `inputIds` independently preserve native singular/plural input identities; neither is inferred. Use `inputIds` when present to settle every covered input. `forkAnchor`, on a root turn of a runtime that takes `SessionOptions.fork`, is the opaque native anchor `fork.through` takes to copy the conversation through this turn (claude: the `uuid` of the turn's last root assistant message, absent when it had none, when that message holds a `tool_use` or a root `tool_result` follows it (an `outputSchema` turn's `StructuredOutput` call, an `error_max_turns` stop), and on an aborted turn; codex: the turn id); absent elsewhere and in older records. */

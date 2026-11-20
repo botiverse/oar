@@ -1,4 +1,5 @@
-import type { ToolOutputPart } from "../../contracts/tool-output.js";
+import type { RuntimeEventBody } from "../../contracts/session.js";
+import type { FileChange, ToolOutputPart } from "../../contracts/tool-output.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { toolContent } from "../../shared/tool-output.js";
 
@@ -71,4 +72,41 @@ export function codexToolContent(item: JsonRecord): readonly ToolOutputPart[] | 
     default:
       return undefined;
   }
+}
+
+const changeKinds = new Map<string, FileChange["kind"]>([["add", "added"], ["update", "modified"], ["delete", "deleted"]]);
+
+function appliedFileChanges(item: JsonRecord): readonly FileChange[] | undefined {
+  if (item.type !== "fileChange" || item.status !== "completed" || !Array.isArray(item.changes)) { return undefined; }
+  const changes: FileChange[] = [];
+  for (const value of item.changes) {
+    const entry = asRecord(value);
+    if (typeof entry?.path !== "string" || entry.path.length === 0) { continue; }
+    const native = asRecord(entry.kind);
+    const kind = typeof native?.type === "string" ? changeKinds.get(native.type) ?? "unknown" : "unknown";
+    const moveTo = native?.move_path;
+    changes.push({ path: entry.path, kind, ...(kind === "modified" && typeof moveTo === "string" && moveTo.length > 0 ? { moveTo } : {}) });
+  }
+  return changes;
+}
+
+export function codexToolEnd(item: JsonRecord, itemId: string): Extract<RuntimeEventBody, { kind: "tool_call_ended" }> {
+  const content = codexToolContent(item);
+  const exitCode = codexItemExitCode(item);
+  const status = item.status;
+  let result: "ok" | "failed" | undefined = undefined;
+  if (status === "completed") {
+    result = "ok";
+  } else if (status === "failed") {
+    result = "failed";
+  }
+  const fileChanges = appliedFileChanges(item);
+  return {
+    kind: "tool_call_ended",
+    callId: itemId,
+    ...(content === undefined ? {} : { content }),
+    ...(result === undefined ? {} : { result }),
+    ...(fileChanges === undefined ? {} : { fileChanges }),
+    ...(exitCode === undefined ? {} : { exitCode }),
+  };
 }

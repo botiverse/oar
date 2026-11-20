@@ -1089,6 +1089,14 @@ each change's `path`, a rename's `move_path` right after its source, each
 path once, and `detail` is the first of them
 ([test](../../tests/replay/tool-activity.test.ts)).
 
+On a successful completion, `tool_call_ended.fileChanges` and the session
+view's tool part carry each native path and its kind (`added`, `modified`,
+`deleted`, or `unknown` for an unfamiliar kind). A move is one modification
+with its source path and `moveTo` destination. Failed and declined patches
+supply no applied changes. Codex 0.160.1 and 0.169.0 reported all four
+operations in a scripted patch. From the first verified version,
+`sessionCapabilities(installation).fileChangeKinds` advertises this detail.
+
 OAR projects command execution, file changes, MCP calls, web search and
 sleeps ([outcomes](#tool-call-outcome-reporting)), but exposes no tool registration,
 dynamic-tool execution callback, MCP management, or elicitation API; tools

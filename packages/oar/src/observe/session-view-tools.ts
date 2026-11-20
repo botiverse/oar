@@ -40,8 +40,9 @@ type ToolPart = Extract<ViewPart, { kind: "tool" }>;
 type ToolResult = ToolPart["result"];
 
 /** What a call's end adds to its tool part: the result content and the exit status, each only when the runtime reported it. */
-export function ended(event: Extract<Event, { kind: "tool_call_ended" }>): Pick<ToolPart, "content" | "exitCode"> {
+export function ended(event: Extract<Event, { kind: "tool_call_ended" }>): Pick<ToolPart, "content" | "exitCode" | "fileChanges"> {
   return {
+    ...(event.fileChanges === undefined ? {} : { fileChanges: event.fileChanges }),
     ...(event.content === undefined ? {} : { content: event.content }),
     ...(event.exitCode === undefined ? {} : { exitCode: event.exitCode }),
   };

@@ -43,3 +43,16 @@ test("a tool part carries the exit status the runtime reported, verbatim, and on
     { kind: "tool", callId: "c4", tool: "?", result: "ended", exitCode: 143, endedAt: 70 },
   ]);
 });
+
+
+test("a file completion retains its applied changes on the tool part", () => {
+  const fileChanges = [{ path: "a", kind: "modified", moveTo: "b" }] as const;
+  const view = fold([request(0, "p"), accepted(1, "p"),
+    received(10, 2, [{ kind: "tool_call_started", callId: "c", tool: "fileChange" }]),
+    received(20, 3, [{ kind: "tool_call_ended", callId: "c", result: "ok", fileChanges }]),
+  ]);
+  const turn = view.messages.find((message): message is ViewTurn => message.kind === "turn");
+  expect(turn?.sections.flatMap(section => section.parts)).toContainEqual({
+    kind: "tool", callId: "c", tool: "fileChange", startedAt: 10, endedAt: 20, result: "ok", fileChanges,
+  });
+});
