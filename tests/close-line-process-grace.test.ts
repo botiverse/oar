@@ -40,11 +40,16 @@ async function spawnEofProbe(shutdown?: "stdin"): Promise<EofProbe> {
   return { child, directory, stop, ready: ready.promise, eofAt: eofAt.promise, sawSigterm: () => sigterm };
 }
 
+// Windows CIM process-table reads and taskkill add ~1-1.6 s of fixed cleanup
+// overhead under parallel CI load; a 4 s grace keeps 1.85x strictly below 2x
+// while leaving >3 s of headroom for that fixed overhead.
+const timingGraceMs = process.platform === "win32" ? 4000 : 1500;
+
 test.each(["line", "line-stdin", "daemon"] as const)(
   "%s closeLineProcess forces after one grace period without a second SIGTERM window",
   // oxlint-disable-next-line eslint/max-statements -- End-to-end EOF-to-force timing, signal and cleanup check.
   async (kind) => {
-    const graceMs = 1500;
+    const graceMs = timingGraceMs;
     vi.stubEnv("OAR_KILL_GRACE_MS", String(graceMs));
     const probe = await spawnEofProbe(kind === "line-stdin" ? "stdin" : undefined);
     try {
@@ -65,12 +70,12 @@ test.each(["line", "line-stdin", "daemon"] as const)(
       await rm(probe.directory, { recursive: true, force: true });
     }
   },
-  20_000,
+  30_000,
 );
 
 // oxlint-disable-next-line eslint/max-statements -- Verify forced EOF timeout still reaps detached descendants in one grace.
 test("closeLineProcess force-kill reaps detached descendants after one grace period", async () => {
-  const graceMs = 1500;
+  const graceMs = timingGraceMs;
   vi.stubEnv("OAR_KILL_GRACE_MS", String(graceMs));
   const child = spawnLineProcess(process.execPath, [treeFixture], {
     killTree: true,
@@ -87,7 +92,7 @@ test("closeLineProcess force-kill reaps detached descendants after one grace per
     await closeLineProcess(child);
     const elapsed = performance.now() - started;
     expect(elapsed).toBeGreaterThanOrEqual(graceMs * 0.8);
-    expect(elapsed).toBeLessThan(graceMs * 1.9);
+    expect(elapsed).toBeLessThan(graceMs * 1.85);
     expect(await gone(root, 1000)).toBe(true);
     expect(await gone(tool, 1000)).toBe(true);
     expect(child.diagnostics().cleanup?.status).toBe("observed");
@@ -96,7 +101,7 @@ test("closeLineProcess force-kill reaps detached descendants after one grace per
     if (root !== undefined) { signalFixture(root); }
     if (tool !== undefined) { signalFixture(tool); }
   }
-}, 20_000);
+}, 30_000);
 
 // oxlint-disable-next-line eslint/max-statements -- Verify a mid-EOF kill() cannot push force escalation past the original EOF deadline.
 test.skipIf(process.platform === "win32")("concurrent kill() during closeLineProcess still forces at the EOF grace deadline", async () => {
