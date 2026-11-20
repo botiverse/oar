@@ -6,10 +6,15 @@ import { antigravityAccountUsage, projectAntigravityUsage } from "../../packages
 import { antigravityAuthStatus } from "../../packages/oar/src/runtimes/antigravity/auth.js";
 import {
   antigravitySilentAuthEnv,
+  clearAntigravityPlanCache,
   projectAntigravityTier,
-  projectAntigravityTokenEmail,
   readAntigravityPlan,
 } from "../../packages/oar/src/runtimes/antigravity/account.js";
+import {
+  isPlainTokenFileAuthoritative,
+  projectAntigravityTokenEmail,
+  readAntigravityTokenEmail,
+} from "../../packages/oar/src/runtimes/antigravity/token-email.js";
 import { asRecord, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 import { fakeAgentBinary, gone } from "../fixtures/process-tree.js";
 
@@ -20,7 +25,10 @@ const usageFixtureText = readFileSync(path.join(import.meta.dirname, "agy-1.5.7-
 const recordedUsage: unknown = parseJson(usageFixtureText);
 
 const dirs: string[] = [];
-afterEach(() => { for (const dir of dirs.splice(0)) { rmSync(dir, { recursive: true, force: true }); } });
+afterEach(() => {
+  clearAntigravityPlanCache();
+  for (const dir of dirs.splice(0)) { rmSync(dir, { recursive: true, force: true }); }
+});
 
 interface FakeAccountOptions {
   readonly persistedMethod?: string;
@@ -88,10 +96,10 @@ function fakeAccountAgy(options: FakeAccountOptions = {}) {
     traceFile, pidFile, initReply, authReply: recordedAuth.authenticate,
     usageReply: recordedUsage, authMode: options.authMode ?? "ok", loggedIn: options.loggedIn ?? true,
   }));
-  const env = { HOME: dir, USERPROFILE: dir, DISPLAY: ":99", WAYLAND_DISPLAY: "wayland-0" };
+  const env = { HOME: dir, USERPROFILE: dir, DISPLAY: ":99", WAYLAND_DISPLAY: "wayland-0", DBUS_SESSION_BUS_ADDRESS: null, XDG_RUNTIME_DIR: dir };
   return {
     installation: { kind: "available", via: "executable", command: fakeAgentBinary(dir, [script]), version: "1.5.13" } as const,
-    env, trace: () => readTrace(traceFile), acpPid: () => Number(readFileSync(pidFile, "utf8")),
+    env, dir, trace: () => readTrace(traceFile), acpPid: () => Number(readFileSync(pidFile, "utf8")),
   };
 }
 
@@ -101,6 +109,16 @@ function encodeBase64Url(part: unknown): string {
 
 function fakeJwt(payload: Record<string, unknown>): string {
   return `${encodeBase64Url({ alg: "none", typ: "JWT" })}.${encodeBase64Url(payload)}.synthetic`;
+}
+
+async function reachableSecretService(): Promise<boolean> {
+  await Promise.resolve();
+  return true;
+}
+
+async function unreachableSecretService(): Promise<boolean> {
+  await Promise.resolve();
+  return false;
 }
 
 test("projectAntigravityTier and projectAntigravityTokenEmail read recorded shapes and omit missing values", () => {
@@ -114,6 +132,25 @@ test("projectAntigravityTier and projectAntigravityTokenEmail read recorded shap
   });
 });
 
+test("isPlainTokenFileAuthoritative allows only Linux when Secret Service is unreachable", async () => {
+  const env = { HOME: tmpdir() };
+  expect(await isPlainTokenFileAuthoritative(env, { platform: "darwin" })).toBe(false);
+  expect(await isPlainTokenFileAuthoritative(env, { platform: "win32" })).toBe(false);
+  expect(await isPlainTokenFileAuthoritative(env, { platform: "linux", secretServiceReachable: reachableSecretService })).toBe(false);
+  expect(await isPlainTokenFileAuthoritative(env, { platform: "linux", secretServiceReachable: unreachableSecretService })).toBe(true);
+});
+
+test("readAntigravityTokenEmail omits stale plain-file emails whenever a keyring backend could shadow them", async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "oar-agy-keyring-"));
+  dirs.push(dir);
+  writeFakeState(dir, { tokenJson: { id_token_email: "stale@example.com" } });
+  const env = { HOME: dir, USERPROFILE: dir };
+  expect(await readAntigravityTokenEmail(env, { platform: "darwin" })).toBeUndefined();
+  expect(await readAntigravityTokenEmail(env, { platform: "win32" })).toBeUndefined();
+  expect(await readAntigravityTokenEmail(env, { platform: "linux", secretServiceReachable: reachableSecretService })).toBeUndefined();
+  expect(await readAntigravityTokenEmail(env, { platform: "linux", secretServiceReachable: unreachableSecretService })).toBe("stale@example.com");
+});
+
 test("antigravitySilentAuthEnv sets SSH_CONNECTION backstop and clears display variables", () => {
   const env = antigravitySilentAuthEnv({ PATH: "/usr/bin", DISPLAY: ":0", WAYLAND_DISPLAY: "wayland-0" });
   expect(env.SSH_CONNECTION).toBe("1");
@@ -122,10 +159,11 @@ test("antigravitySilentAuthEnv sets SSH_CONNECTION backstop and clears display v
   expect(antigravitySilentAuthEnv({ SSH_CONNECTION: "10.0.0.1 22 10.0.0.2 5000" }).SSH_CONNECTION).toBe("10.0.0.1 22 10.0.0.2 5000");
 });
 
-test("authStatus populates email and plan via one persisted ACP method without opening a session", async () => {
+test("authStatus populates plan (and email on headless Linux) via one persisted ACP method without opening a session", async () => {
   const fake = fakeAccountAgy({ persistedMethod: "oauth-personal", tokenJson: { auth_method: "consumer", id_token_email: "alice@example.com", token: { access_token: "synthetic-do-not-leak" } } });
   const status = await antigravityAuthStatus(fake.installation, { env: fake.env });
-  expect(status).toEqual({ kind: "logged_in", account: { email: "alice@example.com", plan: "Google AI Ultra" }, source: "agy models" });
+  const expectedAccount = process.platform === "linux" ? { email: "alice@example.com", plan: "Google AI Ultra" } : { plan: "Google AI Ultra" };
+  expect(status).toEqual({ kind: "logged_in", account: expectedAccount, source: "agy models" });
   expect(JSON.stringify(status)).not.toContain("synthetic-do-not-leak");
   const authTrace = fake.trace();
   expect(authTrace.find((entry) => entry.kind === "call" && Array.isArray(entry.args) && entry.args[0] === "acp")).toMatchObject({ args: ["acp"], ssh: "1", display: null, wayland: null });
@@ -133,18 +171,20 @@ test("authStatus populates email and plan via one persisted ACP method without o
   expect(authTrace.some((entry) => entry.kind === "rpc" && entry.method === "session/new")).toBe(false);
 });
 
-test("accountUsage reuses authStatus's single ACP tier probe and populates both email and plan", async () => {
+test("accountUsage reuses authStatus's single ACP tier probe and caches positive plan reads", async () => {
   const fake = fakeAccountAgy({ persistedMethod: "oauth-personal", tokenJson: { id_token_email: "alice@example.com", token: { access_token: "synthetic-do-not-leak" } } });
   const usage = await antigravityAccountUsage(fake.installation, { env: fake.env });
-  expect(usage).toMatchObject({ kind: "available", email: "alice@example.com", plan: "Google AI Ultra", rateLimited: false });
+  expect(usage).toMatchObject({ kind: "available", plan: "Google AI Ultra", rateLimited: false, ...(process.platform === "linux" ? { email: "alice@example.com" } : {}) });
   expect(JSON.stringify(usage)).not.toContain("synthetic-do-not-leak");
-  expect(fake.trace().filter((entry) => entry.kind === "call").map((entry) => entry.args)).toEqual([["models"], ["acp"], ["-p", "/usage", "--output-format", "json"]]);
+  await antigravityAuthStatus(fake.installation, { env: fake.env });
+  expect(fake.trace().filter((entry) => entry.kind === "call").map((entry) => entry.args)).toEqual([["models"], ["acp"], ["-p", "/usage", "--output-format", "json"], ["models"]]);
 });
 
-test("signed out reports lastAccount if plain token file remains without spawning agy acp", async () => {
+test("signed out reports lastAccount only when plain token file is authoritative, without spawning agy acp", async () => {
   const signedOut = fakeAccountAgy({ persistedMethod: "oauth-personal", loggedIn: false, tokenJson: { id_token_email: "alice@example.com" } });
-  expect(await antigravityAuthStatus(signedOut.installation, { env: signedOut.env })).toEqual({ kind: "logged_out", source: "agy models", lastAccount: { email: "alice@example.com" } });
-  expect(await antigravityAccountUsage(signedOut.installation, { env: signedOut.env })).toEqual({ kind: "reauth_required", reason: "not_authenticated", lastAccount: { email: "alice@example.com" } });
+  const expectedLast = process.platform === "linux" ? { lastAccount: { email: "alice@example.com" } } : {};
+  expect(await antigravityAuthStatus(signedOut.installation, { env: signedOut.env })).toEqual({ kind: "logged_out", source: "agy models", ...expectedLast });
+  expect(await antigravityAccountUsage(signedOut.installation, { env: signedOut.env })).toEqual({ kind: "reauth_required", reason: "not_authenticated", ...expectedLast });
   expect(signedOut.trace().filter((entry) => entry.kind === "call").map((entry) => entry.args)).toEqual([["models"], ["models"]]);
 });
 
@@ -170,7 +210,7 @@ test("omits plan when initialize does not advertise tier or authenticate refuses
 test("kills a stalled ACP tier probe at its short deadline and omits plan", async () => {
   const stalled = fakeAccountAgy({ persistedMethod: "oauth-personal", authMode: "stall" });
   const started = performance.now();
-  const plan = await readAntigravityPlan(stalled.installation.command, stalled.env, { timeoutMs: 400 });
+  const plan = await readAntigravityPlan(stalled.installation.command, { HOME: stalled.dir, USERPROFILE: stalled.dir }, { timeoutMs: 400 });
   expect(plan).toBeUndefined();
   expect(performance.now() - started).toBeLessThan(2000);
   expect(await gone(stalled.acpPid())).toBe(true);

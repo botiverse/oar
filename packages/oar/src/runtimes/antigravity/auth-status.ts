@@ -3,7 +3,8 @@ import type { AuthStatus, AuthStatusOptions } from "../../contracts/login.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { runExecutable } from "../../shared/executable/index.js";
 import { withQueryDeadline } from "../../shared/executable/query.js";
-import { readAntigravityAccount, rememberedAntigravityAccount } from "./account.js";
+import { readAntigravityAccount } from "./account.js";
+import { rememberedAntigravityAccount } from "./token-email.js";
 import { antigravityUsesDefaultState, ANTIGRAVITY_STATE_QUERY_UNAVAILABLE } from "./state-directory.js";
 import { antigravityVersionPreflight } from "./version.js";
 

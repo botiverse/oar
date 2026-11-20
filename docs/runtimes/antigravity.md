@@ -572,16 +572,23 @@ confirmed.
   `cache/acp-auth-state.json` when `initialize` advertises
   `_meta.antigravity.tier: true`, bounded to 5 s with `SSH_CONNECTION` set and
   display variables cleared as a browser-launch backstop (`[sym]` agy 1.5.13
-  `auth.browserUnavailableReason`), and `account.email` read-only from the
+  `auth.browserUnavailableReason`), cached for 5 minutes per home and email
+  (cleared on `login` and `logout`); and `account.email` read-only from the
   plain token file's `id_token_email` (or unverified `id_token` JWT payload).
-  Keyring-only platforms (macOS Keychain, Windows Credential Manager, or Linux
-  Secret Service) omit `email` so OAR never triggers an OS keyring prompt. If
-  `agy models` reports `logged_out` while a plain token file remains, its email
-  populates `lastAccount`. Either field is omitted when absent or unreadable.
+  Because agy 1.5.13 `compositeTokenStorage.LoadToken` reads the OS keyring
+  first (`[sym]`) and only purges the plain file best-effort on keyring saves,
+  a leftover plain file on a keyring-capable host could name an earlier account.
+  OAR therefore reads the plain file only on Linux when `org.freedesktop.secrets`
+  is proved unreachable (no session bus, or D-Bus `NameHasOwner` is false and
+  `ListActivatableNames` omits it), and omits `email` and `lastAccount` on
+  macOS, Windows, and Linux hosts where Secret Service is reachable or
+  unverifiable. On headless Linux, if `agy models` reports `logged_out` while
+  an authoritative plain token file remains, its email populates `lastAccount`.
+  Either field is omitted when absent or unreadable.
   Measured on signed-in agy 1.5.13 (Linux x64, 2026-11-20, `[env]`): `agy
-  models` alone took ~1.0 s, full `authStatus` with the ACP tier read took
-  ~2.0 s, and `accountUsage` (reusing that single status read before `/usage`)
-  took ~3.9 s.
+  models` alone took ~1.0 s, full `authStatus` with the uncached ACP tier read
+  took ~2.0 s, and `accountUsage` (reusing that single status read before
+  `/usage`) took ~3.9 s.
 - `logout` sends ACP `logout` on a fresh `agy acp`. agy 1.5.5 declares it in
   `initialize` (`agentCapabilities.auth.logout`), answers `{}`, and removes its
   stored token file itself (checked in an empty HOME holding a placeholder

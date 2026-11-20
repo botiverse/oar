@@ -4,6 +4,7 @@ import type { LoginOptions, LoginResult } from "../../contracts/login.js";
 import type { ProviderLoginInteraction } from "../../contracts/provider-auth.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { antigravityNoBrowserEnv } from "./login-browser.js";
+import { clearAntigravityPlanCache } from "./account.js";
 import { readAntigravityAuthStatus } from "./auth-status.js";
 import { errorMessage, LoginSecrets, loginBounds, loginExecutable, spawnLoginProcess, stoppedResult, type LoginProcess, type LoginProcessExit, type LoginStop } from "../../shared/login.js";
 
@@ -45,6 +46,7 @@ type Ending =
 
 /** Exit 0 is only agy's word: its status decides, and an unanswered status leaves a login without an account. */
 async function confirmed(installation: AvailableInstallation, signal: AbortSignal | undefined, env: LoginOptions["env"]): Promise<LoginResult> {
+  clearAntigravityPlanCache();
   // The status query after a success is bounded like every runtime's (docs/spec/login.md: up to 20 s).
   const status = signal?.aborted === true ? undefined : await readAntigravityAuthStatus(installation, { env, timeoutMs: 20_000, includeAccount: true, ...(signal === undefined ? {} : { signal }) });
   if (status?.kind === "logged_out") {
