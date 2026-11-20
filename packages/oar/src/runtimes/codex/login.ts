@@ -1,25 +1,11 @@
 import { withQueryDeadline } from "../../shared/executable/query.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import type { AvailableInstallation } from "../../contracts/installation.js";
-import type {
-  AuthStatus,
-  AuthStatusOptions,
-  AuthStatusReader,
-  LoginAccount,
-  LoginOptions,
-  LoginResult,
-} from "../../contracts/login.js";
+import type { AuthStatus, AuthStatusOptions, AuthStatusReader, LoginAccount, LoginOptions, LoginResult } from "../../contracts/login.js";
 import type { ProviderLoginInteraction } from "../../contracts/provider-auth.js";
 import { runExecutable } from "../../shared/executable/index.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
-import {
-  errorMessage,
-  LoginSecrets,
-  loginBounds,
-  loginExecutable,
-  stoppedResult,
-  type LoginStop,
-} from "../../shared/login.js";
+import { errorMessage, LoginSecrets, loginBounds, loginExecutable, stoppedResult, type LoginStop } from "../../shared/login.js";
 import { startAppServerClient, type AppServerClient } from "./app-server-client.js";
 
 /*
@@ -261,6 +247,7 @@ async function runCodexLogin(command: string, interaction: ProviderLoginInteract
   };
 
   const bounds = loginBounds(interaction.signal, timeoutMs);
+  let graceful = false;
   try {
     const ending = await Promise.race([
       run(),
@@ -269,16 +256,26 @@ async function runCodexLogin(command: string, interaction: ProviderLoginInteract
     ]);
     flow.settled = true;
     if (typeof ending !== "string") {
+      graceful = interaction.signal?.aborted !== true && (ending.kind !== "failed" || ending.reason !== "interaction_failed");
       return ending;
     }
     // Codex reported success before the stop: the login is stored.
-    return flow.confirmation === undefined ? stoppedResult(ending, timeoutMs) : await flow.confirmation;
+    if (flow.confirmation === undefined) {
+      return stoppedResult(ending, timeoutMs);
+    }
+    const result = await flow.confirmation;
+    graceful = interaction.signal?.aborted !== true;
+    return result;
   } finally {
     flow.settled = true;
     bounds.dispose();
-    // The pending login lives in the app-server; stopping it (and its group or tree) ends the polling.
-    app.kill();
-    await app.exited;
+    if (graceful && app.close !== undefined) {
+      await app.close();
+    } else {
+      // The pending login lives in the app-server; stopping it (and its group or tree) ends the polling.
+      app.kill();
+      await app.exited;
+    }
   }
 }
 

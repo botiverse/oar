@@ -566,13 +566,25 @@ remains `failed: runtime_exited`. A native turn end arriving first keeps its
 outcome. The host must resume after forced termination to continue.
 [Real-binary transport-fault test](../../sea-trial/vendor/abort-fallback.vendor.test.ts).
 
-**Dispose and unreachable runtime:** `dispose()` records a `dispose` request,
-kills the app-server and awaits its exit, recorded as the `exited` response
-(signal death: `code: null`). OAR does not fabricate a native turn end: a dispose
-mid-tool ends with `tool_call_started`, `dispose`, `exited { code: null }` and
-no `turn_ended`, so the exit is the turn end for observers and `turnEndAfter`
-reads `aborted` from the dispose request; the native exit code is unchanged
-(live-contract `dispose-mid-turn`). Dispose
+**Dispose and unreachable runtime:** `dispose()` records a `dispose` request
+and awaits the app-server's exit, recorded as the `exited` response. When the
+session is idle, OAR closes stdin through `closeLineProcess` so the app-server
+exits cleanly on EOF (falling back to signal termination after the grace period
+if it hangs); when a turn or manual compaction is active, OAR kills the
+app-server immediately (signal death: `code: null`). OAR does not fabricate a
+native turn end: a dispose mid-tool ends with `tool_call_started`, `dispose`,
+`exited { code: null }` and no `turn_ended`, so the exit is the turn end for
+observers and `turnEndAfter` reads `aborted` from the dispose request; the
+native exit code is unchanged (live-contract `dispose-mid-turn`). Short-lived
+queries (`accountUsage`, `redeemLimitReset`, `listModels`, inventory, login)
+also close stdin (`shutdown: "stdin"`) with the same grace-period fallback.
+
+Upstream note on background OAuth refresh during exit: Codex `0.171.0` does not
+wait for an in-flight background `/oauth/token` refresh when `app-server` exits
+on either stdin EOF or `SIGTERM`, so a rotated refresh token can be dropped on
+exit ([openai/codex#62688](https://github.com/openai/codex/issues/62688)); this
+is upstream Codex behavior and clean EOF shutdown from OAR cannot prevent it.
+Dispose
 releases the process; it establishes no exclusive control over persisted
 history. When the app-server dies on its own (SIGKILL mid-tool) the stream
 gets `exited { code: null }` with `requestId: ""`; every later

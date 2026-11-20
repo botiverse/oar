@@ -81,7 +81,7 @@ export const codexListModels: ModelLister = async (installation, options = {}) =
   const timeoutMs = options.timeoutMs ?? 15_000;
   try {
     return await withQueryDeadline("Codex model listing", timeoutMs, async (_signal, own) => {
-      const client = own(startAppServerClient(installation.command, options.env));
+      const client = own(startAppServerClient(installation.command, options.env, {}, undefined, { shutdown: "stdin" }));
       await client.spawned;
       client.handle({ onNotification: () => {}, onServerRequest: () => {} });
       await client.request("initialize", { clientInfo: { name: "oar-models", version: "0" }, capabilities: { experimentalApi: true } });

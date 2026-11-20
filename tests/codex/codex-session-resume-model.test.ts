@@ -50,7 +50,8 @@ test("thread/resume carries the requested model and the session resumes the same
   const resume = requests.find((request) => request.method === "thread/resume");
   expect(resume?.params).toMatchObject({ threadId, cwd: "/work", model: "gpt-5.5", approvalPolicy: "never" });
   await session.dispose();
-  expect(fake.killed()).toBe(true);
+  expect(fake.stdin.writableEnded).toBe(true);
+  expect(await fake.exited).toBe(0);
 });
 
 test("thread/resume without a model does not send one", async () => {

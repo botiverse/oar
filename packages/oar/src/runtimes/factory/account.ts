@@ -43,7 +43,7 @@ interface AcpCall {
 
 /** One droid ACP process for one account operation, killed afterwards. Requests from droid go to `onRequest`; anything else is refused. */
 async function withDroidAcp<T>(command: string, env: NodeJS.ProcessEnv, onRequest: (method: string, params: JsonRecord) => JsonRecord | null, run: (call: AcpCall, exited: Promise<number | null>) => Promise<T>, own?: OwnQueryProcess): Promise<T> {
-  const child: LineProcess = spawnLineProcess(command, [...ACP_ARGS], { env, inheritStderr: false, killTree: true });
+  const child: LineProcess = spawnLineProcess(command, [...ACP_ARGS], { env, inheritStderr: false, killTree: true, shutdown: "stdin" });
   own?.(child);
   // oxlint-disable-next-line promise/prefer-await-to-then -- spawn failure is observed through the pending requests.
   void child.spawned.catch(() => {});

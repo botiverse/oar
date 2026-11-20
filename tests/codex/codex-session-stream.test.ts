@@ -128,7 +128,8 @@ test("a prompt is one request/response pair, the turn ends on codex's own turn/c
     "toRuntime dispose",
     "response exited",
   ]);
-  expect(fake.killed()).toBe(true);
+  expect(fake.stdin.writableEnded).toBe(true);
+  expect(await fake.exited).toBe(0);
 });
 
 // oxlint-disable-next-line eslint/max-statements -- Repeated items, repeated ids in one item and a resumed process share one stream-boundary assertion.

@@ -1,4 +1,5 @@
 import { sessionEnvironment } from "../../shared/environment.js";
+import { closeLineProcess } from "../../shared/executable/close.js";
 import { spawnLineProcess, type LineProcessOptions } from "../../shared/executable/index.js";
 import { reportedProcessFailure, sessionExitReason } from "../../shared/executable/reported-stderr.js";
 import type { CancellationObservation } from "../../shared/executable/process-cancellation.js";
@@ -59,6 +60,8 @@ export interface AppServerClient {
    */
   mark(callback: () => void): void;
   onExit(handler: (code: number | null, reason?: string) => void): void;
+  /** End an idle app-server through stdin EOF, escalating to kill after the grace period. */
+  close?(): Promise<void>;
   kill(): void;
   /** The app-server's memory with everything it started (`LineProcess.resources`). */
   readonly resources: () => Promise<SessionResources | null>;
@@ -72,7 +75,7 @@ interface Pending {
 }
 
 /** How the app-server process is handled: whether its stderr may reach the host's, and whether a kill takes its Windows process tree. */
-export interface AppServerProcessOptions extends Pick<LineProcessOptions, "inheritStderr" | "killTree"> {
+export interface AppServerProcessOptions extends Pick<LineProcessOptions, "inheritStderr" | "killTree" | "shutdown"> {
   /** Applied to the text of every error the client reports (codex's error message, the exit's stderr tail): a session's MCP credentials must never reach one. */
   readonly redact?: (text: string) => string;
   /** The host's own `app-server` arguments (SessionOptions.launchArgs), unchecked, after oar's `-c` overrides and before `--listen`. */
@@ -228,6 +231,7 @@ function createAppServerClient(
     onExit(handler) {
       child.onExit((code, reason) => { handler(code, sessionExitReason(child, reason, redact)); });
     },
+    close: async () => { await closeLineProcess(child); },
     kill() {
       child.kill();
     },

@@ -5,7 +5,6 @@ import type {
   AccountUsageWindow,
 } from "../../contracts/account-usage.js";
 import { callAppServer, type ReadOutcome, type StartAppServerClient } from "./account-request.js";
-import { startAppServerClient } from "./app-server-client.js";
 import { asEpochInstant, asNumber, asRecord } from "../../shared/json.js";
 import { usedRatioFromPercent } from "../../shared/usage-ratio.js";
 import { projectLimitResets } from "./reset-credits.js";
@@ -193,7 +192,7 @@ export function projectCodexUsage(result: unknown, email?: string): AccountUsage
 export async function readFromAppServer(
   command: string,
   timeoutMs: number,
-  startClient: StartAppServerClient = startAppServerClient,
+  startClient?: StartAppServerClient,
   env?: SessionOptions["env"],
   limitResetDetails = true,
 ): Promise<ReadOutcome> {

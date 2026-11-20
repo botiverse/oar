@@ -13,6 +13,8 @@ if (release !== undefined && stopping !== undefined) {
     writeFileSync(stopping, "stopping");
     leave();
   });
+  // Closing stdin alone must not release the SIGTERM barrier.
+  setInterval(() => {}, 1000);
 }
 writeFileSync(pid, String(process.pid));
 createInterface({ input: process.stdin }).on("line", (line) => {
@@ -27,5 +29,3 @@ createInterface({ input: process.stdin }).on("line", (line) => {
     : { result };
   process.stdout.write(`${JSON.stringify({ id: request.id, ...reply })}\n`);
 });
-// Closing stdin alone must not release the SIGTERM barrier.
-setInterval(() => {}, 1000);
