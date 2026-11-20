@@ -55,11 +55,10 @@ checkout; native snapshots stay enabled.
 
 ## Automatic compaction
 
-OpenCode 2.3.2 over ACP completed automatic compaction with its native
+OpenCode v2 (2.3.2) over ACP completed automatic compaction with its native
 background setting at the default. A scripted provider reported 199,000
 input tokens. OAR observed `compaction_started` and `compaction_ended`
 with trigger `auto`. All three prompts completed, including the next turn.
-
 
 On OpenCode v1, hosts cannot observe the start or end of automatic
 compaction over ACP. In 1.19.6 the summary streamed as ordinary
@@ -1035,8 +1034,11 @@ providers, agents and other settings. A replacement colliding with a host
 prompt fails with `UnsupportedOptionError` naming `agent.<name>.prompt`
 on v1 or `agents.<id>.system` on v2. An append alone leaves those fields
 intact. Invalid JSON and incompatible target fields are refused. Before
-launch with a host overlay, v1 checks the merged configuration with
-`debug config` and v2 with `debug agents --standalone`.
+launch with a host overlay, v1 uses `debug config` to confirm the replacement
+text and that the added instructions file is last. On v2, `debug agents
+--standalone` confirms the replacement on each selected primary agent. Its
+listing omits instruction files, so for append alone it confirms only that
+native accepted the merged config.
 Setting `env: { OPENCODE_CONFIG_CONTENT: null }` removes an inherited value.
 An empty replacement is also refused: native OpenCode treats an empty agent
 prompt as selecting its built-in prompt. Literal `{env:...}` and

@@ -206,10 +206,15 @@ for (const { version, group, field } of lines) {
   // oxlint-disable-next-line typescript/promise-function-async -- Bind the measured v2 release to the same runner signature.
   const prepare = version === 1 ? prepareOpenCodePrompts : (command: string, options: Parameters<typeof prepareOpenCodePrompts>[1], run: ExecutableRunner) =>
     prepareOpenCodeV2Prompts(command, v2(3, 2), options, run);
-  const debug = version === 1 ? json({ default_agent: "build" }) : agents([{ id: "build", mode: "primary" }]);
+  // oxlint-disable-next-line typescript/promise-function-async -- Synchronous reply from a scripted native command.
+  const debug: ExecutableRunner = (_command, _args, options) => {
+    const host = asRecord(JSON.parse(options?.env?.OPENCODE_CONFIG_CONTENT ?? "{}"));
+    const build = asRecord(asRecord(host?.[group])?.build);
+    return Promise.resolve(version === 1 ? json(host) : agents([{ id: "build", mode: "primary", ...build }]));
+  };
   // oxlint-disable-next-line max-statements -- Inspect the merged bytes and the native debug call for the same open.
-  test.each(["systemPrompt", "appendSystemPrompt"] as const)(`v${String(version)} merges %s into inline config and verifies the effective value`, async option => {
-    const run = vi.fn<ExecutableRunner>().mockResolvedValue(debug);
+  test.each(["systemPrompt", "appendSystemPrompt"] as const)(`v${String(version)} merges %s into inline config and passes the merged fields to native verification`, async option => {
+    const run = vi.fn<ExecutableRunner>(debug);
     const original = { provider: { configured: { name: "existing" } }, [group]: { build: { model: "existing/model" }, child: { [field]: "keep" } }, instructions: ["first.md"] };
     const content = JSON.stringify(original).replace('"existing"', String.raw`"unchanged {env:NAME} and \u007bfile:path}"`);
     const prepared = await prepare("opencode", { cwd: "/project", env: { OPENCODE_CONFIG_CONTENT: content }, [option]: "host {env:NAME}" }, run);
@@ -222,9 +227,15 @@ for (const { version, group, field } of lines) {
     expect(JSON.parse(merged)).toEqual({ ...JSON.parse(content), [group]: expectedAgent, instructions: option === "systemPrompt" ? ["first.md"] : ["first.md", expect.any(String)] });
   });
 
+  test(`v${String(version)} refuses a replacement dropped by native debug`, async () => {
+    const answer = version === 1 ? json({ agent: { build: {} } }) : agents([{ id: "build", mode: "primary" }]);
+    const run = vi.fn<ExecutableRunner>().mockResolvedValue(answer);
+    await expect(prepare("opencode", { cwd: "/", env: { OPENCODE_CONFIG_CONTENT: "{}" }, systemPrompt: "required" }, run)).rejects.toThrow(`${group}.build.${field}`);
+  });
+
   test(`v${String(version)} refuses only a target prompt field owned by both parties`, async () => {
     const env = { OPENCODE_CONFIG_CONTENT: JSON.stringify({ [group]: { build: { [field]: "private instructions" } } }) };
-    const run = vi.fn<ExecutableRunner>().mockResolvedValue(debug);
+    const run = vi.fn<ExecutableRunner>(debug);
     await expect(prepare("opencode", { cwd: "/", env, systemPrompt: "replacement" }, run)).rejects.toThrow(`${group}.build.${field}`);
     const appended = await prepare("opencode", { cwd: "/", env, appendSystemPrompt: "extra" }, run);
     cleanups.push(appended.cleanup);
@@ -245,4 +256,16 @@ test("a merged config rejected by native debug releases its temporary append fil
   const [file] = files;
   assert.ok(file !== undefined);
   await expect(access(file)).rejects.toMatchObject({ code: "ENOENT" });
+});
+
+
+test("v1 refuses when native debug moves the host append away from the last entry", async () => {
+  // oxlint-disable-next-line typescript/promise-function-async -- Synchronous reply from a scripted native command.
+  const run: ExecutableRunner = (_command, _args, options) => {
+    const config = asRecord(JSON.parse(options?.env?.OPENCODE_CONFIG_CONTENT ?? "{}"));
+    const files = config?.instructions;
+    assert.ok(Array.isArray(files));
+    return Promise.resolve(json({ instructions: [files.at(-1), "later.md"].filter((file): file is string => typeof file === "string") }));
+  };
+  await expect(prepareOpenCodePrompts("opencode", { cwd: "/", env: { OPENCODE_CONFIG_CONTENT: "{}" }, appendSystemPrompt: "required" }, run)).rejects.toThrow("last instructions entry");
 });

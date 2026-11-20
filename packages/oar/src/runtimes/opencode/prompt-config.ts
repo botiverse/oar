@@ -104,13 +104,13 @@ export async function instructionsFile(text: string | undefined): Promise<{ read
 
 /** Include host config in discovery, then verify the final inline config with the same native reader. */
 export async function preparePromptOptions(
-  options: SessionOptions, group: "agent" | "agents", agents: readonly string[], verify: (merged: SessionOptions) => Promise<unknown>,
+  options: SessionOptions, group: "agent" | "agents", agents: readonly string[], verify: (merged: SessionOptions, file: string | undefined) => Promise<void>,
 ): Promise<OpenCodePromptConfig> {
   const instructions = await instructionsFile(options.appendSystemPrompt);
   try {
     const content = promptContent(options, group, agents, instructions.path);
     const merged = { ...options, env: { ...options.env, OPENCODE_CONFIG_CONTENT: content } };
-    if (inlineContent(options) !== undefined) { await verify(merged); }
+    if (inlineContent(options) !== undefined) { await verify(merged, instructions.path); }
     return { options: merged, cleanup: instructions.cleanup };
   } catch (error) {
     await instructions.cleanup();
@@ -121,7 +121,15 @@ export async function preparePromptOptions(
 export async function prepareOpenCodePrompts(command: string, options: SessionOptions, run: ExecutableRunner = runExecutable): Promise<OpenCodePromptConfig> {
   validateOpenCodePrompts(options);
   const agent = options.systemPrompt === undefined ? undefined : await activeAgent(command, options, run);
-  const prepared = await preparePromptOptions(options, "agent", agent === undefined ? [] : [agent], async (merged) => { await query(command, ["debug", "config"], merged, run); });
+  const prepared = await preparePromptOptions(options, "agent", agent === undefined ? [] : [agent], async (merged, file) => {
+    const resolved = await query(command, ["debug", "config"], merged, run);
+    if (agent !== undefined && asRecord(asRecord(resolved.agent)?.[agent])?.prompt !== options.systemPrompt) {
+      throw new UnsupportedOptionError("systemPrompt", `opencode debug config did not confirm agent.${agent}.prompt`);
+    }
+    if (file !== undefined && (!Array.isArray(resolved.instructions) || resolved.instructions.at(-1) !== file)) {
+      throw new UnsupportedOptionError("appendSystemPrompt", "opencode debug config did not confirm the last instructions entry");
+    }
+  });
   return { ...prepared, ...(agent === undefined ? {} : { agent }) };
 }
 
