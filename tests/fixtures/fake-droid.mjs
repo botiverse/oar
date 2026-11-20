@@ -27,6 +27,7 @@ let running = null;
 let missed = null;
 let unsolicited = false;
 let contextReads = 0;
+let refusedInterruptOnce = false;
 
 function endTurn(reason = "completed") {
   if (running === null) { return; }
@@ -97,6 +98,11 @@ input.on("line", (line) => {
       note({ type: "create_message", requestId: message.id, message: { id: message.params.messageId, role: "user", content: [{ type: "text", text: message.params.text }] } });
       return;
     case "droid.interrupt_session":
+      if (mode === "refuse-interrupt" && !refusedInterruptOnce) {
+        refusedInterruptOnce = true;
+        write({ type: "response", id: message.id, error: { code: -32_603, message: "interrupt refused" } });
+        return;
+      }
       reply({});
       if (missed !== null && mode === "missed-steer-handback") {
         const steer = missed;

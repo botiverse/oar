@@ -189,10 +189,11 @@ function reduceEvent(previous: StatusState, record: RawEvent, event: RuntimeEven
       if (previous.pendingPrompt !== undefined && (previous.kind === "idle" || previous.inputId === previous.pendingPrompt.inputId)) {
         return { kind: "running", sinceSeq: record.seq, phase: "waiting_model", lastEventAt: record.receivedAt, pendingPrompt: previous.pendingPrompt };
       }
-      if (previous.kind === "running") { return { ...previous, ...(previous.inputId === undefined && event.inputId !== undefined ? { inputId: event.inputId } : {}), lastEventAt: record.receivedAt }; }
-      return { ...running(previous, record, "waiting_model"), ...(event.inputId === undefined ? {} : { inputId: event.inputId }) };
-    case "reasoning": return content(previous, record, "thinking");
-    case "text_delta": return content(previous, record, "responding");
+      return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : running(previous, record, "waiting_model");
+    case "reasoning":
+      return content(previous, record, "thinking");
+    case "text_delta":
+      return content(previous, record, "responding");
     case "tool_call_started":
       return content(previous, record, { tool: event.tool, callId: event.callId });
     case "tool_call_ended": // can arrive after its turn ended (codex background terminals): no turn to adopt
@@ -245,13 +246,12 @@ function reduceEvent(previous: StatusState, record: RawEvent, event: RuntimeEven
       // Tasks run beside the turn; whether the agent is busy is the turn's fact, but a report is activity.
       return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : previous;
     case "input_dropped": {
+      if (event.requestId !== undefined) { return previous; }
       if (previous.kind === "running" && previous.compaction?.requestId === event.inputId) { return compactionIdle(previous); }
-      if (previous.kind === "running" && event.inputId !== undefined && previous.inputId === event.inputId && (event.requestId === undefined || previous.requestId === undefined)) {
-        const pendingPrompt = previous.pendingPrompt?.inputId === event.inputId ? undefined : previous.pendingPrompt;
-        return { kind: "idle", ...(pendingPrompt === undefined ? {} : { pendingPrompt }) };
-      }
-      if (event.requestId !== undefined || previous.pendingPrompt?.inputId !== event.inputId) { return previous; }
-      const { pendingPrompt: _pending, ...status } = previous; return status;
+      if (previous.kind === "running" && previous.inputId === event.inputId) { return { kind: "idle" }; }
+      if (previous.pendingPrompt?.inputId !== event.inputId) { return previous; }
+      const { pendingPrompt: _pending, ...status } = previous;
+      return status;
     }
     case "app_request_cancelled":
     case "session_linked":

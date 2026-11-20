@@ -62,17 +62,13 @@ function heldSentAfterLateTurn(records: readonly RawEvent[]): boolean {
   return steerEnd !== undefined && drained !== undefined && drained.seq > steerEnd.seq;
 }
 
-// oxlint-disable-next-line eslint/max-statements -- One end-to-end handback, status, and follow-up turn assertion.
 it("an abort droid honors by handing the prompt back is disarmed, so a later turn is not cut short", async () => {
   const opened = await session("handback", 10_000);
   await opened.prompt("handed back");
   const abort = await opened.abort();
   expect(abort.response.body.kind).toBe("accepted");
   await expect.poll(() => events(opened.records()).some(event => event.kind === "input_dropped"), { timeout: 5000 }).toBe(true);
-  expect(opened.status().value.kind).toBe("idle");
-  const next = await opened.prompt("next");
-  expect(next.response.body.kind).toBe("accepted");
-  expect(opened.status().value.kind).toBe("running");
+  await opened.prompt("next");
   // Past the 300 ms fallback; the fake ends as soon as OAR closes its stdin.
   await sleep(1500);
   expect(opened.records().some(record => record.kind === "response" && record.body.kind === "exited")).toBe(false);
@@ -117,6 +113,16 @@ it("an abort whose turn never ends stops droid after the fallback", async () => 
   await expect.poll(() => opened.records().some(record => record.kind === "response" && record.body.kind === "exited"), { timeout: 5000 }).toBe(true);
 });
 
+it("a refused abort rolls back abortingTurn so a retry still reaches droid", async () => {
+  const opened = await session("refuse-interrupt", 10_000);
+  const prompt = await opened.prompt("running");
+  const refused = await opened.abort();
+  expect(refused.response.body).toMatchObject({ kind: "rejected", code: "runtime_refused" });
+  const retried = await opened.abort();
+  expect(retried.response.body).toMatchObject({ kind: "accepted" });
+  expect(await awaitTurnEnd(opened, prompt.request.seq)).toEqual({ kind: "aborted" });
+});
+
 it("every native line is one record in arrival order: stray lines, a failed context read and the resume settings answer", async () => {
   const opened = await session("noisy");
   await expect.poll(() => opened.records().some(record => record.kind === "frame" && record.body.type === "droid.get_context_stats"), { timeout: 5000 }).toBe(true);
@@ -151,21 +157,15 @@ it("a steer droid refuses in the same write as its turn's end leaves the session
     .toMatchObject({ native: { type: "response", error: { message: "steer refused" } } });
 });
 
-// oxlint-disable-next-line eslint/max-statements -- One end-to-end missed-steer handback and late-completion assertion.
 it("an abort in the gap before a missed steer's turn is disarmed when droid hands that steer back", async () => {
   const opened = await missedSteer("missed-steer-handback");
   const abort = await opened.abort();
   expect(abort.response.body.kind).toBe("accepted");
   await expect.poll(() => events(opened.records()).some(event => event.kind === "input_dropped" && event.inputId === LATE), { timeout: 5000 }).toBe(true);
-  expect(opened.status().value.kind).toBe("idle");
   const next = await opened.prompt("newer turn");
   expect(next.response.body.kind).toBe("accepted");
-  expect(opened.status().value.kind).toBe("running");
-  // Wait past the 1.5 s late cancelled agent_turn_completed for the handed-back steer.
-  await expect.poll(() => opened.records().some(record => record.kind === "frame" && record.body.type === "agent_turn_completed" && JSON.stringify(record.body.native).includes(LATE)), { timeout: 5000 }).toBe(true);
-  expect(opened.status().value.kind).toBe("running");
-  const early = await opened.prompt("too early");
-  expect(early.response.body).toMatchObject({ kind: "rejected", code: "busy" });
+  // Past the 300 ms fallback, before the steer's late cancelled end at 1.5 s.
+  await sleep(1000);
   expect(opened.records().some(record => record.kind === "response" && record.body.kind === "exited")).toBe(false);
 });
 

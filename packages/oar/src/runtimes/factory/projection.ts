@@ -33,12 +33,10 @@ export interface FactoryProjection {
   readonly sent: ReadonlyMap<string, FactorySentInput>;
   /** The turn id (an input's `messageId`) whose turn droid is running; null while idle. */
   readonly turnId: string | null;
-  /** Handed-back input ids whose late `agent_turn_completed` should not end a newer turn. */
-  readonly droppedTurns: ReadonlySet<string>;
 }
 
 export const initialFactoryProjection: FactoryProjection = {
-  toolCalls: new Set(), turnError: null, usage: noTokens, children: null, sent: new Map(), turnId: null, droppedTurns: new Set(),
+  toolCalls: new Set(), turnError: null, usage: noTokens, children: null, sent: new Map(), turnId: null,
 };
 
 /** Factory's token usage (`TokenUsage`): input excludes the cache parts, which droid reports beside it. */
@@ -166,17 +164,9 @@ export function foldFactoryNotification(state: FactoryProjection, message: JsonR
       const ids = [...new Set(named.filter((id): id is string => typeof id === "string"))];
       const dropped = ids.flatMap(id => { const sent = state.sent.get(id); return sent === undefined ? [] : [sent]; });
       const remaining = new Map(state.sent);
-      const droppedTurns = new Set(state.droppedTurns);
-      let { turnId } = state;
-      for (const input of dropped) {
-        remaining.delete(input.requestId);
-        if (notification.type === "queued_message_handed_back") {
-          droppedTurns.add(input.inputId);
-          if (turnId === input.inputId) { turnId = null; }
-        }
-      }
+      for (const input of dropped) { remaining.delete(input.requestId); }
       return frame(dropped.map(input => ({ kind: "input_dropped" as const, reason: "turn_interrupted" as const, requestId: input.requestId, inputId: input.inputId })),
-        { ...state, sent: remaining, turnId, droppedTurns });
+        { ...state, sent: remaining });
     }
     case "error":
       return frame([], { ...state, turnError: typeof notification.message === "string" ? notification.message : state.turnError });
@@ -193,16 +183,10 @@ export function foldFactoryNotification(state: FactoryProjection, message: JsonR
       const childReported = childTokens !== null && (childTokens.input > 0 || childTokens.output > 0);
       const children = childReported ? addTokens(state.children ?? noTokens, childTokens) : state.children;
       const turnId = typeof notification.turnId === "string" ? notification.turnId : undefined;
-      const usageEvent = turnTokens === null ? [] : [{ kind: "usage" as const, usage: { tokens: usage, ...(children === null ? {} : { total: addTokens(usage, children) }) } }];
-      if (turnId !== undefined && state.droppedTurns.has(turnId)) {
-        const droppedTurns = new Set(state.droppedTurns);
-        droppedTurns.delete(turnId);
-        return frame(usageEvent, { ...state, usage, children, droppedTurns });
-      }
       const outcome = factoryOutcome(notification.reason, state.turnError);
       const sent = new Map([...state.sent].filter(([, input]) => input.inputId !== turnId));
       return frame([
-        ...usageEvent,
+        ...(turnTokens === null ? [] : [{ kind: "usage" as const, usage: { tokens: usage, ...(children === null ? {} : { total: addTokens(usage, children) }) } }]),
         { kind: "turn_ended", outcome, ...(turnId === undefined ? {} : { inputId: turnId }) },
       ], { ...state, usage, children, turnError: null, turnId: state.turnId === turnId ? null : state.turnId, sent });
     }

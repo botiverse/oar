@@ -50,10 +50,7 @@ export function reduceInputAdmission(prior: InputAdmission | undefined, before: 
   if (admission !== undefined && (rejected || disposition !== undefined)) {
     // Native activity can precede this request's receipt. Release only its
     // reservation; do not infer handling for logs without that receipt.
-    // A turn_interrupted drop retires the interrupted non-native turn itself.
-    if (disposition?.kind === "input_dropped" && disposition.reason === "turn_interrupted" && admission.native !== true) {
-      status = { kind: "idle", ...(status.pendingPrompt === undefined ? {} : { pendingPrompt: status.pendingPrompt }) };
-    } else if (!rejected || admission.native === true) {
+    if (!rejected || admission.native === true) {
       status = releaseAdmission(rejected ? before : status, admission, admission.requestId, record.receivedAt);
     }
     admission = undefined;

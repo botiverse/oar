@@ -40,16 +40,10 @@ it("echoes only inputs OAR sent, by RPC id and messageId, and drops undrained st
   expect(state.sent.size).toBe(0);
 });
 
-it("a prompt droid hands back before starting it is dropped by its RPC id and its late cancelled end is suppressed", () => {
+it("a prompt droid hands back before starting it is dropped by its RPC id", () => {
   const start: FactoryProjection = { ...initialFactoryProjection, turnId: "in-1", sent: new Map([["rpc-1", { requestId: "rpc-1", inputId: "in-1" }]]) };
-  expect(fold([
-    note({ type: "queued_message_handed_back", requestId: "rpc-1", text: "slow" }),
-    note({ type: "agent_turn_completed", reason: "cancelled", turnId: "in-1" }),
-    note({ type: "agent_turn_completed", reason: "completed", turnId: "in-2" }),
-  ], start).events).toEqual([
-    { kind: "input_dropped", reason: "turn_interrupted", requestId: "rpc-1", inputId: "in-1" },
-    { kind: "turn_ended", outcome: { kind: "completed" }, inputId: "in-2" },
-  ]);
+  expect(fold([note({ type: "queued_message_handed_back", requestId: "rpc-1", text: "slow" })], start).events)
+    .toEqual([{ kind: "input_dropped", reason: "turn_interrupted", requestId: "rpc-1", inputId: "in-1" }]);
 });
 
 it("sums turn tokens from open, cache parts inside input, and adds sub-agent tokens to the total only once reported", () => {

@@ -1,6 +1,6 @@
 import type { SessionOpenContext } from "../../contracts/placement.js";
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
-import { ConversationBusy, ConversationIdle, type Conversation, type ConversationView, type Harness, type Submission, type SubmissionId, type SubmissionRecord, type WatchCall, type WatchEnd } from "@earendil-works/pi-durable";
+import { ConversationIdle, type Conversation, type ConversationView, type Harness, type Submission, type SubmissionId, type SubmissionRecord, type WatchCall, type WatchEnd } from "@earendil-works/pi-durable";
 import type { ControlResult, InputOptions, RequestRecord, ResponseBody, RuntimeEventBody, Session, SessionOptions, TurnOutcome } from "../../contracts/session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
 import { sealSession } from "../../shared/seal-session.js";
@@ -217,7 +217,6 @@ export async function piDurableSession(harness: Harness, models: DurableModels, 
     } catch (error) {
       const native = errorSummary(error);
       if (error instanceof ConversationIdle) { return { kind: "rejected", code: "no_active_turn", reason: native.message, native }; }
-      if (error instanceof ConversationBusy) { return { kind: "rejected", code: "busy", reason: "busy", native }; }
       return { kind: "rejected", code: "runtime_refused", reason: native.message, native };
     }
     submissionMeta.set(submission.id, { requestId: request.id, ...(inputOptions.inputId === undefined ? {} : { inputId: inputOptions.inputId }) });
