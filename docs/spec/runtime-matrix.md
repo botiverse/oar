@@ -586,7 +586,7 @@ the measured command paths and versions, not every tool a runtime may offer.
 
 `SessionOptions.launchArgs` adds the host's own command-line arguments to
 the runtime process a session starts, for a flag OAR does not model (codex
-`-c service_tier="fast"`, claude `--settings`). Outside documented managed
+`-c service_tier="fast"`, claude `--settings` when OAR supplies no settings). Outside documented managed
 flags and permission validation, OAR passes them unchecked: it promises
 nothing about their effect, and one that changes the protocol
 OAR speaks breaks the session. A flag the runtime does not know usually

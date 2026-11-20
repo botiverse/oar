@@ -6,7 +6,7 @@ import { launchClaude } from "../../packages/oar/src/runtimes/claude/launch.js";
 import type { LineProcessOptions } from "../../packages/oar/src/shared/executable/index.js";
 import { fakeLineProcess } from "../fixtures/fake-line-process.js";
 
-const spawn = vi.hoisted(() => vi.fn());
+const spawn = vi.hoisted(() => vi.fn<(command: string, args: readonly string[], options: LineProcessOptions) => ReturnType<typeof fakeLineProcess>>());
 vi.mock("../../packages/oar/src/shared/executable/index.js", () => ({ spawnLineProcess: spawn }));
 afterEach(() => { spawn.mockReset(); vi.unstubAllEnvs(); });
 
@@ -35,6 +35,17 @@ test("exclude keeps the credential directory, overrides memory controls only in 
 test.each(["--settings", "--settings={}", "--setting-sources=user", "--strict-mcp-config"])("exclude refuses conflicting %s before process launch", async (flag) => {
   await expect(launchClaude("claude", "id", { cwd: process.cwd(), userConfiguration: "exclude", launchArgs: [flag] })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "launchArgs" });
   expect(spawn).not.toHaveBeenCalled();
+});
+
+test.each([
+  { launchArgs: ["--settings=host-settings.json"] },
+  { launchArgs: ["--settings", '{"fastMode":false}'] },
+])("preserves host settings $launchArgs when only MCP is excluded", async ({ launchArgs }) => {
+  spawn.mockReturnValue(fakeLineProcess());
+  const child = await launchClaude("claude", "id", { cwd: process.cwd(), userConfiguration: { exclude: ["mcp"] }, launchArgs });
+  child.kill();
+  const args = spawn.mock.calls[0]?.[1] ?? [];
+  expect(args.slice(args.indexOf("--strict-mcp-config"))).toEqual(["--strict-mcp-config", ...launchArgs]);
 });
 
 async function aliasedDirectories(): Promise<{ root: string; original: string; alias: string; cwd: string }> {

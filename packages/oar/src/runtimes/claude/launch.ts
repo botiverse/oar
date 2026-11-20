@@ -4,7 +4,7 @@ import { claudeUserConfiguration } from "./user-configuration.js";
 import { claudeServiceTierSettings } from "./service-tier.js";
 import type { JsonRecord } from "../../shared/json.js";
 import type { SessionOptions } from "../../contracts/index.js";
-import { claudePermissionArgs, refuseForkLaunchArgs, refuseManagedLaunchArgs } from "./launch-args.js";
+import { claudePermissionArgs, claudeSettingsArgs, refuseForkLaunchArgs, refuseManagedLaunchArgs } from "./launch-args.js";
 import { resolvedAdditionalDirectories } from "../../shared/additional-directories.js";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { givenMcpServers } from "../../shared/mcp-servers.js";
@@ -49,7 +49,6 @@ export function claudeSessionArgs(sessionId: string, options: Pick<SessionOption
 function spawnClaude(command: string, sessionId: string, options: SessionOptions, mcpConfig: string | null, tierSettings: JsonRecord, nativeArgs: readonly string[]): LineProcess {
   const directories = resolvedAdditionalDirectories(options);
   const configuration = claudeUserConfiguration(options);
-  // Claude replaces, rather than merges, repeated --settings arguments.
   const settings = { ...tierSettings, ...configuration.settings };
   return spawnLineProcess(command, [
     "-p",
@@ -64,7 +63,7 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
     ...((options.resume !== undefined && options.fork === undefined) || options.name === undefined ? [] : ["--name", options.name]),
     ...(options.model === undefined ? [] : ["--model", options.model]),
     ...(options.effort === undefined ? [] : ["--effort", options.effort]),
-    ...(Object.keys(settings).length === 0 ? [] : ["--settings", JSON.stringify(settings)]),
+    ...claudeSettingsArgs(settings, options.launchArgs),
     ...nativeArgs,
     ...configuration.args,
     ...(options.outputSchema === undefined ? [] : ["--json-schema", JSON.stringify(options.outputSchema)]),

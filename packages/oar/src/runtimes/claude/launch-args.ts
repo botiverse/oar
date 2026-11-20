@@ -1,6 +1,7 @@
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import type { SessionFork } from "../../contracts/session-options.js";
-import { checkManagedLaunchArgs } from "../../shared/launch-args.js";
+import type { JsonRecord } from "../../shared/json.js";
+import { checkManagedLaunchArgs, normalizeLaunchFlag } from "../../shared/launch-args.js";
 
 /**
  * claude flags OAR sets itself, which a host's `launchArgs` would contradict
@@ -53,6 +54,15 @@ export function refuseForkLaunchArgs(launchArgs: readonly string[] | undefined, 
   if ((launchArgs ?? []).some((arg) => arg.split("=", 1)[0] === "--resume-session-at")) {
     throw new UnsupportedOptionError("launchArgs", "claude launchArgs cannot include --resume-session-at with SessionOptions.fork: use fork.through");
   }
+}
+
+/** Claude replaces the entire --settings value on repetition, including when it names a file. */
+export function claudeSettingsArgs(settings: JsonRecord, launchArgs: readonly string[] | undefined): readonly string[] {
+  if (Object.keys(settings).length === 0) { return []; }
+  if ((launchArgs ?? []).some((arg) => normalizeLaunchFlag(arg) === "--settings")) {
+    throw new UnsupportedOptionError("launchArgs", "claude launchArgs cannot include --settings when OAR supplies session settings");
+  }
+  return ["--settings", JSON.stringify(settings)];
 }
 
 /** Keep explicit native modes noninteractive; omission preserves OAR's default bypass. */
