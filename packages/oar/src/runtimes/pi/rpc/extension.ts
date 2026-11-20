@@ -2,11 +2,11 @@
  * Keep it as source so a single-file host can materialize it without its own
  * source tree. The native RPC tests execute this exact module.
  */
-export const piRpcExtensionSource = String.raw`import { readFileSync, writeFileSync } from "node:fs";
+export const piRpcExtensionSource = String.raw`import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { Socket } from "node:net";
 import { createInterface } from "node:readline";
-import { createCodingTools, createMcpExtension, SettingsManager, VERSION } from "@earendil-works/pi-coding-agent";
+import { CONFIG_DIR_NAME, createCodingTools, createMcpExtension, getAgentDir, SettingsManager, VERSION } from "@earendil-works/pi-coding-agent";
 
 export default async function oarPiRpcExtension(pi) {
   const directory = process.env.OAR_PI_RPC_DIRECTORY;
@@ -29,6 +29,18 @@ export default async function oarPiRpcExtension(pi) {
     if (waiter !== undefined) { clearTimeout(waiter.timer); waiter.resolve(); }
   });
   const config = JSON.parse(readFileSync(path.join(directory, "config.json"), "utf8"));
+  // Pi loads CLI extensions before reading the prompt flags. Use the selected
+  // CLI's own config directory and the trust choice passed to --[no-]approve.
+  if (config.hasHostAppend) {
+    const project = path.join(process.cwd(), CONFIG_DIR_NAME, "APPEND_SYSTEM.md");
+    const source = config.projectTrusted && existsSync(project) ? project : path.join(getAgentDir(), "APPEND_SYSTEM.md");
+    const configured = existsSync(source) ? readFileSync(source, "utf8").replace(/^\uFEFF/u, "") : "";
+    const host = readFileSync(path.join(directory, "append.txt"), "utf8");
+    const effective = configured ? configured + "\n\n" + host : host;
+    const file = path.join(directory, "effective-append.txt");
+    writeFileSync(file, effective, { mode: 0o600 });
+    if (readFileSync(file, "utf8") !== effective) { throw new Error("Could not retain the Pi RPC append instructions"); }
+  }
   if (config.servers.length > 0) {
     await createMcpExtension({ loadConfig: () => ({ servers: [], errors: [] }), logPath: path.join(config.agentDir, "mcp.log") })(pi);
     for (const server of config.servers) { pi.registerMcpServer(server.name, server.config); }

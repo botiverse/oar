@@ -11,7 +11,7 @@ import { startPiAimock } from "../harness/aimock.js";
 import { runTurn } from "./support/asserts.js";
 import { lastAgentSystem, systemCapture } from "./support/system-prompt.js";
 
-interface ChildObservation { readonly argv: string[]; readonly directory: string }
+interface ChildObservation { readonly argv: string[]; readonly directory: string; readonly markers: readonly string[] }
 
 const unreadable = vi.hoisted(() => ({ name: "", directory: "" }));
 vi.mock("node:fs/promises", async (original) => {
@@ -43,7 +43,8 @@ async function fixture(command?: string) {
     import fs from "node:fs";
     export default (pi) => {
       pi.on("session_start", (_event, ctx) => {
-        fs.writeFileSync(ctx.cwd + "/child.json", JSON.stringify({ argv: process.argv, directory: process.env.OAR_PI_RPC_DIRECTORY }));
+        const markers = ctx.getSystemPrompt().match(/OAR_RPC_CONFIGURED|OAR_PRIVATE_APPEND_START/g) ?? [];
+        fs.writeFileSync(ctx.cwd + "/child.json", JSON.stringify({ argv: process.argv, directory: process.env.OAR_PI_RPC_DIRECTORY, markers }));
         if (process.env.OAR_PROMPT_PROBE_FAILURE === "open") process.exit(23);
       });
       pi.on("input", () => { if (process.env.OAR_PROMPT_PROBE_FAILURE === "turn") process.exit(23); });
@@ -53,7 +54,7 @@ async function fixture(command?: string) {
   const installation = await runtime.installation();
   assert.ok(installation.kind === "available");
   const sessions: Session[] = [];
-  return { env, capture,
+  return { env, capture, agentDir,
     open: async (options: Partial<SessionOptions>) => {
       const session = await runtime.session(installation, { cwd, model: "aimock/aimock-model", ...options, env: { ...env.env, ...options.env } });
       sessions.push(session);
@@ -68,10 +69,10 @@ async function fixture(command?: string) {
   };
 }
 
-function promptFile(child: ChildObservation, flag: string): string {
-  const file = child.argv[child.argv.indexOf(flag) + 1];
-  assert.ok(child.argv.includes(flag) && file !== undefined);
-  expect(path.dirname(file)).toBe(child.directory);
+function promptFile(child: ChildObservation, name: string): string {
+  const file = path.join(child.directory, name);
+  if (name === "system.txt") { expect(child.argv[child.argv.indexOf("--system-prompt") + 1]).toBe(file); }
+  else { expect(child.argv[child.argv.indexOf("--append-system-prompt") + 1]).toBe(file); }
   expect(existsSync(file)).toBe(true);
   if (process.platform !== "win32") {
     expect(statSync(file).mode & 0o777).toBe(0o600);
@@ -87,14 +88,16 @@ describe.skipIf(process.env.OAR_TEST !== "pi-rpc-aimock")("Pi RPC private prompt
     const systemPrompt = `OAR_PRIVATE_SYSTEM_START\n${"system line\n".repeat(4000)}OAR_PRIVATE_SYSTEM_END`;
     const appendSystemPrompt = `OAR_PRIVATE_APPEND_START\n${"append line\n".repeat(4000)}OAR_PRIVATE_APPEND_END`;
     try {
+      await writeFile(path.join(f.agentDir, "APPEND_SYSTEM.md"), "OAR_RPC_CONFIGURED");
       const session = await f.open({ systemPrompt, appendSystemPrompt });
       let directory = "";
       try {
         const child = f.child();
         directory = child.directory;
         expect(child.argv.join(" ")).not.toContain("OAR_PRIVATE_");
-        expect(readFileSync(promptFile(child, "--system-prompt"), "utf8")).toBe(systemPrompt);
-        expect(readFileSync(promptFile(child, "--append-system-prompt"), "utf8")).toBe(appendSystemPrompt);
+        expect(readFileSync(promptFile(child, "system.txt"), "utf8")).toBe(systemPrompt);
+        expect(child.markers).toEqual(["OAR_RPC_CONFIGURED", "OAR_PRIVATE_APPEND_START"]);
+        expect(readFileSync(promptFile(child, "effective-append.txt"), "utf8")).toBe(`OAR_RPC_CONFIGURED\n\n${appendSystemPrompt}`);
         expect(await runTurn(session, "capture the prompt")).toEqual({ kind: "completed" });
         const actual = lastAgentSystem(f.capture.systems);
         expect(actual).toContain(systemPrompt);
@@ -137,7 +140,7 @@ describe.skipIf(process.env.OAR_TEST !== "pi-rpc-aimock")("Pi RPC private prompt
       const session = await f.open({ systemPrompt: "exit secret", env: { OAR_PROMPT_PROBE_FAILURE: "turn" } });
       try {
         const child = f.child();
-        promptFile(child, "--system-prompt");
+        promptFile(child, "system.txt");
         await session.prompt("exit");
         await expect.poll(() => existsSync(child.directory)).toBe(false);
       } finally { await session.dispose(); }

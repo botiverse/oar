@@ -71,7 +71,8 @@ export async function openPiRpc(options: SessionOptions, credentials: Credential
   // This SDK import already serves native session-file lookup. The resolver
   // inspects package metadata without loading extensions or starting services.
   const { SessionManager, SettingsManager } = await import("@earendil-works/pi-coding-agent");
-  const settings = SettingsManager.create(options.cwd, agentDir, { projectTrusted: runtime.projectTrusted ?? true });
+  const projectTrusted = runtime.projectTrusted ?? true;
+  const settings = SettingsManager.create(options.cwd, agentDir, { projectTrusted });
   await checkPiProjectPackages(options.cwd, agentDir, settings, runtime);
   await reportMissingPiPackages(options.cwd, agentDir, settings);
   signal?.throwIfAborted();
@@ -82,6 +83,7 @@ export async function openPiRpc(options: SessionOptions, credentials: Credential
   const directory = await privateTempDir("oar-pi-rpc-");
   try {
     await writeFile(path.join(directory.path, "config.json"), JSON.stringify({ agentDir, resume: options.resume !== undefined,
+      hasHostAppend: Boolean(options.appendSystemPrompt), projectTrusted,
       servers: (options.mcpServers ?? []).map((server) => ({ name: server.name, config: piMcpServerConfig(server) })),
     }), { mode: 0o600 });
     // A bundled host need not ship its own source files or a node_modules tree.
@@ -91,7 +93,7 @@ export async function openPiRpc(options: SessionOptions, credentials: Credential
     signal?.throwIfAborted();
     const child = spawnLineProcess(launch.command, [
       ...launch.args,
-      runtime.projectTrusted === false ? "--no-approve" : "--approve",
+      projectTrusted ? "--approve" : "--no-approve",
       // The shared preflight refuses missing packages first. Native offline
       // mode also prevents installation if the store changes after that check.
       ...(runtime.allowProjectPackageInstall === true ? [] : ["--offline"]),
