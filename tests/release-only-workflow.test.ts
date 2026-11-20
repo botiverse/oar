@@ -19,7 +19,8 @@ function readBlock(workflow: string, marker: string, indent: number): string {
 }
 
 async function workflowScripts(): Promise<{ readonly filter: string; readonly gate: string; readonly recovery: string; readonly raw: string }> {
-  const raw = await readFile(".github/workflows/release.yml", "utf8");
+  const content = await readFile(".github/workflows/release.yml", "utf8");
+  const raw = content.replaceAll("\r\n", "\n");
   const filter = readBlock(raw, "  RELEASE_PR_FILTER: |\n", 4);
   const [, publishJob] = raw.split("\n  publish:\n");
   const gate = readBlock(publishJob ?? "", "        run: |\n", 10);
