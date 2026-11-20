@@ -57,14 +57,13 @@ test("SDK preflight refusal clears its pending abort before the next run", async
   } finally { a.resolve("refused"); await f.close(); }
 });
 
-test("SDK settlement clears an abort held during asynchronous native settlement", async () => {
+test("SDK abort during agent_end to agent_settled calls native abort once without leaking to the next run", async () => {
   const f = await fixture("SDK");
   try {
-    await f.session.prompt("A"); f.sdk.isStreaming = false;
-    f.emit({ type: "agent_end", messages: [] });
-    await f.session.abort(); f.settled(); await settle();
+    await f.session.prompt("A"); f.sdk.isStreaming = false; f.emit({ type: "agent_end", messages: [] });
+    await f.session.abort(); expect(f.aborts()).toBe(1); f.settled(); await settle();
     expect(await f.session.prompt("C")).toMatchObject({ kind: "accepted" });
-    expect(f.aborts()).toBe(0); expect(f.session.status().value.kind).toBe("running");
+    expect(f.aborts()).toBe(1); expect(f.session.status().value.kind).toBe("running");
   } finally { await f.close(); }
 });
 
@@ -207,14 +206,15 @@ test.each(["SDK", "RPC"] as const)("Pi %s records a pre-start refusal before the
   } finally { a.resolve("refused"); await f.close(); }
 });
 
-test("SDK native rejection after start clears cancellation before the next run", async () => {
-  const f = await fixture("SDK");
+test("SDK native rejection after start does not leak abort onto the next run", async () => {
+  const f = await fixture("SDK"); const nativeAbort = vi.spyOn(f.sdk, "abort").mockResolvedValue(undefined);
   try {
     await f.session.prompt("A"); f.sdk.isStreaming = false;
-    await f.session.abort(); f.runs[0]?.reject(new Error("native prompt failed before settlement")); await settle();
+    await f.session.abort(); expect(nativeAbort).toHaveBeenCalledTimes(1);
+    f.runs[0]?.reject(new Error("native prompt failed before settlement")); await settle();
     expect(f.session.records().filter(record => record.kind === "frame" && record.body.type === "pi/prompt_rejected")).toHaveLength(1);
     expect(await f.session.prompt("C")).toMatchObject({ kind: "accepted" });
-    expect(f.aborts()).toBe(0); expect(f.session.status().value.kind).toBe("running");
+    expect(nativeAbort).toHaveBeenCalledTimes(1); expect(f.session.status().value.kind).toBe("running");
   } finally { await f.close(); }
 });
 

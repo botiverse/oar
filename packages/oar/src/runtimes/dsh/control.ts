@@ -12,6 +12,11 @@ export interface DshReady {
   readonly services: JsonRecord;
 }
 
+const EXITED_ERRORS = new WeakSet<Error>();
+const dshExitedError = (message: string): Error => { const error = new Error(message); EXITED_ERRORS.add(error); return error; };
+/** Whether an error from `dshControl` means the bridge exited before answering. */
+export const isDshExitedError = (error: unknown): error is Error => error instanceof Error && EXITED_ERRORS.has(error);
+
 /** The bridge's own refusal or a native exception, with the native error object retained. */
 export class DshCommandError extends Error {
   override readonly name = "DshCommandError";
@@ -71,7 +76,7 @@ export function dshControl(child: LineProcess, receive: (message: JsonRecord) =>
   child.onExit(() => {
     ended = true;
     clearTimeout(readyTimer);
-    const failure = reportedProcessFailure("DSH exited", child.diagnostics(), redact);
+    const failure = dshExitedError(reportedProcessFailure("DSH exited", child.diagnostics(), redact).message);
     rejectReady(failure);
     for (const waiter of pending.values()) {
       clearTimeout(waiter.timer);
@@ -82,7 +87,7 @@ export function dshControl(child: LineProcess, receive: (message: JsonRecord) =>
   return {
     ready,
     request: async (method, fields = {}, timeoutMs = COMMAND_TIMEOUT_MS) => {
-      if (ended) { throw new Error("DSH has exited"); }
+      if (ended) { throw dshExitedError("DSH has exited"); }
       sequence += 1;
       const id = `oar-dsh-${String(sequence)}`;
       const { promise, resolve, reject } = Promise.withResolvers<JsonRecord>();

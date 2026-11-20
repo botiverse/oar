@@ -264,6 +264,7 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
             return { kind: "accepted" };
           } catch (error) {
             refused();
+            abortingTurn = false;
             return kernel.unreachable() ?? { kind: "rejected", code: "runtime_refused", reason: error instanceof Error ? error.message : String(error) };
           }
         });

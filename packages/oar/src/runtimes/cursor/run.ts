@@ -153,3 +153,35 @@ export async function steerRun(current: ActiveRun, input: string): Promise<Respo
     ...(ack === null ? {} : { native: { ack } }),
   };
 }
+
+/** Bound `run.cancel()` so late-cancel races never report `error` and hung cancels still settle. */
+export async function cancelActiveRun(
+  current: ActiveRun,
+  isCurrent: () => boolean,
+  unreachable: () => ResponseBody | null,
+  armFallback: ((onFallback: () => void) => () => void) | undefined,
+  timeoutMs: number,
+): Promise<ResponseBody> {
+  const settled = Promise.withResolvers<ResponseBody>();
+  const disarm = armFallback?.(() => { settled.resolve(unreachable() ?? { kind: "accepted" }); });
+  const timer = setTimeout(() => { settled.resolve(unreachable() ?? { kind: "accepted" }); }, timeoutMs);
+  timer.unref();
+  void (async (): Promise<void> => {
+    try {
+      await current.run.cancel();
+      settled.resolve(unreachable() ?? { kind: "accepted" });
+    } catch (error) {
+      disarm?.();
+      // A run that finished on the SDK side can still be draining its stream in observeRun.
+      const yieldTick = Promise.withResolvers<void>();
+      const tick = setTimeout(yieldTick.resolve, 0);
+      tick.unref();
+      await Promise.race([current.ended, yieldTick.promise]);
+      clearTimeout(tick);
+      settled.resolve(unreachable() ?? (isCurrent()
+        ? { kind: "rejected", code: "runtime_refused", reason: errorMessage(error) }
+        : { kind: "rejected", code: "no_active_turn", reason: "no active turn" }));
+    }
+  })();
+  try { return await settled.promise; } finally { clearTimeout(timer); }
+}

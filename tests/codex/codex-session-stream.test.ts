@@ -244,7 +244,9 @@ test("an interrupt the runtime refuses is a rejected abort, not an error", async
   const session = await codexSession(installation, { cwd: "/work" });
   await session.prompt("hold");
   const aborted = await session.abort();
-  expect(aborted.response.body).toEqual({ kind: "rejected", code: "runtime_refused", reason: "turn already finished" });
+  expect(aborted.response.body).toEqual({
+    kind: "rejected", code: "runtime_refused", reason: "turn already finished", native: { message: "turn already finished" },
+  });
   await vi.advanceTimersByTimeAsync(10_000);
   expect(fake.killed()).toBe(false);
   await session.dispose();

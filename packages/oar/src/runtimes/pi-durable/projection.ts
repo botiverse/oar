@@ -1,5 +1,6 @@
 import type { AgentState, ConversationView, EntryRecord, LiveRun, LiveState, NestedToolSlot, SubmissionId, SubmissionRecord, ToolSlot, UsageState, WatchCall } from "@earendil-works/pi-durable";
 import type { FrameBody, RuntimeEventBody, TokenTotals, TurnOutcome } from "../../contracts/session.js";
+import { asRecord } from "../../shared/json.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { toolContent } from "../../shared/tool-output.js";
 import { addTokens, subtractTokens } from "../../shared/token-totals.js";
@@ -10,11 +11,24 @@ export interface DurableProjection {
   readonly message: MessageProjection;
   readonly baseline: TokenTotals;
   readonly runInputs: readonly SubmissionId[];
+  readonly inboxIds: readonly SubmissionId[];
 }
 
 // These built-in documents are materialized by the native Harness using its
 // own versioned definitions before it publishes a ConversationView.
 export function liveOf(view: ConversationView): LiveState { return view.docs["pi.live"] ?? {}; }
+function isSubmissionId(value: unknown): value is SubmissionId {
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+}
+
+export function inboxInputIds(view: ConversationView): readonly SubmissionId[] {
+  const inbox = asRecord(view.docs["pi.inbox"]);
+  if (!Array.isArray(inbox?.items)) { return []; }
+  return inbox.items.flatMap((raw) => {
+    const item = asRecord(raw);
+    return item !== null && item.mode !== "write" && isSubmissionId(item.id) ? [item.id] : [];
+  });
+}
 function agentOf(view: ConversationView): AgentState { return view.docs["pi.agent"] ?? {}; }
 function usageOf(view: ConversationView): UsageState {
   const usage = view.docs["pi.usage"];
@@ -32,7 +46,7 @@ function usageTotal(usage: UsageState): TokenTotals {
 }
 
 export function initialDurableProjection(view: ConversationView): DurableProjection {
-  return { view, message: emptyMessage, baseline: usageTotal(usageOf(view)), runInputs: liveOf(view).run?.inputs ?? [] };
+  return { view, message: emptyMessage, baseline: usageTotal(usageOf(view)), runInputs: liveOf(view).run?.inputs ?? [], inboxIds: inboxInputIds(view) };
 }
 
 /** The native run's terminal submission receipts, never the adapter's abort intent. */
@@ -177,7 +191,7 @@ export function runEnded(previous: DurableProjection, call: Extract<WatchCall<Co
 }
 
 /** One native state notification is one frame. No old AgentEvent is synthesized. */
-export function foldDurableView(previous: DurableProjection, native: Extract<WatchCall<ConversationView>, { kind: "value" }>, inputs: readonly SubmissionRecord[] = [], initial = false, outcome?: TurnOutcome): { readonly state: DurableProjection; readonly frame: FrameBody } {
+export function foldDurableView(previous: DurableProjection, native: Extract<WatchCall<ConversationView>, { kind: "value" }>, inputs: readonly SubmissionRecord[] = [], initial = false, outcome?: TurnOutcome, dropped: readonly RuntimeEventBody[] = []): { readonly state: DurableProjection; readonly frame: FrameBody } {
   const view = native.value;
   const live = liveOf(view);
   const before = liveOf(previous.view);
@@ -193,6 +207,7 @@ export function foldDurableView(previous: DurableProjection, native: Extract<Wat
     ...settingsEvents(previous, view, initial),
     ...entry.events,
     ...(initial ? [] : removedToolEvents(previous.view, view, entries)),
+    ...dropped,
     ...(outcome === undefined ? [] : [{ kind: "turn_ended" as const, outcome }]),
     ...(newRun ? [{ kind: "turn_active" as const }] : []),
     ...nextMessage.events, ...toolEvents(previous.view, view, entries, initial),
@@ -200,5 +215,5 @@ export function foldDurableView(previous: DurableProjection, native: Extract<Wat
     ...(retry !== undefined && (initial || retry.at !== before.generation?.retry?.at) ? [{ kind: "retry" as const, attempt: live.generation?.attempt ?? 0, reason: retry.error }] : []),
   ];
   const runInputs = newRun ? live.run?.inputs ?? [] : (live.run === undefined ? [] : [...new Set([...previous.runInputs, ...live.run.inputs])]);
-  return { state: { view, message: nextMessage.state, baseline: previous.baseline, runInputs }, frame: { type: initial ? "snapshot" : "pi-durable/view", native: initial ? view : { ops: native.ops, retired: native.retired }, events } };
+  return { state: { view, message: nextMessage.state, baseline: previous.baseline, runInputs, inboxIds: inboxInputIds(view) }, frame: { type: initial ? "snapshot" : "pi-durable/view", native: initial ? view : { ops: native.ops, retired: native.retired }, events } };
 }

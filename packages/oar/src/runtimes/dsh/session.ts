@@ -19,7 +19,7 @@ import { sameDirectory } from "../../shared/same-directory.js";
 import { checkSessionName, refuseSessionOptions } from "../../shared/session-options.js";
 import { withSessionCredentials, type SessionCredentials } from "../../shared/session-credentials.js";
 import { dshCompaction } from "./compaction.js";
-import { DshCommandError, dshControl, type DshControl } from "./control.js";
+import { DshCommandError, dshControl, isDshExitedError, type DshControl } from "./control.js";
 import { dshEnvironment, launchDsh } from "./launch.js";
 import { isBackgroundShellJob } from "./jobs.js";
 import { dshGoalControl } from "./goal.js";
@@ -84,6 +84,7 @@ async function savedRoute(control: DshControl, sessionId: string, cwd: string): 
 }
 
 function refusalOf(error: unknown): ResponseBody {
+  if (isDshExitedError(error)) { return { kind: "rejected", code: "runtime_exited", reason: error.message }; }
   if (!(error instanceof DshCommandError)) { return { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) }; }
   if (error.code === "busy") { return { kind: "rejected", code: "busy", reason: "busy" }; }
   if (error.code === "no_active_turn") { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
@@ -106,8 +107,8 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
   const control = dshControl(child, (message) => {
     const { state, frame } = foldDsh(projection, message);
     projection = state;
-    kernel.frame(frame.body, frame.sessionId === undefined ? undefined : { sessionId: frame.sessionId });
     if (frame.sessionId === undefined && frame.body.events.some((event) => event.kind === "turn_ended")) { fallback.clear(); }
+    kernel.frame(frame.body, frame.sessionId === undefined ? undefined : { sessionId: frame.sessionId });
   }, credentials.redact);
   child.onExit((code, reason) => {
     fallback.clear();
@@ -144,11 +145,12 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
   const jobMethods = asRecord(opened.jobMethods);
   const send = async (method: string, payload: JsonRecord): Promise<ResponseBody> => {
     try { return { kind: "accepted", native: await control.request(method, { sessionId, ...payload }) }; }
-    catch (error) { return refusalOf(error); }
+    catch (error) { return kernel.unreachable() ?? refusalOf(error); }
   };
+  let prompting = false;
   const active = (): boolean => projection.sessions[sessionId]?.turnOpen === true;
 
-  const compaction = opened.compact === true ? dshCompaction(kernel, control, () => active() || (projection.sessions[sessionId]?.nextTurn.length ?? 0) > 0) : undefined;
+  const compaction = opened.compact === true ? dshCompaction(kernel, control, () => active() || prompting || (projection.sessions[sessionId]?.nextTurn.length ?? 0) > 0) : undefined;
   const compactBusy = { kind: "rejected", code: "busy", reason: "DSH is compacting this session" } as const;
 
   return credentials.seal({
@@ -157,13 +159,20 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
     ...(options.goals === true ? { goal: dshGoalControl(kernel, control, sessionId, refusalOf) } : {}),
     prompt: async (text, inputOptions) => kernel.control({ kind: "prompt", input: text, ...inputOptions }, async () => {
       if (compaction?.busy() === true) { return compactBusy; }
-      if (active()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
-      return withInputImages(capabilities, inputOptions?.images, async images => send("prompt", inputFields(text, inputOptions?.inputId, images)));
+      if (active() || prompting) { return { kind: "rejected", code: "busy", reason: "busy" }; }
+      return withInputImages(capabilities, inputOptions?.images, async images => {
+        prompting = true;
+        try { return await send("prompt", inputFields(text, inputOptions?.inputId, images)); }
+        finally { prompting = false; }
+      });
     }),
     // A control the runtime cannot do is an absent member; `dsh/opened` keeps the inventory that says why.
     ...(methods.steer === true ? {
-      steer: async (text, inputOptions) => kernel.control({ kind: "steer", input: text, ...inputOptions }, async () =>
-        compaction?.busy() === true ? compactBusy : withInputImages(capabilities, inputOptions?.images, async images => send("steer", inputFields(text, inputOptions?.inputId, images)))),
+      steer: async (text, inputOptions) => kernel.control({ kind: "steer", input: text, ...inputOptions }, async () => {
+        if (compaction?.busy() === true) { return compactBusy; }
+        if (!active() && !prompting) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
+        return withInputImages(capabilities, inputOptions?.images, async images => send("steer", inputFields(text, inputOptions?.inputId, images)));
+      }),
     } : {}),
     queue: async (text, inputOptions) => kernel.control({ kind: "queue", input: text, ...inputOptions }, async () =>
       compaction?.busy() === true ? compactBusy : withInputImages(capabilities, inputOptions?.images, async images => send("queue", inputFields(text, inputOptions?.inputId, images)))),

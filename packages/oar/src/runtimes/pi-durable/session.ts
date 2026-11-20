@@ -1,11 +1,14 @@
 import type { SessionOpenContext } from "../../contracts/placement.js";
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
-import { type Conversation, type ConversationView, type Harness, type SubmissionId, type SubmissionRecord, type WatchCall, type WatchEnd } from "@earendil-works/pi-durable";
-import type { ControlResult, InputOptions, ResponseBody, RuntimeEventBody, Session, SessionOptions, TurnOutcome } from "../../contracts/session.js";
+import { ConversationBusy, ConversationIdle, type Conversation, type ConversationView, type Harness, type Submission, type SubmissionId, type SubmissionRecord, type WatchCall, type WatchEnd } from "@earendil-works/pi-durable";
+import type { ControlResult, InputOptions, RequestRecord, ResponseBody, RuntimeEventBody, Session, SessionOptions, TurnOutcome } from "../../contracts/session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { openConversation, type DurableModels } from "./options.js";
-import { appendedEntries, foldDurableView, initialDurableProjection, liveOf, runEnded, submissionOutcome } from "./projection.js";
+import { appendedEntries, foldDurableView, inboxInputIds, initialDurableProjection, liveOf, runEnded, submissionOutcome } from "./projection.js";
+
+const ABORT_TIMEOUT_MS = 10_000;
+const UNSUPPORTED_IMAGES: ResponseBody = { kind: "rejected", code: "unsupported", reason: "pi-durable browser sessions do not read local image files" };
 
 function settledOutcome(record: SubmissionRecord): readonly RuntimeEventBody[] {
   const outcome = submissionOutcome([record]);
@@ -37,7 +40,7 @@ function createPendingQueue(pendingQueues: Set<PendingQueue>, inputId: string | 
   return entry;
 }
 
-async function withdraw(harness: Harness, conversation: Conversation, pendingQueues: Set<PendingQueue>, inputId: string): Promise<ResponseBody> {
+async function withdraw(harness: Harness, conversation: Conversation, pendingQueues: Set<PendingQueue>, withdrawn: Set<SubmissionId>, inputId: string): Promise<ResponseBody> {
   const matching = [...pendingQueues].filter(entry => entry.inputId === inputId);
   for (const entry of matching) { entry.withdrawn = true; }
   const settled = matching.length === 0 ? [] : await Promise.all(matching.map(async entry => { const value = await entry.settled; return value; }));
@@ -45,7 +48,10 @@ async function withdraw(harness: Harness, conversation: Conversation, pendingQue
   const record = await harness.commit(async (tx) => { const value = await tx.submissionByRequest(conversation.id, inputId); return value; }, BACKGROUND_CONTEXT);
   const submission = record === undefined ? undefined : await harness.submission(record.id, BACKGROUND_CONTEXT);
   const native = await submission?.abort(BACKGROUND_CONTEXT);
-  if (native === "aborted") { return { kind: "accepted", native }; }
+  if (native === "aborted") {
+    if (record !== undefined) { withdrawn.add(record.id); }
+    return { kind: "accepted", native };
+  }
   return intercepted ? { kind: "accepted" } : { kind: "rejected", code: "not_queued", reason: native ?? "No submission with this inputId", native };
 }
 
@@ -98,6 +104,29 @@ export async function piDurableSession(harness: Harness, models: DurableModels, 
     return records;
   }
 
+  const withdrawnSubmissions = new Set<SubmissionId>();
+  const droppedSubmissions = new Set<SubmissionId>();
+  const trackedQueued = new Set<SubmissionId>();
+  const submissionMeta = new Map<SubmissionId, { readonly requestId: string; readonly inputId?: string }>();
+  const droppedEventsOf = (records: readonly (SubmissionRecord | undefined)[]): RuntimeEventBody[] => {
+    const events: RuntimeEventBody[] = [];
+    for (const record of records) {
+      if (record === undefined) { continue; }
+      if (record.status !== "queued") { trackedQueued.delete(record.id); }
+      if (record.status !== "unanswered" || record.reason !== "aborted" || record.entry !== undefined
+        || withdrawnSubmissions.has(record.id) || droppedSubmissions.has(record.id)) { continue; }
+      droppedSubmissions.add(record.id);
+      const meta = submissionMeta.get(record.id);
+      const inputId = record.requestId ?? meta?.inputId;
+      if (meta !== undefined) {
+        events.push({ kind: "input_dropped", reason: "turn_interrupted", requestId: meta.requestId, ...(inputId === undefined ? {} : { inputId }) });
+      } else if (inputId !== undefined) {
+        events.push({ kind: "input_dropped", reason: "turn_interrupted", inputId });
+      }
+    }
+    return events;
+  };
+
   async function drain(): Promise<void> {
     while (pending.length > 0) {
       const item = pending.shift();
@@ -121,6 +150,22 @@ export async function piDurableSession(harness: Harness, models: DurableModels, 
           inputs = records.filter(record => record !== undefined);
         } catch (error) { kernel.frame({ type: "pi-durable/submissions_error", native: errorSummary(error), events: [] }); }
       }
+      const currentInbox = new Set(inboxInputIds(item.call.value));
+      const currentRunInputs = new Set(liveOf(item.call.value).run?.inputs);
+      const placedIds = new Set(inputs.map(record => record.id));
+      const candidateDropped = [...new Set([...prior.inboxIds, ...trackedQueued])].filter(id =>
+        !currentInbox.has(id) && !currentRunInputs.has(id) && !placedIds.has(id) && !withdrawnSubmissions.has(id) && !droppedSubmissions.has(id));
+      const dropped: RuntimeEventBody[] = [];
+      if (candidateDropped.length > 0) {
+        try {
+          const settled = await receipts(candidateDropped);
+          const events = droppedEventsOf(settled);
+          if (events.length > 0) {
+            dropped.push(...events);
+            kernel.frame({ type: "pi-durable/submissions", native: settled.map(record => record ?? null), events: [] });
+          }
+        } catch (error) { kernel.frame({ type: "pi-durable/submissions_error", native: errorSummary(error), events: [] }); }
+      }
       let outcome: TurnOutcome | undefined = undefined;
       if (ended) {
         if (liveOf(prior.view).run?.afterRun !== undefined) {
@@ -131,11 +176,12 @@ export async function piDurableSession(harness: Harness, models: DurableModels, 
           try {
             const native = await receipts(prior.runInputs);
             outcome = submissionOutcome(native);
+            dropped.push(...droppedEventsOf(native));
             kernel.frame({ type: "pi-durable/submissions", native: native.map(record => record ?? null), events: [] });
           } catch (error) { kernel.frame({ type: "pi-durable/submissions_error", native: errorSummary(error), events: [] }); }
         }
       }
-      const next = foldDurableView(prior, item.call, inputs, false, outcome);
+      const next = foldDurableView(prior, item.call, inputs, false, outcome, dropped);
       state = next.state;
       kernel.frame(next.frame);
     }
@@ -143,7 +189,15 @@ export async function piDurableSession(harness: Harness, models: DurableModels, 
 
   const pendingQueues = new Set<PendingQueue>();
   let admissions = Promise.resolve();
-  const submit = async (kind: "prompt" | "steer" | "queue", input: string, inputOptions: InputOptions, wasRunning: boolean, queued?: PendingQueue): Promise<ResponseBody> => {
+  const runningNow = async (): Promise<boolean> => {
+    await flush();
+    return liveOf(state.view).run !== undefined || liveOf(observation.value).run !== undefined;
+  };
+  const submit = async (request: RequestRecord, kind: "prompt" | "steer" | "queue", input: string, inputOptions: InputOptions, wasRunning: boolean, queued?: PendingQueue): Promise<ResponseBody> => {
+    if (kind === "steer") {
+      if (!(await runningNow())) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
+      if ((inputOptions.images?.length ?? 0) > 0) { return UNSUPPORTED_IMAGES; }
+    }
     const prior = inputOptions.inputId === undefined ? undefined : await harness.commit(async (tx) => { const value = await tx.submissionByRequest(conversation.id, inputOptions.inputId ?? ""); return value; }, BACKGROUND_CONTEXT);
     if (prior !== undefined) {
       kernel.frame({ type: "pi-durable/submission", native: prior, events: !wasRunning && liveOf(state.view).run === undefined && kind === "prompt" ? settledOutcome(prior) : [] });
@@ -151,16 +205,30 @@ export async function piDurableSession(harness: Harness, models: DurableModels, 
     }
     if (queued?.withdrawn === true) { queued.intercepted = true; return { kind: "accepted" }; }
     if (kind === "prompt" && wasRunning) { return { kind: "rejected", code: "busy", reason: "busy" }; }
-    if (kind === "steer" && liveOf(state.view).run === undefined) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
+    if ((inputOptions.images?.length ?? 0) > 0) { return UNSUPPORTED_IMAGES; }
     const whenBusy = kind === "prompt" ? "reject" : (kind === "steer" ? "steer" : "followUp");
+    let submission: Submission | null = null;
     try {
-      const submission = await conversation.submit({ type: "input", content: input, ...(inputOptions.inputId === undefined ? {} : { requestId: inputOptions.inputId }), whenBusy }, BACKGROUND_CONTEXT);
+      submission = await conversation.submit({
+        type: "input", content: input,
+        ...(inputOptions.inputId === undefined ? {} : { requestId: inputOptions.inputId }),
+        whenBusy, ...(kind === "steer" ? { whenIdle: "reject" as const } : {}),
+      }, BACKGROUND_CONTEXT);
+    } catch (error) {
+      const native = errorSummary(error);
+      if (error instanceof ConversationIdle) { return { kind: "rejected", code: "no_active_turn", reason: native.message, native }; }
+      if (error instanceof ConversationBusy) { return { kind: "rejected", code: "busy", reason: "busy", native }; }
+      return { kind: "rejected", code: "runtime_refused", reason: native.message, native };
+    }
+    submissionMeta.set(submission.id, { requestId: request.id, ...(inputOptions.inputId === undefined ? {} : { inputId: inputOptions.inputId }) });
+    try {
       const native = await submission.status(BACKGROUND_CONTEXT);
+      if (native.status === "queued") { trackedQueued.add(submission.id); }
       kernel.frame({ type: "pi-durable/submission", native, events: [] });
       return { kind: "accepted", native };
     } catch (error) {
-      const native = errorSummary(error);
-      return { kind: "rejected", code: "runtime_refused", reason: native.message, native };
+      kernel.frame({ type: "pi-durable/submissions_error", native: errorSummary(error), events: [] });
+      return { kind: "accepted" };
     }
   };
   const admit = async (run: () => Promise<ResponseBody>, queued?: PendingQueue): Promise<ResponseBody> => {
@@ -172,10 +240,10 @@ export async function piDurableSession(harness: Harness, models: DurableModels, 
   };
   const inputControl = async (kind: "prompt" | "steer" | "queue", input: string, inputOptions: InputOptions = {}): Promise<ControlResult> => {
     const wasRunning = session.status().value.kind === "running";
-    const result = await kernel.control({ kind, input, ...inputOptions }, async () => {
-      if ((inputOptions.images?.length ?? 0) > 0) { return { kind: "rejected", code: "unsupported", reason: "pi-durable browser sessions do not read local image files" }; }
+    const result = await kernel.control({ kind, input, ...inputOptions }, async (request) => {
+      if (kind === "queue" && (inputOptions.images?.length ?? 0) > 0) { return UNSUPPORTED_IMAGES; }
       const queued = kind === "queue" ? createPendingQueue(pendingQueues, inputOptions.inputId) : undefined;
-      const response = await admit(async () => { const value = await submit(kind, input, inputOptions, wasRunning, queued); return value; }, queued);
+      const response = await admit(async () => { const value = await submit(request, kind, input, inputOptions, wasRunning, queued); return value; }, queued);
       return response;
     });
     return result;
@@ -187,15 +255,20 @@ export async function piDurableSession(harness: Harness, models: DurableModels, 
     steer: async (input, inputOptions) => { const result = await inputControl("steer", input, inputOptions); return result; },
     queue: async (input, inputOptions) => { const result = await inputControl("queue", input, inputOptions); return result; },
     withdraw: async (inputId) => {
-      const result = await kernel.control({ kind: "withdraw", inputId }, async () => { const response = await withdraw(harness, conversation, pendingQueues, inputId); return response; });
+      const result = await kernel.control({ kind: "withdraw", inputId }, async () => { const response = await withdraw(harness, conversation, pendingQueues, withdrawnSubmissions, inputId); return response; });
       return result;
     },
     abort: async () => {
       const result = await kernel.control({ kind: "abort" }, async () => {
-        if (liveOf(state.view).run === undefined) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
-        await conversation.abort(BACKGROUND_CONTEXT);
-        await flush();
-        return { kind: "accepted" };
+        await admissions;
+        if (!(await runningNow())) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
+        const settled = Promise.withResolvers<ResponseBody>();
+        const timer = setTimeout(() => { settled.resolve({ kind: "accepted" }); }, ABORT_TIMEOUT_MS);
+        void (async (): Promise<void> => {
+          try { await conversation.abort(BACKGROUND_CONTEXT); await flush(); settled.resolve({ kind: "accepted" }); }
+          catch (error) { const native = errorSummary(error); settled.resolve({ kind: "rejected", code: "error", reason: native.message, native }); }
+        })();
+        try { return await settled.promise; } finally { clearTimeout(timer); }
       });
       return result;
     },

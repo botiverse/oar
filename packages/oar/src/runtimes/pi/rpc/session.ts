@@ -42,10 +42,13 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
   }, () => { queueMicrotask(drain); });
   const held: PiHeldInput[] = [];
   const fallback = createAbortFallback(() => { rpc.child.kill(); });
-  const abort = async (): Promise<void> => {
+  const abort = async (disarm: () => void): Promise<void> => {
     try {
       const response = await rpc.control.request({ type: "abort" });
-      if (!response.success) { kernel.frame({ type: "pi/abort_rejected", native: response, events: [] }); }
+      if (!response.success) {
+        disarm();
+        kernel.frame({ type: "pi/abort_rejected", native: response, events: [] });
+      }
     } catch { /* Exit and the bounded fallback are observed separately. */ }
   };
   const start = async (request: RequestRecord, input: string, images: readonly LoadedImage[], queued = false): Promise<ResponseBody> => {
@@ -113,7 +116,7 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
       const aborted = owner?.abort === true || [...admissions.values()].some(admission => admission.abort);
       for (const admission of admissions.values()) { admission.abort = false; }
       if (owner !== null) { admissions.delete(owner.request.id); }
-      if (aborted) { fallback.arm(); void abort(); }
+      if (aborted) { void abort(fallback.arm()); }
     }
     const overflow = event.type === "turn_end"
       ? event.message.role === "assistant" && event.message.stopReason === "error" && isContextOverflow(event.message)
@@ -154,13 +157,14 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     })();
   };
   for (const message of buffered) { receive(message); }
+  let exitSettled: Promise<void> = Promise.resolve();
   rpc.child.onExit((code, reason) => {
     fallback.clear();
     nativeActive = false;
     admissions.clear();
     commands.clear();
     held.splice(0);
-    void (async (): Promise<void> => {
+    exitSettled = (async (): Promise<void> => {
       await pump;
       kernel.processExited(code, sessionExitReason(rpc.child, reason, credentials.redact));
       rpc.directory.remove();
@@ -204,7 +208,7 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     abort: async () => kernel.control({ kind: "abort" }, () => {
       if (compaction.busy() && !compaction.admitted()) { return { kind: "rejected", code: "busy", reason: "Pi has not yet started the compaction that abort would cancel" }; }
       if (!busy() && !compaction.busy()) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
-      if (nativeActive || compaction.busy()) { fallback.arm(); void abort(); } else { for (const admission of admissions.values()) { admission.abort = true; } }
+      if (nativeActive || compaction.busy()) { void abort(fallback.arm()); } else { for (const admission of admissions.values()) { admission.abort = true; } }
       return { kind: "accepted" };
     }),
     rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
@@ -216,8 +220,11 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
         // descendants first, then bounds shutdown and removes survivors.
         rpc.child.kill();
         await rpc.child.exited;
+        await exitSettled;
         await pump;
         rpc.directory.remove();
+      }, async () => {
+        await exitSettled;
       });
     },
   });
