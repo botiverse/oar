@@ -172,8 +172,10 @@ mechanism tests, not admission evidence for a native runtime.
 ### Disabled OpenCode candidate
 
 For OpenCode 2.2.3 and 2.2.5, one canonical directory serves at most one
-session for the entire process lifetime; the experimental adapter enforces
-this on Linux x64, macOS arm64 and Windows x64. Release does not clear that used directory. Another open in that
+session for the entire process lifetime; the experimental adapter
+([`opencode-candidate.ts`](../../experiments/sharing/opencode-candidate.ts))
+admits only those versions on Linux x64, macOS arm64 and Windows x64, and
+enforces the rule there. Release does not clear that used directory. Another open in that
 directory, including an identical or empty MCP list, uses a fresh isolated
 process for `auto` and throws `UnsupportedOptionError("placement")` for
 explicit `shared`, before any native open is sent on the old connection.
@@ -196,7 +198,10 @@ for shared initialization to settle, but does not inherit its failure.
 
 An experimental adapter retains the routing work for manual controls. It
 accepts only exact stable 1.0.70 installation and native initialize versions
-on Linux x64, macOS arm64 and Windows x64. Its
+on Linux x64, macOS arm64 and Windows x64: the installation and platform
+before launch
+([`grok-candidate.ts`](../../experiments/sharing/grok-candidate.ts)), the
+initialize `_meta.agentVersion` after it. Its
 [launch audit](../runtimes/grok.md#shared-launch-ownership-and-cleanup)
 requires fully qualified paths, refuses stdio MCP session options and defines
 the neutral home and process-key boundaries.
