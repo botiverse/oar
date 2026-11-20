@@ -2,6 +2,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
+import type { DayTokens } from "./budget.js";
 
 /**
  * A harbor run lives in one directory, and every file in it is append-only
@@ -46,6 +47,8 @@ export interface AgentSpec {
 export interface AgentState extends AgentSpec {
   readonly sessionId?: string;
   readonly opens: number;
+  /** Tokens this agent's sessions reported in the current UTC day, for `--day-tokens`. */
+  readonly dayTokens?: DayTokens;
 }
 
 export interface RunState {

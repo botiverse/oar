@@ -1,4 +1,5 @@
 import { parseArgs } from "node:util";
+import type { RecyclePolicy } from "./budget.js";
 import type { AgentStatusLine } from "./support.js";
 import { call, detach, up } from "./daemon.js";
 import { formatEntry, printStatus, read, trace, watch } from "./inspect.js";
@@ -8,6 +9,7 @@ const USAGE = `harbor: a small Raft-like channel for long OAR runs with real age
 
   harbor up --agent <name=runtime[:model]> ... [--agent-env name:KEY=VALUE ...]
             [--stall-min 10] [--for HOURS] [--max-disk-gb N] [--detach]
+            [--recycle-idle-min 60] [--recycle-context 128000] [--day-tokens N]
   harbor add <name=runtime[:model]>        add an agent to the running daemon
   harbor send [text]                        post (stdin when no text); @name routes, @all reaches everyone
   harbor read [--after N] [--limit 20]      channel messages
@@ -20,7 +22,11 @@ const USAGE = `harbor: a small Raft-like channel for long OAR runs with real age
   harbor down                               dispose every agent and stop
 
   --dir <path> (or HARBOR_DIR) selects the run; default ~/.oar-harbor/default.
-  A message from someone who is not an agent and names no one goes to every agent.`;
+  A message from someone who is not an agent and names no one goes to every agent.
+  A session idle past --recycle-idle-min with more context than --recycle-context
+  tokens is replaced by a fresh one with a handoff of recent messages (0 turns this off).
+  --day-tokens holds an agent's deliveries once its sessions reported that many
+  tokens in a UTC day, until the next day.`;
 
 const OPTIONS = {
   dir: { type: "string" },
@@ -29,6 +35,9 @@ const OPTIONS = {
   "agent-env": { type: "string", multiple: true },
   for: { type: "string" },
   "max-disk-gb": { type: "string" },
+  "recycle-idle-min": { type: "string" },
+  "recycle-context": { type: "string" },
+  "day-tokens": { type: "string" },
   detach: { type: "boolean" },
   from: { type: "string" },
   after: { type: "string" },
@@ -41,6 +50,13 @@ const OPTIONS = {
   raw: { type: "boolean" },
   fresh: { type: "boolean" },
 } as const;
+
+/** Raft's defaults: an hour idle and 128K of context. */
+function recyclePolicy(idleMin: string | undefined, context: string | undefined): RecyclePolicy | null {
+  const idleMs = Number(idleMin ?? "60") * 60_000;
+  const contextTokens = Number(context ?? "128000");
+  return idleMs > 0 && contextTokens > 0 ? { idleMs, contextTokens } : null;
+}
 
 async function main(argv: readonly string[]): Promise<void> {
   const [command = "help", ...rest] = argv;
@@ -56,6 +72,8 @@ async function main(argv: readonly string[]): Promise<void> {
       agentEnv: values["agent-env"] ?? [],
       ...(values.for === undefined ? {} : { forMs: Number(values.for) * 3_600_000 }),
       ...(values["max-disk-gb"] === undefined ? {} : { maxBytes: Number(values["max-disk-gb"]) * 1024 ** 3 }),
+      recycle: recyclePolicy(values["recycle-idle-min"], values["recycle-context"]),
+      dayTokens: values["day-tokens"] === undefined ? null : Number(values["day-tokens"]),
     });
   } else if (command === "add") {
     console.log(JSON.stringify(await call(dir, "/add", { spec: positionals[0] })));

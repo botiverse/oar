@@ -4,7 +4,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { join, resolve as resolvePath } from "node:path";
 import { HarborAgent } from "./agent.js";
 import { daemonInfo, mentionsIn, parseAgentEnv, parseAgentSpec, Store, type AgentState } from "./store.js";
-import { directoryBytes } from "./support.js";
+import { directoryBytes, type AgentOptions } from "./support.js";
 
 const HERE = import.meta.dirname;
 const TSX = resolvePath(HERE, "../../node_modules/.bin/tsx");
@@ -36,6 +36,8 @@ export interface UpOptions {
   readonly forMs?: number;
   /** Stop when the run directory grows past this many bytes. */
   readonly maxBytes?: number;
+  readonly recycle: AgentOptions["recycle"];
+  readonly dayTokens: AgentOptions["dayTokens"];
 }
 
 export async function up(dir: string, specs: readonly string[], upOptions: UpOptions): Promise<void> {
@@ -67,7 +69,7 @@ export async function up(dir: string, specs: readonly string[], upOptions: UpOpt
     store.saveState({ agents: [...agents.values()].map((agent) => agent.state) });
   };
   const addAgent = (state: AgentState): void => {
-    const agent = new HarborAgent(state, store, { stallMs, bin: writeBin(dir, state.name) }, save);
+    const agent = new HarborAgent(state, store, { stallMs, bin: writeBin(dir, state.name), recycle: upOptions.recycle, dayTokens: upOptions.dayTokens }, save);
     agents.set(state.name, agent);
     save();
     void openReporting(agent);

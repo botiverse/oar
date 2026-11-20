@@ -147,3 +147,15 @@ test("a compaction while a delivery is in flight still brings the rules back", a
   }
   expect([sent[1]?.slice(0, 7), sent[2]?.slice(0, 9)]).toEqual(["(harbor", "You are @"]);
 });
+
+test("a recycled session gets the handoff in its first delivery only", async () => {
+  const sent: string[] = [];
+  const deliveries = recordingHarness(sent);
+  deliveries.opened(true, true, "HANDOFF");
+  deliveries.add(message("qa"), true);
+  await vi.waitFor(() => { expect(sent).toHaveLength(1); });
+  deliveries.add({ ...message("qa"), seq: 2 }, true);
+  await vi.waitFor(() => { expect(sent).toHaveLength(2); });
+  expect(sent[0]?.startsWith("HANDOFF\n\n")).toBe(true);
+  expect(sent[1]).not.toContain("HANDOFF");
+});
