@@ -3,6 +3,7 @@ import argparse
 import json
 import os
 import queue
+import signal
 import subprocess
 import sys
 import tempfile
@@ -37,9 +38,10 @@ class Worker:
         with self.stderr.open('w') as err:
             if barrier:
                 barrier.wait(timeout=10)
-            self.started = time.monotonic_ns()
+            self.started = time.perf_counter_ns()
             self.proc = subprocess.Popen([self.binary, 'acp'], cwd=self.cwd, env=self.env,
-                                         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=err)
+                                         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=err,
+                                         start_new_session=os.name != 'nt')
         self.reader = threading.Thread(target=self.read_stdout, args=(messages,), daemon=True)
         self.reader.start()
         deadline = time.monotonic() + 20
@@ -80,6 +82,19 @@ class Worker:
                     messages.put(message)
         finally:
             messages.put(None)
+
+    def kill_tree(self, barrier):
+        if self.proc.poll() is not None:
+            raise RuntimeError('Peer exited before the tree stop')
+        barrier.wait(timeout=10)
+        begin = time.perf_counter_ns()
+        if os.name == 'nt':
+            subprocess.run(['taskkill', '/PID', str(self.proc.pid), '/T', '/F'],
+                           capture_output=True, timeout=10, check=True)
+        else:
+            os.killpg(self.proc.pid, signal.SIGKILL)
+        self.proc.wait(timeout=10)
+        return begin, time.perf_counter_ns()
 
     def stop(self, result):
         result['exitAtObservation'] = self.proc.poll()
@@ -126,31 +141,63 @@ def db_errors(data, start, end):
     return errors
 
 
+def prepare(worker):
+    warm = worker.start()
+    worker.stop(warm)
+    if warm['result'] != 'ready' or not (worker.data / 'opencode' / 'opencode.db').is_file():
+        raise RuntimeError(f'Serial preparation failed: {warm}')
+
+
 def compare(binary, root, rounds, layout):
-    workers = [Worker(root / str(i), root / ('shared' if layout == 'shared' else f'data-{i}'), binary)
-               for i in range(2)]
-    for worker in workers:
-        warm = worker.start()
-        worker.stop(warm)
-        if warm['result'] != 'ready' or not (worker.data / 'opencode' / 'opencode.db').is_file():
-            raise RuntimeError(f'Serial preparation failed: {layout}, {warm}')
+    def workers_for(data):
+        return [Worker(root / str(i), data[i], binary) for i in range(2)]
+
+    stores = [root / (f'data-{i}' if layout == 'separate' else 'shared') for i in range(2)]
+    workers = workers_for(stores)
+    if layout != 'fresh':
+        for worker in workers:
+            prepare(worker)
     counts = Counter()
     failed_pairs = 0
     with ThreadPoolExecutor(max_workers=2) as pool:
         for number in range(1, rounds + 1):
+            if layout == 'fresh':
+                data = root / f'fresh-{number}'
+                if data.exists():
+                    raise RuntimeError('Fresh store already exists')
+                workers = workers_for([data, data])
             barrier = threading.Barrier(2)
-            start = utc()
-            opens = [pool.submit(w.start, barrier) for w in workers]
-            results = [f.result() for f in opens]
-            end = utc()
-            cleanup = [pool.submit(w.stop, r) for w, r in zip(workers, results)]
-            for future in cleanup:
-                future.result()
+            timing = {}
+            if layout == 'peer-stop':
+                peer, incoming = workers
+                first = peer.start()
+                if first['result'] != 'ready':
+                    peer.stop(first)
+                    raise RuntimeError(f'Could not establish a live peer: {first}')
+                start = utc()
+                stop = pool.submit(peer.kill_tree, barrier)
+                second = pool.submit(incoming.start, barrier).result()
+                end = utc()
+                stop_begin, stop_end = stop.result()
+                timing = {'killStartRelativeToSpawnMs': (stop_begin - incoming.started) / 1e6,
+                          'killEndRelativeToSpawnMs': (stop_end - incoming.started) / 1e6}
+                peer.stop(first)
+                incoming.stop(second)
+                results = [second]
+                timing['establishedPeer'] = first
+            else:
+                start = utc()
+                opens = [pool.submit(w.start, barrier) for w in workers]
+                results = [f.result() for f in opens]
+                end = utc()
+                cleanup = [pool.submit(w.stop, r) for w, r in zip(workers, results)]
+                for future in cleanup:
+                    future.result()
+                timing['spawnSkewMs'] = abs(workers[0].started - workers[1].started) / 1e6
             failed_pairs += any(r['result'] != 'ready' for r in results)
             counts.update(r['result'] for r in results)
             print(json.dumps({'layout': layout, 'round': number, 'start': start, 'end': end,
-                              'spawnSkewMs': abs(workers[0].started - workers[1].started) / 1e6,
-                              'opens': results, 'databaseLogs': [db_errors(d, start, end)
+                              **timing, 'opens': results, 'databaseLogs': [db_errors(d, start, end)
                               for d in dict.fromkeys(w.data for w in workers)]}), flush=True)
     print(json.dumps({'layout': layout, 'pairs': rounds, 'failedPairs': failed_pairs,
                       'processes': dict(counts)}), flush=True)
@@ -160,6 +207,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--rounds', type=int, default=20)
     parser.add_argument('--bin', type=Path)
+    parser.add_argument('--layouts', nargs='+', choices=['shared', 'separate', 'peer-stop', 'fresh'],
+                        default=['shared', 'separate'])
     args = parser.parse_args()
     executable = (args.bin or Path(os.environ['OAR_CI_NPM_ROOT']) / '@opencode/cli/bin/opencode.exe').resolve(strict=True)
     with tempfile.TemporaryDirectory(prefix='opencode-pair-') as temp:
@@ -169,5 +218,5 @@ if __name__ == '__main__':
         if version not in ('opencode v2.2.7', '2.2.7'):
             sys.exit('Expected OpenCode 2.2.7')
         print(json.dumps({'version': version, 'platform': sys.platform, 'roundsPerLayout': args.rounds}), flush=True)
-        for layout in ['shared', 'separate']:
+        for layout in args.layouts:
             compare(executable, root / layout, args.rounds, layout)

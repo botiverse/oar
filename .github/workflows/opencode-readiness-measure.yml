@@ -18,10 +18,10 @@ jobs:
           node-version: 24
       - run: pnpm install --frozen-lockfile
       - run: node .github/scripts/runtime-install.mjs opencode-cleanup
-      - name: Compare twenty pairs with shared and separate SQLite stores
+      - name: Compare peer tree stop and fresh shared database initialization
         shell: pwsh
         run: |
-          python -u experiments/opencode-simultaneous-start/compare.py | Tee-Object -FilePath "$env:RUNNER_TEMP/pairs.jsonl"
+          python -u experiments/opencode-simultaneous-start/compare.py --layouts peer-stop fresh | Tee-Object -FilePath "$env:RUNNER_TEMP/pairs.jsonl"
           exit $LASTEXITCODE
       - uses: actions/upload-artifact@v4
         if: always()
