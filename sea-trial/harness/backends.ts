@@ -127,7 +127,7 @@ export async function selectBackend(target: string): Promise<Backend> {
     case "claude-aimock": {
       // Real binary + real adapter; only the model provider is scripted.
       const aimock = await startClaudeAimock();
-      return { runtime: defineRuntime({ id: target, session: claudeSession, installation: claudeInstallation, sessionCapabilities: claudeRuntime.sessionCapabilities }, executionOptions(claudeRuntime)), aimock };
+      return { runtime: defineRuntime({ id: target, session: claudeSession, installation: claudeInstallation, sideQuestion: claudeRuntime.sideQuestion, sessionCapabilities: claudeRuntime.sessionCapabilities }, executionOptions(claudeRuntime)), aimock };
     }
     case "qwen-aimock": return qwenBackend();
     case "codebuddy-aimock": {

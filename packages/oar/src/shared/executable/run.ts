@@ -25,6 +25,8 @@ export interface ExecutableRunOptions {
   readonly timeoutMs?: number;
   /** Redirect stdout to a caller-owned file descriptor; stdout in the result is empty. */
   readonly stdoutFd?: number;
+  /** Send private input over stdin and close it. Omission keeps the previous stdin behavior. */
+  readonly input?: string;
   /** Stops the command; the result is then a failure with no exit code. */
   readonly signal?: AbortSignal;
 }
@@ -179,6 +181,10 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
       }
       options.signal?.addEventListener("abort", onAbort, { once: true });
       if (options.signal?.aborted === true) { onAbort(); }
+      else if (options.input !== undefined) {
+        child.stdin?.on("error", error => { failure ??= nativeError(error); stop?.(); });
+        child.stdin?.end(options.input);
+      }
     } catch (error) {
       if (!(error instanceof Error)) { throw error; }
       failure = nativeError(error);

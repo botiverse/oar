@@ -2162,3 +2162,18 @@ a rejected limit with a reset and no available overage; otherwise it stays
 Declared categories no run produced (`oauth_org_not_allowed`,
 `account_on_hold`, `max_output_tokens`, `cloud_credential_error`) stay unmapped
 and fall through to status.
+
+
+### Side questions
+
+`sideQuestion` takes the native session UUID and its working directory.
+Claude Code 2.1.326 answered from the stored history both while a source turn
+was waiting for its provider and after the source session was disposed. Each
+answer belonged to a new native fork. The fork saved no session file and
+left the source transcript unchanged.
+
+OAR sends the question on stdin, gives the fork zero tools, supplies an empty
+strict MCP configuration, disables user and project hooks, and asks Claude
+to skip session persistence. Managed policy hooks still run, as the
+administrator set them. The fork makes its own provider request. A failed or
+timed-out request rejects. [Claude hook precedence](https://code.claude.com/docs/en/hooks#disable-or-remove-hooks)
