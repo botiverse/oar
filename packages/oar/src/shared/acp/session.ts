@@ -1,6 +1,7 @@
 /* oxlint-disable import/max-dependencies -- Session assembly wires the environment, process, terminal host, recorder and control machinery. */
 import type { SessionCleanup } from "../../contracts/placement.js";
 import { appendCleanupFailure, cleanupFailureReason } from "../executable/process-cleanup.js";
+import { reportedStderr } from "../executable/reported-stderr.js";
 import { sessionEnvironment } from "../environment.js";
 /* oxlint-disable typescript/promise-function-async -- SDK callbacks deliberately return the SDK's native promises. */
 import type { AvailableInstallation } from "../../contracts/installation.js";
@@ -65,7 +66,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       const state = createAcpSessionState(profile, options, environment, undefined, () => runtime.pid);
       const { terminalHost, recorder, opening } = state;
       const client = createAcpClientApp(terminalHost, state.hooks);
-      const runtime: AcpProcess = startAcpProcess(installation.command, args, client, { cwd: options.cwd, env: environment, redact: credentials.redact, opening });
+      const runtime: AcpProcess = startAcpProcess(installation.command, args, client, { cwd: options.cwd, env: environment, redact: credentials.redact, sessionExit: "isolated", opening });
       // Process exit can precede the SDK's failed-open settlement.
       // oxlint-disable-next-line promise/prefer-await-to-then -- Observe exit independently of the opening RPC.
       if (releaseStartup !== undefined) { void runtime.exited.then(releaseStartup, releaseStartup); }
@@ -163,7 +164,9 @@ export function finishAcpSession(
     void disposeTerminals();
     // An outcome only oar observes: answers our dispose when we caused the
     // exit, stands alone (requestId "") when the runtime died on its own.
-    const reason = cleanupFailureReason(runtime.diagnostics().cleanup);
+    const diagnostic = runtime.diagnostics();
+    const cleanExit = code === 0 && diagnostic.signal === null && diagnostic.error === undefined && !reportedStderr(diagnostic, credentials.redact).trim();
+    const reason = (cleanExit ? undefined : runtime.exitError?.()?.message) ?? cleanupFailureReason(diagnostic.cleanup);
     kernel.processExited(code, reason);
     turns.onExit();
   }); }

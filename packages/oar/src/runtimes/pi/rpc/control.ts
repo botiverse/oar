@@ -1,4 +1,4 @@
-import { reportedStderr } from "../../../shared/executable/reported-stderr.js";
+import { reportedStderr, reportedProcessFailure } from "../../../shared/executable/reported-stderr.js";
 import type { RpcCommand, RpcResponse } from "@earendil-works/pi-coding-agent";
 import type { LineProcess } from "../../../shared/executable/index.js";
 import { asRecord, parseJson } from "../../../shared/json.js";
@@ -24,11 +24,11 @@ export function piRpcControl(child: LineProcess, receive: (message: Record<strin
     // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- The pinned bundled RPC encoder owns this response union.
     waiter.resolve(message as unknown as RpcResponse);
   });
-  child.onExit((code) => {
+  child.onExit(() => {
     ended = true;
     for (const waiter of pending.values()) {
       clearTimeout(waiter.timer);
-      waiter.reject(new Error(`Pi RPC exited (${String(code)}): ${stderr()}`));
+      waiter.reject(reportedProcessFailure("Pi RPC exited", child.diagnostics(), redact));
     }
     pending.clear();
   });

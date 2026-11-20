@@ -1,4 +1,5 @@
 /* oxlint-disable import/max-dependencies -- Session controls compose native startup, projection, input admission, compaction and lifecycle. */
+import { sessionExitReason } from "../../../shared/executable/reported-stderr.js";
 import { piManualCompaction } from "../compaction.js";
 import { handledInput, refusedInput, startedInput, type PiHeldInput } from "../input-disposition.js";
 /* oxlint-disable eslint/require-await -- Session controls return kernel promises directly; native delivery callbacks may decide synchronously. */
@@ -161,7 +162,7 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     held.splice(0);
     void (async (): Promise<void> => {
       await pump;
-      kernel.processExited(code, reason);
+      kernel.processExited(code, sessionExitReason(rpc.child, reason, credentials.redact));
       rpc.directory.remove();
     })();
   });

@@ -41,7 +41,7 @@ export const qwenSession: StartSession = withSessionCredentials(async (installat
     throw new UnsupportedOptionError("mcpServers", `Qwen ${installation.version ?? "below 0.26.0"} does not support HTTP MCP servers; 0.26.0 or later is required`);
   }
   const child = await launchQwen(installation.command, sessionId, options, installation.version);
-  const control = qwenControl(child);
+  const control = qwenControl(child, undefined, credentials.redact);
   const context = qwenContextReadback(child);
   let canReadContext = false;
   try {

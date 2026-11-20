@@ -73,7 +73,7 @@ async function handle(message) {
       send({ method: 'fixture/break-output' });
       return;
     }
-    if (text === 'exit') { process.exit(7); }
+    if (text === 'exit') { process.stderr.write('shared-process-only exit detail\n', () => process.exit(7)); return; }
     if (text === 'late-host-after-release') {
       session.pending = id; session.ignore = true;
       setTimeout(() => { void (async () => {

@@ -166,7 +166,7 @@ test("ACP prompt errors are the runtime's word; a process exit is oar's observat
     {
       "failure": "runtime_exited",
       "kind": "failed",
-      "reason": "runtime exited",
+      "reason": "ACP process exited: exit code 9; signal none",
     }
   `);
   const exit = exitSession.records().findLast((record) => record.kind === "response" && record.body.kind === "exited");

@@ -1,4 +1,4 @@
-import { reportedStderr } from "../../shared/executable/reported-stderr.js";
+import { reportedStderr, reportedProcessFailure } from "../../shared/executable/reported-stderr.js";
 import type { LineProcess } from "../../shared/executable/index.js";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
 import { DSH_BRIDGE_PROTOCOL } from "./bridge.js";
@@ -68,10 +68,10 @@ export function dshControl(child: LineProcess, receive: (message: JsonRecord) =>
       rejectReady(new DshCommandError(asRecord(message.error) ?? {}, textOf(message.code), textOf(message.capability)));
     }
   });
-  child.onExit((code) => {
+  child.onExit(() => {
     ended = true;
     clearTimeout(readyTimer);
-    const failure = new Error(`DSH exited (${String(code)}): ${stderr()}`);
+    const failure = reportedProcessFailure("DSH exited", child.diagnostics(), redact);
     rejectReady(failure);
     for (const waiter of pending.values()) {
       clearTimeout(waiter.timer);

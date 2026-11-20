@@ -393,6 +393,7 @@ jobs:
       - run: pnpm run sea-trial
         id: behavior
         timeout-minutes: 12
+      # Remove this diagnostic step when the Windows startup investigation closes (Raft #core:#360).
       - name: Check effort independently after a Windows OpenCode behavior failure
         if: ${{ !cancelled() && steps.behavior.outcome == 'failure' && runner.os == 'Windows' && startsWith(matrix.backend, 'opencode') }}
         run: pnpm run sea-trial session.effort-never-substituted

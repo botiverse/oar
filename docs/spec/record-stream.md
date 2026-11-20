@@ -426,6 +426,18 @@ Further rules:
   If it stays alive, host disposal still performs the normal cleanup.
   The final `exited` notification is still emitted exactly once after cleanup;
   it may follow the native exit by an asynchronous cleanup phase.
+- **Unexpected session-process exit.** The `exited` response carries the
+  observed exit code. On a signal exit its code is null and its reason names
+  the signal. An isolated process can include its bounded, redacted stderr
+  tail. This covers the isolated ACP and stream-json runtimes, Codex,
+  Factory, DSH, Pi RPC and the Cursor SDK subprocess. Pi and Cursor also
+  have in-process SDK placements, and Pi Durable runs in process. Those
+  placements have no session child stderr. For the experimental shared ACP
+  placement, only the process diagnostic receives the redacted stderr.
+  Each attached session receives the common exit code or signal. Current
+  process-sharing admissions are described under [placement and release](#placement-and-release).
+  A native error concerning an internal worker can arrive on a connection
+  that is still live. OAR reports the worker details the runtime supplies.
 - **A process left holding the output pipes never holds up the exit.** After
   the root's native exit and its cleanup, OAR waits at most 2 s for the root's
   stdout, stderr and private pipe to close (POSIX). A process the root left

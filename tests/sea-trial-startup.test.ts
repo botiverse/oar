@@ -32,3 +32,20 @@ test.each(exitCases)("an early ACP exit during $method remains visible in $trial
   expect(result.reason).not.toMatch(/oar-startup-test-value|old-prefix/u);
   expect(record).toHaveBeenCalledWith({ kind: "session_open_failed", caseId: testCase.id, reason: result.reason });
 });
+
+test("an isolated ACP crash during a turn retains the native exit observation", async () => {
+  const session = await start({ kind: "available", via: "executable", command: process.execPath }, {
+    cwd: process.cwd(), env: { FAKE_EXIT_METHOD: "session/prompt", FAKE_EXIT_BY_SIGNAL: process.platform === "win32" ? "0" : "1",
+      TEST_API_KEY: "secret-fixture-value", FAKE_STDERR: "during active turn: secret-fixture-value\n" },
+  });
+  try {
+    await session.prompt("exercise exit");
+    await vi.waitFor(() => {
+      const exit = session.records().find(entry => entry.kind === "response" && entry.body.kind === "exited");
+      expect(JSON.stringify(exit?.body)).toContain("during active turn: [redacted]");
+    }, { timeout: 15_000 });
+    const records = JSON.stringify(session.records());
+    expect(records).toContain(process.platform === "win32" ? "exit code 1" : "signal SIGTERM");
+    expect(records).not.toContain("secret-fixture-value");
+  } finally { await session.dispose(); }
+});

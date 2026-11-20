@@ -1,6 +1,5 @@
-import { reportedStderr } from "../executable/reported-stderr.js";
-import { processFailure, type ProcessDiagnostics } from "../executable/diagnostics.js";
-import { redactTokenShapes } from "../token-redaction.js";
+import { reportedProcessFailure } from "../executable/reported-stderr.js";
+import type { ProcessDiagnostics } from "../executable/diagnostics.js";
 
 export type AcpErrorKind = "timeout" | "process_exited";
 
@@ -42,14 +41,8 @@ export function acpProcessExitedError(
   diagnostics?: ProcessDiagnostics,
   redact: (text: string) => string = (text) => text,
 ): AcpError {
-  // Only session opening supplies diagnostics. Authentication queries and
-  // later transport failures keep their existing, diagnostic-free errors.
-  const safe = (text: string): string => redactTokenShapes(redact(text));
-  const failure = diagnostics === undefined ? undefined : processFailure("ACP process exited", {
-    ...diagnostics,
-    stderr: reportedStderr(diagnostics, redact),
-    ...(diagnostics.error === undefined ? {} : { error: { ...diagnostics.error, message: safe(diagnostics.error.message) } }),
-  });
+  // Authentication queries omit diagnostics. A shared session supplies only process-wide facts.
+  const failure = diagnostics === undefined ? undefined : reportedProcessFailure("ACP process exited", diagnostics, redact);
   return new AcpError(
     "process_exited",
     failure?.message ?? (exitCode === null ? "ACP process exited" : `ACP process exited with code ${exitCode}`),

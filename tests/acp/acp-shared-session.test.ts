@@ -122,6 +122,8 @@ test("one process crash ends every active lease exactly once and never restarts 
   const f = await fixture(); const [a, b] = await Promise.all([f.open("a"), f.open("b")]);
   const held = await a.prompt("hold"); await promptAndWait(b, "exit"); await awaitTurnEnd(a, held.request.seq);
   for (const session of [a, b]) { expect(session.records().filter(record => record.kind === "response" && record.body.kind === "exited")).toHaveLength(1); }
+  expect(f.diagnostics.find(entry => entry.method === "process_exited")?.params).toMatchObject({ code: 7, stderr: "shared-process-only exit detail\n" });
+  expect(JSON.stringify([a.records(), b.records()])).not.toContain("shared-process-only exit detail");
   const result5 = await a.prompt("after-exit"); expect(result5.response.body).toMatchObject({ kind: "rejected", code: "runtime_exited" });
 });
 
