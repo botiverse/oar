@@ -1,5 +1,6 @@
 import { antigravityRuntime, defineRuntime, grokRuntime, kimiRuntime, opencodeRuntime, type AvailableInstallation, type Runtime } from "../../packages/oar/src/index.js";
 import { startAntigravityAimock, startGrokAimock, startKimiAimock, startOpencodeAimock, type AcpAimockEnv } from "./aimock-acp.js";
+import { observeOpenCodeStartup } from "./opencode-startup-log.js";
 import { opencodePreparation } from "./opencode-home.js";
 
 const backends = {
@@ -23,8 +24,11 @@ export async function acpBackend(id: keyof typeof backends): Promise<{
   });
   // No account or catalog reads: those cases skip by capability, as in the daily probe.
   const { installation, session, sessionCapabilities, execution } = backend.runtime;
+  const dataRoot = aimock.env.XDG_DATA_HOME;
+  const open = id === "opencode" && process.platform === "win32" && dataRoot !== undefined
+    ? observeOpenCodeStartup(session, dataRoot) : session;
   return {
-    runtime: defineRuntime({ id: `${id}-aimock`, installation, session, sessionCapabilities }, execution === null ? {} : { execution }), aimock,
+    runtime: defineRuntime({ id: `${id}-aimock`, installation, session: open, sessionCapabilities }, execution === null ? {} : { execution }), aimock,
     ...(id === "opencode" ? { beforeSuite: opencodePreparation(aimock.env) } : {}),
   };
 }
