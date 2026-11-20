@@ -5,6 +5,7 @@ import type { SessionOptions } from "../../contracts/session.js";
 
 /** Each stays refused until its own native probe. DSH may well have the concept; OAR has not verified its semantics. */
 export const dshRefusedSessionOptions: RefusedSessionOptions = {
+  modelRequests: "This adapter has no verified capture of the root agent's provider request",
   fork: "OAR has not verified a native DSH fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   mcpServerCredentials: "DSH MCP env and header persistence has not been audited; only stdio command and args are supported",
   launchArgs: "DSH overlays can disable the OAR bridge; arbitrary launch overlays have no verified final-composition check",

@@ -3,6 +3,7 @@ import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 /* Declared refusals, apart from the session code so the runtime entry loads no ACP SDK until a session opens. */
 
 export const kimiRefusedSessionOptions: RefusedSessionOptions = {
+  modelRequests: "This adapter has no verified capture of the root agent's provider request",
   fork: "OAR has not verified a native Kimi fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted Kimi turn's processes while its session stays usable",

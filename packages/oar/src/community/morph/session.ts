@@ -36,6 +36,7 @@ import { createTaskTracker } from "./tracker.js";
 const DISPOSE_SETTLE_MS = 3000;
 
 export const morphRefusedSessionOptions: RefusedSessionOptions = {
+  modelRequests: "This adapter has no verified capture of the root agent's provider request",
   fork: "OAR has not verified a native Morph fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted Morph turn's processes while its session stays usable",

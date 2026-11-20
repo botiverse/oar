@@ -47,6 +47,8 @@ export interface SessionFork {
  * (docs/spec/runtime-matrix.md#refused-session-options).
  */
 export interface SessionOptions {
+  /** Keep the latest provider request attributed to this session's root agent. Capture is off by default. */
+  readonly modelRequests?: "latest";
   /**
    * Bound what this process retains for records(), the query folds and cursor
    * replay. Past this many bytes, the oldest frames lose `native` and tool

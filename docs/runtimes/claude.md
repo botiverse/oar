@@ -851,6 +851,35 @@ and from the start of a dispose, and after the exit, the answer is null.
 [Reader](../../packages/oar/src/runtimes/claude/context-breakdown.ts),
 [test](../../tests/claude/claude-context-breakdown.test.ts).
 
+### Latest model request
+
+Open a session with `modelRequests: "latest"` to read the complete Anthropic
+Messages body Claude recorded for its most recent answered root request.
+`await session.lastModelRequest()` returns the model, provider when reported,
+an approximate build time from the request file, and the recorded body.
+Fresh, resumed and forked sessions start with no reading. A session opened
+without this option has no reader.
+
+Claude Code 2.1.274 introduced the index that joins an answered request to its
+root message. OAR requires that version or later and checks the effective
+capture directory at open. Fresh capture worked at that floor. A resumed
+open on 2.1.274 failed Claude’s separate session-identity check because
+that version did not implement `get_status`. Fresh, resumed and forked
+capture were verified on 2.1.326. If a root assistant frame arrives first, a read
+waits up to two seconds for the complete attribution and body. On 2.1.326 the
+measured delay was 7 to 14 ms. A missing attribution rejects the read. An
+aborted or failed turn releases its own waits, so an earlier answered request
+can still be latest. A read returns `null` once disposal begins or the process
+exits. [Contract and native evidence](../spec/model-request.md)
+
+Claude can replace account memory without marking it, redact thinking text,
+withhold a whole body or report a response without a captured request.
+`withheld` names the omissions Claude makes detectable. For a missing request,
+`at` uses the response file time. OAR redacts session credentials before
+returning the body. It keeps the files in a private per-open directory,
+removes superseded captures and removes the directory at exit. Reading a
+body adds nothing to session records. [Scripted-provider check](../../sea-trial/vendor/claude-model-request.vendor.test.ts)
+
 ### Token totals
 
 claude reports two figures on each `result` ([#282](https://github.com/botiverse/oar/issues/282)).

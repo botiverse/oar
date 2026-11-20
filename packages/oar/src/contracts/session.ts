@@ -10,6 +10,7 @@ import type { AgentStatus } from "./status.js";
 import type { AvailableInstallation } from "./installation.js";
 import type { ContextBreakdown } from "./context-breakdown.js";
 import type { FailureClass } from "./failure.js";
+import type { ModelRequest } from "./model-request.js";
 import type { SessionOptions } from "./session-options.js";
 
 export type { GoalControl, AdapterGoalControl, GoalSnapshot, GoalStatus, KnownGoalStatus, GoalSetOptions } from "./goal.js";
@@ -198,6 +199,8 @@ export interface AdapterSession {
   records(): readonly RawEvent[]; // every record this process observed, in seq order
   graph(): SessionGraph;
   resources?(): Promise<SessionResources | null>; // the runtime's memory, read now (`SessionResources`); null once its process has exited, and on Windows (no reader yet). ABSENT where the runtime has no process of its own (in-process pi, in-process cursor: its memory is the host's) and for cursor's subprocess mode (no reader).
+  /** Only when opened with modelRequests. Null before this open's first attributed request and from dispose or exit. */
+  lastModelRequest?(): Promise<ModelRequest | null>;
   contextBreakdown?(): Promise<ContextBreakdown | null>; // what fills the context window, by the runtime's own categories, asked of the runtime now and never recorded (`ContextBreakdown`); null from the start of a dispose and once its process has exited. A read can cost provider requests (claude counts tokens), so read on demand, never poll. ABSENT where the runtime cannot itemize its context (all but claude): a host then shows `contextUsage()`.
   /**
    * Bounded, recorded disposal. Success is idempotent; a failed close records rejected and can be retried.

@@ -177,7 +177,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   }
   let interruptCounter = 0;
   const capabilities = profile.capabilities;
-  const session: Session = credentials.seal({
+  return credentials.seal({
     id: kernel.sessionId,
     capabilities,
     ...(compaction === null ? {} : { compact: compaction.compact }),
@@ -278,6 +278,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     records: () => kernel.records(),
     graph: () => kernel.graph(),
     resources: child.resources,
+    ...(profile.lastModelRequest === undefined ? {} : { lastModelRequest: profile.lastModelRequest }),
     ...(profile.contextBreakdown === undefined ? {} : { contextBreakdown: profile.contextBreakdown }),
     dispose: async () => {
       await kernel.dispose(async () => {
@@ -289,5 +290,4 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       }, () => { profile.disposing(); });
     },
   });
-  return session;
 }

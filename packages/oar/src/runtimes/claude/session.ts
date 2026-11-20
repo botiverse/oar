@@ -1,3 +1,4 @@
+import { openClaudeModelRequests } from "./model-requests.js";
 import { claudeCompaction, CLAUDE_COMPACTION_BUSY } from "./compaction.js";
 import { randomUUID } from "node:crypto";
 import type { StartSession } from "../../contracts/session.js";
@@ -15,11 +16,13 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
   }
   // A fork (SessionOptions.fork) runs under a new id OAR assigns, like a new session.
   const sessionId = options.fork === undefined ? options.resume ?? randomUUID() : randomUUID();
-  const child = await launchClaude(installation.command, sessionId, options);
+  const requests = await openClaudeModelRequests(sessionId, options, installation.version);
+  const child = await launchClaude(installation.command, sessionId, options, requests?.setting).catch((error: unknown) => { requests?.remove(); throw error; });
+  if (requests !== undefined) { child.onExit(requests.remove); }
   const readback = claudeOpenSettings(child);
   const contextBreakdown = claudeContextBreakdownReader(child);
   const compaction = claudeCompaction(child);
-  return streamJsonSession(child, sessionId, credentials, {
+  const session = await streamJsonSession(child, sessionId, credentials, {
     projection: claudeProjectionProfile,
     initial: options.resume === undefined ? initialClaudeProjection : resumedClaudeProjection,
     capabilities: { queue: { durable: false }, attribution: "attributed", images: true },
@@ -27,9 +30,13 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
     stopTask: (taskId) => ({ subtype: "stop_task", task_id: taskId }),
     compaction: { busyReason: CLAUDE_COMPACTION_BUSY, create: compaction.create },
     cancelQueuedCapability: "interrupt_cancel_queued_v1",
-    consume: (message) => readback.consume(message) || contextBreakdown.consume(message) || compaction.consume(message),
+    consume: (message) => {
+      requests?.observe(message);
+      return readback.consume(message) || contextBreakdown.consume(message) || compaction.consume(message);
+    },
+    ...(requests === undefined ? {} : { lastModelRequest: requests.read }),
     open: async (projection) => {
-      await readback.confirm(options);
+      await readback.confirm(options, requests);
       // Both a plain resume (which Claude can otherwise resolve by --name title
       // to a different session's UUID) and a fork must run under sessionId.
       if (options.resume !== undefined) { await readback.confirmSessionId(sessionId, options); }
@@ -38,8 +45,12 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
       }
     },
     exited: (code) => { readback.exited(code); contextBreakdown.exited(); compaction.close(); },
-    disposing: () => { contextBreakdown.exited(); compaction.close(); },
+    disposing: () => { requests?.close(); contextBreakdown.exited(); compaction.close(); },
     contextBreakdown: contextBreakdown.read,
     // Preserve Claude's existing behavior: permissions are recorded, not answered.
   });
+  if (requests !== undefined) {
+    session.events((event) => { if (event.agentPath.length === 0 && event.kind === "turn_ended") { requests.ended(event.outcome); } });
+  }
+  return session;
 });

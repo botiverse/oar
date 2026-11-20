@@ -46,10 +46,10 @@ export function claudeSessionArgs(sessionId: string, options: Pick<SessionOption
   return [`--resume=${options.resume}`, "--fork-session", `--session-id=${sessionId}`, ...(through === undefined ? [] : [`--resume-session-at=${through}`])];
 }
 
-function spawnClaude(command: string, sessionId: string, options: SessionOptions, mcpConfig: string | null, tierSettings: JsonRecord, nativeArgs: readonly string[]): LineProcess {
+function spawnClaude(command: string, sessionId: string, options: SessionOptions, mcpConfig: string | null, tierSettings: JsonRecord, nativeArgs: readonly string[], capture?: string): LineProcess {
   const directories = resolvedAdditionalDirectories(options);
   const configuration = claudeUserConfiguration(options);
-  const settings = { ...tierSettings, ...configuration.settings };
+  const settings = { ...tierSettings, ...configuration.settings, ...(capture === undefined ? {} : { env: { OTEL_LOG_RAW_API_BODIES: capture } }) };
   return spawnLineProcess(command, [
     "-p",
     "--input-format", "stream-json",
@@ -93,7 +93,7 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
  * collide with a flag OAR manages (launch-args.ts), before anything starts,
  * and when claude cannot be spawned.
  */
-export async function launchClaude(command: string, sessionId: string, options: SessionOptions): Promise<ClaudeProcess> {
+export async function launchClaude(command: string, sessionId: string, options: SessionOptions, capture?: string): Promise<ClaudeProcess> {
   refuseManagedLaunchArgs(options.launchArgs);
   refuseForkLaunchArgs(options.launchArgs, options.fork);
   const permissions = claudePermissionArgs(options.launchArgs);
@@ -110,7 +110,7 @@ export async function launchClaude(command: string, sessionId: string, options: 
   let prompts: Awaited<ReturnType<typeof claudePromptFiles>> = null;
   try {
     prompts = await claudePromptFiles(options);
-    child = spawnClaude(command, sessionId, options, mcpConfig?.path ?? null, tierSettings, [...permissions, ...prompts?.args ?? []]);
+    child = spawnClaude(command, sessionId, options, mcpConfig?.path ?? null, tierSettings, [...permissions, ...prompts?.args ?? []], capture);
     // Exit also covers a failed asynchronous spawn. Both cleanups are idempotent.
     child.onExit(() => {
       mcpConfig?.end();
