@@ -35,6 +35,19 @@ account/configuration key and scopes scheduling decisions to that key plus the
 runtime ID. Native email and display name fields can help identify the result,
 but are optional and are not guaranteed unique keys.
 
+`plan` (on both `AccountUsageSnapshot` and `LoginAccount`) is the name the
+runtime itself shows the user for the plan, or the native plan code when the
+runtime exposes no display name:
+
+| Runtime | Readers | Source | Native display name |
+| --- | --- | --- | --- |
+| antigravity | `authStatus`, `accountUsage` | ACP `_meta.antigravity.tier.name` (e.g. `Google AI Ultra`) | yes |
+| claude | `authStatus`, `login`, `accountUsage` | `oauthAccount.planDisplayName` in `.claude.json` (read-only, validated against Claude's native regex and matched to the signed-in email or `orgId`), else `subscriptionType` / `subscription_type` | yes (falls back to native code) |
+| codex | `login`, `accountUsage` | `account/read` `account.planType` and `account/rateLimits/read` `planType` | no (native code only) |
+| devin | `authStatus` | `devin auth status` `Account:` `Plan:` display text | yes |
+| grok | `accountUsage` | ACP `_x.ai/billing/get_subscription_config` `subscription_tier` (e.g. `SuperGrok`) | yes |
+| kimi | `accountUsage` | `/me` `user_level_name` and native Web `user.userLevelName` (e.g. `Vivace`) | yes |
+
 ## Windows
 
 Each window carries a display `label`, `usedRatio` (0 to 1), and, where the

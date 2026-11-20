@@ -1458,7 +1458,16 @@ deadline of its own, so OAR stops it after 15 minutes. A successful exit, or a
 deadline or abort after `Login successful.` (while claude flushes), is
 confirmed with `claude auth status --json`, which is also `authStatus`:
 `loggedIn` (exit 0 logged in, 1 logged out) and `email`, `subscriptionType`
-and `authMethod` as the account. `auth login` arrived in
+and `authMethod` as the account. For Claude.ai subscription accounts, both
+`authStatus` (also used by `login`) and `accountUsage` read
+`oauthAccount.planDisplayName` read-only from `.claude.json` (under
+`CLAUDE_CONFIG_DIR` or the native home), validate it against Claude Code's own
+regex (`^[\p{L}\p{N}](?:[\p{L}\p{N} .+-]{0,38}[\p{L}\p{N}+])?$`, verified on
+2.1.329), and use it as `plan` only when the stored profile matches the
+signed-in account (by email or `orgId`, with no conflicting `orgId` or
+organization name); otherwise `plan` falls back to native `subscriptionType` /
+`subscription_type` (for example Claude Ultra reports `subscriptionType: "max"`
+and `planDisplayName: "Ultra"`). `auth login` arrived in
 2.1.41 and reading a pasted code in 2.1.126 [doc changelog], so an older
 claude is `unsupported` / `version_unsupported`. Verified against a fake CLI
 that prints the 2.1.288 strings
