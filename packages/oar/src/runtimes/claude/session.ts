@@ -5,6 +5,7 @@ import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { streamJsonSession } from "../../shared/stream-json/session.js";
 import { claudeOpenSettings } from "./open-settings.js";
 import { claudeContextBreakdownReader } from "./context-breakdown.js";
+import { closeClaude } from "./close.js";
 import { launchClaude } from "./launch.js";
 import { claudeProjectionProfile, claudeUsageBaselined, initialClaudeProjection, resumedClaudeProjection } from "./projection.js";
 
@@ -40,6 +41,7 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
     exited: (code) => { readback.exited(code); contextBreakdown.exited(); compaction.close(); },
     disposing: () => { contextBreakdown.exited(); compaction.close(); },
     contextBreakdown: contextBreakdown.read,
+    close: async (active) => { if (active) { child.kill(); await child.exited; } else { await closeClaude(child); } },
     // Preserve Claude's existing behavior: permissions are recorded, not answered.
   });
 });

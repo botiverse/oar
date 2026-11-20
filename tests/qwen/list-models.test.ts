@@ -33,7 +33,7 @@ test("model listing tolerates the observed 16-second startup without retrying", 
 
 test("an explicit short bound fails and releases an unresponsive native process", async () => {
   vi.useFakeTimers();
-  const child = fakeLineProcess();
+  const child = fakeLineProcess(undefined, { ignoreEof: true });
   vi.mocked(launchQwen).mockResolvedValue(child);
   const result = expect(qwenListModels(installation, { timeoutMs: 10 })).rejects.toThrow("Qwen model listing timed out");
   await vi.advanceTimersByTimeAsync(5010);
@@ -51,7 +51,7 @@ const nativeNoAuth = {
 test("native startup authentication refusal returns the model-list result and closes once", async () => {
   const child = fakeLineProcess((_line, process) => {
     process.emit(`${JSON.stringify(nativeNoAuth)}\n`);
-  });
+  }, { ignoreEof: true });
   child.stdin.on("finish", () => { expect(child.killed()).toBe(false); child.end(1); });
   vi.mocked(launchQwen).mockResolvedValue(child);
   expect(await qwenListModels(installation)).toEqual({ kind: "unauthenticated", detail: "Configure a Qwen authentication type before listing models." });
