@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -38,7 +38,9 @@ async function open(phase: Phase) {
     });
   });
   onTestFinished(async () => provider.stop());
-  const cwd = await mkdtemp(path.join(tmpdir(), "oar-claude-notification-"));
+  // Canonical spelling: macOS tmpdir() is under /var, a symlink to /private/var,
+  // and an aliased HOME is refused by userConfiguration: "exclude".
+  const cwd = await realpath(await mkdtemp(path.join(tmpdir(), "oar-claude-notification-")));
   onTestFinished(async () => { await rm(cwd, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }); });
   const session = await claudeRuntime.session({ kind: "available", via: "executable", command: process.env.OAR_CLAUDE_BIN ?? "claude" },
     { ...options, cwd, model: "haiku", userConfiguration: "exclude", env: { ...provider.env, HOME: cwd, CLAUDE_CONFIG_DIR: path.join(cwd, ".claude") } });
