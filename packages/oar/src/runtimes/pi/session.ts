@@ -1,4 +1,5 @@
 /* oxlint-disable import/max-dependencies -- Session controls compose native startup, projection, input admission, compaction and lifecycle. */
+import { sessionFileLocator } from "../../shared/native-session-file.js";
 import { piQueueBarrier } from "./queue-barrier.js";
 import { piManualCompaction } from "./compaction.js";
 import { handledInput, refusedInput, startedInput, type PiHeldInput } from "./input-disposition.js";
@@ -206,7 +207,9 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
   }
 
   const capabilities = { queue: { durable: false }, attribution: "none", images: true } as const;
+  const sessionFile = piAgentSession.sessionFile;
   const session: Session = credentials.seal({
+    nativeSessionFile: sessionFileLocator(sessionFile, credentials.redact),
     id: kernel.sessionId,
     capabilities,
     compact: compaction.compact,

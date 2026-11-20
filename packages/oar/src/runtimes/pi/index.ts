@@ -41,7 +41,7 @@ export function createPiRuntime(options: PiRuntimeOptions = {}): Runtime & { rea
   };
   const runtime = defineRuntime({
     id: "pi",
-    sessionCapabilities: () => ({ steer: true, images: true, contextUsage: { tokens: true, contextWindow: true }, mcpTransports: ["stdio", "http"], stopTask: false }),
+    sessionCapabilities: () => ({ nativeSessionFile: true, steer: true, images: true, contextUsage: { tokens: true, contextWindow: true }, mcpTransports: ["stdio", "http"], stopTask: false }),
     ...(subprocess ? { minVersion: PI_RPC_MINIMUM_VERSION } : {}),
     manualCompaction: { kind: "supported", activeTurn: "reject" },
     brand: runtimeBrands.pi, verifiedPlatforms: verifiedPlatforms.pi,

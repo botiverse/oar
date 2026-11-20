@@ -1,4 +1,5 @@
 /* oxlint-disable import/max-dependencies -- Session controls compose native startup, projection, input admission, compaction and lifecycle. */
+import { sessionFileLocator } from "../../../shared/native-session-file.js";
 import { sessionExitReason } from "../../../shared/executable/reported-stderr.js";
 import { piManualCompaction } from "../compaction.js";
 import { handledInput, refusedInput, startedInput, type PiHeldInput } from "../input-disposition.js";
@@ -172,6 +173,7 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
   });
   await pump;
   return credentials.seal({
+    nativeSessionFile: sessionFileLocator(rpc.state.sessionFile, credentials.redact),
     id: kernel.sessionId, capabilities,
     compact: compaction.compact,
     prompt: async (input, inputOptions) => {

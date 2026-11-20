@@ -38,13 +38,9 @@ export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "en
 export type RefusedSessionOptions = Readonly<Partial<Record<RefusableSessionOption, string>>>;
 
 /**
- * What a session opened from this installation will offer, known without opening one.
- * Each field mirrors the opened session (`steer`, `images`, `stopTask`, `mcpTransports`, `contextUsage`).
- * A field is absent when only the native handshake at open can tell; absent means unknown, never false, and the opened session stays authoritative.
- *
- * `refusedSessionOptions` and `manualCompaction` are this installation's complete answer (static declaration plus version-specific overrides).
- * The same rule as the static map holds: a declared option is always refused at open; a refusal only the runtime can decide at open stays undeclared.
- * `defineRuntime` and `installedSessionCapabilities` fill in the static part.
+ * Capabilities known before open. A missing field is unknown. The session reports what the handshake establishes.
+ * `installedSessionCapabilities` and `defineRuntime` combine static and version-specific refusals and manual
+ * compaction declarations. Every declared refusal applies at open.
  */
 export interface SessionCapabilityDeclaration {
   readonly steer?: boolean;
@@ -61,6 +57,8 @@ export interface SessionCapabilityDeclaration {
   readonly stopTask?: boolean;
   /** A completed native file-edit tool can report applied changes by path and kind. */
   readonly fileChanges?: boolean;
+  /** Whether the session can locate its native persisted file. */
+  readonly nativeSessionFile?: boolean;
 }
 
 /** Which compaction lifecycle events a runtime's own automatic compaction produces. */
