@@ -215,8 +215,10 @@ unknown, not unsupported. The claim covers the CI-pinned version; an older
 supported version may be unverified on some systems.
 
 `Runtime.credentials` describes what the runtime reads on its own, never a
-value: scope (`single_account` or `per_provider`), management (`native` or
-`external`), sign-in paste kind (`signInPaste`), usage store directory env
+value: scope (`single_account` or `per_provider`), management (`native` when
+the runtime owns credential management, or `external` when it has no native
+login and the person or host supplies credentials), sign-in paste kind
+(`signInPaste`: `none`, `code` or `code_or_url`), usage store directory env
 (`usageDirectoryEnv`), value-interpolation syntaxes (`interpolation`),
 controlled environment variables (`env`, each with `purpose`, `secret`,
 `field` and optional `provider`), and every file, directory or keychain store
@@ -229,26 +231,9 @@ one agent's stores by setting `stores[].directoryEnv` (or a fallback in
 inherited credentials and provider routes. These lists are strictly disjoint so
 credential cleanup preserves store isolation. Hosts keep secrets off command
 lines. Native login is the `login` member and per-provider keys are
-`providers`. `orient()` carries both `verifiedPlatforms` and `credentials` in
-every entry, installed or not.
-
-| Runtime | Scope / management | Sign-in paste | Store directory env (`usageDirectoryEnv`) | Stores and keychain service | Interpolation |
-| --- | --- | --- | --- | --- | --- |
-| antigravity | `single_account` / `native` | `code_or_url` | none | OS keyring, `~/.gemini/antigravity-cli/antigravity-oauth-token` | none |
-| claude | `single_account` / `native` | `code` | `CLAUDE_CONFIG_DIR` (usage), `ANTHROPIC_CONFIG_DIR` | macOS Keychain (`Claude Code-credentials`), `.credentials.json`, `.claude.json`, `.config/anthropic`, AWS/gcloud/Azure/XDG stores | none |
-| codebuddy | `single_account` / `native` | `none` | `CODEBUDDY_CONFIG_DIR` | `.codebuddy/settings.json`, `.codebuddy.json`, cwd `.codebuddy/settings[.local].json`, `.codebuddy` dir | none |
-| codex | `single_account` / `native` | `none` | `CODEX_HOME` (usage) | OS keyring (`Codex Auth`), `auth.json`, `config.toml` | none |
-| cursor | `single_account` / `native` | `none` | none | `~/.cursor/sdk/auth.json` | none |
-| devin | `single_account` / `native` | none | `XDG_DATA_HOME` | `$XDG_DATA_HOME/devin/credentials.toml` | none |
-| dsh | `single_account` / `external` | none | `DSH_HOME` | `.credentials.yaml`, cwd `.env`, `$DSH_HOME/.env` | none |
-| factory | `single_account` / `native` | `none` | `FACTORY_HOME_OVERRIDE` (usage) | OS keyring, `.factory/auth.v2.file`, `.factory/auth.v2.key`, `.factory/settings.json` | none |
-| grok | `single_account` / `native` | `none` | `GROK_HOME` (usage) | `auth.json`, `mcp_credentials.json`, `config.toml` | none |
-| kimi | `single_account` / `native` | `none` | `KIMI_CODE_HOME` (usage) | `credentials/`, `config.toml` | none |
-| opencode | `per_provider` / `native` | `code` | `XDG_DATA_HOME`, `XDG_CONFIG_HOME`, `OPENCODE_CONFIG_DIR` | `opencode/auth.json`, `opencode/opencode.json`, config dir, cwd `opencode.json` | `{env:VAR}` |
-| pi | `per_provider` / `native` | `code_or_url` | `OAR_PI_AGENT_DIR` (fallback `PI_CODING_AGENT_DIR`) | `auth.json`, `models.json`, gcloud ADC, `~/.aws/credentials` | `$VAR`, `!command` |
-| pi-durable | `per_provider` / `external` | none | none | host-supplied | none |
-| qoder | `single_account` / `native` | `none` | `QODER_HOME` | `$QODER_HOME` dir (`<name>-credentials.json`, `.keychain-salt`) | none |
-| qwen | `per_provider` / `native` | none | `QWEN_HOME` | `settings.json`, `.env`, `~/.env`, cwd `.env`, `oauth_creds.json`, gcloud ADC | none |
+`providers`. Each built-in runtime's declaration is the single source of truth,
+exposed through `Runtime.credentials` and `orient()` whether or not the runtime
+is installed.
 
 A declared variable's `purpose` and `field` tell the host why it participates
 in credential isolation and which logical credential field owns it. Clients

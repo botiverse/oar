@@ -31,7 +31,7 @@ export interface CredentialInterpolation {
 export interface RuntimeCredentials {
   /** Whether credentials authenticate one runtime account or independent per-provider entries. */
   readonly scope?: "single_account" | "per_provider";
-  /** Whether the runtime manages credentials natively or relies on an externally managed credential store or harness. */
+  /** `"native"` when the runtime owns credential management; `"external"` when it has no native login and the person or host supplies credentials. */
   readonly management?: "native" | "external";
   /** Paste kind expected by the runtime's sign-in prompt, when it exposes a sign-in flow. */
   readonly signInPaste?: "none" | "code" | "code_or_url";
