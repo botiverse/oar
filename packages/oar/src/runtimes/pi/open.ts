@@ -151,6 +151,7 @@ export async function openPiAgentSession(options: SessionOptions, rememberKey?: 
   // session's servers (mcp.ts); it refuses a name pi cannot take before
   // anything loads.
   const mcp = await piMcpExtensions(options, agentDir);
+  const append = options.appendSystemPrompt;
   const services = await sdk.createAgentSessionServices({
     cwd: options.cwd,
     agentDir,
@@ -167,7 +168,8 @@ export async function openPiAgentSession(options: SessionOptions, rememberKey?: 
     // included), which is more than a prompt replacement, so it is not set.
     resourceLoaderOptions: {
       ...(options.systemPrompt === undefined ? {} : { systemPrompt: options.systemPrompt }),
-      ...(options.appendSystemPrompt === undefined ? {} : { appendSystemPrompt: [options.appendSystemPrompt] }),
+      // An explicit source list suppresses native APPEND_SYSTEM.md discovery.
+      ...(append === undefined || append === "" ? {} : { appendSystemPromptOverride: (configured: string[]): string[] => [...configured, append] }),
       extensionFactories: [...(mcp?.extensions ?? []), ...(rememberKey === undefined ? [] : [{ name: "oar-credentials", factory: piCredentialExtension(rememberKey), hidden: true }])],
     },
   });

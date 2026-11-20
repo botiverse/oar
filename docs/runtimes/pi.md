@@ -170,17 +170,18 @@ The native child records the physical cwd after resolving directory symlinks.
 Lookup accepts that spelling as well as the supplied cwd within the same
 session directory, so macOS `/var` aliases and linked project directories can
 resume without moving their files or searching other projects.
-Model and thinking are read back after startup; name and system prompts use
-native startup flags. These options do not rewrite global defaults.
+The adapter reads back the model and thinking level after startup. Name
+and system prompt replacement use native startup flags.
 
 System and appended prompt text travels in separate files inside the private
 session directory, with 0600 file permissions and a 0700 directory on POSIX.
-Only the file paths appear in the process arguments, so long multiline prompts
-do not consume the Windows command-line limit. Pi 1.4.0's `resolvePromptInput`
+Only private file paths appear in the CLI arguments. The OAR startup extension
+composes the effective append file before Pi loads its prompts. Long prompts
+stay outside the Windows command-line limit. Pi 1.4.0's `resolvePromptInput`
 reads an existing path, but treats a missing or unreadable path as literal
-prompt text; a read error only emits a warning. OAR therefore reads each file
-back before starting the session process and explicitly fails if that read
-fails or differs from the requested text. Files remain until the child exits
+prompt text; a read error only emits a warning. OAR verifies the host files
+before spawning. Its startup extension verifies the composed file before
+passing control back to Pi. Files remain until the child exits
 or is disposed, and startup failures remove the private directory as well.
 
 `prompt` uses native `started`/`queued`/`handled`
@@ -856,8 +857,17 @@ again to keep them; omitting them returns to Pi's default prompt and current
 project resources. [Pi Durable](pi-durable.md#options-models-and-instructions)
 persists its append instructions instead.
 
-Replace/append instructions map to ResourceLoader options (`systemPrompt`,
-`appendSystemPrompt`). **Replace is not the whole system prompt:** pi's
+Pi prefers a trusted project's `.pi/APPEND_SYSTEM.md` and otherwise uses
+the agent directory's `APPEND_SYSTEM.md`. With `appendSystemPrompt`, both
+execution modes preserve the selected file and put the host text after it.
+An empty append leaves the native instructions intact. The SDK uses the
+resource loader's resolved append list. The RPC startup extension selects
+the file under the CLI's session trust setting and adds the host text before
+Pi reads its prompt arguments. User extensions see both instructions at
+`session_start`.
+[Provider-request checks](../../sea-trial/vendor/configured-append.vendor.test.ts).
+
+**Replace is not the whole system prompt:** pi's
 `buildSystemPrompt` (`core/system-prompt.js`, `customPrompt` branch) keeps its
 runtime-native additions around the replaced text: the append seam, then the
 project context files (`<project_context>`, AGENTS.md bodies), then the skills

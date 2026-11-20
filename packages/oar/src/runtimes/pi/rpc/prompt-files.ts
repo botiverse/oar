@@ -5,9 +5,9 @@ import type { SessionOptions } from "../../../contracts/session.js";
 /** Pi treats an unreadable path as literal prompt text, so verify before spawning. */
 export async function piRpcPromptFiles(directory: string, options: SessionOptions): Promise<readonly string[]> {
   const args: string[] = [];
-  for (const [flag, name, text] of [
-    ["--system-prompt", "system.txt", options.systemPrompt],
-    ["--append-system-prompt", "append.txt", options.appendSystemPrompt],
+  for (const [name, text] of [
+    ["system.txt", options.systemPrompt],
+    ["append.txt", options.appendSystemPrompt],
   ] as const) {
     if (text === undefined) { continue; }
     const file = path.join(directory, name);
@@ -17,7 +17,8 @@ export async function piRpcPromptFiles(directory: string, options: SessionOption
     } catch (error) {
       throw new Error(`Pi RPC could not read its private ${name} prompt file; the session process was not started`, { cause: error });
     }
-    args.push(flag, file);
+    if (name === "system.txt") { args.push("--system-prompt", file); }
+    else if (text !== "") { args.push("--append-system-prompt", path.join(directory, "effective-append.txt")); }
   }
   return args;
 }

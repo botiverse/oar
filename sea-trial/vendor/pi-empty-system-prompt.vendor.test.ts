@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { UnsupportedOptionError, type Session, type SessionOptions } from "../../packages/oar/src/index.js";
@@ -17,7 +17,7 @@ async function fixture() {
   await mkdir(cwd);
   const installation = await piTestRuntime.installation();
   assert.ok(installation.kind === "available");
-  return { env, capture,
+  return { env, capture, agentDir,
     open: async (options: Partial<SessionOptions>) => {
       const session = await piTestRuntime.session(installation, { cwd, model: "aimock/aimock-model", ...options, env: { ...env.env, ...options.env } });
       return session;
@@ -63,14 +63,15 @@ describe.skipIf(!isPiBackend)("Pi empty replacement prompt", () => {
     } finally { await session?.dispose(); await f.env.stop(); }
   }, 60_000);
 
-  test("an empty append keeps the default base prompt", async () => {
+  test("an empty append keeps the native prompt and its configured instructions", async () => {
     const f = await fixture();
     let session: Session | undefined = undefined;
     try {
+      await writeFile(path.join(f.agentDir, "APPEND_SYSTEM.md"), "OAR_CONFIGURED_EMPTY_APPEND");
       session = await f.open({});
       expect(await runTurn(session, "capture native default")).toEqual({ kind: "completed" });
       const nativeDefault = lastAgentSystem(f.capture.systems);
-      expect(nativeDefault.trim().length).toBeGreaterThan(0);
+      expect(nativeDefault).toContain("OAR_CONFIGURED_EMPTY_APPEND");
       await session.dispose();
       session = await f.open({ appendSystemPrompt: "" });
       expect(await runTurn(session, "capture empty append")).toEqual({ kind: "completed" });
