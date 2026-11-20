@@ -867,7 +867,8 @@ open on 2.1.274 failed Claude’s separate session-identity check because
 that version did not implement `get_status`. Fresh, resumed and forked
 capture were verified on 2.1.326. If a root assistant frame arrives first, a read
 waits up to two seconds for the complete attribution and body. On 2.1.326 the
-measured delay was 7 to 14 ms. A missing attribution rejects the read. An
+measured delay was 7 to 14 ms. Reads keep rejecting a missing attribution
+until the expected entry or a newer one arrives. An
 aborted or failed turn releases its own waits, so an earlier answered request
 can still be latest. A read returns `null` once disposal begins or the process
 exits. [Contract and native evidence](../spec/model-request.md)
@@ -877,8 +878,12 @@ withhold a whole body or report a response without a captured request.
 `withheld` names the omissions Claude makes detectable. For a missing request,
 `at` uses the response file time. OAR redacts session credentials before
 returning the body. It keeps the files in a private per-open directory,
-removes superseded captures and removes the directory at exit. Reading a
-body adds nothing to session records. [Scripted-provider check](../../sea-trial/vendor/claude-model-request.vendor.test.ts)
+removes superseded captures and removes the directory at exit. A hard host
+crash can leave that directory until the next private-directory sweep.
+While capture is on, Claude writes a full body for each model call, including
+child and auxiliary calls, even if the host never reads it. Each successive
+write can include more conversation history. Reading a body adds nothing to
+session records. [Scripted-provider check](../../sea-trial/vendor/claude-model-request.vendor.test.ts)
 
 ### Token totals
 
