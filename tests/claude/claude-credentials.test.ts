@@ -30,7 +30,9 @@ test("Claude declares credential shape metadata, stores and macOS keychain servi
   const { credentials } = claudeRuntime;
   expect(credentials).toMatchObject({ scope: "single_account", management: "native", signInPaste: "code", usageDirectoryEnv: "CLAUDE_CONFIG_DIR" });
   expect(credentials.stores?.find(store => store.kind === "keychain")).toEqual(
-    process.platform === "darwin" ? { kind: "keychain", directoryEnv: "CLAUDE_CONFIG_DIR", service: "Claude Code-credentials" } : undefined,
+    process.platform === "darwin"
+      ? { kind: "keychain", directoryEnv: "CLAUDE_CONFIG_DIR", defaultDirectory: ".claude", service: "Claude Code-credentials" }
+      : undefined,
   );
   expect(credentials.stores).toEqual(expect.arrayContaining([
     { kind: "dir", directoryEnv: "ANTHROPIC_CONFIG_DIR", defaultDirectory: ".config/anthropic" },
