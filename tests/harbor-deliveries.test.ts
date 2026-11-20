@@ -1,7 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 import type { Event, Session } from "../packages/oar/src/index.js";
 import { Deliveries } from "../apps/harbor/deliveries.js";
-import type { Message, Store } from "../apps/harbor/store.js";
+import type { Message, Store, Undelivered } from "../apps/harbor/store.js";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -180,4 +180,95 @@ test("a hold stops new sends without hiding the session, and resume sends each m
   deliveries.resume();
   await vi.waitFor(() => { expect(sent).toHaveLength(1); });
   expect(deliveries.pending).toBe(0);
+});
+
+function persistingHarness(saved: Undelivered[][], current: () => Session | null): { deliveries: Deliveries; findings: string[] } {
+  const findings: string[] = [];
+  const deliveries = new Deliveries({
+    name: "a", cwd: "/work", bin: "/bin", store, current,
+    finding: (check) => {
+      findings.push(check);
+    },
+    outstanding: (undelivered) => {
+      saved.push([...undelivered]);
+    },
+  });
+  return { deliveries, findings };
+}
+
+/** Harbor went down after the session accepted a person's message and before the turn ended. */
+async function downMidTurn(): Promise<Undelivered[]> {
+  const saved: Undelivered[][] = [];
+  const { deliveries } = persistingHarness(saved, () => session);
+  deliveries.add(message("qa"), true);
+  await vi.runAllTimersAsync();
+  deliveries.sessionGone("down");
+  return saved.at(-1) ?? [];
+}
+
+/** A new harbor process restores `undelivered`, receives one newer message, then opens. */
+async function restarted(undelivered: Undelivered[], sent: string[]): Promise<{ deliveries: Deliveries; findings: string[] }> {
+  const recording = { ...sessionStandIn, deliver: async (text: string) => { sent.push(text); return { landed: "prompted", inputId: "input-1" }; } };
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion, typescript/consistent-type-assertions -- Only deliver and status are used.
+  const next = recording as unknown as Session;
+  let open: Session | null = null;
+  const harnessed = persistingHarness([], () => open);
+  harnessed.deliveries.restore(undelivered, [message("qa"), { ...message("qa"), seq: 2, text: "already answered" }]);
+  harnessed.deliveries.add({ ...message("qa"), seq: 3, text: "newer" }, true);
+  open = next;
+  harnessed.deliveries.opened(false, true);
+  await vi.runAllTimersAsync();
+  return harnessed;
+}
+
+test("what a turn has not consumed is persisted, and a restarted harbor delivers it again first", async () => {
+  vi.useFakeTimers();
+  const undelivered = await downMidTurn();
+  expect(undelivered).toEqual([{ seq: 1, person: true }]);
+  const sent: string[] = [];
+  const { deliveries, findings } = await restarted(undelivered, sent);
+  // One delivery: the restored message, then the newer one; nothing that was already consumed.
+  expect(sent.map((text) => [text.indexOf("hello") < text.indexOf("newer"), text.includes("already answered")])).toEqual([[true, false]]);
+  deliveries.turnEnded(ended);
+  await vi.advanceTimersByTimeAsync(2000);
+  // The restored message came from a person, so going idle without answering is still a finding.
+  expect(findings).toEqual(["no_reply"]);
+});
+
+test("a consumed turn leaves nothing to redeliver", async () => {
+  vi.useFakeTimers();
+  const saved: Undelivered[][] = [];
+  const { deliveries } = persistingHarness(saved, () => session);
+  deliveries.add(message("qa"), true);
+  await vi.runAllTimersAsync();
+  deliveries.turnEnded(ended);
+  expect(saved.at(-1)).toEqual([]);
+});
+
+/** The first deliver call never answers before harbor goes down; message 2, from another agent, waits behind it. */
+async function downDuringDeliver(): Promise<Undelivered[]> {
+  const saved: Undelivered[][] = [];
+  const holding = { ...sessionStandIn, deliver: async () => Promise.withResolvers<never>().promise };
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion, typescript/consistent-type-assertions -- Only deliver and status are used.
+  const held = holding as unknown as Session;
+  const { deliveries } = persistingHarness(saved, () => held);
+  deliveries.add(message("qa"), true);
+  await vi.advanceTimersByTimeAsync(0);
+  deliveries.add({ ...message("b"), seq: 2, text: "second" }, false);
+  deliveries.sessionGone("down");
+  return saved.at(-1) ?? [];
+}
+
+test("a batch still in Session.deliver when harbor goes down stays outstanding, ahead of what waits behind it", async () => {
+  vi.useFakeTimers();
+  const undelivered = await downDuringDeliver();
+  expect(undelivered).toEqual([{ seq: 1, person: true }, { seq: 2, person: false }]);
+  const sent: string[] = [];
+  const recording = { ...sessionStandIn, deliver: async (text: string) => { sent.push(text); return { landed: "prompted", inputId: "input-1" }; } };
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion, typescript/consistent-type-assertions -- Only deliver and status are used.
+  const next = recording as unknown as Session;
+  const { deliveries } = persistingHarness([], () => next);
+  deliveries.restore(undelivered, [message("qa"), { ...message("b"), seq: 2, text: "second" }]);
+  await vi.runAllTimersAsync();
+  expect(sent.map((text) => text.indexOf("hello") < text.indexOf("second"))).toEqual([true]);
 });

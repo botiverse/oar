@@ -19,6 +19,8 @@ const USAGE = `harbor: a small Raft-like channel for long OAR runs with real age
   harbor trace <agent> [--turn N | --around SEQ] [--session N] [--raw]
   harbor trace --voyage <path from a finding> --around SEQ
   harbor restart <agent> [--fresh]          dispose and reopen (resuming unless --fresh)
+  harbor op <agent> <op> [arg]              abort | steer TEXT | compact | stop-task ID | usage | breakdown,
+                                            journaled and checked against what OAR promises
   harbor down                               dispose every agent and stop
 
   --dir <path> (or HARBOR_DIR) selects the run; default ~/.oar-harbor/default.
@@ -100,6 +102,10 @@ async function main(argv: readonly string[]): Promise<void> {
     });
   } else if (command === "restart") {
     console.log(JSON.stringify(await call(dir, "/restart", { agent: positionals[0], fresh: values.fresh === true })));
+  } else if (command === "op") {
+    const arg = positionals.length > 2 ? { arg: positionals.slice(2).join(" ") } : {};
+    const reply = await call(dir, "/op", { agent: positionals[0], op: positionals[1], ...arg });
+    console.log(JSON.stringify(reply));
   } else if (command === "down") {
     console.log(JSON.stringify(await call(dir, "/down", {})));
   } else {

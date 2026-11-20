@@ -3,6 +3,7 @@ import { chmodSync, mkdirSync, openSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { join, resolve as resolvePath } from "node:path";
 import { HarborAgent } from "./agent.js";
+import { isOp, OPS } from "./contracts.js";
 import { daemonInfo, mentionsIn, parseAgentEnv, parseAgentSpec, Store, type AgentState } from "./store.js";
 import { directoryBytes, type AgentOptions } from "./support.js";
 
@@ -68,9 +69,13 @@ export async function up(dir: string, specs: readonly string[], upOptions: UpOpt
   const save = (): void => {
     store.saveState({ agents: [...agents.values()].map((agent) => agent.state) });
   };
-  const addAgent = (state: AgentState): void => {
+  const register = (state: AgentState): HarborAgent => {
     const agent = new HarborAgent(state, store, { stallMs, bin: writeBin(dir, state.name), recycle: upOptions.recycle, dayTokens: upOptions.dayTokens }, save);
     agents.set(state.name, agent);
+    return agent;
+  };
+  const addAgent = (state: AgentState): void => {
+    const agent = register(state);
     save();
     void openReporting(agent);
   };
@@ -153,6 +158,19 @@ export async function up(dir: string, specs: readonly string[], upOptions: UpOpt
       await agent.restart(body.fresh === true);
       return agent.status(Date.now());
     },
+    "/op": async (body) => {
+      const name = field(body, "agent") ?? "";
+      const agent = agents.get(name);
+      const op = field(body, "op") ?? "";
+      if (agent === undefined) {
+        throw new Error(`no agent ${name}`);
+      }
+      if (!isOp(op)) {
+        throw new Error(`unknown op ${op}; one of ${OPS.join(", ")}`);
+      }
+      const result = await agent.op(op, field(body, "arg"));
+      return result;
+    },
     "/down": () => {
       setImmediate(() => {
         void stop();
@@ -168,8 +186,13 @@ export async function up(dir: string, specs: readonly string[], upOptions: UpOpt
   writeFileSync(join(dir, "daemon.json"), `${JSON.stringify({ pid: process.pid, port, startedAt: Date.now() })}\n`);
   store.journal({ kind: "up", pid: process.pid, port, agents: states.map((state) => state.name) });
   console.log(`harbor up: ${dir} (port ${port}); agents ${states.map((state) => state.name).join(", ")}`);
-  for (const state of states) {
-    addAgent(state);
+  // Every agent is registered before the first save, so an interrupted start cannot drop one or its messages.
+  const restarting = states.map((state) => register(state));
+  save();
+  const messages = store.messages();
+  for (const agent of restarting) {
+    agent.restore(messages);
+    void openReporting(agent);
   }
   for (const signal of ["SIGINT", "SIGTERM"] as const) {
     process.on(signal, () => {

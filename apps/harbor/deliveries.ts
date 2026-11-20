@@ -1,5 +1,5 @@
 import type { Event, Session } from "../../packages/oar/src/index.js";
-import type { Message, Store } from "./store.js";
+import type { Message, Store, Undelivered } from "./store.js";
 import { formatMessage, preamble, reminder } from "./support.js";
 
 export interface DeliveriesHost {
@@ -11,11 +11,15 @@ export interface DeliveriesHost {
   /** May a delivery start now? False holds it until `resume()`; the session identity stays `current()`. */
   ready?(nextSeq: number): boolean;
   finding(check: string, detail: Record<string, unknown>): void;
+  /** What is not yet consumed changed: persist it, so a harbor restart delivers it again. */
+  outstanding?(undelivered: readonly Undelivered[]): void;
 }
 
 interface Accepted {
   readonly batch: readonly Message[];
   readonly landed: "prompted" | "steered" | "queued";
+  /** Seqs a person sent, kept until consumed so a redelivery still expects an answer. */
+  readonly people: readonly number[];
 }
 
 /** Rejections that mean this session is gone: wait for the reopen instead of retrying. */
@@ -32,6 +36,8 @@ const MAX_ATTEMPTS = 5;
 export class Deliveries {
   private readonly inbox: Message[] = [];
   private readonly accepted = new Map<string, Accepted>();
+  /** The batch handed to `Session.deliver` and not yet accepted or put back: still outstanding. */
+  private inFlight: readonly Message[] = [];
   private readonly attempts = new Map<number, number>();
   /** Messages a person sent: only these expect an answer, not one agent's note to another. */
   private readonly fromPeople = new Set<number>();
@@ -55,7 +61,38 @@ export class Deliveries {
       this.fromPeople.add(message.seq);
     }
     this.inbox.push(message);
+    this.changed();
     void this.pump();
+  }
+
+  /** At startup: what the previous harbor process left unconsumed goes first, before anything new. */
+  restore(undelivered: readonly Undelivered[], messages: readonly Message[]): void {
+    const bySeq = new Map(messages.map((message) => [message.seq, message]));
+    const found = undelivered.flatMap((entry) => {
+      const message = bySeq.get(entry.seq);
+      return message === undefined ? [] : [{ message, person: entry.person }];
+    });
+    if (found.length === 0) {
+      return;
+    }
+    this.host.store.journal({ agent: this.host.name, kind: "redelivering", why: "harbor restarted", seqs: found.map((entry) => entry.message.seq) });
+    for (const { message, person } of found) {
+      if (person) {
+        this.fromPeople.add(message.seq);
+      }
+    }
+    // One batch, ahead of anything newer.
+    this.inbox.unshift(...found.map((entry) => entry.message));
+    this.changed();
+    void this.pump();
+  }
+
+  /** Waiting plus accepted-but-unconsumed, oldest first. */
+  private changed(): void {
+    const messages = [...[...this.accepted.values()].flatMap((entry) => entry.batch), ...this.inFlight, ...this.inbox];
+    const seqs = [...new Set(messages.map((message) => message.seq))].toSorted((left, right) => left - right);
+    const people = new Set([...this.fromPeople, ...[...this.accepted.values()].flatMap((entry) => entry.people)]);
+    this.host.outstanding?.(seqs.map((seq) => ({ seq, person: people.has(seq) })));
   }
 
   /** A session opened; a fresh one has never seen the channel rules, unless they are in its system prompt. */
@@ -84,6 +121,7 @@ export class Deliveries {
         this.accepted.delete(inputId);
       }
     }
+    this.changed();
     if (event.outcome.kind === "failed") {
       // turn_failed already names this turn; a silent agent after a failure is not a second finding.
       this.awaitingReply = false;
@@ -100,6 +138,7 @@ export class Deliveries {
       return;
     }
     this.accepted.clear();
+    this.changed();
     if (this.awaitingReply) {
       this.awaitingReply = false;
       this.host.finding("no_reply", { seq, note: "went idle after a delivery without posting to the channel" });
@@ -111,18 +150,42 @@ export class Deliveries {
     this.host.finding("input_dropped", { seq: event.seq, inputId: event.inputId ?? null, reason: event.reason, seqs: entry?.batch.map((message) => message.seq) ?? null });
     if (entry !== undefined && event.inputId !== undefined) {
       this.accepted.delete(event.inputId);
-      this.inbox.unshift(...entry.batch);
+      this.unaccept([entry]);
+      this.requeue(entry.batch);
       void this.pump();
     }
   }
 
   /** The session closed or exited: inputs it accepted and never consumed are delivered again to the next one. */
   sessionGone(why: string): void {
-    const batches = [...this.accepted.values()].flatMap((entry) => entry.batch);
+    const entries = [...this.accepted.values()];
+    const batches = entries.flatMap((entry) => entry.batch);
+    this.unaccept(entries);
     this.accepted.clear();
     if (batches.length > 0) {
       this.host.store.journal({ agent: this.host.name, kind: "redelivering", why, seqs: batches.map((message) => message.seq) });
       this.inbox.unshift(...batches);
+    }
+    this.requeue([]);
+  }
+
+  /** Back to the inbox in channel order (the batch that was in flight included) and saved in the same step, so no reaction in between can persist a set without it. */
+  private requeue(batch: readonly Message[]): void {
+    const seqs = new Set(batch.map((message) => message.seq));
+    const kept = this.inbox.filter((message) => !seqs.has(message.seq));
+    this.inbox.splice(0, this.inbox.length, ...[...kept, ...batch].toSorted((left, right) => left.seq - right.seq));
+    if (batch.length > 0 && this.inFlight === batch) {
+      this.inFlight = [];
+    }
+    this.changed();
+  }
+
+  /** Inputs going back to the inbox still expect the answers they expected. */
+  private unaccept(entries: readonly Accepted[]): void {
+    for (const entry of entries) {
+      for (const seq of entry.people) {
+        this.fromPeople.add(seq);
+      }
     }
   }
 
@@ -165,10 +228,15 @@ export class Deliveries {
     const compactions = this.compactions;
     const seqs = batch.map((message) => message.seq);
     const started = Date.now();
-    const result = await session.deliver(text);
+    // Outstanding until it is accepted or put back, whatever runs while the call is pending.
+    this.inFlight = batch;
+    const result = await session.deliver(text).catch((error: unknown) => {
+      this.requeue(batch);
+      throw error;
+    });
     if (this.host.current() !== session) {
       // Restarted or exited during the call: the next session gets it.
-      this.inbox.unshift(...batch);
+      this.requeue(batch);
       this.host.store.journal({ agent: this.host.name, kind: "redelivering", why: "session changed during delivery", seqs });
       return false;
     }
@@ -177,14 +245,17 @@ export class Deliveries {
       if (this.compactions === compactions) {
         this.needsPreamble = false;
       }
-      if (seqs.some((seq) => this.fromPeople.delete(seq))) {
+      const people = seqs.filter((seq) => this.fromPeople.delete(seq));
+      if (people.length > 0) {
         this.awaitingReply = true;
       }
-      this.accepted.set(result.inputId, { batch, landed: result.landed });
+      this.accepted.set(result.inputId, { batch, landed: result.landed, people });
+      this.inFlight = [];
+      this.changed();
       this.host.store.journal({ agent: this.host.name, kind: "delivered", seqs, landed: result.landed, inputId: result.inputId, ms: Date.now() - started });
       return true;
     }
-    this.inbox.unshift(...batch);
+    this.requeue(batch);
     if (SESSION_GONE.has(result.code)) {
       this.host.store.journal({ agent: this.host.name, kind: "delivery_deferred", seqs, code: result.code });
       return false;
@@ -195,10 +266,11 @@ export class Deliveries {
     }
     this.host.finding("delivery_rejected", { seqs, code: result.code, reason: result.reason, attempt });
     if (attempt >= MAX_ATTEMPTS) {
-      this.inbox.splice(0, batch.length);
+      this.inbox.splice(0, this.inbox.length, ...this.inbox.filter((message) => !seqs.includes(message.seq)));
       for (const seq of seqs) {
         this.fromPeople.delete(seq);
       }
+      this.changed();
       this.host.finding("delivery_dropped", { seqs, note: `rejected ${MAX_ATTEMPTS} times` });
       return true;
     }

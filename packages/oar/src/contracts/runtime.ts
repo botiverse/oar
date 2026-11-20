@@ -51,7 +51,7 @@ export interface SessionCapabilityDeclaration {
   readonly manualCompaction?: ManualCompaction;
   /** Whether native automatic compaction reports `compaction_started` / `compaction_ended`; absent when unmeasured. */
   readonly compactionEvents?: CompactionEvents;
-  /** Whether `Session.contextUsage()` reports trustworthy `tokens` and `contextWindow` by each normally completed root turn; absent when unmeasured. */
+  /** Whether `Session.contextUsage()` reports `tokens` and `contextWindow` by the end of a completed turn (exceptions on `ContextUsageCapability`); absent when unmeasured. */
   readonly contextUsage?: ContextUsageCapability;
   /** Verified session MCP transports (`[]` when MCP is refused; absent when unverified or handshake-only). */
   readonly mcpTransports?: readonly McpTransport[];
