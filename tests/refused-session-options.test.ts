@@ -66,11 +66,11 @@ test("the declarations say which options each runtime refuses", () => {
   const refused = Object.fromEntries(allRuntimes.list().map((runtime) => [runtime.id, Object.keys(runtime.refusedSessionOptions ?? {}).toSorted()]));
   assert.deepEqual(refused, {
     antigravity: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "mcpServerCredentials", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
-    claude: ["endTurnProcessesOnAbort", "goals", "nativeMemoryDefault"],
+    claude: ["endTurnProcessesOnAbort", "goals", ...(process.platform === "win32" ? ["mcpServerCredentials"] : []), "nativeMemoryDefault"],
     codebuddy: ["additionalDirectories", "appendSystemPrompt", "endTurnProcessesOnAbort", "fork", "goals", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
     codex: ["nativeMemoryDefault", "userConfiguration"],
-    cursor: ["appendSystemPrompt", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "name", "nativeMemoryDefault", "outputSchema", "partialUserConfiguration", "serviceTier", "systemPrompt"],
-    devin: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
+    cursor: ["appendSystemPrompt", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "mcpServerCredentials", "name", "nativeMemoryDefault", "outputSchema", "partialUserConfiguration", "serviceTier", "systemPrompt"],
+    devin: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "mcpServerCredentials", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
     dsh: ["endTurnProcessesOnAbort", "fork", "launchArgs", "mcpServerCredentials", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
     factory: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
     grok: ["additionalDirectories", "disallowedTools", "fork", "goals", "name", "nativeMemoryDefault", "serviceTier", "userConfiguration"],
@@ -116,7 +116,7 @@ test("entries without credentials are no mcpServerCredentials given, and every r
     }, runtime.id);
   }
   const refusing = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions?.mcpServers !== undefined || runtime.refusedSessionOptions?.mcpServerCredentials !== undefined);
-  expect(refusing.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", "dsh"]);
+  expect(refusing.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", ...(process.platform === "win32" ? ["claude"] : []), "cursor", "devin", "dsh"]);
 });
 
 // Some runtimes drop a server so named without a word (#395): every runtime

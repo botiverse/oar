@@ -845,23 +845,12 @@ bundled SDKs.
 
 ### Session MCP servers
 
-**Mapped:** `SessionOptions.mcpServers` goes to `Agent.create` and again to
-`Agent.resume` as the SDK's `mcpServers` record, keyed by name: stdio
-`{type: "stdio", command, args, env}`, http `{type: "http", url, headers}`
-([mapping](../../packages/oar/src/runtimes/cursor/model.ts),
-[tests](../../tests/cursor/cursor-mcp-servers.test.ts)). An empty, repeated or
-reserved name is refused before the SDK is loaded, as on every runtime. The
-session opens under the shared
-[known-credential rule](../spec/record-stream.md#the-rules): the values that
-rule recognizes as known credentials are replaced with `[redacted]` in
-records, errors and control answers. Its bounds hold here too: an `env` value
-counts only under a credential name (`*_TOKEN`, `*_KEY`, ...) and a header
-value only under `Authorization` or a credential-named header (plus the token
-after an authorization scheme); a value shorter than eight characters, or
-shaped like a path (`/...`, `~/...`, a Windows drive), is not one, even under
-`API_KEY`; an `env` value that is a URL with a password counts under any
-name (the whole URL). An http entry's `url` is not scanned. Every other value stays
-readable there. The SDK itself gets every value unchanged.
+OAR passes credential-free stdio and HTTP entries to `Agent.create` and
+`Agent.resume`, keyed by name. Both execution modes refuse entries with
+nonempty `env` or `headers`. The credential isolation of SDK 1.4.1 has
+not been verified. The earlier SDK measurement below predates this refusal.
+[Mapping](../../packages/oar/src/runtimes/cursor/model.ts) and
+[open tests](../../tests/cursor/cursor-mcp-servers.test.ts).
 
 **Live evidence** ([probe](../../experiments/cursor-mcp.ts); SDK 1.3.1,
 Linux x64, `gpt-5.4-nano`, an existing login, 2026-11-11): one stdio and one

@@ -959,6 +959,11 @@ path. [Agent dir](../../packages/oar/src/runtimes/pi/resolve.ts),
 
 ### Session MCP servers
 
+The bundled in-process SDK accepts stdio environment values and HTTP headers.
+Pi RPC accepts credential-free entries. It refuses entries with nonempty
+`env` or `headers` because its configuration remains on disk until disposal.
+[Native measurements](../../experiments/mcp-credential-admission/README.md).
+
 `SessionOptions.mcpServers` uses pi's own MCP support as the pi CLI runs it
 ([mapping](../../packages/oar/src/runtimes/pi/mcp.ts),
 [test](../../tests/pi/pi-mcp-servers.test.ts)): the built-in MCP extension

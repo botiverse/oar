@@ -1,0 +1,605 @@
+[
+  {
+    "id": "claude",
+    "opened": true,
+    "completed": true,
+    "stdioDelivered": true,
+    "httpDelivered": true,
+    "tool": [
+      false,
+      false
+    ],
+    "version": "2.1.326 (Claude Code)",
+    "liveArgv": {
+      "checked": 4,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterOpen": {
+      "files": 356,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "afterTurn": {
+      "files": 364,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "afterTurnArgv": {
+      "checked": 5,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterClose": {
+      "files": 364,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    }
+  },
+  {
+    "id": "codebuddy",
+    "opened": true,
+    "completed": true,
+    "stdioDelivered": true,
+    "httpDelivered": true,
+    "tool": null,
+    "version": "2.179.3",
+    "liveArgv": {
+      "checked": 5,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterOpen": {
+      "files": 405,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "afterTurn": {
+      "files": 411,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "afterTurnArgv": {
+      "checked": 5,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterClose": {
+      "files": 516,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "ordinaryToolSecondRun": {
+      "version": "2.179.3",
+      "turn": "ended",
+      "nativeToolResults": 1,
+      "isolated": true
+    }
+  },
+  {
+    "id": "codex",
+    "opened": true,
+    "completed": true,
+    "stdioDelivered": true,
+    "httpDelivered": true,
+    "tool": [
+      false,
+      false
+    ],
+    "version": "codex-cli 0.169.0",
+    "liveArgv": {
+      "checked": 5,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterOpen": {
+      "files": 428,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "afterTurn": {
+      "files": 433,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "afterTurnArgv": {
+      "checked": 5,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterClose": {
+      "files": 431,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    }
+  },
+  {
+    "id": "factory",
+    "opened": true,
+    "completed": true,
+    "stdioDelivered": true,
+    "httpDelivered": true,
+    "tool": [
+      false,
+      false
+    ],
+    "version": "1.12.1",
+    "liveArgv": {
+      "checked": 6,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterOpen": {
+      "files": 390,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "afterTurn": {
+      "files": 394,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "afterTurnArgv": {
+      "checked": 6,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterClose": {
+      "files": 393,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    }
+  },
+  {
+    "id": "grok",
+    "opened": true,
+    "completed": true,
+    "stdioDelivered": true,
+    "httpDelivered": true,
+    "tool": [
+      false,
+      false
+    ],
+    "version": "grok 1.0.70 (f50904eaee6c)",
+    "liveArgv": {
+      "checked": 5,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterOpen": {
+      "files": 439,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "afterTurn": {
+      "files": 453,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "afterTurnArgv": {
+      "checked": 5,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterClose": {
+      "files": 453,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    }
+  },
+  {
+    "id": "kimi",
+    "opened": true,
+    "completed": true,
+    "stdioDelivered": true,
+    "httpDelivered": true,
+    "tool": [
+      false,
+      false
+    ],
+    "version": "2.6.3",
+    "liveArgv": {
+      "checked": 5,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterOpen": {
+      "files": 400,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "afterTurn": {
+      "files": 405,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "afterTurnArgv": {
+      "checked": 5,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterClose": {
+      "files": 404,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    }
+  },
+  {
+    "id": "opencode",
+    "opened": true,
+    "completed": true,
+    "stdioDelivered": true,
+    "httpDelivered": true,
+    "tool": [
+      false,
+      false
+    ],
+    "version": "1.19.5",
+    "liveArgv": {
+      "checked": 5,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterOpen": {
+      "files": 427,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "afterTurn": {
+      "files": 451,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "afterTurnArgv": {
+      "checked": 5,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterClose": {
+      "files": 451,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    }
+  },
+  {
+    "id": "opencode-v2",
+    "opened": true,
+    "completed": true,
+    "stdioDelivered": true,
+    "httpDelivered": true,
+    "tool": [
+      false,
+      false
+    ],
+    "version": "opencode v2.2.7",
+    "liveArgv": {
+      "checked": 6,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterOpen": {
+      "files": 428,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "afterTurn": {
+      "files": 452,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "afterTurnArgv": {
+      "checked": 6,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterClose": {
+      "files": 450,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    }
+  },
+  {
+    "id": "pi",
+    "opened": true,
+    "completed": true,
+    "stdioDelivered": true,
+    "httpDelivered": true,
+    "tool": [
+      false,
+      false
+    ],
+    "version": "1.5.2 (lockfile)",
+    "liveArgv": {
+      "checked": 4,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterOpen": {
+      "files": 403,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "afterTurn": {
+      "files": 405,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "afterTurnArgv": {
+      "checked": 4,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterClose": {
+      "files": 405,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    }
+  },
+  {
+    "id": "pi-rpc",
+    "opened": true,
+    "completed": true,
+    "stdioDelivered": true,
+    "httpDelivered": true,
+    "tool": [
+      false,
+      false
+    ],
+    "version": "1.5.2 (lockfile)",
+    "liveArgv": {
+      "checked": 5,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterOpen": {
+      "files": 408,
+      "matches": [
+        1,
+        1
+      ],
+      "errors": 0
+    },
+    "afterTurn": {
+      "files": 410,
+      "matches": [
+        1,
+        1
+      ],
+      "errors": 0
+    },
+    "afterTurnArgv": {
+      "checked": 5,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterClose": {
+      "files": 407,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    }
+  },
+  {
+    "id": "qoder",
+    "opened": true,
+    "completed": true,
+    "stdioDelivered": true,
+    "httpDelivered": true,
+    "tool": [
+      false,
+      false
+    ],
+    "version": "1.1.81",
+    "liveArgv": {
+      "checked": 7,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterOpen": {
+      "files": 609,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "afterTurn": {
+      "files": 615,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "afterTurnArgv": {
+      "checked": 6,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterClose": {
+      "files": 613,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    }
+  },
+  {
+    "id": "qwen",
+    "opened": true,
+    "completed": true,
+    "stdioDelivered": true,
+    "httpDelivered": true,
+    "tool": [
+      false,
+      false
+    ],
+    "version": "0.27.4",
+    "liveArgv": {
+      "checked": 5,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterOpen": {
+      "files": 368,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "afterTurn": {
+      "files": 381,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    },
+    "afterTurnArgv": {
+      "checked": 6,
+      "matches": [
+        false,
+        false
+      ]
+    },
+    "afterClose": {
+      "files": 1043,
+      "matches": [
+        0,
+        0
+      ],
+      "errors": 0
+    }
+  }
+]

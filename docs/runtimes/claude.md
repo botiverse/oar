@@ -1080,8 +1080,9 @@ temporary directory, a fresh 0700 directory
   initializes again after a 404 both got their credentials with the path
   gone. A [vendor test](../../sea-trial/vendor/claude-mcp-config.vendor.test.ts)
   checks all three on every claude CI installs.
-- **Windows, or no `mkfifo` to run: a 0600 file**, removed when claude
-  exits however it ends (dispose, a crash, a refused effort).
+- **Regular-file fallback.** Windows declares `mcpServerCredentials` refused.
+  POSIX also refuses credentialed entries if FIFO creation fails. Credential-free
+  entries may use a 0600 file removed on process exit.
 - **A host that ends without disposing.** On its `exit` event
   (`process.exit()`, an uncaught exception) oar removes what is left. A
   signal or SIGKILL fires none: a file stays until the next claude session

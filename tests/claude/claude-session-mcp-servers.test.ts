@@ -60,7 +60,7 @@ async function readSomeAndLeave(config: string): Promise<number> {
   return bytesRead;
 }
 
-test("mcpServers reach claude through --mcp-config, never argv: a FIFO gone once read (a file gone with the session where there are no FIFOs)", async () => {
+test.skipIf(!fifos)("credentialed MCP servers reach Claude through a FIFO removed after reading", async () => {
   spawnLineProcess.mockReturnValue(fakeLineProcess());
   const session = await claudeSession(installation, { cwd: "/work", mcpServers: servers });
   const { argv, config } = spawned();
@@ -106,7 +106,7 @@ test("a resume passes them again: claude remembers no --mcp-config", async () =>
       : {};
     child.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request?.request_id, response } })}\n`);
   }));
-  const session = await claudeSession(installation, { cwd: "/work", resume: "claude-session-1", mcpServers: servers });
+  const session = await claudeSession(installation, { cwd: "/work", resume: "claude-session-1", mcpServers: [{ name: "plain", command: "echo" }] });
   const { argv, config } = spawned();
   expect(argv).toContain("--resume=claude-session-1");
   expect(config).not.toBeNull();
@@ -116,7 +116,7 @@ test("a resume passes them again: claude remembers no --mcp-config", async () =>
 test("claude exiting before it reads the config removes it too", async () => {
   const fake = fakeLineProcess();
   spawnLineProcess.mockReturnValue(fake);
-  const session = await claudeSession(installation, { cwd: "/work", mcpServers: servers });
+  const session = await claudeSession(installation, { cwd: "/work", mcpServers: [{ name: "plain", command: "echo" }] });
   const { config } = spawned();
   assert.ok(config !== null);
   fake.end(1);
@@ -137,6 +137,14 @@ test.skipIf(!fifos)("claude exiting in the middle of reading: the handoff stops 
   fake.end(1);
   await session.dispose();
   expect(existsSync(path.dirname(config))).toBe(false);
+});
+
+test("credentialed entries fail before spawn when no FIFO can be created", async () => {
+  vi.stubEnv("PATH", "");
+  try {
+    await expect(claudeSession(installation, { cwd: "/work", mcpServers: servers })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "mcpServers" });
+    expect(spawnLineProcess).not.toHaveBeenCalled();
+  } finally { vi.unstubAllEnvs(); }
 });
 
 test("no servers, or an empty list, pass no --mcp-config", async () => {

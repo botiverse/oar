@@ -3,10 +3,9 @@ import type { McpServer } from "../../packages/oar/src/contracts/session.js";
 import { cursorMcpServers } from "../../packages/oar/src/runtimes/cursor/model.js";
 import { openFakeCursor } from "../fixtures/fake-cursor-sdk.js";
 
-const TOKEN = "cursor-mcp-test-token-0123456789";
 const servers: readonly McpServer[] = [
-  { name: "echo", command: "node", args: ["echo.mjs"], env: { OAR_ECHO_TOKEN: TOKEN } },
-  { name: "remote", type: "http", url: "http://127.0.0.1:9/mcp", headers: { Authorization: `Bearer ${TOKEN}` } },
+  { name: "echo", command: "node", args: ["echo.mjs"] },
+  { name: "remote", type: "http", url: "http://127.0.0.1:9/mcp" },
 ];
 
 test.each([undefined, "agent-old"])("mcpServers reach Agent.create / Agent.resume as the SDK's record, both forms (resume %s)", async (resume) => {
@@ -14,8 +13,8 @@ test.each([undefined, "agent-old"])("mcpServers reach Agent.create / Agent.resum
   try {
     expect(opened[0]?.how).toBe(resume === undefined ? "create" : "resume");
     expect(opened[0]?.options.mcpServers).toEqual({
-      echo: { type: "stdio", command: "node", args: ["echo.mjs"], env: { OAR_ECHO_TOKEN: TOKEN } },
-      remote: { type: "http", url: "http://127.0.0.1:9/mcp", headers: { Authorization: `Bearer ${TOKEN}` } },
+      echo: { type: "stdio", command: "node", args: ["echo.mjs"] },
+      remote: { type: "http", url: "http://127.0.0.1:9/mcp" },
     });
   } finally { await session.dispose(); }
 });
@@ -35,13 +34,11 @@ test("a list no runtime can attach is refused before the SDK is asked", () => {
   expect(() => cursorMcpServers([{ name: "__proto__", command: "x" }])).toThrow(expect.objectContaining({ name: "UnsupportedOptionError", option: "mcpServers" }));
 });
 
-test("an MCP credential never reaches the records or a control's answer", async () => {
-  const { session, agent } = await openFakeCursor({ model: "composer", mcpServers: servers });
-  try {
-    agent.refuse = new Error(`MCP server remote failed with Authorization: Bearer ${TOKEN}`);
-    const refused = await session.prompt("hi");
-    expect(refused.kind).toBe("rejected");
-    expect(JSON.stringify(refused)).not.toContain(TOKEN);
-    expect(JSON.stringify(session.records())).not.toContain(TOKEN);
-  } finally { await session.dispose(); }
+test.each([
+  { name: "local", command: "node", env: { FIXTURE: "sample-entry-value" } },
+  { name: "remote", type: "http" as const, url: "http://127.0.0.1:9", headers: { Authorization: "sample-entry-value" } },
+])("refuses credential fields on $name before create or resume", async (entry) => {
+  const opening = openFakeCursor({ mcpServers: [entry], resume: "agent-old" });
+  await expect(opening).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "mcpServers" });
+  await expect(opening).rejects.not.toThrow("sample-entry-value");
 });

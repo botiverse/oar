@@ -216,13 +216,14 @@ describe.skipIf(process.env.OAR_TEST !== "pi-rpc-aimock")("bundled Pi RPC proces
       });
     `);
     try {
-      const session = await f.open({ mcpServers: [stdioEcho("private", "private-pi-rpc-key")] });
+      await expect(f.open({ mcpServers: [stdioEcho("private", "fixture-value")] })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "mcpServers" });
+      const session = await f.open({ mcpServers: [stdioEcho("plain")] });
       // oxlint-disable-next-line typescript/no-unsafe-assignment -- This test extension wrote the file immediately before get_state.
       const pids: { agent: number; tool: number; privateDir: string; argv: string[] } = JSON.parse(readFileSync(path.join(f.cwd, "pids.json"), "utf8"));
-      expect(pids.argv.join(" ")).not.toContain("private-pi-rpc-key");
+      expect(pids.argv.join(" ")).not.toContain("fixture-value");
       const privateFiles = await readdir(pids.privateDir);
       expect(privateFiles.toSorted()).toEqual(["config.json", "extension.mjs", "ready"]);
-      expect(readFileSync(path.join(pids.privateDir, "config.json"), "utf8")).toContain("private-pi-rpc-key");
+      expect(readFileSync(path.join(pids.privateDir, "config.json"), "utf8")).toContain('"plain"');
       if (process.platform !== "win32") { expect(statSync(path.join(pids.privateDir, "config.json")).mode & 0o777).toBe(0o600); }
       vi.stubEnv("OAR_KILL_GRACE_MS", "500");
       const before = performance.now();

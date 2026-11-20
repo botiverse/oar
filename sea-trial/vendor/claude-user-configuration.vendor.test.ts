@@ -38,7 +38,7 @@ async function observe(fixture: Fixture, command: string, configuration: Session
     ] as const) {
       const server = `${name}_config_probe`;
       expect(servers.some(entry => entry.name === server && entry.source === scope && entry.status === "connected"), scope).toBe(expected);
-      expect(catalog.includes(`mcp__${server}__${name}_tool`), scope).toBe(expected);
+      expect(catalog.includes(`mcp__${server}__${name === "host" ? "echo" : `${name}_tool`}`), scope).toBe(expected);
     }
     for (const marker of ["USER_MEMORY", "HOME_MEMORY", "HOME_LOCAL_MEMORY", "USER_RULE"]) {
       expect(requests.includes(`OAR_${marker}_MARKER`), marker).toBe(!instructions);

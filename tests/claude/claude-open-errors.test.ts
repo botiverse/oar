@@ -22,7 +22,7 @@ test.each(["get_settings", "initialize"])("Claude %s preserves a redacted native
   const failure: unknown = await claudeSession(installation, {
     cwd: process.cwd(),
     ...(method === "get_settings" ? { effort: "low" } : { serviceTier: "fast" }),
-    mcpServers: [{ name: "echo", command: "echo", env: { TOKEN: secret } }],
+    env: { ANTHROPIC_API_KEY: secret },
   }).catch((error: unknown) => error);
   expect(failure).toBeInstanceOf(Error);
   expect(failure).toMatchObject({ cause: { method, native: {

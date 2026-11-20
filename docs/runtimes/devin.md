@@ -50,9 +50,9 @@ Devin 3000.12.57 showed the signed-in user in `devin auth status`, then omitted 
 
 ## Session MCP servers
 
-Stdio and HTTP entries are accepted with their `env` and `headers`. Devin
-was checked not to write those values to its SQLite store under
-`$XDG_DATA_HOME/devin`.
+OAR accepts credential-free stdio and HTTP entries. It refuses entries with
+`env` or `headers` because the native tool environment and storage boundary
+are unverified. An earlier check covered only the SQLite store.
 
 ## Process ownership, installation, and update checks
 

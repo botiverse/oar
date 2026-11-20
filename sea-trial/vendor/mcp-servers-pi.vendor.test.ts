@@ -1,4 +1,4 @@
-import { isPiBackend, piSession } from "./support/pi-runtime.js";
+import { isPiBackend, piRpc, piSession } from "./support/pi-runtime.js";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
@@ -7,7 +7,7 @@ import { defineRuntime, piRuntime } from "../../packages/oar/src/index.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startPiAimock, type LLMock, type RawProviderRequest } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
-import { CLASH_ECHO, currentTurnSays, ECHO_SERVER, echoesReceived, echoServers, EXPECTED_ECHOES, leakedCredentials, scriptEchoes, startHttpEcho, stdioEcho, STDIO_TOKEN } from "./support/echo-mcp.js";
+import { CLASH_ECHO, currentTurnSays, ECHO_SERVER, echoesReceived, echoServers, expectedEchoes, leakedCredentials, scriptEchoes, startHttpEcho, stdioEcho, STDIO_TOKEN } from "./support/echo-mcp.js";
 import { structuralToolRound } from "./support/tool-round.js";
 
 const piInstallation = piRuntime.installation;
@@ -53,7 +53,7 @@ describe.skipIf(!isPiBackend)("pi mcpServers", () => {
     const env = await startPiAimock(scriptPi, { captureRaw: true });
     try {
       const subject = runtimeUnderTest(runtime, env.env);
-      const mcpServers = echoServers(http.url);
+      const mcpServers = echoServers(http.url, !piRpc);
       const session = await subject.startSession({ mcpServers });
       expect(await structuralToolRound(session, env.mock, "please call both echo tools")).toMatchInlineSnapshot(`
         [
@@ -81,7 +81,7 @@ describe.skipIf(!isPiBackend)("pi mcpServers", () => {
       const bare = await subject.startSession({ resume: session.id });
       await structuralToolRound(bare, env.mock, "please just answer");
       await bare.dispose();
-      expect(echoesReceived(env.raw)).toEqual(EXPECTED_ECHOES);
+      expect(echoesReceived(env.raw)).toEqual(expectedEchoes(!piRpc));
       expect({
         open: offeredMcpTools(env.raw, mentions("call both echo tools")),
         resumedWithout: offeredMcpTools(env.raw, mentions("just answer")),
@@ -98,7 +98,7 @@ describe.skipIf(!isPiBackend)("pi mcpServers", () => {
     try {
       const user = { command: process.execPath, args: [ECHO_SERVER], env: { OAR_ECHO_TOKEN: "user-credential" } };
       await writeFile(path.join(agentDir(), "mcp.json"), JSON.stringify({ mcpServers: { echo: user, userecho: { ...user, exposure: "direct" } } }));
-      const session = await runtimeUnderTest(runtime, env.env).startSession({ mcpServers: [stdioEcho("echo", STDIO_TOKEN)] });
+      const session = await runtimeUnderTest(runtime, env.env).startSession({ mcpServers: [stdioEcho("echo", piRpc ? undefined : STDIO_TOKEN)] });
       expect(await structuralToolRound(session, env.mock, "please call the clashing echo")).toMatchInlineSnapshot(`
         [
           "request:prompt",
@@ -109,7 +109,7 @@ describe.skipIf(!isPiBackend)("pi mcpServers", () => {
         ]
       `);
       await session.dispose();
-      expect(echoesReceived(env.raw)).toEqual([CLASH_ECHO]);
+      expect(echoesReceived(env.raw)).toEqual([piRpc ? "echo:clash-call via=stdio token=none" : CLASH_ECHO]);
       expect(offeredMcpTools(env.raw, () => true)).toEqual(["mcp__echo__echo"]);
     } finally {
       await env.stop();
@@ -122,7 +122,7 @@ describe.skipIf(!isPiBackend)("pi mcpServers", () => {
       const extensions = path.join(agentDir(), "extensions");
       await mkdir(extensions, { recursive: true });
       await writeFile(path.join(extensions, "user-echo.ts"), `export default (pi) => { pi.registerMcpServer("echo", { command: ${JSON.stringify(process.execPath)}, args: [${JSON.stringify(ECHO_SERVER)}], exposure: "direct" }); };\n`);
-      const opening = runtimeUnderTest(runtime, env.env).startSession({ mcpServers: [stdioEcho("echo", STDIO_TOKEN)] });
+      const opening = runtimeUnderTest(runtime, env.env).startSession({ mcpServers: [stdioEcho("echo", piRpc ? undefined : STDIO_TOKEN)] });
       await expect(opening).rejects.toThrow(/"echo" is already registered/u);
       await expect(opening).rejects.not.toThrow(STDIO_TOKEN);
     } finally {
