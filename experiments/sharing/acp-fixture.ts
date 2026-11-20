@@ -18,6 +18,7 @@ import { antigravityAcpProfile } from "../../packages/oar/src/runtimes/antigravi
 import { startAntigravityAimock, startGrokAimock, startKimiAimock, startOpencodeAimock } from "../../sea-trial/harness/aimock-acp.js";
 import { descendantsOf, killEntries, type ProcessEntry } from "../../packages/oar/src/shared/executable/process-tree.js";
 import { rootsSince } from "./resources.js";
+import { alive, captureProcess, signalFixture, type ProcessIdentity } from "../../tests/fixtures/process-tree.js";
 import { ProbeTiming, powershellCommand, probeTimeout } from "./observation.js";
 import { scopedMcp } from "./mcp-scope.js";
 
@@ -119,7 +120,7 @@ export async function acpFixture(id: AcpId, timing = new ProbeTiming()) {
       if (failed.length > 0) { throw new AggregateError(failed.map((result): unknown => result.reason), "Native process cleanup failed"); }
     });
     defer(() => { killEntries(crashDescendants, checkedProcessTable("acp-cleanup")); });
-    const nativePids = new Map<(typeof children)[number], number>();
+    const nativeProcesses = new Map<(typeof children)[number], ProcessIdentity>();
     const request = async (child: (typeof children)[number], method: string, params: JsonRecord): Promise<JsonRecord> => {
       try {
         const limit = probeTimeout(method === "session/prompt" ? 60_000 : 30_000);
@@ -136,11 +137,12 @@ export async function acpFixture(id: AcpId, timing = new ProbeTiming()) {
       const nativeArgs = options.grantGrokTrust === true ? ["--trust", ...args] : args;
       const child = startAcpProcess(installation.command, nativeArgs, app, { cwd, env });
       children.push(child);
+      assert.ok(child.pid !== undefined);
+      nativeProcesses.set(child, captureProcess(child.pid));
       const initialized = await request(child, "initialize", { protocolVersion: 1, clientCapabilities: { fs: {}, terminal: true },
         clientInfo: { name: "oar-sharing-evidence", version: "1" }, _meta: profile.initializeMeta?.({ cwd }) ?? {} });
       const auth = profile.selectAuthMethod?.(initialized); if (auth !== undefined) { await request(child, "authenticate", { methodId: auth }); }
-      const [root, extra] = rootsSince(before); assert.ok(root && extra === undefined);
-      nativePids.set(child, root.pid);
+      assert.deepEqual(rootsSince(before).map(root => root.pid), [child.pid], "one native root per ACP connection");
       return { child, initialized, args: nativeArgs };
     };
     const mcpServers = (label: "A" | "B"): JsonRecord[] => [{ name: "scope", command: process.execPath, args: [mcp.script, label], env: [] }];
@@ -157,7 +159,13 @@ export async function acpFixture(id: AcpId, timing = new ProbeTiming()) {
     };
     return { timing, id, home, cwds, env, mcp, installation, provider, profile, stages, seen, gates, children, terminals, terminalFor, calls, events,
       connect, request, open, prompt, mcpServers, mcpCalls: mcp.calls,
-      crash(child: (typeof children)[number]): void { const pid = nativePids.get(child); assert.ok(pid !== undefined); crashDescendants.push(...descendantsOf(checkedProcessTable(), pid)); process.kill(pid, "SIGKILL"); },
+      crash(child: (typeof children)[number]): void {
+        const root = nativeProcesses.get(child); assert.ok(root !== undefined);
+        const table = checkedProcessTable("acp-before-crash");
+        assert.ok(alive(root), "native ACP process exited before fault injection");
+        crashDescendants.push(...descendantsOf(table, root.pid));
+        assert.ok(signalFixture(root), "native ACP process exited before SIGKILL");
+      },
     };
   });
   return managed;

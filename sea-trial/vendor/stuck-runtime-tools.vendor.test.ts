@@ -1,4 +1,5 @@
-import { execFileSync } from "node:child_process";
+import { alive, signalFixture, type ProcessIdentity } from "../../tests/fixtures/process-tree.js";
+import { identifiedProcesses, type Row } from "./support/codex-process-count.js";
 import { expect, test, vi } from "vitest";
 import { claudeInstallation, defineRuntime, claudeRuntime, codexRuntime } from "../../packages/oar/src/index.js";
 
@@ -20,30 +21,12 @@ const codexSession = codexRuntime.session;
  * or what this pins (and the runtime pages say) has changed.
  */
 
-interface Row { readonly pid: number; readonly ppid: number; readonly pgid: number; readonly args: string }
-
-function processes(): Row[] {
-  return execFileSync("ps", ["-A", "-o", "pid=,ppid=,pgid=,args="], { encoding: "utf8" }).split("\n").flatMap((line) => {
-    const match = /^\s*(\d+)\s+(\d+)\s+(\d+)\s+(.*)$/u.exec(line);
-    return match === null ? [] : [{ pid: Number(match[1]), ppid: Number(match[2]), pgid: Number(match[3]), args: match[4] ?? "" }];
-  });
-}
-
 function below(rows: readonly Row[], pid: number): Row[] {
   const found: Row[] = [];
   for (const child of rows.filter((row) => row.ppid === pid)) {
     found.push(child, ...below(rows, child.pid));
   }
   return found;
-}
-
-function alive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 const COMMAND = "tail -f /dev/null";
@@ -62,35 +45,39 @@ for (const runtime of runtimes) {
         mock.on({ userMessage: /run the tool/u, hasToolResult: false }, { toolCalls: [runtime.tool] });
         mock.on({ hasToolResult: true }, { content: "done" });
       });
-      const seen: Row[] = [];
-      const stopped: number[] = [];
+      const seen: (Row & ProcessIdentity)[] = [];
+      const stopped: ProcessIdentity[] = [];
       try {
         await withProcessEnv({ OAR_KILL_GRACE_MS: "500" }, async () => {
           const session = await runtimeUnderTest(defineRuntime(runtime), env.env).startSession();
           try {
             await session.prompt("please run the tool");
             const command = await vi.waitFor(() => {
-              const rows = processes();
-              const host = rows.find((row) => row.ppid === process.pid && runtime.binary.test(row.args));
-              const tool = host === undefined ? undefined : below(rows, host.pid).find((row) => row.args.startsWith(COMMAND));
+              const rows = identifiedProcesses(snapshot => {
+                const root = snapshot.find(row => row.ppid === process.pid && runtime.binary.test(row.args));
+                return root === undefined ? [] : [root, ...below(snapshot, root.pid)];
+              });
+              const host = rows.find(row => row.ppid === process.pid && runtime.binary.test(row.args));
+              const tool = rows.find(row => row.args.startsWith(COMMAND));
               if (host === undefined || tool === undefined) { throw new Error("the tool command is not running yet"); }
-              seen.splice(0, seen.length, host, ...below(rows, host.pid));
+              seen.splice(0, seen.length, ...rows);
               return { host, tool };
             }, { timeout: 60_000, interval: 200 });
             expect(command.tool.pgid, "the command runs out of the runtime's process group").not.toBe(command.host.pid);
-            process.kill(command.host.pid, "SIGSTOP");
-            stopped.push(command.host.pid);
+            expect(signalFixture(command.host, "SIGSTOP"), "SIGSTOP reached the runtime").toBe(true);
+            expect(alive(command.host), "the stopped runtime is still present").toBe(true);
+            stopped.push(command.host);
           } finally {
             await session.dispose();
           }
           await vi.waitFor(() => {
-            expect(seen.filter((row) => alive(row.pid)).map((row) => `${String(row.pid)} ${row.args}`)).toEqual([]);
+            expect(seen.filter(row => alive(row)).map((row) => `${String(row.pid)} ${row.args}`)).toEqual([]);
           }, { timeout: 5000, interval: 100 });
         });
       } finally {
-        for (const pid of stopped.filter((stoppedPid) => alive(stoppedPid))) { process.kill(pid, "SIGCONT"); }
+        for (const host of stopped) { signalFixture(host, "SIGCONT"); }
         for (const row of seen) {
-          if (alive(row.pid)) { process.kill(row.pid, "SIGKILL"); }
+          signalFixture(row);
         }
         await env.stop();
       }

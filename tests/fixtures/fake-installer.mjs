@@ -8,6 +8,7 @@
 // nothing, "fail-after" installs and then exits non-zero (a later step
 // failed), "prompt" asks on stdin and installs nothing without an answer,
 // "hang" starts a worker that holds the output pipes and never finishes.
+import { captureProcess } from "./process-tree.ts";
 import { spawn } from "node:child_process";
 import { chmodSync, readFileSync, writeFileSync } from "node:fs";
 
@@ -40,7 +41,7 @@ if (state.mode === "install") {
   process.exitCode = 1;
 } else if (state.mode === "hang") {
   const worker = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: ["ignore", "inherit", "inherit"] });
-  save({ ...seen, workerPid: worker.pid });
+  save({ ...seen, workerPid: captureProcess(worker.pid) });
   setInterval(() => {}, 1000);
 } else {
   process.stdout.write("Install fake now? [y/N] ");

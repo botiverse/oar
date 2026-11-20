@@ -11,7 +11,7 @@ import * as tables from "../packages/oar/src/shared/executable/process-table-asy
 // oxlint-disable-next-line import/no-namespace -- Record each caller's actual one-second observation result.
 import * as cancellation from "../packages/oar/src/shared/executable/process-cancellation.js";
 import { processTablePreparation } from "../packages/oar/src/shared/executable/process-table-preparation.js";
-import { gone } from "./fixtures/process-tree.js";
+import { gone, type ProcessIdentity, reportedProcess, signalFixture } from "./fixtures/process-tree.js";
 import { captureCleanupEvidence, expectCleanupEvidence, expectOrphanReclaimed } from "./fixtures/cleanup-evidence.js";
 
 afterEach(() => { vi.restoreAllMocks(); });
@@ -19,7 +19,7 @@ const fixture = fileURLToPath(new URL("fixtures/cancellation-orphan-agent.mjs", 
 function ready(session: Session, since: number): Record<string, unknown> | undefined {
   return session.records().flatMap(record => record.kind === "frame" && record.seq > since
     ? record.body.events.flatMap(event => event.kind === "text_delta" ? [asRecord(JSON.parse(event.text)) ?? {}] : []) : [])
-    .find(value => typeof value.tool === "number");
+    .find(value => value.tool !== undefined);
 }
 
 // oxlint-disable-next-line eslint/max-statements, eslint/max-lines-per-function -- Two real turns span a held background query and an expired foreground read.
@@ -28,7 +28,7 @@ test.each([false, true])("ACP background query queue: wait before cancelling = %
   const session = await acpSession({ args: [fixture, "acp"], capabilities: { queue: { durable: false }, attribution: "opaque" } })(
     { kind: "available", via: "executable", command: process.execPath }, { cwd: process.cwd(), resume: "cancel-root" });
   const entered = Promise.withResolvers<void>(), release = Promise.withResolvers<void>();
-  const owned: number[] = [], source = tables.processTableSource();
+  const owned: ProcessIdentity[] = [], source = tables.processTableSource();
   const queries: { background: boolean; started: number; finished?: number }[] = [];
   let secondCancelRequested = false;
   const observations: Record<string, unknown>[] = [];
@@ -63,7 +63,7 @@ test.each([false, true])("ACP background query queue: wait before cancelling = %
       const prompt = await session.prompt(`round-${round}`);
       // eslint-disable-next-line no-await-in-loop -- The tool must exist before the cancellation snapshot.
       await expect.poll(() => ready(session, prompt.seq), { timeout: 10_000 }).toBeDefined();
-      const middle = Number(ready(session, prompt.seq)?.middle), tool = Number(ready(session, prompt.seq)?.tool);
+      const middle = reportedProcess(ready(session, prompt.seq)?.middle), tool = reportedProcess(ready(session, prompt.seq)?.tool);
       owned.push(tool, middle);
       // eslint-disable-next-line no-await-in-loop -- The negative control must start with a live tool.
       expect(await gone(tool, 50)).toBe(false);
@@ -111,11 +111,11 @@ test.each([false, true])("ACP background query queue: wait before cancelling = %
     if (!waitBeforeCancel) { expect(captures[0], diagnostic).toMatchObject({ ok: false, reason: "timeout", timeoutMs: 1000 }); }
     await Promise.all(captures.map(async (capture, round) => {
       await expectOrphanReclaimed(owned[round * 2], evidence, capture);
-      expect(await gone(Number(owned[round * 2 + 1])), diagnostic).toBe(true);
+      expect(await gone(reportedProcess(owned[round * 2 + 1])), diagnostic).toBe(true);
     }));
   } finally {
     release.resolve(); await preparation;
     vi.restoreAllMocks(); await session.dispose();
-    for (const pid of owned) { try { process.kill(pid, "SIGKILL"); } catch { /* Test-owned processes only. */ } }
+    for (const pid of owned) { signalFixture(pid); }
   }
 }, 30_000);

@@ -1,10 +1,11 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, expect, test } from "vitest";
+import { alive, signalFixture, reportedProcess, type ProcessIdentity } from "../fixtures/process-tree.js";
 import type { Session } from "../../packages/oar/src/contracts/session.js";
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import { killedHost } from "../fixtures/cursor-killed-host.js";
-import { alive, bundled, fakeCursorRuntime, responsesOf, tempDirectory, until } from "../fixtures/cursor-subprocess.js";
+import { bundled, fakeCursorRuntime, responsesOf, tempDirectory, until } from "../fixtures/cursor-subprocess.js";
 
 /*
  * A tool command's background job (`sleep 300 &`) outlives its shell: once
@@ -17,27 +18,26 @@ import { alive, bundled, fakeCursorRuntime, responsesOf, tempDirectory, until } 
  */
 
 const linux = process.platform === "linux";
-const leftovers: number[] = [];
+const leftovers: ProcessIdentity[] = [];
 
 afterEach(() => {
   for (const pid of leftovers.splice(0)) {
-    if (alive(pid)) { process.kill(pid, "SIGKILL"); }
+    signalFixture(pid);
   }
 });
 
-function sleepPid(file: string): number {
-  const pid = existsSync(file) ? Number(readFileSync(file, "utf8").trim()) : Number.NaN;
-  if (!Number.isInteger(pid) || pid <= 0) { throw new TypeError(`no background job pid in ${file}`); }
+function sleepIdentity(file: string): ProcessIdentity {
+  const pid = reportedProcess(JSON.parse(readFileSync(file, "utf8")));
   leftovers.push(pid);
   return pid;
 }
 
 /** Has the session's run start a shell that backgrounds a sleep and exits; the sleep's pid. */
-async function backgroundJob(session: Session, how: "background" | "background-unmarked"): Promise<number> {
+async function backgroundJob(session: Session, how: "background" | "background-unmarked"): Promise<ProcessIdentity> {
   const file = path.join(tempDirectory(), "sleep.pid");
   const prompt = await session.prompt(`${how}:${file}`);
   await awaitTurnEnd(session, prompt.seq);
-  return sleepPid(file);
+  return sleepIdentity(file);
 }
 
 test.runIf(linux)("dispose ends a tool's background job that outlived its shell", async () => {
@@ -66,7 +66,7 @@ test.runIf(linux).each(["inherit", "clean"] as const)("a SIGKILLed host's child 
   const file = path.join(dir, "sleep.pid");
   const host = killedHost(dir, file, { how: "background", envBase });
   expect(host.signal).toBe("SIGKILL");
-  const sleep = sleepPid(file);
+  const sleep = sleepIdentity(file);
   await until(() => !alive(sleep), 10_000);
   expect(alive(sleep)).toBe(false);
 });

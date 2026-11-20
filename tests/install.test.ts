@@ -3,6 +3,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, wr
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, expect, test } from "vitest";
+import { reportedProcess, gone } from "./fixtures/process-tree.js";
 import type { InstallPlanner, InstallUnsupported } from "../packages/oar/src/contracts/install.js";
 import {
   planInstaller,
@@ -155,14 +156,7 @@ test("an installer that prompts reads end of input instead of waiting", async ()
   assert.ok(Date.now() - started < 15_000);
 });
 
-function alive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
+
 
 test.skipIf(process.platform === "win32")("a timed out installer is stopped with everything it started", async () => {
   const fake = fakeInstall("hangs", "hang");
@@ -171,9 +165,8 @@ test.skipIf(process.platform === "win32")("a timed out installer is stopped with
   assert.ok(result.kind === "failed");
   assert.equal(result.exitCode, null);
   assert.match(result.output, /stopped the installer after 5000 ms/u);
-  const worker = fake.read().workerPid;
-  assert.equal(typeof worker, "number");
-  await expect.poll(() => alive(Number(worker)), { timeout: 5000 }).toBe(false);
+  const worker = reportedProcess(fake.read().workerPid);
+  expect(await gone(worker)).toBe(true);
 });
 
 const method: ScriptInstallMethod = {

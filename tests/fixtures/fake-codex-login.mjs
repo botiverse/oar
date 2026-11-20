@@ -15,6 +15,7 @@
 // still signed in), "keeps" (succeeds, yet the status still reads logged in,
 // as from a source it does not remove), "hang" (starts a worker in its
 // process group and never finishes).
+import { captureProcess } from "./process-tree.ts";
 import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
@@ -45,7 +46,7 @@ function send(message) {
 }
 
 function loginStart(id, params) {
-  save({ startParams: params, pid: process.pid });
+  save({ startParams: params, pid: captureProcess(process.pid) });
   if (state.mode === "start_error") {
     send({ id, error: { code: -32_600, message: "device code login is not enabled for this workspace" } });
     return;
@@ -53,7 +54,7 @@ function loginStart(id, params) {
   if (state.mode === "hang") {
     // Reported before the reply, so a test that stops the login on the device code finds the worker.
     const worker = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });
-    save({ workerPid: worker.pid });
+    save({ workerPid: captureProcess(worker.pid) });
   }
   const reply = { id, result: { type: "chatgptDeviceCode", loginId: "login-1", verificationUrl: "https://auth.openai.com/codex/device", userCode: "ABCD-EFGH" } };
   if (state.mode === "early") {
@@ -120,7 +121,7 @@ if (command === "--version") {
 } else if (command === "logout") {
   if (state.logoutMode === "hang") {
     const worker = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });
-    save({ workerPid: worker.pid, pid: process.pid });
+    save({ workerPid: captureProcess(worker.pid), pid: captureProcess(process.pid) });
     setInterval(() => {}, 1000);
   } else if (state.logoutMode === "error") {
     process.stderr.write("Error logging out: failed to delete /home/user/.codex/auth.json: Permission denied (os error 13)\n");

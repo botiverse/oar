@@ -5,7 +5,7 @@ import path from "node:path";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import { claudeAuthStatus } from "../../packages/oar/src/runtimes/claude/auth-status.js";
 import { claudeLogin } from "../../packages/oar/src/runtimes/claude/login.js";
-import { fakeLoginCli, reportedPid, type FakeCli } from "../fixtures/login-fixtures.js";
+import { fakeLoginCli, reportedIdentity, type FakeCli } from "../fixtures/login-fixtures.js";
 import { recordedInteraction } from "../fixtures/login-interaction.js";
 import { gone } from "../fixtures/process-tree.js";
 
@@ -170,7 +170,7 @@ test("a deadline after `Login successful.` is not a timeout: the stored login is
       "kind": "logged_in",
     }
   `);
-  assert.ok(await gone(reportedPid(fake, "pid")), "claude auth login outlived the deadline");
+  assert.ok(await gone(reportedIdentity(fake, "pid")), "claude auth login outlived the deadline");
 });
 
 test("an abort after `Login successful.` is not a cancel: the login is stored, with no status query left to ask", async () => {
@@ -214,8 +214,8 @@ test("past the deadline the login is stopped with everything it started", async 
       "reason": "timed_out",
     }
   `);
-  assert.ok(await gone(reportedPid(fake, "pid")), "claude auth login outlived the deadline");
-  assert.ok(await gone(reportedPid(fake, "workerPid")), "a process claude started outlived the deadline");
+  assert.ok(await gone(reportedIdentity(fake, "pid")), "claude auth login outlived the deadline");
+  assert.ok(await gone(reportedIdentity(fake, "workerPid")), "a process claude started outlived the deadline");
 });
 
 test("aborting the signal cancels the login and stops its process group (its tree on Windows)", async () => {
@@ -229,7 +229,7 @@ test("aborting the signal cancels the login and stops its process group (its tre
   });
   const result = await claudeLogin(installation(fake), interaction);
   assert.deepEqual(result, { kind: "cancelled" });
-  assert.ok(await gone(reportedPid(fake, "workerPid")), "a process claude started outlived the cancel");
+  assert.ok(await gone(reportedIdentity(fake, "workerPid")), "a process claude started outlived the cancel");
 });
 
 test("a prompt or an event handler that throws stops the login", async () => {

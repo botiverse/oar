@@ -2,6 +2,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test, vi } from "vitest";
+import { reportedProcess, alive } from "../fixtures/process-tree.js";
 import { SessionUnavailableError } from "../../packages/oar/src/contracts/session-unavailable-error.js";
 import { promptAndWait, awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import { cleanupAcpOwner } from "../../packages/oar/src/shared/acp/shared-session.js";
@@ -12,7 +13,6 @@ import relayAcpOutput from "../fixtures/acp-output-relay.js";
 // oxlint-disable-next-line import/no-namespace -- A shared abort must never collect ownership for the entire pool.
 import * as cancellation from "../../packages/oar/src/shared/executable/process-cancellation.js";
 
-function alive(pid: number): boolean { try { process.kill(pid, 0); return true; } catch { return false; } }
 
 test("two simultaneous opens initialize once, keep cwd and MCP isolated, and route crossed answers", async () => {
   const f = await fixture();
@@ -91,7 +91,7 @@ test("abort fallback releases one root; disposal cleans again, leaving peer usab
   await promptAndWait(b, "terminal");
   const pidFile = path.join(f.cwd, "b", `terminal-${b.id}.pid`);
   await expect.poll(async () => readFile(pidFile, "utf8").catch(() => "")).not.toBe("");
-  const pid = Number(await readFile(pidFile, "utf8")); expect(alive(pid)).toBe(true);
+  const pid = reportedProcess(JSON.parse(await readFile(pidFile, "utf8"))); expect(alive(pid)).toBe(true);
   const observe = vi.spyOn(cancellation, "observeBeforeCancellation");
   const prompt = await a.prompt("ignore-cancel"); await a.abort();
   expect(await awaitTurnEnd(a, prompt.request.seq)).toEqual({ kind: "aborted" });
@@ -112,7 +112,7 @@ test("native cleanup failure still stops this root's hosted terminal and leaves 
   const [a, b] = await Promise.all([f.open("a"), f.open("b")]); await promptAndWait(a, "terminal");
   const pidFile = path.join(f.cwd, "a", `terminal-${a.id}.pid`);
   await expect.poll(async () => readFile(pidFile, "utf8").catch(() => "")).not.toBe("");
-  const pid = Number(await readFile(pidFile, "utf8")); expect(alive(pid)).toBe(true);
+  const pid = reportedProcess(JSON.parse(await readFile(pidFile, "utf8"))); expect(alive(pid)).toBe(true);
   await a.dispose(); await expect.poll(() => alive(pid)).toBe(false);
   expect(a.records().some(record => record.kind === "response" && record.body.kind === "cleanup" && record.body.result.kind === "failed" && record.body.result.reason.includes("native cleanup refused"))).toBe(true);
   const result4 = await promptAndWait(b, "peer-survives"); expect(result4.kind).toBe("ended");
@@ -203,7 +203,7 @@ test("host terminals stay partitioned even when a peer presents the real termina
   await promptAndWait(a, "terminal");
   const pidFile = path.join(f.cwd, "a", `terminal-${a.id}.pid`);
   await expect.poll(async () => readFile(pidFile, "utf8").catch(() => "")).not.toBe("");
-  const pid = Number(await readFile(pidFile, "utf8")); expect(alive(pid)).toBe(true);
+  const pid = reportedProcess(JSON.parse(await readFile(pidFile, "utf8"))); expect(alive(pid)).toBe(true);
   await promptAndWait(b, "terminal-peer"); expect(text(b)).toContain("peer-terminal-refused");
   await b.dispose(); expect(alive(pid)).toBe(true);
   await a.dispose(); await expect.poll(() => alive(pid)).toBe(false);

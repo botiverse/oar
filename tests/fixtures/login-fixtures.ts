@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { chmodSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { reportedProcess, type ProcessIdentity, alive } from "./process-tree.js";
 
 /** A fake vendor CLI (one of the fake-*-login.mjs scripts), driven by a JSON state file it also writes back to. */
 export interface FakeCli {
@@ -35,8 +36,17 @@ export function fakeLoginCli({ dir, name, script, state }: FakeCliSpec): FakeCli
 }
 
 /** A pid the fake reported in its state; fails when it reported none. */
-export function reportedPid(fake: FakeCli, key: string): number {
-  const pid = fake.read()[key];
-  assert.ok(typeof pid === "number", `the fake reported no ${key}`);
-  return pid;
+export function reportedIdentity(fake: FakeCli, key: string): ProcessIdentity {
+  return reportedProcess(fake.read()[key]);
+}
+
+/** All login subprocesses must have exited by the time login returns. */
+export function reportedLogins(fake: FakeCli): ProcessIdentity[] {
+  const { pids } = fake.read();
+  assert.ok(Array.isArray(pids));
+  return pids.map(value => reportedProcess(value));
+}
+
+export function allLoginsExited(fake: FakeCli): boolean {
+  return reportedLogins(fake).every(identity => !alive(identity));
 }

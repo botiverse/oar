@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest";
 import { codexAuthStatus, codexLogin, projectCodexLoginStatus } from "../../packages/oar/src/runtimes/codex/login.js";
-import { fakeLoginCli, reportedPid, type FakeCli } from "../fixtures/login-fixtures.js";
+import { fakeLoginCli, reportedIdentity, type FakeCli } from "../fixtures/login-fixtures.js";
 import { recordedInteraction } from "../fixtures/login-interaction.js";
 import { gone } from "../fixtures/process-tree.js";
 
@@ -198,8 +198,8 @@ test("past the deadline the app-server is stopped with everything it started", a
   const fake = fakeCodex({ mode: "hang" });
   const result = await codexLogin(installation(fake), recordedInteraction([]), { timeoutMs: 1000 });
   assert.deepEqual(result, { kind: "failed", reason: "timed_out", detail: "no sign-in within 1000 ms" });
-  assert.ok(await gone(reportedPid(fake, "pid")), "the app-server outlived the deadline");
-  assert.ok(await gone(reportedPid(fake, "workerPid")), "a process the app-server started outlived the deadline");
+  assert.ok(await gone(reportedIdentity(fake, "pid")), "the app-server outlived the deadline");
+  assert.ok(await gone(reportedIdentity(fake, "workerPid")), "a process the app-server started outlived the deadline");
 });
 
 test("aborting the signal cancels the login and stops the app-server's process group (its tree on Windows)", async () => {
@@ -214,7 +214,7 @@ test("aborting the signal cancels the login and stops the app-server's process g
     },
   });
   assert.deepEqual(result, { kind: "cancelled" });
-  assert.ok(await gone(reportedPid(fake, "workerPid")), "a process the app-server started outlived the cancel");
+  assert.ok(await gone(reportedIdentity(fake, "workerPid")), "a process the app-server started outlived the cancel");
 });
 
 test("a codex without the device code login starts nothing", async () => {

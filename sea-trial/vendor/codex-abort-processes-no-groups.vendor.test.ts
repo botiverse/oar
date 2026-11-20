@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { expect, test, vi } from "vitest";
+import { signalFixture, reportedProcess, type ProcessIdentity } from "../../tests/fixtures/process-tree.js";
 import type { ControlResult, Session } from "../../packages/oar/src/contracts/session.js";
 import type { SessionCleanup } from "../../packages/oar/src/contracts/placement.js";
 import { awaitTurnEnd, promptAndWait, codexRuntime } from "../../packages/oar/src/index.js";
@@ -29,12 +30,14 @@ const codexSession = codexRuntime.session;
  * same adapter path and this test's own logic but says nothing about Windows.
  */
 
+const identityPath = path.resolve(import.meta.dirname, "../../tests/fixtures/process-tree.ts");
 const COMMAND = `
+const { captureProcess } = require(${JSON.stringify(identityPath)});
 const { spawn } = require("node:child_process");
 const { writeFileSync } = require("node:fs");
 const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { detached: true, stdio: "ignore" });
 child.unref();
-writeFileSync(process.argv[2], JSON.stringify({ command: process.pid, detached: child.pid }));
+writeFileSync(process.argv[2], JSON.stringify({ command: captureProcess(process.pid), detached: captureProcess(child.pid) }));
 setInterval(() => {}, 1000);
 `;
 
@@ -47,10 +50,9 @@ function identities(pids: readonly number[]): readonly (string | null)[] {
   return pids.map((pid) => observed.table.get(pid)?.start ?? null);
 }
 
-async function reportedPids(file: string): Promise<readonly number[]> {
+async function reportedProcesses(file: string): Promise<readonly ProcessIdentity[]> {
   const report = asRecord(parseJson(await readFile(file, "utf8")));
-  if (typeof report?.command !== "number" || typeof report.detached !== "number") { throw new TypeError("no pids reported yet"); }
-  return [report.command, report.detached];
+  return [reportedProcess(report?.command), reportedProcess(report?.detached)];
 }
 
 async function cleanupOf(session: Session, abort: ControlResult): Promise<SessionCleanup> {
@@ -79,17 +81,18 @@ test.skipIf(process.env.OAR_TEST !== "codex-aimock")("Codex endTurnProcessesOnAb
   expectAvailable(installation, "codex");
   record({ kind: "no_groups_control", phase: "open", platform: process.platform, nativeWindows: process.platform === "win32", installation });
   let session: Session | undefined = undefined;
-  const started: number[] = [];
+  const started: ProcessIdentity[] = [];
   try {
     session = await codexSession(installation, { cwd: process.cwd(), env: { ...provider.env }, endTurnProcessesOnAbort: true });
     const requestsBefore = provider.mock.getRequests().length;
     const prompt = await session.prompt("START_YIELDED");
     expect(prompt.response.body.kind).toBe("accepted");
-    const pids = await vi.waitFor(async () => {
+    const reported = await vi.waitFor(async () => {
       expect(provider.mock.getRequests().length).toBeGreaterThanOrEqual(requestsBefore + 2);
-      return reportedPids(report);
+      return reportedProcesses(report);
     }, { timeout: 60_000, interval: 100 });
-    started.push(...pids);
+    started.push(...reported);
+    const pids = reported.map(child => child.pid);
     const before = identities(pids);
     record({ kind: "no_groups_control", phase: "running", pids, identities: before });
     expect(before).not.toContain(null);
@@ -117,7 +120,7 @@ test.skipIf(process.env.OAR_TEST !== "codex-aimock")("Codex endTurnProcessesOnAb
     vi.restoreAllMocks();
     await session?.dispose();
     for (const pid of started) {
-      try { process.kill(pid, "SIGKILL"); } catch { /* Gone meanwhile. */ }
+      signalFixture(pid);
     }
     await provider.stop();
     await removeFixtureDirectory(directory, "codex-abort-processes-no-groups");

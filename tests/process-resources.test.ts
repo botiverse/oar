@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import type { readdir as Readdir, readFile as ReadFile } from "node:fs/promises";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { captureProcess, fixtureIdentityPath, reportedProcess, signalFixture, type ProcessIdentity } from "./fixtures/process-tree.js";
 import { processTreeResources } from "../packages/oar/src/shared/executable/process-resources.js";
 
 /*
@@ -43,24 +44,29 @@ vi.mock("node:fs/promises", async (importOriginal) => {
 const linux = process.platform === "linux";
 let child: ReturnType<typeof spawn> | null = null;
 
+const owned: ProcessIdentity[] = [];
+
 beforeEach(async () => {
   Object.assign(fs, { open: 0, peak: 0, listings: 0 });
   fs.fail.clear();
   // A runtime stand-in leading its own group, with one child in it.
   child = spawn(process.execPath, ["-e", String.raw`
     const kept = require("node:child_process").spawn(process.execPath, ["-e", "setTimeout(() => {}, 60000)"], { stdio: "ignore" });
-    kept.once("spawn", () => { process.stdout.write(kept.pid + "\n"); });
+    kept.once("spawn", () => { console.log(JSON.stringify(require(${JSON.stringify(fixtureIdentityPath)}).captureProcess(kept.pid))); });
     setTimeout(() => {}, 60000);
   `], { stdio: ["ignore", "pipe", "ignore"], detached: true });
+  if (child.pid !== undefined) { owned.push(captureProcess(child.pid)); }
 });
 
 afterEach(() => {
-  if (child?.pid !== undefined) { process.kill(-child.pid, "SIGKILL"); }
+  for (const identity of owned.splice(0)) { signalFixture(identity); }
 });
 
 async function tree(): Promise<{ readonly root: number; readonly kept: number }> {
   const reported: unknown[] = await once(child?.stdout ?? process.stdin, "data");
-  return { root: child?.pid ?? 0, kept: Number(String(reported[0])) };
+  const kept = reportedProcess(JSON.parse(String(reported[0])));
+  owned.push(kept);
+  return { root: child?.pid ?? 0, kept: kept.pid };
 }
 
 test.skipIf(!linux)("a process gone between the listing and its read is skipped", async () => {

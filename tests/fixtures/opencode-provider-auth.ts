@@ -1,9 +1,10 @@
 import { mkdir, mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { alive } from "./process-tree.js";
 import { OpencodeProviderAuthFacade, type OpencodeFacadeOptions } from "../../packages/oar/src/runtimes/opencode/provider-auth-facade.js";
 import { asRecordList, type JsonRecord } from "../../packages/oar/src/shared/json.js";
-import { fakeLoginCli, reportedPid, type FakeCli } from "./login-fixtures.js";
+import { fakeLoginCli, reportedIdentity, type FakeCli } from "./login-fixtures.js";
 
 /** Integrations shaped like opencode 2.2.7's `integration.list` entries (observed 2026-11-11), trimmed to what the provider-auth tests read. */
 export function opencodeIntegrations(): Record<string, unknown>[] {
@@ -76,12 +77,7 @@ export function fakeConnections(fake: FakeCli, id: string): unknown {
  * nothing the fake writes as it stops is a platform-independent signal.
  */
 export function serverRunning(fake: FakeCli): boolean {
-  try {
-    process.kill(reportedPid(fake, "serverPid"), 0);
-    return true;
-  } catch {
-    return false;
-  }
+  return fake.read().serverPid !== undefined && alive(reportedIdentity(fake, "serverPid"));
 }
 
 /** The rejection of `promise`, for assertions on its fields and its text. */

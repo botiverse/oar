@@ -1,4 +1,5 @@
-/* oxlint-disable typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call -- Standalone native process fixture. */
+/* oxlint-disable typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument -- Standalone native process fixture. */
+import { captureProcess } from "./process-tree.ts";
 import { spawn } from "node:child_process";
 import { writeFileSync } from "node:fs";
 
@@ -10,8 +11,9 @@ tool.once("message", (value) => { ready = value === "ready"; });
 tool.once("disconnect", () => {
   if (!ready) { throw new Error("tool disconnected before readiness"); }
   tool.unref();
-  if (process.env.OAR_TREE_PIDS !== undefined) { writeFileSync(process.env.OAR_TREE_PIDS, JSON.stringify({ root: process.pid, tool: tool.pid })); }
-  console.log(tool.pid);
+  const report = JSON.stringify({ root: captureProcess(process.pid), tool: captureProcess(tool.pid) });
+  if (process.env.OAR_TREE_PIDS !== undefined) { writeFileSync(process.env.OAR_TREE_PIDS, report); }
+  console.log(report);
 });
 process.stdin.resume();
 if (process.env.OAR_TREE_IGNORE_EOF === "1") { setInterval(() => {}, 1000); }

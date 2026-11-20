@@ -6,6 +6,7 @@ import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 import { expect, onTestFinished, test } from "vitest";
+import { reportedProcess, reportShellSelf, signalFixture } from "../fixtures/process-tree.js";
 import { sweepAbandonedMcpConfigs } from "../../packages/oar/src/runtimes/claude/mcp-config.js";
 
 /*
@@ -20,7 +21,7 @@ const launchUrl = pathToFileURL(path.join(import.meta.dirname, "../../packages/o
 const SECRET = "host-death-credential-value";
 
 const FAKE_CLAUDE = `#!/bin/sh
-printf '%s' "$$" > "$OAR_FAKE_OUT.pid"
+${reportShellSelf} > "$OAR_FAKE_OUT.pid.tmp" && /bin/mv "$OAR_FAKE_OUT.pid.tmp" "$OAR_FAKE_OUT.pid" || exit 1
 while [ "$#" -gt 0 ]; do
   if [ "$1" = "--mcp-config" ]; then config="$2"; fi
   shift
@@ -77,11 +78,8 @@ function endStandIn(scratch: string): void {
   if (!existsSync(pidFile)) {
     return;
   }
-  try {
-    process.kill(Number(readFileSync(pidFile, "utf8")), "SIGKILL");
-  } catch {
-    // Already gone: the sweep released it and it exited.
-  }
+  const report: unknown = JSON.parse(readFileSync(pidFile, "utf8"));
+  signalFixture(reportedProcess(report));
 }
 
 test.skipIf(process.platform === "win32")("a host SIGKILLed before claude reads leaves no plaintext, and the next claude session lets the waiting claude go", async () => {

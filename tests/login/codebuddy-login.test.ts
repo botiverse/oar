@@ -6,7 +6,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { codebuddyLogin } from "../../packages/oar/src/runtimes/codebuddy/login.js";
 import { codebuddyAuthStatus, readCodebuddyAuthStatus, projectCodebuddyAuthStatus } from "../../packages/oar/src/runtimes/codebuddy/auth-status.js";
 import { codebuddyLogout } from "../../packages/oar/src/runtimes/codebuddy/logout.js";
-import { fakeLoginCli } from "../fixtures/login-fixtures.js";
+import { allLoginsExited, fakeLoginCli, reportedLogins } from "../fixtures/login-fixtures.js";
 import { recordedInteraction } from "../fixtures/login-interaction.js";
 
 // oxlint-disable-next-line import/no-namespace, import/max-dependencies -- Record the real cleanup reads without making an extra request during login.
@@ -114,9 +114,7 @@ it.each(["timeout", "native-timeout"])("%s settles as timed_out and stops the lo
   const result = await codebuddyLogin(installation, recordedInteraction([]), { timeoutMs: 1500 });
   expect(result).toMatchObject({ kind: "failed", reason: "timed_out" });
   expect(fake.read().loggedIn).toBe(false);
-  const { pids } = fake.read();
-  assert.ok(Array.isArray(pids));
-  for (const pid of pids) { expect(() => process.kill(Number(pid), 0)).toThrow(); }
+  expect(allLoginsExited(fake)).toBe(true);
   expect(JSON.stringify(result)).not.toContain("synthetic-private-codebuddy-access-token");
 }, 5000);
 
@@ -182,9 +180,8 @@ it("a silent confirmation shares the whole login deadline and cannot contradict 
   const observe = processTables.observeProcessTableAsync;
   const capture = vi.spyOn(processTables, "observeProcessTableAsync").mockImplementation(async (...args) => {
     const result = await observe(...args);
-    const { pids } = fake.read();
-    if (result.ok && Array.isArray(pids)) {
-      for (const pid of pids.map(Number)) {
+    if (result.ok && Array.isArray(fake.read().pids)) {
+      for (const { pid } of reportedLogins(fake)) {
         const entry = result.table.get(pid);
         if (entry && !identities.has(pid)) { identities.set(pid, entry.start); }
       }
@@ -193,12 +190,11 @@ it("a silent confirmation shares the whole login deadline and cannot contradict 
   });
   try {
     expect(await codebuddyLogin(installation, recordedInteraction([]), { timeoutMs: 1500 })).toEqual({ kind: "logged_in" });
-    const { pids } = fake.read();
-    assert.ok(Array.isArray(pids));
-    expect(pids).toHaveLength(2);
+    const logins = reportedLogins(fake);
+    expect(logins).toHaveLength(2);
     const after = await observe();
     assert.ok(after.ok);
-    for (const pid of pids.map(Number)) {
+    for (const { pid } of logins) {
       expect(identities.has(pid)).toBe(true);
       expect(after.unreadable?.has(pid)).not.toBe(true);
       const current = after.table.get(pid);

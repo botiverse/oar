@@ -9,9 +9,6 @@ const platform = process.env.OAR_RENAME_PLATFORM;
 assert.equal(typeof stateFile, "string");
 assert.equal(typeof trace, "string");
 assert.ok(platform === "win32" || platform === "linux");
-// Exercise the Windows-only retry policy on every host; filesystem calls
-// still use this machine's real paths and retain actual state snapshots.
-Object.defineProperty(process, "platform", { value: platform });
 const record = (event) => { fs.appendFileSync(trace, `${JSON.stringify(event)}\n`); };
 const rename = fs.renameSync;
 let failures = Number(process.env.OAR_RENAME_FAILURES);

@@ -1,5 +1,6 @@
 /* oxlint-disable eslint/max-statements -- Complete adversarial process lifecycles retain their observations together. */
 import { expect, test, vi } from "vitest";
+import { reportedProcess, alive } from "../fixtures/process-tree.js";
 import { promptAndWait, awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { fixture, launchId, opening, text } from "../fixtures/acp-shared-support.js";
@@ -85,10 +86,11 @@ test.each(["initialize failure", "transport close"])("%s evicts before process s
       const fresh = await f.open("fresh"); expect(await promptAndWait(fresh, "works")).toMatchObject({ kind: "ended" });
       shutdown.release?.(); await rejected;
     } else {
-      const old = await f.open("first"); const prompt = await old.prompt("connection-break");
+      const old = await f.open("first"); const original = reportedProcess(opening(old));
+      const prompt = await old.prompt("connection-break");
       await stopping.promise;
       // EOF must arrive while the original process is still alive, before kill is released.
-      expect(() => { process.kill(Number(opening(old)?.pid), 0); }).not.toThrow();
+      expect(alive(original)).toBe(true);
       const fresh = await f.open("fresh");
       expect(launchId(fresh)).not.toBe(launchId(old));
       expect(await promptAndWait(fresh, "works")).toMatchObject({ kind: "ended" });

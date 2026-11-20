@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { onTestFinished } from "vitest";
+import { reportedProcess, type ProcessIdentity } from "./process-tree.js";
 import type { Session } from "../../packages/oar/src/contracts/session.js";
 import { createCursorRuntime, type CursorRuntime, type CursorSdk } from "../../packages/oar/src/index.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
@@ -40,23 +41,13 @@ export async function until(done: () => boolean, ms = 5000): Promise<void> {
   }
 }
 
-export function alive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
+export interface CursorProcesses { readonly child: ProcessIdentity; readonly grandchild: ProcessIdentity }
 
-/** The `{child, grandchild}` pids a `spawn:<file>` run wrote. */
-export function reportedPids(file: string): { readonly child: number; readonly grandchild: number } {
+/** The child and tool identities captured together when the tool was spawned. */
+export function reportedProcesses(file: string): CursorProcesses {
   const parsed: unknown = existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : null;
   const record = asRecord(parsed);
-  if (typeof record?.child !== "number" || typeof record.grandchild !== "number") {
-    throw new TypeError(`no cursor child pids in ${file}`);
-  }
-  return { child: record.child, grandchild: record.grandchild };
+  return { child: reportedProcess(record?.child), grandchild: reportedProcess(record?.grandchild) };
 }
 
 /** A fresh directory, removed when the test ends. */

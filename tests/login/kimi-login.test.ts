@@ -1,4 +1,3 @@
-import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -6,7 +5,7 @@ import path from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { kimiRuntime } from "../../packages/oar/src/runtimes/kimi/index.js";
 import { kimiCanResolveBrowser } from "../../packages/oar/src/runtimes/kimi/login-browser.js";
-import { fakeLoginCli, type FakeCli } from "../fixtures/login-fixtures.js";
+import { allLoginsExited, fakeLoginCli, type FakeCli } from "../fixtures/login-fixtures.js";
 import { recordedInteraction } from "../fixtures/login-interaction.js";
 
 const directories: string[] = [];
@@ -21,9 +20,7 @@ async function fixture(mode: string, loggedIn = false) {
 }
 
 function assertStopped(fake: FakeCli): void {
-  const { pids } = fake.read();
-  assert.ok(Array.isArray(pids));
-  for (const pid of pids) { expect(() => process.kill(Number(pid), 0)).toThrow(); }
+  expect(allLoginsExited(fake)).toBe(true);
 }
 
 it("relays native device codes, passes the region and removes the per-login browser helper", async () => {

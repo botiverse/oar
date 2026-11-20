@@ -14,7 +14,7 @@ import { resolveRunDir } from "../harness/trace.js";
 import { startCodexAimock, type AimockEnv } from "../harness/aimock.js";
 import { expectAvailable } from "./support/asserts.js";
 import { ECHO_SERVER } from "./support/echo-mcp.js";
-import { expectRunning, expectStarted, processTable } from "./support/codex-process-count.js";
+import { expectRunning, expectStarted, processTable, reapMarkedProcesses } from "./support/codex-process-count.js";
 
 const codexInstallation = codexRuntime.installation;
 const codexSession = codexRuntime.session;
@@ -33,7 +33,8 @@ const codexSession = codexRuntime.session;
 const COMMAND_SCRIPT = `
 const { spawn } = require("node:child_process");
 const detached = process.argv[3];
-spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)", detached], { detached: true, stdio: "ignore" }).unref();
+const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)", detached], { detached: true, stdio: "ignore" });
+child.unref();
 console.log("command started");
 setInterval(() => {}, 1000);
 `;
@@ -49,7 +50,10 @@ const { spawn } = require("node:child_process");
 const { existsSync, appendFileSync } = require("node:fs");
 const [, , trigger, marker, server] = process.argv;
 appendFileSync(trigger + "." + marker + ".started", String(process.pid) + "\\n");
-const run = (detached, name) => spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)", name], { detached, stdio: "ignore" }).unref();
+const run = (detached, name) => {
+  const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)", name], { detached, stdio: "ignore" });
+  child.unref();
+};
 const poll = setInterval(() => {
   if (existsSync(trigger)) {
     clearInterval(poll);
@@ -91,12 +95,9 @@ function running(marker: string): number[] {
   return processTable().filter(row => row.args.includes(marker)).map(row => row.pid);
 }
 
-function killAll(markers: Markers): void {
-  for (const marker of [markers.mcp, workerOf(markers.mcp), detachedWorkerOf(markers.mcp), markers.earlier, workerOf(markers.earlier), detachedWorkerOf(markers.earlier), markers.command, markers.detached]) {
-    for (const pid of running(marker)) {
-      try { process.kill(pid, "SIGKILL"); } catch { /* Gone meanwhile. */ }
-    }
-  }
+function cleanFixtureProcesses(markers: Markers): void {
+  reapMarkedProcesses([markers.mcp, workerOf(markers.mcp), detachedWorkerOf(markers.mcp), markers.earlier,
+    workerOf(markers.earlier), detachedWorkerOf(markers.earlier), markers.command, markers.detached]);
 }
 
 function scripted(markers: Markers, script: string, older: string, trigger: string) {
@@ -203,7 +204,7 @@ async function abortedTurn({ options, markers, turn, earlier, after }: Scenario)
     throw error;
   } finally {
     await session?.dispose();
-    killAll(markers);
+    cleanFixtureProcesses(markers);
     await provider.stop();
     await removeFixtureDirectory(directory, "codex-abort-processes");
   }

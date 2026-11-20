@@ -20,6 +20,7 @@
 // "fail_after_clear" (signs out, then fails writing its config), "crash"
 // (exit 3 with a token in its last words), "hang" (starts a worker in its
 // process group and never finishes).
+import { captureProcess } from "./process-tree.ts";
 import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
@@ -66,7 +67,7 @@ if (command === "--version") {
   if (state.mode === "hang") {
     // Reported before any output, so a test that stops the login on its first prompt finds the worker.
     const worker = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });
-    save({ workerPid: worker.pid, pid: process.pid });
+    save({ workerPid: captureProcess(worker.pid), pid: captureProcess(process.pid) });
     setInterval(() => {}, 1000);
   }
   process.stdout.write(`${ESC}[2mOpening browser to sign in…${ESC}[22m\n`);
@@ -109,7 +110,7 @@ if (command === "--version") {
     // No newline came before: claude's output continues the prompt's line.
     process.stdout.write("Login successful.\n");
     if (state.mode === "linger") {
-      save({ pid: process.pid });
+      save({ pid: captureProcess(process.pid) });
       setInterval(() => {}, 1000);
       return;
     }
@@ -123,7 +124,7 @@ if (command === "--version") {
   };
   if (state.logoutMode === "hang") {
     const worker = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });
-    save({ workerPid: worker.pid, pid: process.pid });
+    save({ workerPid: captureProcess(worker.pid), pid: captureProcess(process.pid) });
     setInterval(() => {}, 1000);
   } else if (state.logoutMode === "stdin") {
     process.stdin.resume();

@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import { codexLogout } from "../../packages/oar/src/runtimes/codex/logout.js";
-import { fakeLoginCli, reportedPid, type FakeCli } from "../fixtures/login-fixtures.js";
+import { fakeLoginCli, reportedIdentity, type FakeCli } from "../fixtures/login-fixtures.js";
 import { gone } from "../fixtures/process-tree.js";
 
 let dir = "";
@@ -72,8 +72,8 @@ test("past the deadline the logout is stopped with everything it started (its tr
       "reason": "timed_out",
     }
   `);
-  assert.ok(await gone(reportedPid(fake, "pid")), "codex logout outlived the deadline");
-  assert.ok(await gone(reportedPid(fake, "workerPid")), "a process codex started outlived the deadline");
+  assert.ok(await gone(reportedIdentity(fake, "pid")), "codex logout outlived the deadline");
+  assert.ok(await gone(reportedIdentity(fake, "workerPid")), "a process codex started outlived the deadline");
 });
 
 test("a codex without logout, an installation that is not an executable, or a missing one runs nothing", async () => {

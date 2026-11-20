@@ -1,6 +1,6 @@
 import { afterEach, expect, test } from "vitest";
 import { spawnLineProcess, type LineProcess } from "../packages/oar/src/shared/executable/process.js";
-import { eventually } from "./fixtures/process-tree.js";
+import { eventually, reportedProcess, reportShellChild, type ProcessIdentity, signalFixture } from "./fixtures/process-tree.js";
 
 // Which of an exited root's pipes OAR closes depends on its reader
 // (pipe-close.ts): only data the reader has not taken yet keeps a pipe open
@@ -8,10 +8,10 @@ import { eventually } from "./fixtures/process-tree.js";
 // `'readable'` reader has `readableFlowing` false while it reads normally.
 // The bounded wait itself: process-held-pipes.test.ts.
 const posix = process.platform !== "win32";
-const started: number[] = [];
+const started: ProcessIdentity[] = [];
 
 afterEach(() => {
-  for (const pid of started.splice(0)) { try { process.kill(pid, "SIGKILL"); } catch { /* Already gone. */ } }
+  for (const pid of started.splice(0)) { signalFixture(pid); }
 });
 
 /** `heldPipes` with its timing reduced to its type, to compare the rest exactly. */
@@ -23,11 +23,11 @@ async function withHolder(args: readonly string[]): Promise<{ readonly child: Li
   const child = spawnLineProcess("sh", args, { killTree: true, extraPipe: true });
   const extra = child.extraPipe;
   if (extra === undefined) { throw new Error("no extra pipe"); }
-  const printed = Promise.withResolvers<number>();
-  child.onLine((line) => { printed.resolve(Number(line)); });
-  const holder = await printed.promise;
+  const printed = Promise.withResolvers<string>();
+  child.onLine((line) => { printed.resolve(line); });
+  const holder = reportedProcess(JSON.parse(await printed.promise));
   started.push(holder);
-  return { child, extra, holder };
+  return { child, extra, holder: holder.pid };
 }
 
 /** A chunk read from a pipe as text. */
@@ -46,14 +46,14 @@ async function readAll(extra: AsyncIterable<unknown>, busy: Promise<void> = Prom
 }
 
 /** The root leaves a holder on its private pipe only, which writes `first` and then `second` after the root has exited; the root prints its pid and exits. */
-const leaveLateWriter = ["-c", `(sleep 0.3; printf first >&3; sleep 0.3; printf second >&3; exec sleep 60) >/dev/null 2>&1 & echo "$!"; exit 0`];
+const leaveLateWriter = ["-c", `(sleep 0.3; printf first >&3; sleep 0.3; printf second >&3; exec sleep 60) >/dev/null 2>&1 & ${reportShellChild}; exit 0`];
 /**
  * The root leaves a holder on its private pipe only (stdout and stderr close), prints its pid and exits.
  * The redirect is on a subshell that execs `sleep`: a shell that runs `sleep` itself (an applet as a
  * builtin) keeps saved copies of the redirected stdout and stderr open in the holder, so they would
  * really be held.
  */
-const leaveExtraHolder = ["-c", `printf data >&3; (exec sleep 60) >/dev/null 2>&1 & echo "$!"; exit 0`];
+const leaveExtraHolder = ["-c", `printf data >&3; (exec sleep 60) >/dev/null 2>&1 & ${reportShellChild}; exit 0`];
 
 // Review round 2 (B5): `readableFlowing` is false for a reader that reads normally too; only unread data keeps a pipe open.
 test.skipIf(!posix)("a pipe a `for await` reader is reading is closed like any other held pipe", async () => {

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { killGraceMs } from "../packages/oar/src/shared/executable/index.js";
-import { eventually, gone, timed, withTreeProbe } from "./fixtures/process-tree.js";
+import { eventually, gone, timed, withTreeProbe, signalFixture } from "./fixtures/process-tree.js";
 
 import { piRpc, processSessions as runtimes } from "./fixtures/process-sessions.js";
 
@@ -98,7 +98,7 @@ test.each([...runtimes, ["pi RPC", piRpc] as const])("%s answers dispose after i
     const session = await open(probe.dir, { cwd: probe.dir, env: probe.env });
     try {
       const tree = await probe.tree();
-      process.kill(tree.agent, "SIGKILL");
+      signalFixture(tree.agent);
       expect(await eventually(() => session.records().some(record => record.kind === "response" && record.requestId === "" && record.body.kind === "exited"), 10_000)).toBe(true);
       await Promise.all([session.dispose(), session.dispose()]);
       const requests = session.records().filter(record => record.kind === "request" && record.body.kind === "dispose");

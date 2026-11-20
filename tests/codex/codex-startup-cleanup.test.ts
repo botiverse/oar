@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, expect, test, vi } from "vitest";
 import type { SessionOptions } from "../../packages/oar/src/contracts/session.js";
 import { codexSession } from "../../packages/oar/src/runtimes/codex/session.js";
-import { fakeAgentBinary, gone } from "../fixtures/process-tree.js";
+import { fakeAgentBinary, gone, reportedProcess, alive, signalFixture } from "../fixtures/process-tree.js";
 
 const fixture = fileURLToPath(new URL("../fixtures/codex-startup.mjs", import.meta.url));
 afterEach(() => { vi.unstubAllEnvs(); });
@@ -30,13 +30,6 @@ const failures: FailureCase[] = [
   { failure: "thread/settings/update", options: { resume: "fixture-thread", effort: "high" }, reason: /fixture refused thread\/settings\/update/u },
 ];
 
-function running(pid: number): boolean {
-  try { process.kill(pid, 0); return true; }
-  catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ESRCH") { return false; }
-    throw error;
-  }
-}
 
 // DSH's OAR 0.67.0 patch exposed these paths. Warm the same home first:
 // cold-home coordination already cleans up a rejected initialize itself.
@@ -71,21 +64,21 @@ test.each(failures)("$failure rejection waits for the app-server to exit", async
       await expect.poll(() => existsSync(stopping) || settled, { timeout: 10_000 }).toBe(true);
       expect(settled, "open rejected before the app-server exited").toBe(false);
       expect(existsSync(stopping), "app-server was not asked to stop").toBe(true);
-      const stoppingPid = Number(readFileSync(pidFile, "utf8"));
-      expect(running(stoppingPid)).toBe(true);
+      const stoppingPid = reportedProcess(JSON.parse(readFileSync(pidFile, "utf8")));
+      expect(alive(stoppingPid)).toBe(true);
       writeFileSync(release, "release");
     }
     const error = await opening;
     assert.ok(error instanceof Error, `open did not reject: ${String(error)}`);
     expect(error.message).toMatch(reason);
-    const pid = Number(readFileSync(pidFile, "utf8"));
-    expect(running(pid), "open returned before its process exited").toBe(false);
+    const pid = reportedProcess(JSON.parse(readFileSync(pidFile, "utf8")));
+    expect(alive(pid), "open returned before its process exited").toBe(false);
   } finally {
     writeFileSync(release, "release");
     if (existsSync(pidFile)) {
-      const pid = Number(readFileSync(pidFile, "utf8"));
-      if (running(pid)) { process.kill(pid, "SIGKILL"); }
-      assert.ok(await gone(pid), `fixture process ${String(pid)} survived cleanup`);
+      const pid = reportedProcess(JSON.parse(readFileSync(pidFile, "utf8")));
+      signalFixture(pid);
+      assert.ok(await gone(pid), `fixture process ${String(pid.pid)} survived cleanup`);
     }
     await opening;
     await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });

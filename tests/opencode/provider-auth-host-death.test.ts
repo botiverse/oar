@@ -1,9 +1,9 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
-import { setTimeout as delay } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 import { afterEach, expect, test } from "vitest";
-import { reportedPid } from "../fixtures/login-fixtures.js";
+import { gone, signalFixture } from "../fixtures/process-tree.js";
+import { reportedIdentity } from "../fixtures/login-fixtures.js";
 import { opencodeAuthFixture, removeOpencodeAuthFixtures } from "../fixtures/opencode-provider-auth.js";
 
 /*
@@ -18,23 +18,6 @@ afterEach(removeOpencodeAuthFixtures);
 
 const facadeUrl = pathToFileURL(path.join(import.meta.dirname, "../../packages/oar/src/runtimes/opencode/provider-auth-facade.ts")).href;
 
-function alive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function gone(pid: number, ms: number): Promise<boolean> {
-  const deadline = Date.now() + ms;
-  while (alive(pid) && Date.now() < deadline) {
-    // oxlint-disable-next-line no-await-in-loop -- polling.
-    await delay(50);
-  }
-  return !alive(pid);
-}
 
 test("a SIGKILLed host's opencode serve stops with it", async () => {
   const { fake, home } = await opencodeAuthFixture();
@@ -43,13 +26,13 @@ test("a SIGKILLed host's opencode serve stops with it", async () => {
 await OpencodeProviderAuthFacade.create(${JSON.stringify(options)});
 process.kill(process.pid, "SIGKILL");`;
   const host = spawnSync(process.execPath, ["--import", "tsx", "--input-type=module", "-e", script], { encoding: "utf8", timeout: 30_000 });
-  const server = reportedPid(fake, "serverPid");
+  const server = reportedIdentity(fake, "serverPid");
   try {
     // Windows terminates the process outright (exit 1); the facade was created either way, or stderr says why not.
     expect(process.platform === "win32" ? { status: host.status, stderr: host.stderr } : { signal: host.signal, stderr: host.stderr })
       .toEqual(process.platform === "win32" ? { status: 1, stderr: "" } : { signal: "SIGKILL", stderr: "" });
-    expect(await gone(server, 10_000), `opencode serve ${String(server)} outlived its killed host`).toBe(true);
+    expect(await gone(server, 10_000), `opencode serve ${String(server.pid)} outlived its killed host`).toBe(true);
   } finally {
-    if (alive(server)) { process.kill(server, "SIGKILL"); }
+    signalFixture(server);
   }
 });

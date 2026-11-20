@@ -1,6 +1,8 @@
+import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { reportedProcess, gone } from "../../../tests/fixtures/process-tree.js";
 import { asRecord, type JsonRecord } from "../../../packages/oar/src/shared/json.js";
 
 const script = fileURLToPath(new URL("../../../tests/fixtures/session-start-hook.mjs", import.meta.url));
@@ -17,10 +19,7 @@ export async function hookMarks(file: string): Promise<readonly JsonRecord[]> {
   return content.trim().split("\n").map((line) => asRecord(JSON.parse(line)) ?? {});
 }
 
-export function processRunning(pid: number): boolean {
-  try { process.kill(pid, 0); return true; }
-  catch (error) {
-    if (asRecord(error)?.code === "ESRCH") { return false; }
-    throw error;
-  }
+export async function expectHookExited(mark: unknown): Promise<void> {
+  const processId = reportedProcess(mark);
+  assert.ok(await gone(processId, 10_000), `Hook process ${processId.pid} is still running`);
 }

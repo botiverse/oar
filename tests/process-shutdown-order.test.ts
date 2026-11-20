@@ -5,7 +5,7 @@ import { spawnLineProcess } from "../packages/oar/src/shared/executable/process.
 import type { ProcessTableObservation } from "../packages/oar/src/shared/executable/process-tree.js";
 // oxlint-disable-next-line import/no-namespace -- Control only the observation boundary, retaining actual root exit and cleanup.
 import * as tables from "../packages/oar/src/shared/executable/process-table-async.js";
-import { gone } from "./fixtures/process-tree.js";
+import { gone, type ProcessIdentity, reportedCleanupTree, signalFixture } from "./fixtures/process-tree.js";
 
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
 const failure: ProcessTableObservation = { ok: false, source: "windows", reason: "timeout", elapsedMs: 5000, timeoutMs: 5000 };
@@ -30,20 +30,18 @@ test.each(["capture", "force"])("LineProcess waits for pending %s after native e
   const child = spawnLineProcess(process.execPath, [fileURLToPath(new URL("fixtures/async-cleanup-tree.mjs", import.meta.url))], {
     killTree: true, shutdown: "stdin", env: { ...process.env, OAR_TREE_IGNORE_EOF: phase === "force" ? "1" : "0" },
   });
-  const entered = Promise.withResolvers<void>(), ready = Promise.withResolvers<number>();
+  const entered = Promise.withResolvers<void>(), ready = Promise.withResolvers<string>();
   const gate = Promise.withResolvers<ProcessTableObservation>();
   const exits: { code: number | null; reason: string | undefined }[] = [];
-  child.onLine((line) => { if (/^\d+$/u.test(line)) { ready.resolve(Number(line)); } });
+  child.onLine((line) => { if (line.startsWith("{")) { ready.resolve(line); } });
   child.onExit((code, reason) => { exits.push({ code, reason }); });
-  let tool: number | undefined = undefined;
-  let root: number | undefined = undefined;
+  let tool: ProcessIdentity | undefined = undefined;
+  let root: ProcessIdentity | undefined = undefined;
   try {
-    tool = await ready.promise;
+    ({ root, tool } = reportedCleanupTree(await ready.promise));
     expect(await gone(tool, 50)).toBe(false);
     const initial = await tables.observeProcessTableAsync();
-    expect(initial.ok).toBe(true);
-    root = initial.ok ? initial.table.get(tool)?.ppid : undefined;
-    if (root === undefined) { throw new Error("fixture root identity missing"); }
+    expect(initial.ok && initial.table.get(tool.pid)?.ppid).toBe(root.pid);
     let active = false, overlap = false;
     const nativeRead = tables.observeProcessTableAsync;
     const read = vi.spyOn(tables, "observeProcessTableAsync");
@@ -55,7 +53,7 @@ test.each(["capture", "force"])("LineProcess waits for pending %s after native e
     child.kill();
     await entered.promise;
     if (phase === "capture") { child.markNativeStop(); child.stdin.end(); }
-    else { process.kill(root, "SIGTERM"); }
+    else { signalFixture(root, "SIGTERM"); }
     await vi.waitFor(() => { const { exitCode, signal } = child.diagnostics(); expect(exitCode !== null || signal !== null).toBe(true); }, { timeout: 5000 });
     await nextTurn();
     expect(exits).toEqual([]);
@@ -70,9 +68,9 @@ test.each(["capture", "force"])("LineProcess waits for pending %s after native e
     expect(await gone(tool, phase === "force" ? 5000 : 50)).toBe(phase === "force");
   } finally {
     gate.resolve(failure); vi.restoreAllMocks();
-    if (root !== undefined && child.diagnostics().exitCode === null && child.diagnostics().signal === null) { try { process.kill(root, "SIGKILL"); } catch { /* Already gone. */ } }
+    if (root !== undefined && child.diagnostics().exitCode === null && child.diagnostics().signal === null) { signalFixture(root); }
     child.kill(); await child.exited;
-    if (tool !== undefined) { try { process.kill(tool, "SIGKILL"); } catch { /* Already reclaimed. */ } }
+    if (tool !== undefined) { signalFixture(tool); }
   }
 });
 

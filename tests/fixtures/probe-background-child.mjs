@@ -1,4 +1,5 @@
 /* oxlint-disable typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument -- Standalone untyped child-process fixture. */
+import { captureProcess } from "./process-tree.ts";
 import { spawn } from "node:child_process";
 import { renameSync, writeFileSync } from "node:fs";
 
@@ -13,7 +14,7 @@ setTimeout(() => { process.exit(0); }, 60_000);
 grandchild.once("message", () => {
   const file = process.env.OAR_FIXTURE_PIDS;
   if (file === undefined) { throw new Error("missing pid file"); }
-  writeFileSync(`${file}.tmp`, JSON.stringify({ agent: process.pid, grandchild: grandchild.pid }));
+  writeFileSync(`${file}.tmp`, JSON.stringify({ agent: captureProcess(process.pid), grandchild: captureProcess(grandchild.pid) }));
   renameSync(`${file}.tmp`, file);
   const flood = process.env.OAR_FIXTURE_FLOOD;
   if (flood === "stdout" || flood === "stderr") {

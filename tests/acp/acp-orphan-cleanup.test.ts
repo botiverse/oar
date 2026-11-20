@@ -2,7 +2,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, expect, test, vi } from "vitest";
 import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
-import { gone } from "../fixtures/process-tree.js";
+import { gone, type ProcessIdentity, reportedProcess, signalFixture } from "../fixtures/process-tree.js";
 import { captureCleanupEvidence, expectCleanupEvidence, expectOrphanReclaimed } from "../fixtures/cleanup-evidence.js";
 
 afterEach(() => { vi.restoreAllMocks(); });
@@ -14,14 +14,14 @@ test("ACP disposal captures tools before native cancellation severs their parent
   const session = await acpSession({ args: [fileURLToPath(new URL("../fixtures/shutdown-orphan-tree.mjs", import.meta.url)), "acp"], capabilities: { queue: { durable: false }, attribution: "opaque" } })(
     { kind: "available", via: "executable", command: process.execPath }, { cwd: process.cwd() },
   );
-  let owned: { middle: number; tool: number } | undefined = undefined;
+  let owned: { middle: ProcessIdentity; tool: ProcessIdentity } | undefined = undefined;
   try {
     await session.prompt("start");
     await expect.poll(() => session.records().flatMap(r => r.kind === "frame" ? r.body.events.filter(e => e.kind === "text_delta").map(e => e.text) : []).join(""), { timeout: 10_000 }).not.toBe("");
     const text = session.records().flatMap(r => r.kind === "frame" ? r.body.events.filter(e => e.kind === "text_delta").map(e => e.text) : []).join("");
     const value = asRecord(JSON.parse(text));
-    expect(typeof value?.middle).toBe("number"); expect(typeof value?.tool).toBe("number");
-    owned = { middle: Number(value?.middle), tool: Number(value?.tool) };
+
+    owned = { middle: reportedProcess(value?.middle), tool: reportedProcess(value?.tool) };
     expect(await gone(owned.middle, 50)).toBe(false); expect(await gone(owned.tool, 50)).toBe(false);
     await session.dispose();
     expect(await gone(owned.middle)).toBe(true);
@@ -35,6 +35,6 @@ test("ACP disposal captures tools before native cancellation severs their parent
     await expectOrphanReclaimed(owned.tool, evidence, capture);
   } finally {
     await session.dispose();
-    for (const pid of owned === undefined ? [] : [owned.middle, owned.tool]) { try { process.kill(pid, "SIGKILL"); } catch { /* Already reclaimed. */ } }
+    for (const pid of owned === undefined ? [] : [owned.middle, owned.tool]) { signalFixture(pid); }
   }
 });

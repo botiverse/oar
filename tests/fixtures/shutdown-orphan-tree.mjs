@@ -1,4 +1,5 @@
 /* oxlint-disable typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument, typescript/no-unsafe-return -- Standalone native process fixture. */
+import { captureProcess } from "./process-tree.ts";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import readline from "node:readline";
@@ -13,7 +14,7 @@ if (process.argv[2] === "middle") {
   tool.on("message", (value) => { ready = value === "ready"; });
   tool.on("disconnect", () => {
     if (!ready) { process.exit(2); }
-    tool.unref(); process.send({ middle: process.pid, tool: tool.pid });
+    tool.unref(); process.send({ middle: captureProcess(process.pid), tool: captureProcess(tool.pid) });
   });
   process.on("message", () => { process.exit(0); });
 } else {
