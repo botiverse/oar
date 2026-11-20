@@ -136,10 +136,10 @@ describe("SessionCapabilityDeclaration.stopTask", () => {
 });
 
 describe("Codex MCP startup declarations", () => {
-  it.each([undefined, "0.168.0", "0.169.1", "0.170.0-rc.1", "0.171.0"])("has no verified first-turn behavior on %s", version => {
-    expect(codexRuntime.sessionCapabilities(executable(version)).mcpStartup).toEqual({ kind: "unknown" });
+  it.each([undefined, "0.168.0", "0.169.0-rc.1"])("has no verified first-turn behavior on %s", version => {
+    expect(codexRuntime.sessionCapabilities(executable(version)).mcpStartup).toBeUndefined();
   });
-  it.each(["codex-cli 0.169.0", "codex-cli 0.170.0"])("reports per-server startup on %s", version => {
+  it.each(["codex-cli 0.169.0", "0.169.1", "codex-cli 0.170.0", "0.171.0"])("reports per-server startup on %s", version => {
     expect(codexRuntime.sessionCapabilities(executable(version)).mcpStartup).toEqual({ kind: "per_server", firstModelRequest: "may_start_pending" });
   });
 });

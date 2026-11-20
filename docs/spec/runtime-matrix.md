@@ -272,11 +272,11 @@ runtime page](../runtimes/claude.md#side-questions).
 
 ### MCP startup before the first input
 
-Codex 0.169.0 and 0.170.0 declare `mcpStartup.kind: "per_server"`. Their
-first model request can run while tool discovery is pending. Per-server
+Codex declares `mcpStartup.kind: "per_server"` from 0.169.0. On the two
+measured versions, 0.169.0 and 0.170.0, the first model request could run
+while tool discovery was pending. Per-server
 `mcp_server_startup` events and `mcpStartupOf(records, sessionId)` let a host
-wait for its required servers before submitting input. Other Codex
-versions declare `unknown`; an absent declaration on another runtime also
+wait for its required servers before submitting input. An absent declaration
 means unknown. See the [Codex measurement](../runtimes/codex.md#session-mcp-servers).
 
 ### Native tasks and single-task stop

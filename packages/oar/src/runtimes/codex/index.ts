@@ -3,7 +3,7 @@ import { runtimeBrands } from "../../brands.js";
 import { verifiedPlatforms } from "../../platforms.js";
 import { codexSkills, codexMcpServers, codexTools } from "./inventory.js";
 import { defineRuntime } from "../../contracts/runtime.js";
-import { extractSemver, semverAtLeast } from "../../shared/semver.js";
+import { semverAtLeast } from "../../shared/semver.js";
 import { codexAuthStatus, codexLogin } from "./login.js";
 import { codexLogout } from "./logout.js";
 import { codexAccountUsage } from "./account-usage.js";
@@ -19,10 +19,8 @@ export const codexRuntime = defineRuntime({
   id: "codex",
   sessionCapabilities: (installation) => ({
     steer: true, images: true, mcpTransports: ["stdio", "http"], stopTask: true,
-    mcpStartup: installation.via === "executable" && ["0.169.0", "0.170.0"].includes(extractSemver(installation.version) ?? "")
-      ? { kind: "per_server", firstModelRequest: "may_start_pending" } : { kind: "unknown" },
     ...(installation.via === "executable" && semverAtLeast(installation.version, "0.160.1") ? { fileChanges: true } : {}),
-    ...(installation.via === "executable" && semverAtLeast(installation.version, "0.169.0") ? { nativeSessionFile: true } : {}),
+    ...(installation.via === "executable" && semverAtLeast(installation.version, "0.169.0") ? { nativeSessionFile: true, mcpStartup: { kind: "per_server", firstModelRequest: "may_start_pending" } } : {}),
     ...(installation.via === "executable" && semverAtLeast(installation.version, "0.151.0") ? { contextUsage: { tokens: true, contextWindow: true } } : {}),
   }),
   manualCompaction: { kind: "supported", activeTurn: "reject" },

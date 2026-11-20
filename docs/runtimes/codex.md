@@ -1143,11 +1143,11 @@ tool out of the first request on both versions. Waiting for the named
 server's native `ready` report included its tool on turn one, even when a
 second server failed.
 
-On these two installations, `sessionCapabilities(installation).mcpStartup`
-reports `{ kind: "per_server", firstModelRequest: "may_start_pending" }`.
-Other Codex versions return `{ kind: "unknown" }` until measured. Read the
+From 0.169.0, `sessionCapabilities(installation).mcpStartup` reports
+`{ kind: "per_server", firstModelRequest: "may_start_pending" }`. Read the
 latest reported states with `mcpStartupOf(session.records(), session.id)`.
-A missing name has no observed state. Native startup messages with a
+A configured server that never reports stays unknown. A host waiting for it
+must set its own time limit. Native startup messages with a
 thread ID produce `mcp_server_startup` events with the server name and
 `pending`, `ready`, `failed` or `cancelled`. A ready report covers startup;
 tool filters and subsequent configuration can still change the catalog.
