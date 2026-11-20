@@ -36,13 +36,16 @@ test("a bundled installation has no update check", async () => {
   assert.equal(check.kind === "unavailable" ? check.reason : check.kind, "unsupported_installation");
 });
 
-function claudeSources(configDir: string, owner: string | null = null) {
+function claudeSources(
+  configDir: string,
+  probe: string | null | ((realPath: string, timeoutMs: number) => Promise<string | null>) = null,
+) {
   return {
     releases: `${base}/claude`,
     npm: `${base}/npm`,
     configDir: () => configDir,
     globalConfig: () => path.join(configDir, ".claude.json"),
-    systemPackageManager: async () => { await Promise.resolve(); return owner; },
+    systemPackageManager: typeof probe === "function" ? probe : async () => { await Promise.resolve(); return probe; },
   };
 }
 
@@ -51,10 +54,9 @@ test("claude checks the channel its settings choose, at the source its updater r
   routes.set("/claude/stable", [200, "2.1.285\n"]);
   const check = claudeUpdateCheck(claudeSources(configDir));
   const nativePath = path.join(dir, "claude", "versions", "2.1.286");
-  const native = await check(executable(nativePath, "2.1.286 (Claude Code)"));
-  assert.deepEqual(native, {
-    kind: "ok", installed: "2.1.286", latest: "2.1.285", updateAvailable: true, channel: "stable", source: `${base}/claude/stable`,
-  });
+  const expected = { kind: "ok", installed: "2.1.286", latest: "2.1.285", updateAvailable: true, channel: "stable", source: `${base}/claude/stable` };
+  assert.deepEqual(await check(executable(nativePath, "2.1.286 (Claude Code)")), expected);
+  assert.deepEqual(await check(executable("C:/Users/u/.local/bin/claude.exe", "2.1.286 (Claude Code)")), expected);
   writeFileSync(path.join(configDir, "settings.json"), JSON.stringify({ env: { DISABLE_UPDATES: "1" } }));
   const disabled = await check(executable(nativePath, "2.1.286 (Claude Code)"));
   assert.equal(disabled.kind === "unavailable" ? disabled.reason : disabled.kind, "updates_disabled");
@@ -69,11 +71,32 @@ test("claude reports system-package-owned copies unavailable/unsupported even wi
   assert.deepEqual(await claudeUpgrader(sources)(owned), { kind: "unsupported", reason: "unsupported_installation", detail: "this copy updates through dpkg" });
 });
 
-test("claude reports unrecognized layouts unmanaged/unsupported without running claude update", async () => {
-  const sources = claudeSources(claudeConfig("claude-unrecognized-config", {}));
-  const unrecognized = executable("/usr/bin/claude", "2.1.292 (Claude Code)");
-  assert.deepEqual(await claudeUpdateCheck(sources)(unrecognized), { kind: "unavailable", reason: "unmanaged_installation", detail: "Claude installation layout is not recognized" });
-  assert.deepEqual(await claudeUpgrader(sources)(unrecognized), { kind: "unsupported", reason: "unsupported_installation", detail: "Claude installation layout is not recognized" });
+test("claude refuses unrecognized layouts with a distinct detail from package-manager refusals", async () => {
+  const owned = executable("/usr/bin/claude", "2.1.292 (Claude Code)");
+  const ownedUpgrade = await claudeUpgrader(claudeSources(claudeConfig("claude-dpkg-detail", {}), "dpkg"))(owned);
+  const unknownSources = claudeSources(claudeConfig("claude-unrecognized-config", {}));
+  const unknownCheck = await claudeUpdateCheck(unknownSources)(owned);
+  const unknownUpgrade = await claudeUpgrader(unknownSources)(owned);
+  assert.deepEqual(unknownCheck, { kind: "unavailable", reason: "unmanaged_installation", detail: "Claude installation layout is not recognized" });
+  assert.deepEqual(unknownUpgrade, { kind: "unsupported", reason: "unsupported_installation", detail: "Claude installation layout is not recognized" });
+  assert.notEqual(ownedUpgrade.kind === "unsupported" ? ownedUpgrade.detail : "", unknownUpgrade.kind === "unsupported" ? unknownUpgrade.detail : "");
+});
+
+test("claude bounds the package-ownership probe to the caller timeout and probes only once per upgrade", async () => {
+  const configDir = claudeConfig("claude-budget-config", { autoUpdatesChannel: "stable" });
+  writeFileSync(path.join(configDir, ".claude.json"), JSON.stringify({ installMethod: "global" }));
+  routes.set("/npm/stable", [200, JSON.stringify({ name: "@anthropic-ai/claude-code", version: "2.1.292" })]);
+  const budgets: number[] = [];
+  const sources = claudeSources(configDir, async (_realPath, timeoutMs) => {
+    await Promise.resolve();
+    budgets.push(timeoutMs);
+    return null;
+  });
+  const shim = executable(path.join(dir, "pnpm-bin", "claude-missing"), "2.1.292 (Claude Code)");
+  const upgraded = await claudeUpgrader(sources)(shim, { timeoutMs: 2500 });
+  assert.equal(upgraded.kind, "current");
+  assert.equal(budgets.length, 1);
+  assert.ok((budgets[0] ?? 0) > 0 && (budgets[0] ?? 0) <= 2500);
 });
 
 test("a Claude Desktop cache copy leaves checks and upgrades to Desktop", async () => {

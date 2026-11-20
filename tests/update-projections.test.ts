@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { claudeInstallMethod } from "../packages/oar/src/runtimes/claude/update.js";
+import { claudeInstallMethod, packageProbeEnv } from "../packages/oar/src/runtimes/claude/update.js";
 import { projectCodexUpdateStatus } from "../packages/oar/src/runtimes/codex/update.js";
 import { projectGrokUpdateCheck } from "../packages/oar/src/runtimes/grok/update.js";
 import { releaseVersion, updaterEnv, versionAtLeast } from "../packages/oar/src/shared/update.js";
@@ -52,15 +52,28 @@ test("grok's check JSON decides, and a lookup error is never a current installat
   assert.equal(projectGrokUpdateCheck("1.0.46", undefined).kind, "unavailable");
 });
 
-test("claude's install method comes from the executable's real path and never guesses native", () => {
+test("claude's install method recognizes native, npm, and package-manager layouts", () => {
   assert.equal(claudeInstallMethod("/home/u/.local/share/claude/versions/2.1.286"), "native");
+  assert.equal(claudeInstallMethod("C:/Users/u/.local/bin/claude.exe"), "native");
+  assert.equal(claudeInstallMethod(String.raw`C:\Users\u\.local\bin\claude.exe`), "native");
   assert.equal(claudeInstallMethod("/usr/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe"), "npm");
   assert.equal(claudeInstallMethod("/opt/homebrew/Caskroom/claude-code/2.1.285/claude"), "package_manager");
   // A shim whose path is not a layout defers to claude's recorded method for npm only.
   assert.equal(claudeInstallMethod("C:/Users/u/AppData/Roaming/npm/claude.cmd", "global"), "npm");
   assert.equal(claudeInstallMethod("/home/u/.local/share/claude/versions/2.1.286", "global"), "native");
-  // Unrecognized layouts (system packages like /usr/bin/claude or copied binaries) stay unknown.
+});
+
+test("claude's install method never guesses native for unrecognized layouts", () => {
   assert.equal(claudeInstallMethod("/usr/bin/claude"), "unknown");
   assert.equal(claudeInstallMethod("/usr/bin/claude", "native"), "unknown");
+  assert.equal(claudeInstallMethod("/home/u/.local/bin/claude"), "unknown");
+  assert.equal(claudeInstallMethod("C:/Tools/claude.exe"), "unknown");
   assert.equal(claudeInstallMethod("/opt/custom/claude", undefined), "unknown");
+});
+
+test("linux package-ownership probe keeps only PATH and locale", () => {
+  assert.deepEqual(
+    packageProbeEnv({ PATH: "/usr/bin:/bin", LANG: "en_US.UTF-8", ANTHROPIC_API_KEY: "sk-secret", HOME: "/home/u" }),
+    { LC_ALL: "C", PATH: "/usr/bin:/bin", LANG: "en_US.UTF-8" },
+  );
 });

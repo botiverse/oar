@@ -24,8 +24,11 @@ So oar reads the executable's `--version` before and after.
 ## Per runtime
 
 **claude.** Installs: native (`~/.local/bin/claude` links into
-`~/.local/share/claude/versions/<v>`), npm, Homebrew, WinGet, mise, asdf, and
-Linux system packages (apt/dpkg, dnf/rpm, apk, pacman). Linux system packages
+`~/.local/share/claude/versions/<v>` on POSIX; on Windows, Claude 2.1.292
+copies the binary into `%USERPROFILE%\.local\bin\claude.exe` instead of
+symlinking, and its own native-path check accepts both `<versions>/` and
+`<home>/.local/bin/claude.exe`, `[sym]`), npm, Homebrew, WinGet, mise, asdf,
+and Linux system packages (apt/dpkg, dnf/rpm, apk, pacman). Linux system packages
 install to standard paths such as `/usr/bin/claude` with no distinctive path
 segment; Claude 2.1.292 identifies them via `/etc/os-release` and `dpkg -S`,
 `rpm -qf`, `apk info --who-owns` or `pacman -Qo` (`[sym]`) and prints a
