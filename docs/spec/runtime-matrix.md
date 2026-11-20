@@ -270,6 +270,15 @@ saves no transcript. Administrator policy still applies. The answer is
 returned to the caller. Source history stays unchanged. See the [Claude
 runtime page](../runtimes/claude.md#side-questions).
 
+### MCP startup before the first input
+
+Codex declares `mcpStartup.kind: "per_server"` from 0.169.0. On the two
+measured versions, 0.169.0 and 0.170.0, the first model request could run
+while tool discovery was pending. Per-server
+`mcp_server_startup` events and `mcpStartupOf(records, sessionId)` let a host
+wait for its required servers before submitting input. An absent declaration
+means unknown. See the [Codex measurement](../runtimes/codex.md#session-mcp-servers).
+
 ### Native tasks and single-task stop
 
 | Runtime | Native task lifecycle | `stopTask(taskId)` |

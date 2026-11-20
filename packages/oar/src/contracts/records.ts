@@ -128,6 +128,8 @@ export interface UsageReport {
  * merges consecutive pieces for consumers who want blocks.
  */
 export type RuntimeEventBody =
+  /** A named server's own startup in this session. Pending requires an observed start; silence is unknown. */
+  | { readonly kind: "mcp_server_startup"; readonly server: string; readonly status: "pending" | "ready" | "failed" | "cancelled" }
   | { readonly kind: "goal_changed"; readonly goal: GoalSnapshot | null }
   | UserMessage
   /** Native evidence of true session lineage, carried by the frame that names the relationship. Foreign session ids alone never establish an edge. */

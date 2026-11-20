@@ -6,6 +6,7 @@
  * root `@botiverse/oar` re-exports these too, for Node consumers.
  */
 export { eventsOf } from "./events.js";
+export { mcpStartupOf, type McpStartupStatus } from "./mcp-startup.js";
 export { graphOf } from "./graph.js";
 export type { KnownControl } from "./events.js";
 export { initialStatus, reduceStatus, statusOf } from "./agent-status.js";

@@ -56,6 +56,8 @@ export interface SessionCapabilityDeclaration {
   readonly contextUsage?: ContextUsageCapability;
   /** Verified session MCP transports (`[]` when MCP is refused; absent when unverified or handshake-only). */
   readonly mcpTransports?: readonly McpTransport[];
+  /** Per-server native startup reports are available before input. A first model request may run while discovery is pending. */
+  readonly mcpStartup?: { readonly kind: "per_server"; readonly firstModelRequest: "may_start_pending" };
   /** Whether an opened session exposes `Session.stopTask(taskId)`. */
   readonly stopTask?: boolean;
   /** A completed native file-edit tool can report applied changes by path and kind. */
