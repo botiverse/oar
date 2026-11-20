@@ -19,6 +19,15 @@
 Layer rule (see docs/development.md): the assertion channel decides where a test
 lives. Artifacts land under ./oar-trial-run/ per run.
 
+A rejected session open records `session_open_failed` with the case ID and the
+adapter's error. When the ACP process exits during startup, this preserves
+its exit code or signal and bounded, redacted stderr tail. A standalone
+server launched inside that process is visible only through what it reports.
+Both effort cases propagate a transport failure even when stderr mentions
+the requested level. After a Windows OpenCode behavior failure, CI runs
+`pnpm run sea-trial session.effort-never-substituted` in a fresh process. Its
+trace is under `independent-effort/`; the first job failure still counts.
+
 When a resumed open rejects without naming resume, its original error is included
 in the failed case's reason, both in the job output and `case_failed` trace entry.
 The rejection still fails the same assertion.

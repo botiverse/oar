@@ -17,6 +17,11 @@ import { runSuite } from "./harness/runner.js";
 import { openTrace } from "./harness/trace.js";
 import { runtimeUnderTest } from "./harness/subject.js";
 
+const requested = process.argv.slice(2);
+const cases = requested.length === 0 ? trialCases : trialCases.filter(testCase => requested.includes(testCase.id));
+const unknown = requested.filter(id => !cases.some(testCase => testCase.id === id));
+if (unknown.length > 0) { throw new Error(`Unknown sea-trial case: ${unknown.join(", ")}`); }
+
 const target = process.env.OAR_TEST ?? "mock";
 const { runtime, aimock: aimockEnv, concurrency, beforeSuite, close } = await selectBackend(target);
 
@@ -35,7 +40,7 @@ const tracePath = openTrace(target);
 try { await beforeSuite?.(installation); }
 catch (error) { await aimockEnv?.stop(); await close?.(); throw error; }
 const limit = process.env.OAR_TEST_CONCURRENCY;
-const outcomes = await runSuite(trialCases, runtimeUnderTest(runtime, aimockEnv?.env), concurrency ?? (limit === undefined || limit === "" ? undefined : Number(limit)));
+const outcomes = await runSuite(cases, runtimeUnderTest(runtime, aimockEnv?.env), concurrency ?? (limit === undefined || limit === "" ? undefined : Number(limit)));
 let failures = 0;
 for (const outcome of outcomes) {
   if (outcome.kind === "fail") {

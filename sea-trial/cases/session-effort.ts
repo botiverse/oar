@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { AcpError } from "../../packages/oar/src/shared/acp/errors.js";
 import type { Session } from "../../packages/oar/src/contracts/session.js";
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import type { TrialCase } from "../harness/runner.js";
@@ -12,16 +13,14 @@ import type { RuntimeUnderTest } from "../harness/subject.js";
  * and without resume; one that lists none refuses an effort.
  */
 
-type Attempt =
-  | { readonly kind: "opened"; readonly session: Session }
-  | { readonly kind: "refused"; readonly error: unknown };
-
-async function attempt(subject: RuntimeUnderTest, overrides: Parameters<RuntimeUnderTest["startSession"]>[0]): Promise<Attempt> {
-  const outcome = await subject.startSession(overrides).then(
-    (session): Attempt => ({ kind: "opened", session }),
-    (error: unknown): Attempt => ({ kind: "refused", error }),
-  );
-  return outcome;
+/** A transport failure or an unrelated open error is not an answer about effort. */
+async function openAtEffort(subject: RuntimeUnderTest, effort: string, model?: string): Promise<Session | null> {
+  try {
+    return await subject.startSession({ effort, ...(model === undefined ? {} : { model }) });
+  } catch (error) {
+    if (error instanceof AcpError || !String(error).includes(effort)) { throw error; }
+    return null;
+  }
 }
 
 /** The runtime's word on the level, where it gives one (claude's stream carries none), must be the requested level. */
@@ -45,13 +44,10 @@ export const sessionEffortCases: readonly TrialCase[] = [
     requires: ["installation", "session"],
     async run(subject) {
       const requested = "oar-no-such-effort";
-      const opened = await attempt(subject, { effort: requested });
-      if (opened.kind === "refused") {
-        assert.match(String(opened.error), new RegExp(requested, "u"), "a refused effort names the requested level");
-        return;
-      }
-      assert.equal(opened.session.effort().value, requested, "an effort the runtime took reads back exactly as requested");
-      await opened.session.dispose();
+      const session = await openAtEffort(subject, requested);
+      if (session === null) { return; }
+      assert.equal(session.effort().value, requested, "an effort the runtime took reads back exactly as requested");
+      await session.dispose();
     },
   },
   {
@@ -72,8 +68,8 @@ export const sessionEffortCases: readonly TrialCase[] = [
       const [first, second] = entry?.effortLevels ?? [];
       if (entry === undefined || first === undefined || second === undefined) {
         const model = candidates.at(0)?.id;
-        const refused = await attempt(subject, { ...(model === undefined ? {} : { model }), effort: "low" });
-        assert.equal(refused.kind, "refused", `${model ?? "the default model"} lists no effort levels, yet an effort was taken`);
+        const opened = await openAtEffort(subject, "low", model);
+        assert.equal(opened, null, `${model ?? "the default model"} lists no effort levels, yet an effort was taken`);
         return;
       }
       const session = await subject.startSession({ model: entry.id, effort: first });
