@@ -17,6 +17,15 @@ function writeNpm(): void {
     : `#!/bin/sh\nexec ${shellQuote(process.execPath)} ${shellQuote(fakeNpm)} "$@"\n`, { mode: 0o755 });
 }
 
+function writeFakeCodebuddy(directory: string, version: string): void {
+  const script = path.join(directory, "fake-codebuddy.mjs");
+  writeFileSync(script, `console.log(process.argv[2] === "--help" ? "Usage: codebuddy" : ${JSON.stringify(version)});\n`);
+  const command = path.join(directory, process.platform === "win32" ? "codebuddy.cmd" : "codebuddy");
+  writeFileSync(command, process.platform === "win32"
+    ? `@echo off\r\n"${process.execPath}" "${script}" %*\r\n`
+    : `#!/bin/sh\nexec ${shellQuote(process.execPath)} ${shellQuote(script)} "$@"\n`, { mode: 0o755 });
+}
+
 beforeEach(() => {
   home = mkdtempSync(path.join(tmpdir(), "oar-codebuddy-install-"));
   bin = path.join(home, "tools"); prefix = path.join(home, "global prefix"); log = path.join(home, "npm.log");
@@ -39,9 +48,7 @@ test("the public installer finds a global bin outside PATH and refuses to reinst
 test("prefix discovery uses the supplied environment and does not change the host", async () => {
   const otherPrefix = path.join(home, "other prefix"); const otherBin = process.platform === "win32" ? otherPrefix : path.join(otherPrefix, "bin");
   mkdirSync(otherBin, { recursive: true });
-  writeFileSync(path.join(otherBin, process.platform === "win32" ? "codebuddy.cmd" : "codebuddy"), process.platform === "win32"
-    ? "@if \"%1\"==\"--help\" (echo Usage: codebuddy) else (echo other-copy)\r\n"
-    : "#!/bin/sh\nif [ \"$1\" = \"--help\" ]; then echo 'Usage: codebuddy'; else echo other-copy; fi\n", { mode: 0o755 });
+  writeFakeCodebuddy(otherBin, "other-copy");
   expect(await codebuddyInstallation({ env: { npm_config_prefix: otherPrefix } })).toMatchObject({ kind: "available", version: "other-copy" });
   expect(process.env.npm_config_prefix).toBe(prefix);
 });
@@ -76,9 +83,7 @@ test("broken npm preserves discovery and returns the same typed refusal from pla
 });
 
 test("an available copy bypasses a broken npm query during installation", async () => {
-  writeFileSync(path.join(bin, process.platform === "win32" ? "codebuddy.cmd" : "codebuddy"), process.platform === "win32"
-    ? "@if \"%1\"==\"--help\" (echo Usage: codebuddy) else (echo existing-copy)\r\n"
-    : "#!/bin/sh\nif [ \"$1\" = \"--help\" ]; then echo 'Usage: codebuddy'; else echo existing-copy; fi\n", { mode: 0o755 });
+  writeFakeCodebuddy(bin, "existing-copy");
   vi.stubEnv("OAR_NPM_TEST_FAIL", "1");
   expect(await codebuddyRuntime.install()).toMatchObject({ kind: "already_installed", installation: { version: "existing-copy" } });
   expect(readFileSync(log, "utf8")).toBe("");
