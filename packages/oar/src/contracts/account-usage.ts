@@ -85,7 +85,7 @@ export type AccountUsageSnapshot =
   | { readonly kind: "unavailable"; readonly reason: AccountUsageUnavailableReason; readonly lastAccount?: LastAccount }
   | {
       readonly kind: "available";
-      /** Runtime-reported subscription plan or tier; omitted when not exposed. */
+      /** The name the runtime shows the user for the plan, or its native code when it exposes no display name; omitted when not exposed. */
       readonly plan?: string;
       /** Signed-in account email; omitted when the runtime does not expose one. */
       readonly email?: string;

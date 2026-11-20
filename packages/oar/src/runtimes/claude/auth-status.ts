@@ -3,7 +3,7 @@ import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { AuthStatus, AuthStatusOptions, LoginAccount } from "../../contracts/login.js";
 import { runExecutable } from "../../shared/executable/index.js";
 import { asRecord, parseJson } from "../../shared/json.js";
-import { rememberedClaudeAccount } from "./last-account.js";
+import { claudePlanDisplayName, rememberedClaudeAccount } from "./last-account.js";
 import { claudeEnv } from "./environment.js";
 
 const STATUS_TIMEOUT_MS = 20_000;
@@ -52,8 +52,9 @@ export async function readClaudeAuthStatus(
   if (installation.via !== "executable") {
     return { status: { kind: "unknown", detail: "not a machine-installed executable" } };
   }
+  const env = claudeEnv(options.env);
   const result = await runExecutable(installation.command, ["auth", "status", "--json"], {
-    env: claudeEnv(options.env),
+    env,
     timeoutMs: options.timeoutMs ?? STATUS_TIMEOUT_MS,
     ...(options.signal === undefined ? {} : { signal: options.signal }),
   });
@@ -61,8 +62,21 @@ export async function readClaudeAuthStatus(
   if (!result.ok && result.exitCode !== 1) {
     return { status: { kind: "unknown", detail: `claude auth status ended without an answer (exit ${String(result.exitCode)})`, source: STATUS_SOURCE } };
   }
-  const status = projectClaudeAuthStatus(result.stdout);
-  const apiKeySource = status.kind === "logged_in" ? text(asRecord(parseJson(result.stdout))?.apiKeySource) : undefined;
+  const parsed = asRecord(parseJson(result.stdout));
+  let status = projectClaudeAuthStatus(result.stdout);
+  if (status.kind === "logged_in" && status.account !== undefined && (status.account.method === "claude.ai" || status.account.plan !== undefined)) {
+    const orgId = text(parsed?.orgId);
+    const orgName = text(parsed?.orgName);
+    const planDisplayName = await claudePlanDisplayName(env, {
+      ...(status.account.email === undefined ? {} : { email: status.account.email }),
+      ...(orgId === undefined ? {} : { orgId }),
+      ...(orgName === undefined ? {} : { orgName }),
+    });
+    if (planDisplayName !== undefined) {
+      status = { ...status, account: { ...status.account, plan: planDisplayName } };
+    }
+  }
+  const apiKeySource = status.kind === "logged_in" ? text(parsed?.apiKeySource) : undefined;
   return { status, ...(apiKeySource === undefined ? {} : { apiKeySource }) };
 }
 

@@ -322,7 +322,7 @@ caller closes it. A prompt or event handler that throws stops the login with
 
 | Kind | Meaning |
 | --- | --- |
-| logged_in | Logged in; `account` carries what the runtime's status reports (`email`, `plan`, `method`, and `expiresAt` when the stored credential expires and the runtime does not renew it: cursor's key). |
+| logged_in | Logged in; `account` carries what the runtime's status reports (`email`, `plan`, `method`, and `expiresAt` when the stored credential expires and the runtime does not renew it: cursor's key). `plan` is the name the runtime shows the user for the plan (falling back to the native plan code when the runtime exposes no display name). |
 | failed | Not logged in; `reason` below, `detail` one line in the runtime's words with secrets redacted. |
 | cancelled | `interaction.signal` aborted before the runtime reported success; the login process was stopped. |
 | unsupported | oar cannot drive this runtime's login; `reason` below. |

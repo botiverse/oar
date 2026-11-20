@@ -6,7 +6,7 @@ import { remainingMs } from "../../shared/deadline.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord, asRecordList, parseJson, type JsonRecord } from "../../shared/json.js";
 import { usedRatioFromPercent } from "../../shared/usage-ratio.js";
-import { rememberedClaudeAccount } from "./last-account.js";
+import { claudePlanDisplayName, rememberedClaudeAccount } from "./last-account.js";
 import { claudeEnv } from "./environment.js";
 
 const HOUR_MS = 3_600_000;
@@ -214,11 +214,21 @@ export const claudeAccountUsage: AccountUsageReader = async (installation, optio
       const account = asRecord(asRecord(initialized.response)?.account);
       const email = typeof account?.email === "string" && account.email.trim().length > 0
         ? account.email.trim() : undefined;
+      const orgName = typeof account?.organization === "string" && account.organization.trim().length > 0
+        ? account.organization.trim() : undefined;
       const reply = await query({ subtype: "get_usage", skip_behaviors: true });
       if (reply.subtype !== "success") {
         return await controlFailure(reply, env, email);
       }
-      return projectClaudeUsage(reply.response, email);
+      const snapshot = projectClaudeUsage(reply.response, email);
+      if (snapshot.kind !== "available") {
+        return snapshot;
+      }
+      const planDisplayName = await claudePlanDisplayName(env, {
+        ...(email === undefined ? {} : { email }),
+        ...(orgName === undefined ? {} : { orgName }),
+      });
+      return planDisplayName === undefined ? snapshot : { ...snapshot, plan: planDisplayName };
     } finally {
       signal.removeEventListener("abort", stop);
       child.kill();
