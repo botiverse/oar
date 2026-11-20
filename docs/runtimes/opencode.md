@@ -55,6 +55,11 @@ checkout; native snapshots stay enabled.
 
 ## Automatic compaction
 
+OpenCode v2 (2.3.2) over ACP completed automatic compaction with its native
+background setting at the default. A scripted provider reported 199,000
+input tokens. OAR observed `compaction_started` and `compaction_ended`
+with trigger `auto`. All three prompts completed, including the next turn.
+
 On OpenCode v1, hosts cannot observe the start or end of automatic
 compaction over ACP. In 1.19.6 the summary streamed as ordinary
 `agent_message_chunk` text with a message ID. The prompt returned
@@ -111,8 +116,8 @@ that CI runs.
 ### V2 prompt options
 
 `systemPrompt` sets `agents.<id>.system` and `appendSystemPrompt` adds one
-session-owned file to `instructions`, both in a fresh
-`OPENCODE_CONFIG_CONTENT` for the session's process. Native config merging
+session-owned file to `instructions` in the session process’s
+`OPENCODE_CONFIG_CONTENT`. Native config merging
 keeps every other agent field, model, permission and instruction source.
 The v1 rules for an inherited `OPENCODE_CONFIG_CONTENT`, an empty replacement,
 literal `{env:...}` / `{file:...}` and file removal apply unchanged
@@ -998,8 +1003,8 @@ model was requested; on a model without variants `effort` is refused with
 `Invalid params: model not found` (bad-model).
 
 ACP has no direct prompt field, but the native launcher reads
-`OPENCODE_CONFIG_CONTENT`. OAR uses a fresh inline configuration for the
-session: `systemPrompt` overrides only the selected `agent.<name>.prompt`;
+`OPENCODE_CONFIG_CONTENT`. In the session's inline configuration,
+`systemPrompt` overrides only the selected `agent.<name>.prompt`;
 `appendSystemPrompt` adds one session-owned file to `instructions`. Native
 config merging appends that file **after existing instructions**, preserving
 other agents, model choices, tools and permission rules. Environment/context,
@@ -1020,15 +1025,21 @@ A saved or configured default custom agent missing from resolved config is
 refused before injection, so a prompt override cannot recreate a deleted agent
 with default permissions. Only the visible built-ins `build` and `plan` may
 be absent from that config.
-A replacement adds one native startup query, two on resume, each bounded at
-30 seconds; no prompt options retains the direct ACP path, and append-only
-needs no agent query.
+With no host inline config, a replacement needs one startup query, or two
+on resume. Append alone needs none. Each query has a 30-second deadline.
 
-If the effective session environment defines `OPENCODE_CONFIG_CONTENT`,
-either prompt option is refused with
-`UnsupportedOptionError`. OAR does not parse or merge that existing value.
-Setting `env: { OPENCODE_CONFIG_CONTENT: null }` removes an inherited value
-before native configuration queries and permits prompt injection.
+A host can supply a JSON object in `OPENCODE_CONFIG_CONTENT`. OAR adds its
+file at the end of the host's `instructions` array and preserves the host's
+providers, agents and other settings. A replacement colliding with a host
+prompt fails with `UnsupportedOptionError` naming `agent.<name>.prompt`
+on v1 or `agents.<id>.system` on v2. An append alone leaves those fields
+intact. Invalid JSON and incompatible target fields are refused. Before
+launch with a host overlay, v1 uses `debug config` to confirm the replacement
+text and that the added instructions file is last. On v2, `debug agents
+--standalone` confirms the replacement on each selected primary agent. Its
+listing omits instruction files, so for append alone it confirms only that
+native accepted the merged config.
+Setting `env: { OPENCODE_CONFIG_CONTENT: null }` removes an inherited value.
 An empty replacement is also refused: native OpenCode treats an empty agent
 prompt as selecting its built-in prompt. Literal `{env:...}` and
 `{file:...}` in the supplied prompt are preserved, not expanded by the

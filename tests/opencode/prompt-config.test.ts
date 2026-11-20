@@ -56,10 +56,10 @@ test("append creates a private session file without querying agents; cleanup is 
   await expect(access(file)).rejects.toMatchObject({ code: "ENOENT" });
 });
 
-test.each(["systemPrompt", "appendSystemPrompt"] as const)("existing inline config refuses %s before queries", async (option) => {
+test.each(["systemPrompt", "appendSystemPrompt"] as const)("malformed inline config refuses %s before queries", async (option) => {
   const run = vi.fn<ExecutableRunner>();
   const given = { cwd: "/project", [option]: "text" };
-  await expect(prepareOpenCodePrompts("opencode", { ...given, env: { OPENCODE_CONFIG_CONTENT: "{}" } }, run)).rejects.toMatchObject({ name: "UnsupportedOptionError", option });
+  await expect(prepareOpenCodePrompts("opencode", { ...given, env: { OPENCODE_CONFIG_CONTENT: "{" } }, run)).rejects.toMatchObject({ name: "UnsupportedOptionError", option });
   vi.stubEnv("OPENCODE_CONFIG_CONTENT", "");
   await expect(prepareOpenCodePrompts("opencode", given, run)).rejects.toMatchObject({ name: "UnsupportedOptionError", option });
   expect(run).not.toHaveBeenCalled();
@@ -172,9 +172,9 @@ test("v2 refuses when no visible primary agent exists, and when the listing is n
     .rejects.toThrow("opencode debug agents returned no agent list while resolving the session's agents");
 });
 
-test("v2 keeps the inline-config and empty-prompt refusals", async () => {
+test("v2 refuses malformed inline config and empty prompts", async () => {
   const run = vi.fn<ExecutableRunner>();
-  await expect(prepareOpenCodeV2Prompts("opencode", v2(3, 2), { cwd: "/", systemPrompt: "x", env: { OPENCODE_CONFIG_CONTENT: "{}" } }, run)).rejects.toMatchObject({ name: "UnsupportedOptionError" });
+  await expect(prepareOpenCodeV2Prompts("opencode", v2(3, 2), { cwd: "/", systemPrompt: "x", env: { OPENCODE_CONFIG_CONTENT: "{" } }, run)).rejects.toMatchObject({ name: "UnsupportedOptionError" });
   await expect(prepareOpenCodeV2Prompts("opencode", v2(3, 2), { cwd: "/", systemPrompt: "" }, run)).rejects.toMatchObject({ name: "UnsupportedOptionError" });
   expect(run).not.toHaveBeenCalled();
 });
@@ -195,4 +195,76 @@ test.each([v2(2, 0), v2(2, 7), v2(3, 2), v2(10, 0)])("v2 $version accepts system
   const prepared = await prepareOpenCodeV2Prompts("opencode", release, { cwd: "/", systemPrompt: "text" }, vi.fn<ExecutableRunner>().mockResolvedValue(agents([{ id: "build", mode: "primary" }])));
   cleanups.push(prepared.cleanup);
   expect(prepared.agents).toEqual(["build"]);
+});
+
+const lines = [
+  { version: 1, group: "agent", field: "prompt" },
+  { version: 2, group: "agents", field: "system" },
+] as const;
+
+for (const { version, group, field } of lines) {
+  // oxlint-disable-next-line typescript/promise-function-async -- Bind the measured v2 release to the same runner signature.
+  const prepare = version === 1 ? prepareOpenCodePrompts : (command: string, options: Parameters<typeof prepareOpenCodePrompts>[1], run: ExecutableRunner) =>
+    prepareOpenCodeV2Prompts(command, v2(3, 2), options, run);
+  // oxlint-disable-next-line typescript/promise-function-async -- Synchronous reply from a scripted native command.
+  const debug: ExecutableRunner = (_command, _args, options) => {
+    const host = asRecord(JSON.parse(options?.env?.OPENCODE_CONFIG_CONTENT ?? "{}"));
+    const build = asRecord(asRecord(host?.[group])?.build);
+    return Promise.resolve(version === 1 ? json(host) : agents([{ id: "build", mode: "primary", ...build }]));
+  };
+  // oxlint-disable-next-line max-statements -- Inspect the merged bytes and the native debug call for the same open.
+  test.each(["systemPrompt", "appendSystemPrompt"] as const)(`v${String(version)} merges %s into inline config and passes the merged fields to native verification`, async option => {
+    const run = vi.fn<ExecutableRunner>(debug);
+    const original = { provider: { configured: { name: "existing" } }, [group]: { build: { model: "existing/model" }, child: { [field]: "keep" } }, instructions: ["first.md"] };
+    const content = JSON.stringify(original).replace('"existing"', String.raw`"unchanged {env:NAME} and \u007bfile:path}"`);
+    const prepared = await prepare("opencode", { cwd: "/project", env: { OPENCODE_CONFIG_CONTENT: content }, [option]: "host {env:NAME}" }, run);
+    cleanups.push(prepared.cleanup);
+    const merged = prepared.options.env?.OPENCODE_CONFIG_CONTENT;
+    assert.ok(typeof merged === "string");
+    expect(merged).toContain(String.raw`unchanged {env:NAME} and \u007bfile:path}`);
+    expect(run.mock.calls.at(-1)?.[2]?.env?.OPENCODE_CONFIG_CONTENT).toBe(merged);
+    const expectedAgent = { build: { model: "existing/model", ...(option === "systemPrompt" ? { [field]: "host {env:NAME}" } : {}) }, child: { [field]: "keep" } };
+    expect(JSON.parse(merged)).toEqual({ ...JSON.parse(content), [group]: expectedAgent, instructions: option === "systemPrompt" ? ["first.md"] : ["first.md", expect.any(String)] });
+  });
+
+  test(`v${String(version)} refuses a replacement dropped by native debug`, async () => {
+    const answer = version === 1 ? json({ agent: { build: {} } }) : agents([{ id: "build", mode: "primary" }]);
+    const run = vi.fn<ExecutableRunner>().mockResolvedValue(answer);
+    await expect(prepare("opencode", { cwd: "/", env: { OPENCODE_CONFIG_CONTENT: "{}" }, systemPrompt: "required" }, run)).rejects.toThrow(`${group}.build.${field}`);
+  });
+
+  test(`v${String(version)} refuses only a target prompt field owned by both parties`, async () => {
+    const env = { OPENCODE_CONFIG_CONTENT: JSON.stringify({ [group]: { build: { [field]: "private instructions" } } }) };
+    const run = vi.fn<ExecutableRunner>(debug);
+    await expect(prepare("opencode", { cwd: "/", env, systemPrompt: "replacement" }, run)).rejects.toThrow(`${group}.build.${field}`);
+    const appended = await prepare("opencode", { cwd: "/", env, appendSystemPrompt: "extra" }, run);
+    cleanups.push(appended.cleanup);
+    expect(JSON.parse(appended.options.env?.OPENCODE_CONFIG_CONTENT ?? "{}")).toMatchObject({ [group]: { build: { [field]: "private instructions" } } });
+  });
+}
+
+test("a merged config rejected by native debug releases its temporary append file", async () => {
+  const files: string[] = [];
+  const run: ExecutableRunner = async (_command, _args, options) => {
+    const value = asRecord(JSON.parse(options?.env?.OPENCODE_CONFIG_CONTENT ?? "{}"))?.instructions;
+    assert.ok(Array.isArray(value) && typeof value[0] === "string");
+    files.push(value[0]);
+    await access(value[0]);
+    throw new Error("native debug failed");
+  };
+  await expect(prepareOpenCodePrompts("opencode", { cwd: "/", env: { OPENCODE_CONFIG_CONTENT: "{}" }, appendSystemPrompt: "extra" }, run)).rejects.toThrow("native debug failed");
+  const [file] = files;
+  assert.ok(file !== undefined);
+  await expect(access(file)).rejects.toMatchObject({ code: "ENOENT" });
+});
+
+test("v1 refuses when native debug moves the host append away from the last entry", async () => {
+  // oxlint-disable-next-line typescript/promise-function-async -- Synchronous reply from a scripted native command.
+  const run: ExecutableRunner = (_command, _args, options) => {
+    const config = asRecord(JSON.parse(options?.env?.OPENCODE_CONFIG_CONTENT ?? "{}"));
+    const files = config?.instructions;
+    assert.ok(Array.isArray(files));
+    return Promise.resolve(json({ instructions: [files.at(-1), "later.md"].filter((file): file is string => typeof file === "string") }));
+  };
+  await expect(prepareOpenCodePrompts("opencode", { cwd: "/", env: { OPENCODE_CONFIG_CONTENT: "{}" }, appendSystemPrompt: "required" }, run)).rejects.toThrow("last instructions entry");
 });
