@@ -2,6 +2,8 @@
 
 - [Codex thread instructions](codex-instruction-retention/README.md) traces what reaches the model after compaction and collaboration-mode changes.
 
+- [Session MCP credential isolation](mcp-credential-admission/README.md) checks delivery, tool environments and storage at the CI pins.
+
 - [OpenCode retry visibility and cancellation](opencode-retry-status/README.md) compares native ACP outcomes while a model call is waiting to retry.
 
 - [Remembered accounts](remembered-accounts/README.md) compares what the native account readers return after expiry or logout.

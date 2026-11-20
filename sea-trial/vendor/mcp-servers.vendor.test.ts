@@ -7,7 +7,7 @@ import { claudeInstallation, defineRuntime, type RawEvent, claudeRuntime, codexR
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { namespaceMcpToolCalls, startClaudeAimock, startCodexAimock, type RawProviderRequest } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
-import { CLASH_ECHO, ECHO_SERVER, echoesReceived, echoServers, EXPECTED_ECHOES, leakedCredentials, scriptEchoes, startHttpEcho, stdioEcho, STDIO_TOKEN } from "./support/echo-mcp.js";
+import { CLASH_ECHO, ECHO_SERVER, echoesReceived, echoServers, expectedEchoes, EXPECTED_ECHOES, leakedCredentials, scriptEchoes, startHttpEcho, stdioEcho, STDIO_TOKEN } from "./support/echo-mcp.js";
 import { structuralToolRound } from "./support/tool-round.js";
 
 const claudeSession = claudeRuntime.session;
@@ -62,7 +62,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude mcpServers", (
     const env = await startClaudeAimock(scriptEchoes, { captureRaw: true });
     try {
       const subject = runtimeUnderTest(runtime, env.env);
-      const mcpServers = echoServers(http.url);
+      const mcpServers = echoServers(http.url, process.platform !== "win32");
       const session = await subject.startSession({ mcpServers });
       expect(await structuralToolRound(session, env.mock, "please call both echo tools")).toMatchInlineSnapshot(`
         [
@@ -101,7 +101,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude mcpServers", (
         ]
       `);
       await resumed.dispose();
-      expect(echoesReceived(env.raw)).toEqual(EXPECTED_ECHOES);
+      expect(echoesReceived(env.raw)).toEqual(expectedEchoes(process.platform !== "win32"));
       expect(leakedCredentials(session, resumed)).toEqual([]);
     } finally {
       await env.stop();
@@ -114,7 +114,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude mcpServers", (
     const env = await startClaudeAimock(scriptEchoes, { captureRaw: true });
     try {
       await writeFile(path.join(configDir, ".claude.json"), JSON.stringify({ hasCompletedOnboarding: true, mcpServers: { echo: CLAUDE_USER_SERVER, userecho: CLAUDE_USER_SERVER } }));
-      const session = await runtimeUnderTest(runtime, { ...env.env, CLAUDE_CONFIG_DIR: configDir }).startSession({ mcpServers: [stdioEcho("echo", STDIO_TOKEN)] });
+      const session = await runtimeUnderTest(runtime, { ...env.env, CLAUDE_CONFIG_DIR: configDir }).startSession({ mcpServers: [stdioEcho("echo", process.platform === "win32" ? undefined : STDIO_TOKEN)] });
       expect(await structuralToolRound(session, env.mock, "please call the clashing echo")).toMatchInlineSnapshot(`
         [
           "request:prompt",
@@ -139,7 +139,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude mcpServers", (
         ]
       `);
       await session.dispose();
-      expect(echoesReceived(env.raw)).toEqual([CLASH_ECHO]);
+      expect(echoesReceived(env.raw)).toEqual([process.platform === "win32" ? "echo:clash-call via=stdio token=none" : CLASH_ECHO]);
     } finally {
       await env.stop();
       // On Windows, claude and the user-scope servers it started can still be

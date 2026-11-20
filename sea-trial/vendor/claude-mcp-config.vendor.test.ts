@@ -21,7 +21,7 @@ const claudeSession = claudeRuntime.session;
 describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude --mcp-config handoff", () => {
   const runtime = defineRuntime({ id: "claude-aimock", session: claudeSession, installation: claudeInstallation });
 
-  test("claude reads the config once, at startup: it is gone before the first prompt, and a stdio server claude restarts and an http one it initializes again still get their credentials", async () => {
+  test.skipIf(process.platform === "win32")("claude reads the config once, at startup: it is gone before the first prompt, and a stdio server claude restarts and an http one it initializes again still get their credentials", async () => {
     // --once: the stdio server exits after one call and answers nothing more; the http one answers 404 to the session it made a call in.
     const http = await startHttpEcho(["--once"]);
     const env = await startClaudeAimock((mock) => {

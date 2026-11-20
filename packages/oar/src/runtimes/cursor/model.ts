@@ -55,6 +55,7 @@ function findModel(models: readonly ModelListItem[], id: string): ModelListItem 
  * '--system-prompt'" (probed 2026-10-03), and there is no append.
  */
 export const cursorRefusedSessionOptions: RefusedSessionOptions = {
+  mcpServerCredentials: "OAR has not verified MCP credential isolation for this Cursor SDK",
   partialUserConfiguration: "Cursor settingSources controls user configuration as a group and cannot exclude individual categories",
   fork: "OAR has not verified a native Cursor fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",

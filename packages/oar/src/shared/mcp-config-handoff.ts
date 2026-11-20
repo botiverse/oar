@@ -1,3 +1,4 @@
+import { UnsupportedOptionError } from "../contracts/errors.js";
 import { constants } from "node:fs";
 import { open, writeFile, type FileHandle } from "node:fs/promises";
 import path from "node:path";
@@ -122,12 +123,15 @@ export async function sweepAbandonedMcpConfigDirs(prefix: string): Promise<void>
 }
 
 /** Create a private FIFO (or 0600 file fallback) carrying `content` under `prefix`. */
-export async function handOverMcpConfigFile(prefix: string, content: string): Promise<McpConfigHandoff> {
+export async function handOverMcpConfigFile(prefix: string, content: string, fileRefusal?: string): Promise<McpConfigHandoff> {
   const directory = await privateTempDir(prefix);
   const file = path.join(directory.path, "mcp.json");
   try {
     if (await makeFifo(file)) {
       return fifoHandoff(file, content, directory);
+    }
+    if (fileRefusal !== undefined) {
+      throw new UnsupportedOptionError("mcpServers", fileRefusal);
     }
     await writeFile(file, content, { mode: 0o600, flag: "wx" });
   } catch (error) {

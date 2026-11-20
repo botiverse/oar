@@ -235,34 +235,18 @@ export interface SessionOptions {
    */
   readonly appendSystemPrompt?: string;
   /**
-   * MCP servers attached to THIS session, on top of the servers the runtime
-   * is configured with: oar never edits the runtime's configuration or
-   * drops the user's servers unless their configuration source is excluded
-   * (claude reads the session's from a 0600 FIFO
-   * oar removes once read, on Windows a temporary file removed when claude
-   * exits; codex from its `thread/start` / `thread/resume` config
-   * overrides; grok, kimi, opencode and antigravity from ACP `session/new` /
-   * `session/resume` `mcpServers`; pi from an extension that registers
-   * them; dsh from native MCP plugins in its private invocation patch, command/args only). Not remembered: give them
-   * again on `resume`, where oar attaches them to the resumed session too. A
-   * server named like one the user configured meets it the runtime's way for
-   * this session (codex: merged into it field by field; pi: the open fails
-   * on a name another extension registered; dsh refuses a native namespace collision; the others: the session's
-   * replaces it), measured on each runtime page. A stdio server
-   * gets `env` on top of what the runtime passes it (claude and pi: the whole
-   * environment, `SessionOptions.env` included; codex: an allowlist such as
-   * `HOME` and `PATH`). Names are unique within the list, and none is
-   * `__proto__`, `__defineGetter__`, `__defineSetter__`, `__lookupGetter__` or
-   * `__lookupSetter__`, which some runtimes drop without a word
-   * (`UnsupportedOptionError` on every runtime, #395). Refused when
-   * non-empty by cursor: `session()` rejects with `UnsupportedOptionError`
-   * (`Runtime.refusedSessionOptions`,
-   * docs/spec/runtime-matrix.md#refused-session-options), as it does for a
-   * transport a runtime cannot attach (http on an ACP agent whose
-   * `initialize` declares no `mcpCapabilities.http`) and for an entry with
-   * `env` or `headers` on antigravity, which would write them to its disk, or
-   * on dsh, whose persistence boundary is unverified (declared as
-   * `refusedSessionOptions.mcpServerCredentials`).
+   * Attach these MCP servers for this session. Supply them again on resume.
+   * The runtime keeps servers from included configuration sources. Its native
+   * rules determine how name collisions resolve and which environment a stdio
+   * server inherits before its entry's `env` is applied.
+   * Names must be unique. Reserved JavaScript object accessor names and
+   * `__proto__` are refused with `UnsupportedOptionError`.
+   * Check the installation's MCP transports and refused session options before
+   * attaching servers. `refusedSessionOptions.mcpServerCredentials` covers
+   * entries with nonempty stdio `env` or HTTP `headers`, including bearer
+   * tokens from `serveMcpTools`. An unsupported entry rejects the open with
+   * `UnsupportedOptionError` on `mcpServers`.
+   * See docs/spec/runtime-matrix.md#refused-session-options.
    */
   readonly mcpServers?: readonly McpServer[];
   /**

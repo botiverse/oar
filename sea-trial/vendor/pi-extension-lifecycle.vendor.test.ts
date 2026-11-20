@@ -7,7 +7,7 @@ import { defineRuntime, type Session, piRuntime } from "../../packages/oar/src/i
 import { promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import { startPiAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
-import { stdioEcho, STDIO_TOKEN } from "./support/echo-mcp.js";
+import { stdioEcho } from "./support/echo-mcp.js";
 
 const piInstallation = piRuntime.installation;
 
@@ -48,7 +48,7 @@ describe.skipIf(!isPiBackend)("pi extension lifecycle", () => {
     try {
       const recorded = await installRecorder();
       const subject = runtimeUnderTest(runtime, env.env);
-      const options = withMcp ? { mcpServers: [stdioEcho("echo", STDIO_TOKEN)] } : {};
+      const options = withMcp ? { mcpServers: [stdioEcho("echo")] } : {};
       const session = await subject.startSession(options);
       sessions.push(session);
       const started = { type: "session_start", reason: "startup", id: session.id };

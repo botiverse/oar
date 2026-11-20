@@ -875,6 +875,14 @@ entry, non-empty `headers` on an http one). Its error names `mcpServers`
 and ends with the entries' names
 ([#392](https://github.com/botiverse/oar/issues/392)).
 
+A runtime may accept a credentialed entry only when OAR has verified that
+the values reach only the designated MCP server. The values must stay out
+of process arguments and the agent's tool environment. A private startup
+file is permitted if it is removed after native initialization and before
+the first turn can run. A runtime that cannot meet this rule or whose
+isolation is unverified declares `mcpServerCredentials`. Every
+`serveMcpTools` entry carries a bearer token, so the same rule applies to it.
+
 `goals: true` is refused everywhere except Codex and DSH ([native goals](#native-goals)),
 `endTurnProcessesOnAbort: true` everywhere except Codex in an isolated
 app-server and Grok ([ending a turn's processes](#ending-a-turns-processes-on-abort)),
@@ -896,21 +904,21 @@ in [user configuration](#user-configuration).
 
 | runtime | refuses | why |
 |---|---|---|
-| cursor | `systemPrompt`, `appendSystemPrompt`, `env` (in process only), `launchArgs`, `serviceTier`, `outputSchema`, `name` | the SDK's local agent fails a run given a system prompt and has no append; in process it runs in the host process with no environment or command line of its own; in subprocess mode `env` is its child's ([execution modes](../runtimes/cursor.md#execution-modes)) |
+| cursor | `mcpServerCredentials`, `systemPrompt`, `appendSystemPrompt`, `env` (in process only), `launchArgs`, `serviceTier`, `outputSchema`, `name` | the SDK's local agent fails a run given a system prompt and has no append; in process it runs in the host process with no environment or command line of its own; in subprocess mode `env` is its child's ([execution modes](../runtimes/cursor.md#execution-modes)). Credential isolation on SDK 1.4.1 is unverified in both modes. [Isolation measurements](../../experiments/mcp-credential-admission/README.md) |
 | codebuddy | `appendSystemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified private prompt-append input; replacement uses a private file ([mapping](../runtimes/codebuddy.md)) |
-| devin | `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | `devin acp` has no verified prompt or tool-denial channel, and `initialize` advertises `sessionCapabilities.additionalDirectories` without verified primary-cwd and tool scoping ([mapping](../runtimes/devin.md)) |
+| devin | `mcpServerCredentials`, `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | `devin acp` has no verified prompt or tool-denial channel, and `initialize` advertises `sessionCapabilities.additionalDirectories` without verified primary-cwd and tool scoping ([mapping](../runtimes/devin.md)). Existing storage evidence covers only its SQLite database. [Isolation measurements](../../experiments/mcp-credential-admission/README.md) |
 | kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)) |
 | antigravity | `disallowedTools`, `systemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `mcpServerCredentials`, `userConfiguration: "exclude"` | the CLI adapter has no verified system prompt replacement channel (append is supported) ([audit](../runtimes/antigravity.md#models-instructions-and-context)); it would store an entry's `env` and `headers` values in plain text in its conversation database ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
 | grok | `disallowedTools`, `serviceTier`, `additionalDirectories`, `name`, `userConfiguration: "exclude"` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay |
 | opencode, both lines | `disallowedTools`, `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | agent permissions can override global denies; permission names do not consistently match tool names |
 | pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping |
-| pi | `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `userConfiguration: "exclude"` | it runs in the host process through its SDK, with no command line |
+| pi | `mcpServerCredentials` in subprocess mode, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `userConfiguration: "exclude"` | it runs in the host process through its SDK, with no command line. Subprocess mode keeps the private MCP configuration file through the first turn. [Isolation measurements](../../experiments/mcp-credential-admission/README.md) |
 | qwen | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
 | dsh | `mcpServerCredentials`, `launchArgs`, `serviceTier`, `outputSchema`, `userConfiguration: "exclude"` | MCP credentials have no verified persistence boundary; launcher overlays can disable the bridge; root `agentOptions.outputSchema` is ignored while the native child API supports it; the other options remain unverified through the bridge ([mapping](../runtimes/dsh.md#session-options)) |
 | factory | `serviceTier`, `outputSchema`, `name`, `additionalDirectories`, `disallowedTools`, `userConfiguration: "exclude"` | no tier; structured output, session titles and tool denials not yet verified; no extra-directory or user-configuration exclusion channel ([mapping](../runtimes/factory.md#session-options)) |
 | qoder | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
 | codex | `userConfiguration: "exclude"`; `endTurnProcessesOnAbort: true` only with shared placement | temporary clean homes break shared history paths after cleanup ([evidence](../runtimes/codex.md#user-configuration)); a shared app-server's process table does not say which session's turn started a process |
-| claude | nothing beyond `goals: true` and `endTurnProcessesOnAbort: true` | no structured native goal controls on the chosen transport; other value-specific refusals are described on its runtime page |
+| claude | `goals: true`, `endTurnProcessesOnAbort: true`, `mcpServerCredentials` on Windows | no structured native goal controls on the chosen transport; other value-specific refusals are described on its runtime page. Regular-file MCP startup on Windows has no verified point at which the file can be removed before the first turn. [Isolation measurements](../../experiments/mcp-credential-admission/README.md) |
 
 `mcpServers` is refused until a runtime's channel is shown to make its agent
 call an attached server's tool, with the evidence on its runtime page
@@ -918,12 +926,12 @@ call an attached server's tool, with the evidence on its runtime page
 
 | runtime | channel | stdio | http | resume | a name the user's config also has |
 |---|---|---|---|---|---|
-| claude | `--mcp-config <path>`: a 0600 FIFO removed once claude has read it (a 0600 file removed when the process ends on Windows); strict host-only configuration when user configuration is excluded | yes | yes | the flag again | the session's server replaces the user's for that process ([claude](../runtimes/claude.md#session-mcp-servers)) |
+| claude | `--mcp-config <path>`: a 0600 FIFO removed once claude has read it (a regular file is allowed only for credential-free entries); strict host-only configuration when user configuration is excluded | yes | yes | the flag again | the session's server replaces the user's for that process ([claude](../runtimes/claude.md#session-mcp-servers)) |
 | codex | `config.mcp_servers` on `thread/start` and `thread/resume` | yes | yes | the override again | merged into the user's entry field by field; oar's `command` / `url`, `args` and `enabled = true` win ([codex](../runtimes/codex.md#session-mcp-servers)) |
-| cursor | the SDK's `mcpServers` on `Agent.create` and `Agent.resume` | yes | yes | the record again | not re-checked live; against a stand-in backend the inline entry won ([cursor](../runtimes/cursor.md#session-mcp-servers)) |
+| cursor | credential-free entries through the SDK's `mcpServers` on `Agent.create` and `Agent.resume` | yes | yes | the record again | not re-checked live; against a stand-in backend the inline entry won ([cursor](../runtimes/cursor.md#session-mcp-servers)) |
 | grok | ACP `mcpServers` on `session/new` and `session/resume`; the model reaches the tools through grok's `use_tool` | yes | yes | the param again | the session's replaces the user's `config.toml` entry; the user's others stay ([grok](../runtimes/grok.md#session-mcp-servers)) |
 | codebuddy | ACP `mcpServers` on `session/new` and `session/load` | yes | yes | the param again | conflict precedence unverified; credentialed new/resumed calls and no native HOME persistence verified ([mapping](../runtimes/codebuddy.md)) |
-| devin | ACP `mcpServers` on `session/new` and `session/load` | yes | yes | the param again | conflict precedence unverified; HTTP/stdio env and credentials are not persisted in `~/.local/share/devin` SQLite ([devin](../runtimes/devin.md#session-mcp-servers)) |
+| devin | credential-free ACP `mcpServers` on `session/new` and `session/load` | yes | yes | the param again | conflict precedence unverified; HTTP/stdio env and credentials are not persisted in `~/.local/share/devin` SQLite ([devin](../runtimes/devin.md#session-mcp-servers)) |
 | kimi | ACP `mcpServers` on `session/new` and `session/resume` | yes | yes | the param again | the session's replaces the user's `mcp.json` entry; the user's others stay ([kimi](../runtimes/kimi.md#session-mcp-servers)) |
 | opencode | ACP `mcpServers` on `session/new` and `session/resume`, held by that opencode process | yes | yes | the param again | the session's replaces the user's `mcp` entry for that process (a session server that fails to start removes it); the user's others stay ([opencode](../runtimes/opencode.md#session-mcp-servers)) |
 | antigravity | ACP `mcpServers` on `session/new` and `session/resume`; CLI worker mode exposes direct `mcp_<server>_<tool>` calls (user-configured servers remain lazy via `call_mcp_tool`). An entry with `env` or `headers` is refused (`mcpServerCredentials`, above) | yes | yes | the param again | the session's replaces the user's `mcp_config.json` entry; the user's others stay ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
@@ -931,7 +939,7 @@ call an attached server's tool, with the evidence on its runtime page
 | qoder | `--mcp-config <path>`: a 0600 FIFO removed once Qoder has read it (on Windows, a 0600 file removed once `initialize` completes) | yes | yes | the flag again | see [qoder](../runtimes/qoder.md) |
 | dsh | private invocation patch loads native MCP client plugins, checked active before open | command/args only | refused | supply entries again; omitted entries are absent | a native namespace collision refuses open ([dsh](../runtimes/dsh.md#session-mcp-servers)) |
 | factory | `mcpServers` on `initialize_session` and `load_session` (stdio `env` as a record, http `headers` as name/value pairs); droid offers the tools as `<server>___<tool>` | yes | yes | the param again | not measured ([factory](../runtimes/factory.md#session-mcp-servers)) |
-| pi | pi's MCP extension plus one registering the entries (`pi.registerMcpServer`); tools declared directly | yes | yes | registered again | oar's pi loads no `mcp.json`; a name another extension registered fails the open ([pi](../runtimes/pi.md#session-mcp-servers)) |
+| pi | credential-free entries in subprocess mode; pi's MCP extension plus one registering the entries (`pi.registerMcpServer`); tools declared directly | yes | yes | registered again | oar's pi loads no `mcp.json`; a name another extension registered fails the open ([pi](../runtimes/pi.md#session-mcp-servers)) |
 
 Evidence: the vendor tests run the real CLI (pi: the bundled SDK) against a
 scripted provider whose model calls a stdio and an http echo server's tool, on

@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- This fixture assembles isolated Claude configuration, MCP servers and a scripted provider. */
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, writeFile, rm, realpath } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -5,6 +6,7 @@ import path from "node:path";
 import { runExecutable } from "../../../../packages/oar/src/shared/executable/index.js";
 import { serveMcpTools, type McpServer } from "../../../../packages/oar/src/index.js";
 import { writeClaudeConfiguration } from "./claude-files.js";
+import { stdioEcho } from "../echo-mcp.js";
 import { configurationModel, ORIGINAL } from "./model.js";
 import { mockRefresh, REFRESH, ROTATED, TOKEN } from "./claude-oauth.js";
 import { claudeCredentialStore } from "./claude-store.js";
@@ -71,7 +73,6 @@ export async function claudeConfigurationFixture(command: string): Promise<Claud
   const user = await serveMcpTools({ name: "user_config_probe", tools: [tool("user_tool")] });
   const local = await serveMcpTools({ name: "local_config_probe", tools: [tool("local_tool")] });
   const project = await serveMcpTools({ name: "project_config_probe", tools: [tool("project_tool")] });
-  const host = await serveMcpTools({ name: "host_config_probe", tools: [tool("host_tool")] });
   let oauth: Awaited<ReturnType<typeof mockRefresh>> | null = null;
   let store: Awaited<ReturnType<typeof claudeCredentialStore>> | null = null;
   const cwd = path.join(home, "project");
@@ -81,7 +82,6 @@ export async function claudeConfigurationFixture(command: string): Promise<Claud
     await user.close();
     await local.close();
     await project.close();
-    await host.close();
     await model.close();
     await store?.close();
     await rm(home, { recursive: true, force: true });
@@ -102,7 +102,7 @@ export async function claudeConfigurationFixture(command: string): Promise<Claud
     await store.write(credential);
     assert.deepEqual(await store.read(), credential, "The native fixture store must round-trip before a status query");
     return {
-      home, cwd, credentials, credentialStorage: store.kind, debugFile: path.join(home, "native-debug.log"), model, oauth, host: host.server, close,
+      home, cwd, credentials, credentialStorage: store.kind, debugFile: path.join(home, "native-debug.log"), model, oauth, host: stdioEcho("host_config_probe"), close,
       env: { ...Object.fromEntries(Object.keys(process.env).map((key) => [key, null])), ...env },
       async diagnostics(): Promise<unknown> {
         const debug = await readFile(path.join(home, "native-debug.log"), "utf8").catch(() => "");
