@@ -3,6 +3,7 @@ import type { LLMock } from "@copilotkit/aimock";
 import type { ResumeOptionSemantics, Runtime } from "../../../packages/oar/src/contracts/runtime.js";
 import { asRecord } from "../../../packages/oar/src/shared/json.js";
 import type { RawProviderRequest } from "../../harness/aimock.js";
+import { isDshSyntheticContextMessage } from "./dsh-provider.js";
 
 export const promptKeys = ["systemPrompt", "appendSystemPrompt"] as const;
 export type PromptKey = typeof promptKeys[number];
@@ -82,8 +83,8 @@ export function requestsForTurn(requests: readonly RawProviderRequest[], input: 
     const messages = Array.isArray(rawMessages) ? rawMessages.map((message: unknown) => asRecord(message)) : [];
     // Memory extraction, naming and compaction may include saved conversation
     // messages, but their final user message is not this main turn's input.
-    // DSH appends a synthetic runtime-context snapshot after the user's turn.
-    const content = messages.findLast((message) => message?.role === "user" && !(typeof message.content === "string" && message.content.startsWith("Current runtime context.")))?.content;
+    // Skip synthetic trailing context DSH appends after the user's turn.
+    const content = messages.findLast((message) => message?.role === "user" && !isDshSyntheticContextMessage(message.content))?.content;
     const texts = typeof content === "string" ? [content] : (Array.isArray(content) ? content.map((part) => asRecord(part)?.text) : []);
     if (!texts.some((text) => matchesTurnInput(text, input))) { return unmatchedPrompt(texts, unmatched); }
     return [{
