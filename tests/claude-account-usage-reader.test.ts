@@ -196,19 +196,42 @@ test("unsupported installation never launches a process", async () => {
   expect(spawnLineProcess).not.toHaveBeenCalled();
 });
 
-test("native windows include model buckets without duplicating legacy model fields", () => {
+test("native windows include model buckets without setting account-wide rateLimited or leaving display_name untrimmed", () => {
   expect(projectClaudeUsage({ subscription_type: " max ", rate_limits_available: true, rate_limits: {
     five_hour: { utilization: 7, resets_at: "2026-08-22T09:59:00Z" },
     seven_day: { utilization: 14 },
-    seven_day_oauth_apps: { utilization: 3 },
+    seven_day_oauth_apps: { utilization: 100 },
     seven_day_opus: { utilization: 100 },
-    model_scoped: [{ display_name: "Fable", utilization: 105, resets_at: "invalid" }],
-  } })).toEqual({ kind: "available", plan: "max", rateLimited: true, windows: [
+    model_scoped: [{ display_name: " Fable ", utilization: 105, resets_at: "invalid" }],
+  } })).toEqual({ kind: "available", plan: "max", rateLimited: false, windows: [
     { label: "Current session", usedRatio: 0.07, resetsAt: "2026-08-22T09:59:00.000Z", id: "five_hour", durationMs: 18_000_000, scope: { kind: "account" } },
     { label: "Current week (all models)", usedRatio: 0.14, id: "seven_day", durationMs: 604_800_000, scope: { kind: "account" } },
-    { label: "Current week (OAuth apps)", usedRatio: 0.03, id: "seven_day_oauth_apps", durationMs: 604_800_000 },
+    { label: "Current week (OAuth apps)", usedRatio: 1, id: "seven_day_oauth_apps", durationMs: 604_800_000 },
     { label: "Current week (Fable)", usedRatio: 1, id: "model_scoped:Fable", durationMs: 604_800_000, scope: { kind: "model", name: "Fable" } },
   ] });
+});
+
+test("account-wide rateLimited triggers on account windows, respects unlimited extra usage, and avoids rounding to 1", () => {
+  expect(projectClaudeUsage({ rate_limits_available: true, rate_limits: {
+    five_hour: { utilization: 99.99999 },
+  } })).toEqual({ kind: "available", rateLimited: false, windows: [
+    { label: "Current session", usedRatio: 0.999999, id: "five_hour", durationMs: 18_000_000, scope: { kind: "account" } },
+  ] });
+  expect(projectClaudeUsage({ rate_limits_available: true, rate_limits: {
+    five_hour: { utilization: 100 },
+  } })).toMatchObject({ kind: "available", rateLimited: true });
+  expect(projectClaudeUsage({ rate_limits_available: true, rate_limits: {
+    five_hour: { utilization: 100 },
+    extra_usage: { is_enabled: true, monthly_limit: null, used_credits: 1200, utilization: null },
+  } })).toMatchObject({ kind: "available", rateLimited: false });
+  expect(projectClaudeUsage({ rate_limits_available: true, rate_limits: {
+    five_hour: { utilization: 100 },
+    extra_usage: { is_enabled: false, monthly_limit: null, used_credits: 0, utilization: null },
+  } })).toMatchObject({ kind: "available", rateLimited: true });
+  expect(projectClaudeUsage({ rate_limits_available: true, rate_limits: {
+    five_hour: { utilization: 100 },
+    extra_usage: { is_enabled: true, monthly_limit: 50_000, used_credits: 50_000, utilization: 100 },
+  } })).toMatchObject({ kind: "available", rateLimited: true });
 });
 
 test("legacy native model windows and paid headroom remain distinct", () => {

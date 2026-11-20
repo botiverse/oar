@@ -1349,10 +1349,12 @@ separate reader on its own app-server process (`initialize`, `account/read`,
 `account/rateLimits/read`, with `reauth_required` / `unsupported` outcomes and
 rate-limit buckets merged as the codex TUI does); neither it nor installation
 discovery is inferred from turn token totals. A native non-null
-`rateLimitReachedType` contributes to `rateLimited` only when that bucket
-does not report `credits.hasCredits: true` or `credits.unlimited: true`.
-Missing or unrecognized credits leave the native refusal in place. OAR
-does not interpret the balance's units or infer available credits from it.
+`rateLimitReachedType` on the account bucket (`codex` or the legacy unnamed
+account view) sets top-level `rateLimited` only when that bucket does not report
+`credits.hasCredits: true` or `credits.unlimited: true`; single-model buckets
+stay in `windows` without setting top-level `rateLimited`. Missing or
+unrecognized credits leave the native refusal in place. OAR does not interpret
+the balance's units or infer available credits from it.
 Full windows still display 100%; a full window without the native flag
 does not make the account rate limited. The default account bucket's readable
 credits also appear as `credits: { available, unlimited?, balance? }` on the

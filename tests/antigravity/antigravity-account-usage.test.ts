@@ -71,6 +71,7 @@ test("rate limited only when every group is used up and agy reports no AI credit
   expect(projectAntigravityUsage(withUsedUp(GEMINI_5H), 0)).toMatchObject({ rateLimited: false });
   const allGone = withUsedUp(GEMINI_5H, THIRD_PARTY_WEEKLY);
   expect(projectAntigravityUsage(allGone, 0)).toMatchObject({ rateLimited: true, credits: { available: false, balance: "0" } });
+  expect(projectAntigravityUsage(allGone, -5)).toMatchObject({ rateLimited: true, credits: { available: false, balance: "-5" } });
   expect(projectAntigravityUsage(allGone, 3)).toMatchObject({ rateLimited: false, credits: { available: true, balance: "3" } });
   for (const credits of [undefined, null]) {
     expect(projectAntigravityUsage(allGone, credits)).not.toHaveProperty("credits");

@@ -35,7 +35,11 @@ export const codexRedeemLimitReset: LimitResetRedeemer = async (installation, op
     case "unsupported":
       return outcome;
     case "error":
-      break;
+      throw new Error(
+        "Failed to redeem a Codex limit reset; whether it was spent is unknown, so retry with the same idempotencyKey",
+        { cause: outcome.cause },
+      );
+    default:
+      throw new Error("Failed to redeem a Codex limit reset; whether it was spent is unknown, so retry with the same idempotencyKey");
   }
-  throw new Error("Failed to redeem a Codex limit reset; whether it was spent is unknown, so retry with the same idempotencyKey");
 };

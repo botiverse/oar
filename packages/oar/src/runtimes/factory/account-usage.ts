@@ -5,6 +5,7 @@ import { sessionCredentialRedactor } from "../../shared/credential-redactor.js";
 import { environmentValue } from "../../shared/environment.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord, parseJson } from "../../shared/json.js";
+import { usedRatioFromPercent } from "../../shared/usage-ratio.js";
 import { factoryCredential } from "./account-credential.js";
 import { accountUsageEnvironment } from "../../shared/usage-environment.js";
 
@@ -60,7 +61,7 @@ function bucketWindow(value: unknown, tier: (typeof TIERS)[number], prefix: stri
   const running = resetsAt !== null && Date.parse(resetsAt) > now;
   return {
     id: `${prefix}.${tier.key}`, label: `${labelPrefix}${tier.label}`,
-    usedRatio: running ? Number(Math.min(1, used / 100).toFixed(6)) : 0,
+    usedRatio: running ? usedRatioFromPercent(used) : 0,
     ...(running && resetsAt !== null ? { resetsAt } : {}),
     ...(tier.durationMs === undefined ? {} : { durationMs: tier.durationMs }),
     scope,

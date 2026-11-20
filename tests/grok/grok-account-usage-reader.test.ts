@@ -244,3 +244,19 @@ test.each([
   });
   expect(await grokAccountUsage(installation)).toEqual({ kind: "reauth_required", reason: "not_authenticated", ...expected });
 });
+
+test.each([
+  "TLS handshake failed: unknown certificate authority",
+  "HTTP 407 Proxy Authentication Required",
+  "internal oauth transport error",
+])("grok -32603 internal error (%s) rejects with cause instead of misclassifying as reauth_required", async (message) => {
+  const internalError = new RequestError(-32_603, message);
+  acp.request.mockImplementation(async method => {
+    if (method === "initialize") { return { protocolVersion: 1, authMethods: [] }; }
+    if (method === "_x.ai/billing") { throw internalError; }
+    throw new Error(`Unexpected request ${method}`);
+  });
+  const rejection = await grokAccountUsage(installation).then(() => null, (error: unknown) => error);
+  expect(rejection).toBeInstanceOf(Error);
+  expect(rejection instanceof Error ? rejection.cause : undefined).toBe(internalError);
+});

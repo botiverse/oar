@@ -1,13 +1,15 @@
+/* oxlint-disable import/max-dependencies -- Kimi native usage composes Web process lifecycle, OAuth config, and shared deadline/time/ratio helpers. */
 import type { AccountUsageSnapshot, AccountUsageWindow } from "../../contracts/account-usage.js";
 import { withQueryDeadline } from "../../shared/executable/query.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { remainingMs } from "../../shared/deadline.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
+import { usedRatioFromCounts, usedRatioOf } from "../../shared/usage-ratio.js";
 import { KIMI_USAGE, type KimiAuthContext } from "./auth-config.js";
 import { readKimiToken } from "./oauth-token.js";
 import { kimiWebRequest } from "./web-query.js";
-import { startKimiWeb } from "./web-startup.js";
 import { stopKimiWeb } from "./web-shutdown.js";
+import { startKimiWeb } from "./web-startup.js";
 
 const buckets = { limit5h: "5h limit", limit7d: "Weekly limit", monthTotal: "Monthly limit", monthCode: "Monthly code limit" } as const;
 
@@ -22,14 +24,14 @@ export function projectKimiNativeUsage(quota: JsonRecord): AccountUsageSnapshot 
     const row = asRecord(usages?.[key]);
     if (typeof row?.usedRatio !== "number" || !Number.isFinite(row.usedRatio)) { continue; }
     const resetsAt = typeof row.resetAt === "string" ? utcInstantFromDate(new Date(row.resetAt)) : null;
-    windows.push({ label, usedRatio: Math.max(0, Math.min(1, row.usedRatio)), scope: { kind: "account" }, ...(resetsAt === null ? {} : { resetsAt }) });
+    windows.push({ label, usedRatio: usedRatioOf(row.usedRatio), scope: { kind: "account" }, ...(resetsAt === null ? {} : { resetsAt }) });
   }
   if (windows.length === 0) { throw new Error("Kimi usage response contains no usable quota windows"); }
   const subscriptionExhausted = windows.some(row => row.usedRatio === 1);
   const extra = asRecord(quota.extraUsage);
   const cap = extra?.monthlyChargeLimitEnabled === true && typeof extra.monthlyChargeLimitCents === "number" && Number.isFinite(extra.monthlyChargeLimitCents) && extra.monthlyChargeLimitCents > 0 ? extra.monthlyChargeLimitCents : undefined;
   const used = typeof extra?.monthlyUsedCents === "number" && Number.isFinite(extra.monthlyUsedCents) && extra.monthlyUsedCents >= 0 ? extra.monthlyUsedCents : undefined;
-  if (cap !== undefined && used !== undefined) { windows.push({ label: "Extra Usage monthly limit", usedRatio: Math.max(0, Math.min(1, used / cap)), scope: { kind: "account" } }); }
+  if (cap !== undefined && used !== undefined) { windows.push({ label: "Extra Usage monthly limit", usedRatio: usedRatioFromCounts(used, cap), scope: { kind: "account" } }); }
   const headroom = typeof extra?.balanceCents === "number" && Number.isFinite(extra.balanceCents) && extra.balanceCents > 0
     && (extra.monthlyChargeLimitEnabled === false || (extra.monthlyChargeLimitEnabled === true && cap !== undefined && Number.isFinite(cap) && used !== undefined && Number.isFinite(used) && used >= 0 && used < cap));
   return { kind: "available", windows, rateLimited: subscriptionExhausted && !headroom };
