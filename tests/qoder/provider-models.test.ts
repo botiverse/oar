@@ -4,8 +4,10 @@ import { projectQoderModels, readQoderModels } from "../../packages/oar/src/runt
 import { asRecord, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 import { fakeLineProcess } from "../fixtures/fake-line-process.js";
 
-const launch = vi.hoisted(() => ({ launchQoder: vi.fn(), closeQoder: vi.fn() }));
+const launch = vi.hoisted(() => ({ launchQoder: vi.fn() }));
+const closeLineProcess = vi.hoisted(() => vi.fn());
 vi.mock("../../packages/oar/src/runtimes/qoder/launch.js", () => launch);
+vi.mock("../../packages/oar/src/shared/executable/close.js", () => ({ closeLineProcess }));
 afterEach(() => { vi.clearAllMocks(); });
 const row = { value: "qfmodel", modelId: "qfmodel", displayName: "Qwen3.8-Flash" };
 const installation = { kind: "available", via: "executable", command: "fixture", version: "1.1.83" } as const;
@@ -20,7 +22,7 @@ function native(models: readonly JsonRecord[], reported = row.displayName, optio
     process.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: frame?.request_id, response } })}\n`);
   });
   launch.launchQoder.mockResolvedValue(Object.assign(child, { qoderVersion: version }));
-  launch.closeQoder.mockImplementation(async () => { child.end(0); await child.exited; });
+  closeLineProcess.mockImplementation(async () => { child.end(0); await child.exited; });
   return child;
 }
 
@@ -46,7 +48,7 @@ test.each([
 ])("provider catalog rejects $name and does not publish an unverified resolvedId", async ({ rows }) => {
   const child = native(rows);
   await expect(qoderSession(installation, { cwd: "/work", model: row.value })).rejects.toThrow("did not provide a resolved name");
-  expect(launch.closeQoder).toHaveBeenCalledWith(child);
+  expect(closeLineProcess).toHaveBeenCalledWith(child);
   expect(projectQoderModels({ models: rows }, installation.version)[0]?.resolvedId).toBeUndefined();
 });
 

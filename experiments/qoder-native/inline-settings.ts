@@ -9,7 +9,8 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { qoderControl } from "../../packages/oar/src/runtimes/qoder/control.js";
-import { closeQoder, launchQoder } from "../../packages/oar/src/runtimes/qoder/launch.js";
+import { closeLineProcess } from "../../packages/oar/src/shared/executable/close.js";
+import { launchQoder } from "../../packages/oar/src/runtimes/qoder/launch.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 import { startQoderNative } from "../../sea-trial/harness/qoder-native.js";
 
@@ -44,7 +45,7 @@ async function open(mode: "inline" | "file", index: number): Promise<boolean> {
       error: error instanceof Error ? error.message : String(error) })}\n`);
     return false;
   } finally {
-    try { if (child !== undefined) { await closeQoder(child); } }
+    try { if (child !== undefined) { await closeLineProcess(child); } }
     finally { await fixture.stop(); }
   }
 }

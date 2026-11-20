@@ -69,11 +69,3 @@ export async function launchQoder(command: string, sessionId: string, options: S
     return { ...transport, qoderVersion: compatibility.version, releaseMcpConfig: () => { mcpConfig?.releaseAfterRead(); } };
   } catch (error) { child?.kill(); mcpConfig?.end(); temporary?.remove(); throw qoderStartupError(error, options.effort); }
 }
-
-/** EOF finishes the native request before process-tree cleanup enforces the bound. */
-export async function closeQoder(child: LineProcess): Promise<void> {
-  const timer = setTimeout(() => { child.kill(); }, 5000);
-  child.markNativeStop();
-  child.stdin.end();
-  try { await child.exited; } finally { clearTimeout(timer); }
-}

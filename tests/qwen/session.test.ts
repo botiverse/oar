@@ -75,7 +75,7 @@ test("private initialization failure preserves the runtime error and releases th
   const child = fakeLineProcess((line, process) => {
     const frame = asRecord(parseJson(line));
     process.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "error", request_id: frame?.request_id, error: "native startup failure" } })}\n`);
-  });
+  }, { ignoreEof: true });
   vi.mocked(launchQwen).mockResolvedValue(child);
   try { await expect(qwenSession(installation, { cwd: "/fixture" })).rejects.toThrow("native startup failure"); }
   finally { vi.restoreAllMocks(); }

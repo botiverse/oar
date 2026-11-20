@@ -10,7 +10,8 @@ import { readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { qoderControl, qoderInitializeTimeoutMs } from "../../packages/oar/src/runtimes/qoder/control.js";
-import { closeQoder, launchQoder } from "../../packages/oar/src/runtimes/qoder/launch.js";
+import { closeLineProcess } from "../../packages/oar/src/shared/executable/close.js";
+import { launchQoder } from "../../packages/oar/src/runtimes/qoder/launch.js";
 import { asRecord, asRecordList, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 import { startQoderNative } from "../../sea-trial/harness/qoder-native.js";
 
@@ -66,7 +67,7 @@ try {
     failure = error instanceof Error ? error.message : String(error);
   } finally {
     if (timer !== null) { clearTimeout(timer); }
-    control.end(); await closeQoder(child);
+    control.end(); await closeLineProcess(child);
   }
   const observedText = await readFile(io, "utf8");
   const observations = observedText.trim().split("\n").map(line => asRecord(JSON.parse(line)));

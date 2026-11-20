@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
 import { cp, readdir } from "node:fs/promises";
 import path from "node:path";
 import type { AvailableInstallation } from "../../packages/oar/src/contracts/installation.js";
-import { launchQoder, closeQoder } from "../../packages/oar/src/runtimes/qoder/launch.js";
+import { closeLineProcess } from "../../packages/oar/src/shared/executable/close.js";
+import { launchQoder } from "../../packages/oar/src/runtimes/qoder/launch.js";
 import { qoderControl, qoderInitializeTimeoutMs } from "../../packages/oar/src/runtimes/qoder/control.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 import { startQoderNative, type QoderNativeEnv } from "./qoder-native.js";
@@ -19,7 +19,7 @@ interface Sample {
 /** Observe slow native completion up to 90s, independently of the product's deadline. */
 async function sample(command: string, fixture: QoderNativeEnv, label: string): Promise<Sample> {
   const started = performance.now();
-  const child = await launchQoder(command, randomUUID(), fixture.options);
+  const child = await launchQoder(command, crypto.randomUUID(), fixture.options);
   const control = qoderControl(child, () => {}, 90_000);
   child.onLine((line) => {
     const value = asRecord(parseJson(line));
@@ -31,7 +31,7 @@ async function sample(command: string, fixture: QoderNativeEnv, label: string): 
     return { label, kind: "ok", initializeMs: performance.now() - started };
   } catch (error) {
     return { label, kind: "failed", initializeMs: performance.now() - started, reason: error instanceof Error ? error.message : String(error) };
-  } finally { control.end(); await closeQoder(child); }
+  } finally { control.end(); await closeLineProcess(child); }
 }
 
 /** Copy only the native binary cache, never credentials, config, plugins or history. */

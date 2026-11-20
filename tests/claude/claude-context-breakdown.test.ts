@@ -81,7 +81,7 @@ test("an answer without totals is an error, not an empty breakdown", () => {
 });
 
 /** A claude that answers get_context_usage with `answer`, or with an error when it is a string. */
-function scripted(answer: Record<string, unknown> | string): FakeLineProcess {
+function scripted(answer: Record<string, unknown> | string, options?: { readonly ignoreEof?: boolean }): FakeLineProcess {
   const child = fakeLineProcess((line, process) => {
     const request = asRecord(JSON.parse(line));
     if (asRecord(request?.request)?.subtype !== "get_context_usage") { return; }
@@ -90,7 +90,7 @@ function scripted(answer: Record<string, unknown> | string): FakeLineProcess {
         ? { subtype: "error", request_id: request?.request_id, error: answer }
         : { subtype: "success", request_id: request?.request_id, response: answer } })}\n`);
     });
-  });
+  }, options);
   spawnLineProcess.mockReturnValue(child);
   return child;
 }
@@ -129,7 +129,7 @@ function slowToExit(child: FakeLineProcess): FakeLineProcess {
 }
 
 test("null from the moment dispose begins, without writing to the ended stdin", async () => {
-  const child = slowToExit(scripted(ANSWER));
+  const child = slowToExit(scripted(ANSWER, { ignoreEof: true }));
   const session = await claudeSession(installation, { cwd: "/work" });
   const disposing = session.dispose();
   expect(await session.contextBreakdown?.()).toBeNull();
@@ -139,7 +139,7 @@ test("null from the moment dispose begins, without writing to the ended stdin", 
 });
 
 test("null once stdin has ended without a dispose (the abort fallback's kill), and nothing is written", async () => {
-  const child = slowToExit(scripted(ANSWER));
+  const child = slowToExit(scripted(ANSWER, { ignoreEof: true }));
   const session = await claudeSession(installation, { cwd: "/work" });
   child.stdin.end();
   expect(await session.contextBreakdown?.()).toBeNull();

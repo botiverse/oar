@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { expect, test } from "vitest";
 import { qoderInstallation } from "../../packages/oar/src/runtimes/qoder/installation.js";
-import { launchQoder, closeQoder } from "../../packages/oar/src/runtimes/qoder/launch.js";
+import { closeLineProcess } from "../../packages/oar/src/shared/executable/close.js";
+import { launchQoder } from "../../packages/oar/src/runtimes/qoder/launch.js";
 import { qoderControl, qoderInitializeTimeoutMs } from "../../packages/oar/src/runtimes/qoder/control.js";
 import { projectQoderModels } from "../../packages/oar/src/runtimes/qoder/list-models.js";
 import { qoderSession } from "../../packages/oar/src/runtimes/qoder/session.js";
@@ -48,7 +49,7 @@ test.skipIf(process.env.OAR_TEST !== "qoder-native")("native model catalog ident
     assert.ok(typeof expected === "string" && expected.length > 0);
     expect(initModel).toBe(expected);
     expect(projectQoderModels(payload, child.qoderVersion).find(model => model.id === options.model)?.resolvedId).toBe(expected);
-  } finally { control.end(); await closeQoder(child); }
+  } finally { control.end(); await closeLineProcess(child); }
   const session = await qoderSession({ kind: "available", via: "executable", command: installation.command }, options);
   try {
     expect(session.model().value).toBe(expected);

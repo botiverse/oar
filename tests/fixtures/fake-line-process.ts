@@ -15,6 +15,10 @@ export interface FakeLineProcess extends LineProcess {
 }
 
 type WriteHook = (text: string, fake: FakeLineProcess) => void;
+export interface FakeLineProcessOptions {
+  /** Keep the scripted process alive past stdin EOF (default: exits 0 on EOF). */
+  readonly ignoreEof?: boolean;
+}
 
 class ScriptedLineProcess implements FakeLineProcess {
   readonly spawned = Promise.resolve();
@@ -34,7 +38,7 @@ class ScriptedLineProcess implements FakeLineProcess {
   private cleanup: ProcessCleanupDiagnostics | undefined;
   private readonly stderr = new StderrTail();
 
-  constructor(onWrite: WriteHook | undefined) {
+  constructor(onWrite: WriteHook | undefined, options?: FakeLineProcessOptions) {
     this.onWrite = onWrite;
     const { promise, resolve } = Promise.withResolvers<number | null>();
     this.exited = promise;
@@ -42,6 +46,9 @@ class ScriptedLineProcess implements FakeLineProcess {
     this.stdout.on("data", (chunk: Buffer | string) => {
       this.consume(chunk.toString());
     });
+    if (options?.ignoreEof !== true) {
+      this.stdin.on("finish", () => { this.end(0); });
+    }
   }
 
   killed(): boolean {
@@ -75,6 +82,7 @@ class ScriptedLineProcess implements FakeLineProcess {
 
   kill(): void {
     this.wasKilled = true;
+    this.stdin.end();
     this.end(null);
   }
 
@@ -112,6 +120,6 @@ class ScriptedLineProcess implements FakeLineProcess {
   }
 }
 
-export function fakeLineProcess(onWrite?: WriteHook): FakeLineProcess {
-  return new ScriptedLineProcess(onWrite);
+export function fakeLineProcess(onWrite?: WriteHook, options?: FakeLineProcessOptions): FakeLineProcess {
+  return new ScriptedLineProcess(onWrite, options);
 }

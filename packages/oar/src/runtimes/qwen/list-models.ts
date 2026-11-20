@@ -4,7 +4,7 @@ import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import { effortLevelsOf } from "../../shared/effort-levels.js";
 import { asRecord, asRecordList, parseJson } from "../../shared/json.js";
 import { listingCwd } from "../../shared/listing-cwd.js";
-import { closeQwen } from "./close.js";
+import { closeLineProcess } from "../../shared/executable/close.js";
 import { launchQwen } from "./launch.js";
 import { qwenControl, QWEN_CONTROL_TIMEOUT_MS } from "./control.js";
 
@@ -51,7 +51,7 @@ export async function readQwenModels(command: string, cwd: string, timeoutMs = Q
     } catch (error) {
       if (authentication.refused) { throw new QwenModelAuthenticationError("Configure a Qwen authentication type before listing models."); }
       throw error;
-    } finally { control.end(); await closeQwen(child); }
+    } finally { control.end(); await closeLineProcess(child); }
   });
   return result;
 }
