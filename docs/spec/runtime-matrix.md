@@ -197,6 +197,11 @@ installation)` merge the static declarations in, so a host reads one answer
 and never branches on a runtime's name. `orient()` returns it for every
 available installation ([orientation](orientation.md#session-capabilities)).
 
+The optional `nativeSessionFile` declaration tells a host whether it can ask the
+opened session for its own persisted file. Codex declares it from 0.169.0 for
+`thread.path`. Pi declares it for the SDK and supported RPC sessions, both of
+which report `sessionFile`. Other installations leave the declaration absent.
+
 ### Platforms and credentials
 
 `Runtime.verifiedPlatforms` lists the operating systems (`process.platform`)

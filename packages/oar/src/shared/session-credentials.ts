@@ -43,6 +43,7 @@ function sessionCredentials(options: SessionOptions, context: SessionOpenContext
       dispose: guard(adapter.dispose.bind(adapter), clean),
       ...(adapter.lastModelRequest === undefined ? {} : { lastModelRequest: guard(adapter.lastModelRequest.bind(adapter), clean, true) }),
       ...(adapter.contextBreakdown === undefined ? {} : { contextBreakdown: guard(adapter.contextBreakdown.bind(adapter), clean) }),
+      ...(adapter.nativeSessionFile === undefined ? {} : { nativeSessionFile: guard(adapter.nativeSessionFile.bind(adapter), clean) }),
       ...(adapter.resources === undefined ? {} : { resources: guard(adapter.resources.bind(adapter), clean) }),
     }),
   };

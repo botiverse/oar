@@ -120,6 +120,9 @@ HTTP 401 transport failures keep their native status
 
 ### Connection, session creation, and resume
 
+The native open reply gives `thread.path` for a fresh, resumed or forked thread. A fresh thread may report its future path before the file exists.
+`Session.nativeSessionFile()` returns that path once the file exists.
+
 OAR launches `codex app-server -c sandbox_mode="…" --listen stdio://` (see
 [tools and permissions](#tools-permissions-and-client-callbacks)), sends
 `initialize` (`clientInfo: { name: "oar", version: "0.0.0" }`,

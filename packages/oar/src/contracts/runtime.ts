@@ -61,6 +61,8 @@ export interface SessionCapabilityDeclaration {
   readonly stopTask?: boolean;
   /** A completed native file-edit tool can report applied changes by path and kind. */
   readonly fileChanges?: boolean;
+  /** Whether the session can locate its native persisted file. */
+  readonly nativeSessionFile?: boolean;
 }
 
 /** Which compaction lifecycle events a runtime's own automatic compaction produces. */

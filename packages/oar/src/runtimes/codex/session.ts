@@ -1,3 +1,4 @@
+import { sessionFileLocator } from "../../shared/native-session-file.js";
 import { codexTaskControl } from "./task-control.js";
 import { manualCompaction } from "../../shared/manual-compaction.js";
 import { codexCompaction, codexCompactionBusy } from "./compaction.js";
@@ -256,7 +257,9 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
         },
       };
     };
+    const sessionFile = asRecord(started.thread)?.path;
     const session: Session = credentials.seal({
+      nativeSessionFile: sessionFileLocator(sessionFile, credentials.redact),
       id: kernel.sessionId,
       ...(options.goals === true ? { goal: codexGoalControl(kernel, client, threadId) } : {}),
       capabilities,

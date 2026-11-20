@@ -365,6 +365,9 @@ file unchanged. The same package-policy matrix runs against SDK and RPC startup.
 
 ### Session creation and resume
 
+Both the SDK's `AgentSession.sessionFile` and RPC's `get_state.sessionFile` name the native session file. A fresh session creates the file when it saves its first turn.
+`Session.nativeSessionFile()` returns that path once the file exists.
+
 The public SDK opens persisted sessions by **file path**. Given host-selected
 `cwd`, `agentDir`, `sessionDir` and `filePath`, OAR uses this entry shape:
 
