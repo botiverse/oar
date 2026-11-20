@@ -4,6 +4,7 @@ import type { RequestRecord, SessionOptions, StartSession } from "../../contract
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { SessionUnavailableError } from "../../contracts/session-unavailable-error.js";
 import { sessionEnvironment } from "../environment.js";
+import { reportedStderr } from "../executable/reported-stderr.js";
 import { cleanupFailureReason, appendCleanupFailure } from "../executable/process-cleanup.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import { createProcessPool, type ProcessConfiguration } from "../process-pool.js";
@@ -86,16 +87,21 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
       redact: routing.redact,
       // Raw shared stderr may carry a peer's MCP credentials; it stays behind the pool redactor.
       inheritStderr: false,
+      sessionExit: diagnostic => {
+        routing.diagnostic("process_exited", { code: diagnostic.exitCode, signal: diagnostic.signal, stderr: reportedStderr(diagnostic, routing.redact) });
+      },
       ...wire,
     });
     // A broken transport cannot leave a pool of live controllers awaiting an exit forever.
     let stopping = false;
-    const stop = (): void => {
+    const stop = (requested = true): void => {
       if (stopping) { return; }
-      stopping = true; retire(); wire.close(); runtime.kill();
+      stopping = true;
+      if (requested) { runtime.markNativeStop(); }
+      retire(); wire.close(); runtime.kill();
     };
-    runtime.connection.signal.addEventListener("abort", stop, { once: true });
-    if (runtime.connection.signal.aborted) { stop(); }
+    runtime.connection.signal.addEventListener("abort", () => { stop(false); }, { once: true });
+    if (runtime.connection.signal.aborted) { stop(false); }
     // The pool key holds both initialize metadata and declared client features.
     const protocol = asRecord(JSON.parse(configuration.protocol ?? "null"));
     const meta = asRecord(protocol?.initialize) ?? undefined;
@@ -119,7 +125,11 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
     return {
       runtime, routing, initialize, exited: runtime.exited, resources: runtime.resources,
       stop: async (): Promise<void> => { stop(); await runtime.exited; },
-      exitReason: (): string | undefined => cleanupFailureReason(runtime.diagnostics().cleanup),
+      exitReason: (): string | undefined => {
+        const diagnostic = runtime.diagnostics();
+        const cleanup = cleanupFailureReason(diagnostic.cleanup);
+        return runtime.exitError?.() === undefined || diagnostic.signal === null ? cleanup : [`signal ${diagnostic.signal}`, cleanup].filter(Boolean).join("; ");
+      },
     };
   });
   return withSessionCredentials(async (installation, options, credentials, context) => {

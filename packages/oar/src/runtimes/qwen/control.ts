@@ -1,3 +1,4 @@
+import { reportedProcessFailure } from "../../shared/executable/reported-stderr.js";
 import { randomUUID } from "node:crypto";
 import type { LineProcess } from "../../shared/executable/index.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
@@ -12,14 +13,11 @@ interface QwenControl {
 }
 
 /** Private setup/readbacks; native account/configuration responses stay outside session records. */
-export function qwenControl(child: LineProcess, timeoutMs = QWEN_CONTROL_TIMEOUT_MS): QwenControl {
+export function qwenControl(child: LineProcess, timeoutMs = QWEN_CONTROL_TIMEOUT_MS, redact?: (text: string) => string): QwenControl {
   const pending = new Map<string, (answer: JsonRecord | Error) => void>();
   const privateIds = new Set<string>();
   let exited = false;
-  const exitError = (): Error => {
-    const diagnostic = child.diagnostics();
-    return new Error(`Qwen exited before answering a control request: ${diagnostic.stderr}`);
-  };
+  const exitError = (): Error => reportedProcessFailure("Qwen exited before answering a control request", child.diagnostics(), redact);
   return {
     consume(message: JsonRecord): boolean {
       const response = asRecord(message.response);

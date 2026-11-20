@@ -1,7 +1,6 @@
 import { sessionEnvironment } from "../../shared/environment.js";
 import { spawnLineProcess, type LineProcessOptions } from "../../shared/executable/index.js";
-import { reportedStderr } from "../../shared/executable/reported-stderr.js";
-import { processFailure } from "../../shared/executable/diagnostics.js";
+import { reportedProcessFailure, sessionExitReason } from "../../shared/executable/reported-stderr.js";
 import type { CancellationObservation } from "../../shared/executable/process-cancellation.js";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
 import { nativeErrorCause } from "../../shared/native-error.js";
@@ -173,12 +172,7 @@ function createAppServerClient(
     }
   });
   child.onExit(() => {
-    const diagnostics = child.diagnostics();
-    exitFailure = processFailure("app-server exited", {
-      ...diagnostics,
-      stderr: reportedStderr(diagnostics, redact),
-      ...(diagnostics.error === undefined ? {} : { error: { ...diagnostics.error, message: redact(diagnostics.error.message) } }),
-    });
+    exitFailure = reportedProcessFailure("app-server exited", child.diagnostics(), redact);
     for (const waiter of pending.values()) {
       const error = exitFailure;
       waiter.settled({ kind: "exited", error });
@@ -232,7 +226,7 @@ function createAppServerClient(
       });
     },
     onExit(handler) {
-      child.onExit(handler);
+      child.onExit((code, reason) => { handler(code, sessionExitReason(child, reason, redact)); });
     },
     kill() {
       child.kill();

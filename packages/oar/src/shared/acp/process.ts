@@ -45,6 +45,8 @@ export interface AcpProcessOptions {
   readonly outgoing?: (message: AnyMessage) => void;
   readonly cwd?: string;
   readonly env?: NodeJS.ProcessEnv;
+  /** Only session processes publish exit observations. Shared stderr belongs to the process diagnostic sink. */
+  readonly sessionExit?: "isolated" | ((diagnostics: ProcessDiagnostics) => void);
   /** Authentication queries keep all native diagnostics private. */
   readonly inheritStderr?: boolean;
   /** Session MCP credentials must not appear in protocol error messages, data or causes. */
@@ -61,6 +63,7 @@ export interface AcpProcess {
   readonly exited: Promise<number | null>;
   readonly closed: boolean;
   readonly exitCode: number | null;
+  readonly exitError?: () => AcpError | undefined;
   readonly redact?: (text: string) => string;
   kill(): void;
   /** Only immediately before stopping: memoizes capture before native cancel/close can orphan tools. */
@@ -69,7 +72,7 @@ export interface AcpProcess {
   markNativeStop(): void;
   /** Observe before isolated user cancellation; never use for a shared root. */
   observeCancellation(): Promise<CancellationObservation>;
-  /** Bounded native diagnostics for the session-opening error boundary only. */
+  /** Bounded native diagnostics for session error reporting. */
   diagnostics(): ProcessDiagnostics;
   /** The agent's memory with everything it started (`LineProcess.resources`). */
   readonly resources: () => Promise<SessionResources | null>;
@@ -89,7 +92,7 @@ export async function withAcpDeadline<Response>(
   // A startup gate supplies the original clock so queue and spawn use this same budget.
   if (startedAt === undefined) {
     await process.spawned;
-    if (processClosed(process)) { throw acpProcessExitedError(process.exitCode); }
+    if (processClosed(process)) { throw process.exitError?.() ?? acpProcessExitedError(process.exitCode); }
   }
   const controller = timeoutMs === null ? undefined : new AbortController();
   const limit = timeoutMs === null || controller === undefined
@@ -99,7 +102,7 @@ export async function withAcpDeadline<Response>(
     if (startedAt !== undefined) {
       await (limit === undefined ? process.spawned : Promise.race([process.spawned, limit.promise]));
       if (timeoutMs !== null && performance.now() - startedAt >= timeoutMs) { throw acpRequestTimeoutError(method, timeoutMs); }
-      if (processClosed(process)) { throw acpProcessExitedError(process.exitCode); }
+      if (processClosed(process)) { throw process.exitError?.() ?? acpProcessExitedError(process.exitCode); }
     }
     const request = send(controller === undefined
       ? undefined
@@ -111,7 +114,7 @@ export async function withAcpDeadline<Response>(
     }
     if (processClosed(process)) {
       await process.exited;
-      throw acpProcessExitedError(process.exitCode);
+      throw process.exitError?.() ?? acpProcessExitedError(process.exitCode);
     }
     if (error instanceof RequestError) {
       const redact = process.redact ?? ((text: string): string => text);
@@ -173,11 +176,22 @@ export function startAcpProcess(
   connection.signal.addEventListener("abort", disconnected, { once: true });
   if (connection.signal.aborted) { disconnected(); }
   let ended = false;
+  let plannedStop = false;
+  let exitError: AcpError | undefined = undefined;
   let exitCode: number | null = null;
   child.onExit((code) => {
     ended = true;
     exitCode = code;
-    connection.close(acpProcessExitedError(code));
+    if (options.sessionExit !== undefined && !plannedStop && (options.sessionExit !== "isolated" || !child.stopping())) {
+      const diagnostic = child.diagnostics();
+      if (options.sessionExit === "isolated") {
+        exitError = acpProcessExitedError(code, diagnostic, options.redact);
+      } else {
+        options.sessionExit(diagnostic);
+        exitError = acpProcessExitedError(code, { exitCode: code, signal: diagnostic.signal, stderr: "" });
+      }
+    }
+    connection.close(exitError ?? acpProcessExitedError(code));
     // Final cleanup is complete. An unobserved descendant may still hold the
     // pipe, but must not keep the cancelled raw-byte drain or the host alive.
     child.stdout.destroy();
@@ -188,6 +202,7 @@ export function startAcpProcess(
     ...(options.redact === undefined ? {} : { redact: options.redact }),
     spawned: child.spawned,
     exited: child.exited,
+    exitError: () => exitError,
     get closed() {
       return ended || connection.signal.aborted;
     },
@@ -201,7 +216,7 @@ export function startAcpProcess(
       }
     },
     prepareShutdown: async () => { await child.prepareShutdown(); },
-    markNativeStop: () => { child.markNativeStop(); },
+    markNativeStop: () => { plannedStop = true; child.markNativeStop(); },
     observeCancellation: async () => { const observation = await child.observeCancellation(); return observation; },
     resources: child.resources,
     diagnostics: () => child.diagnostics(),

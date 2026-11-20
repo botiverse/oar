@@ -30,11 +30,11 @@ test("an exit during the open handshake carries the same safe tail in the reject
   expect(failure).toHaveProperty("stack", expect.not.stringMatching(/opaque-leading-fragment|dummy-diagnostic-token|sk-diagnostic/u));
 });
 
-test("stderr after a successful open and first protocol frame stays outside ordinary session exits", async () => {
+test("an unexpected exit after the first protocol frame retains the same bounded redacted stderr", async () => {
   const session = await claudeSession(installation, { cwd: dir, env: { ...env, OAR_DIAGNOSTIC_FRAME: "first" } });
   try {
     await vi.waitFor(() => { expect(session.records()).toContainEqual(expect.objectContaining({
-      kind: "response", body: { kind: "exited", code: 1 },
+      kind: "response", body: { kind: "exited", code: 1, reason },
     })); }, { timeout: 15_000 });
   } finally { await session.dispose(); }
 });

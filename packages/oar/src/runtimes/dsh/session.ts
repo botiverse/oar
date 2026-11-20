@@ -1,5 +1,6 @@
 /* oxlint-disable import/max-dependencies -- Native launch, controls, projection and the credential boundary meet here. */
 /* oxlint-disable eslint/require-await -- Session controls return kernel promises directly. */
+import { sessionExitReason } from "../../shared/executable/reported-stderr.js";
 import { resolvedAdditionalDirectories } from "../../shared/additional-directories.js";
 import { readExecutableVersion } from "../../shared/executable/index.js";
 import { dshVersionRefusal } from "./version.js";
@@ -110,7 +111,7 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
   }, credentials.redact);
   child.onExit((code, reason) => {
     fallback.clear();
-    kernel.processExited(code, reason);
+    kernel.processExited(code, sessionExitReason(child, reason, credentials.redact));
   });
   const fields = { sessionId, agentOptions: { ...agentOptions },
     ...(options.additionalDirectories === undefined ? {} : { additionalDirectories: options.additionalDirectories }),
