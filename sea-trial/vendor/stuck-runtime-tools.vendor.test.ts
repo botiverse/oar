@@ -1,6 +1,5 @@
 import { alive, signalFixture, type ProcessIdentity } from "../../tests/fixtures/process-tree.js";
-import { observeProcessTable } from "../../packages/oar/src/shared/executable/process-tree.js";
-import { processTable } from "./support/codex-process-count.js";
+import { identifiedProcesses, type Row } from "./support/codex-process-count.js";
 import { expect, test, vi } from "vitest";
 import { claudeInstallation, defineRuntime, claudeRuntime, codexRuntime } from "../../packages/oar/src/index.js";
 
@@ -21,19 +20,6 @@ const codexSession = codexRuntime.session;
  * upgrade probe: the command must still be found out of the runtime's group,
  * or what this pins (and the runtime pages say) has changed.
  */
-
-interface Row extends ProcessIdentity { readonly ppid: number; readonly pgid: number; readonly args: string }
-
-function processes(): Row[] {
-  const before = observeProcessTable();
-  const commands = processTable();
-  const after = observeProcessTable();
-  if (!before.ok || !after.ok) { throw new Error("Cannot identify the native tool and runtime"); }
-  return commands.flatMap(row => {
-    const entry = after.table.get(row.pid);
-    return entry !== undefined && entry.start === before.table.get(row.pid)?.start ? [{ ...row, start: entry.start }] : [];
-  });
-}
 
 function below(rows: readonly Row[], pid: number): Row[] {
   const found: Row[] = [];
@@ -59,7 +45,7 @@ for (const runtime of runtimes) {
         mock.on({ userMessage: /run the tool/u, hasToolResult: false }, { toolCalls: [runtime.tool] });
         mock.on({ hasToolResult: true }, { content: "done" });
       });
-      const seen: Row[] = [];
+      const seen: (Row & ProcessIdentity)[] = [];
       const stopped: ProcessIdentity[] = [];
       try {
         await withProcessEnv({ OAR_KILL_GRACE_MS: "500" }, async () => {
@@ -67,15 +53,19 @@ for (const runtime of runtimes) {
           try {
             await session.prompt("please run the tool");
             const command = await vi.waitFor(() => {
-              const rows = processes();
-              const host = rows.find((row) => row.ppid === process.pid && runtime.binary.test(row.args));
-              const tool = host === undefined ? undefined : below(rows, host.pid).find((row) => row.args.startsWith(COMMAND));
+              const rows = identifiedProcesses(snapshot => {
+                const root = snapshot.find(row => row.ppid === process.pid && runtime.binary.test(row.args));
+                return root === undefined ? [] : [root, ...below(snapshot, root.pid)];
+              });
+              const host = rows.find(row => row.ppid === process.pid && runtime.binary.test(row.args));
+              const tool = rows.find(row => row.args.startsWith(COMMAND));
               if (host === undefined || tool === undefined) { throw new Error("the tool command is not running yet"); }
-              seen.splice(0, seen.length, host, ...below(rows, host.pid));
+              seen.splice(0, seen.length, ...rows);
               return { host, tool };
             }, { timeout: 60_000, interval: 200 });
             expect(command.tool.pgid, "the command runs out of the runtime's process group").not.toBe(command.host.pid);
-            signalFixture(command.host, "SIGSTOP");
+            expect(signalFixture(command.host, "SIGSTOP"), "SIGSTOP reached the runtime").toBe(true);
+            expect(alive(command.host), "the stopped runtime is still present").toBe(true);
             stopped.push(command.host);
           } finally {
             await session.dispose();

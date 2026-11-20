@@ -14,10 +14,18 @@ export const fakeAgent = fileURLToPath(new URL("fake-agent-process.mjs", import.
 export const agentTreeModule = new URL("agent-tree.mjs", import.meta.url).href;
 
 export const fixtureIdentityPath = import.meta.filename;
-const reporter = fileURLToPath(new URL("report-process.ts", import.meta.url));
-// Called by a POSIX shell immediately after spawning its background job.
-const quote = (value: string): string => `'${value.replaceAll("'", "'\"'\"'")}'`;
-export const reportShellChild = [quote(process.execPath), quote(reporter), "-", '"$!"', '"$$"'].join(" ");
+// Keep reporting on the shell's timed path cheap. A function gives the procfs
+// parser its own positional parameters. Field 22 follows the last ')' in stat.
+const shellStart = process.platform === "linux"
+  ? `IFS= read -r stat < "/proc/$pid/stat" || return 1
+     set -- \${stat##*) }
+     start=\${20:?missing start time}`
+  : `start=$(LC_ALL=C /bin/ps -p "$pid" -o lstart=) || return 1
+     start=\${start#"\${start%%[![:space:]]*}"}
+     start=\${start%"\${start##*[![:space:]]}"}`;
+const shellReporter = `report_fixture() { pid=$1; ${shellStart}; printf '{"pid":%s,"start":"%s","root":%s}\\n' "$pid" "$start" "$$"; }`;
+export const reportShellChild = `${shellReporter}; report_fixture "$!"`;
+export const reportShellSelf = `${shellReporter}; report_fixture "$$"`;
 
 /** Concurrent suites share only builds with identical source. */
 function windowsReaderPath(): string {
@@ -142,22 +150,22 @@ export function alive(processId: ProcessIdentity): boolean {
   return processStart(processId.pid) === processId.start;
 }
 
-function terminateWindowsFixture(processId: ProcessIdentity): void {
+function terminateWindowsFixture(processId: ProcessIdentity): boolean {
   const result = spawnSync(prepareProcessStart(), [String(processId.pid), processId.start], { encoding: "utf8", timeout: 5000, windowsHide: true });
   if (result.error !== undefined) { throw result.error; }
   assert.ok(result.status === 0 || (result.status === 1 && result.stderr.trim() === ""), result.stderr);
+  return result.status === 0;
 }
 
 /** Only signal the original fixture process. An exit between observation and signal is normal. */
-export function signalFixture(processId: ProcessIdentity, signal: NodeJS.Signals = "SIGKILL"): void {
+export function signalFixture(processId: ProcessIdentity, signal: NodeJS.Signals = "SIGKILL"): boolean {
   if (process.platform === "win32") {
     assert.ok(signal === "SIGKILL" || signal === "SIGTERM");
-    terminateWindowsFixture(processId);
-    return;
+    return terminateWindowsFixture(processId);
   }
-  if (!alive(processId)) { return; }
-  try { process.kill(processId.pid, signal); }
-  catch (error) { if (!noSuchProcess(error)) { throw error; } }
+  if (!alive(processId)) { return false; }
+  try { return process.kill(processId.pid, signal); }
+  catch (error) { if (!noSuchProcess(error)) { throw error; } return false; }
 }
 
 /** Poll `predicate` until it holds; false when the deadline passes first. */

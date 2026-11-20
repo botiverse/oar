@@ -4,9 +4,9 @@ import { chmodSync, existsSync, lstatSync, mkdtempSync, readdirSync, readFileSyn
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
 import { expect, onTestFinished, test } from "vitest";
-import { reportedProcess, signalFixture } from "../fixtures/process-tree.js";
+import { reportedProcess, reportShellSelf, signalFixture } from "../fixtures/process-tree.js";
 import { sweepAbandonedMcpConfigs } from "../../packages/oar/src/runtimes/claude/mcp-config.js";
 
 /*
@@ -21,7 +21,7 @@ const launchUrl = pathToFileURL(path.join(import.meta.dirname, "../../packages/o
 const SECRET = "host-death-credential-value";
 
 const FAKE_CLAUDE = `#!/bin/sh
-"${process.execPath}" "${fileURLToPath(new URL("../fixtures/report-process.ts", import.meta.url))}" "$OAR_FAKE_OUT.pid" "$$"
+${reportShellSelf} > "$OAR_FAKE_OUT.pid.tmp" && /bin/mv "$OAR_FAKE_OUT.pid.tmp" "$OAR_FAKE_OUT.pid" || exit 1
 while [ "$#" -gt 0 ]; do
   if [ "$1" = "--mcp-config" ]; then config="$2"; fi
   shift

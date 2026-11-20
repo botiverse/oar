@@ -10,12 +10,8 @@ import { windowsReadings } from "./windows-resources.js";
 interface Reading { readonly identity: ProcessEntry; readonly rss: number; readonly cpuMs: number }
 
 export function rootsSince(before: ReadonlyMap<number, ProcessEntry>): ProcessEntry[] {
-  const after = checkedProcessTable();
-  return [...after.values()].filter((entry) => {
-    if (entry.ppid !== process.pid || before.get(entry.pid)?.start === entry.start) { return false; }
-    // A Windows process-table reader can appear in its own snapshot, then exit.
-    try { process.kill(entry.pid, 0); return true; } catch { return false; }
-  });
+  const after = checkedProcessTable("new-roots", process.platform, true);
+  return [...after.values()].filter(entry => entry.ppid === process.pid && before.get(entry.pid)?.start !== entry.start);
 }
 
 function nativeReadings(entries: readonly ProcessEntry[]): Reading[] {

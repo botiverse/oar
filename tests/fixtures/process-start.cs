@@ -18,7 +18,7 @@ class FixtureProcessStart {
                 string start = process.StartTime.ToUniversalTime().Ticks.ToString(CultureInfo.InvariantCulture);
                 if (start != args[1]) { return 1; }
                 try { process.Kill(); }
-                catch (Win32Exception) { if (!process.HasExited) { throw; } }
+                catch (Win32Exception) { if (!process.HasExited) { throw; } return 1; }
                 return 0;
             }
         } catch (ArgumentException) {

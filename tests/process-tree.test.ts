@@ -100,28 +100,34 @@ test("fixture liveness and cleanup spare a live replacement with the same PID", 
 
 test.skipIf(!posix)("killEntries spares a pid whose start time differs: it may be another process by now", async () => {
   await withChildren([sleeper({ detached: true })], async ([pid = 0]) => {
+    const identity = captureProcess(pid);
     const table = readProcessTable();
     const current = table.get(pid);
     assert.ok(current !== undefined);
     killEntries([{ ...current, start: `${current.start}-earlier` }], table);
-    assert.equal(await gone(current, 300), false, "a different start time is not signalled");
+    assert.equal(await gone(identity, 300), false, "a different start time is not signalled");
     killEntries([current], readProcessTable());
-    assert.equal(await gone(current), true, "the same process is");
+    assert.equal(await gone(identity), true, "the same process is");
   });
 });
 
+async function readGroupMember(stdout: NodeJS.ReadableStream): Promise<ProcessIdentity> {
+  const data: unknown[] = await once(stdout, "data");
+  return reportedProcess(JSON.parse(String(data[0])));
+}
+
 test.skipIf(!posix)("killEntries takes each entry's process group too, never the host or its group", async () => {
   const leader = spawn(process.execPath, ["-e", LEADER], { stdio: ["ignore", "pipe", "ignore"], detached: true });
-  const reported: Promise<unknown[]> = once(leader.stdout, "data");
+  const reported = readGroupMember(leader.stdout);
   await withChildren([leader, sleeper(), sleeper()], async ([leaderPid = 0, target = 0, sibling = 0], extra) => {
-    const [data]: unknown[] = await reported;
-    const memberId = reportedProcess(JSON.parse(String(data))); extra.push(memberId);
+    const [leaderId, targetId, siblingId] = [captureProcess(leaderPid), captureProcess(target), captureProcess(sibling)];
+    const memberId = await reported; extra.push(memberId);
     const table = readProcessTable();
-    const [host, leaderEntry, targetEntry, siblingId] = [process.pid, leaderPid, target, sibling].map(pid => table.get(pid));
-    assert.ok(host !== undefined && leaderEntry !== undefined && targetEntry !== undefined && siblingId !== undefined);
+    const [host, leaderEntry, targetEntry] = [process.pid, leaderPid, target].map(pid => table.get(pid));
+    assert.ok(host !== undefined && leaderEntry !== undefined && targetEntry !== undefined && table.has(sibling));
     assert.deepEqual([targetEntry.pgid, table.get(memberId.pid)?.pgid], [host.pgid, leaderPid], "an attached sleeper shares the host's group; the member is in the leader's");
     killEntries([host, leaderEntry, targetEntry], table);
-    assert.deepEqual([await gone(leaderEntry), await gone(memberId), await gone(targetEntry)], [true, true, true], "the entries and the leader's group go");
+    assert.deepEqual([await gone(leaderId), await gone(memberId), await gone(targetId)], [true, true, true], "the entries and the leader's group go");
     assert.equal(await gone(siblingId, 300), false, "the host's group is not signalled");
   });
 });

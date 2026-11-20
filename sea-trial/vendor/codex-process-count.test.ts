@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test, vi } from "vitest";
 import { captureProcess, alive } from "../../tests/fixtures/process-tree.js";
-import { expectRunning, expectStarted, processTable } from "./support/codex-process-count.js";
+import { expectRunning, expectStarted, processTable, reapMarkedProcesses } from "./support/codex-process-count.js";
 
 // No runtime needed: exercise a failing count, including BSD/GNU ps formatting and long commands.
 test.skipIf(process.platform === "win32")("process-count failures retain only matching process details", async () => {
@@ -37,6 +37,20 @@ test.skipIf(process.platform === "win32")("process-count failures retain only ma
       await exited;
     }));
   }
+});
+
+test.skipIf(process.platform === "win32")("cleanup reaps every copy of a marker and spares other fixtures", async () => {
+  const marker = `oar-cleanup-${randomUUID()}`;
+  const children = [marker, marker, randomUUID()].map(name => spawn(process.execPath,
+    ["-e", "setInterval(() => {}, 1000)", name], { stdio: "ignore" }));
+  try {
+    await Promise.all(children.map(async child => once(child, "spawn")));
+    const exited = Promise.all(children.slice(0, 2).map(async child => once(child, "exit")));
+    reapMarkedProcesses([marker]);
+    await exited;
+    expect(children[2]?.exitCode).toBeNull();
+    expect(children[2]?.signalCode).toBeNull();
+  } finally { for (const child of children) { child.kill("SIGKILL"); } }
 });
 
 test.skipIf(process.platform === "win32")("fixture readiness distinguishes shell startup from duplicate commands", async () => {

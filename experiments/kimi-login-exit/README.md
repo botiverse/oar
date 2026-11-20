@@ -41,9 +41,10 @@ uses no real account. Each login keeps the existing 30-second deadline.
 In all three cases the observer that launched the browser recorded its own
 exit code as zero. The launcher and exit records are correlated by observer
 PID, so the subsequent authentication subprocess cannot replace that result.
-The surviving probe process checks the helper and observer independently with
-`process.kill(pid, 0)` and also confirms that its own PID is still present.
-Only `ESRCH` means absent; other errors propagate. The exact callback timing
+The original probe checked whether each PID was present. The current probe
+records the helper and observer start times, then checks both identities after
+login. Its own process is the live control. A reused PID counts as an exit,
+and failures to read process information propagate. The exact callback timing
 is scheduling-dependent and is reported, not used as a success condition.
 Raw fixture diagnostics remain under `OAR_TRIAL_RUN_DIR/kimi-login`.
 
