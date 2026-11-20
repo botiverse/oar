@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test, vi } from "vitest";
+import { databaseFiles, peersAt } from "../sea-trial/harness/opencode-database-context.js";
 import { databaseErrorsInWindow, observeOpenCodeStartup } from "../sea-trial/harness/opencode-startup-log.js";
 
 test("reports only native categories in the failed open's observation window", () => {
@@ -33,12 +34,34 @@ test("captures a native database failure even when the ACP exception omits stder
       throw original;
     }, root);
     await expect(open({ kind: "available", via: "bundled" }, { cwd: root })).rejects.toBe(original);
-    expect(record).toHaveBeenCalledWith(expect.objectContaining({
-      status: "read", errors: [expect.objectContaining({ operations: ["configure database"], reasons: ["disk I/O error"] })],
-    }));
+    expect(vi.mocked(record).mock.lastCall?.[0]).toMatchObject({
+      status: "read", database: { path: join(root, "opencode", "opencode.db"), present: [] },
+      peersAtRejection: { opening: 0, open: 0, closing: 0 },
+      errors: [{ operations: ["configure database"], reasons: ["disk I/O error"], peers: { opening: 0, open: 0, closing: 0 } }],
+    });
   } finally {
     await rm(root, { recursive: true, force: true });
   }
 });
 
 vi.mock("../sea-trial/harness/trace.js", () => ({ record: vi.fn() }));
+
+test("the failure snapshot lists only SQLite files", async () => {
+  const root = await mkdtemp(join(tmpdir(), "opencode-startup-files-"));
+  try {
+    const dir = join(root, "opencode");
+    expect(databaseFiles(root).present).toEqual([]);
+    await mkdir(dir);
+    for (const name of ["opencode.db", "opencode.db-wal", "opencode.db-shm", "unrelated-private-name"]) {
+      // oxlint-disable-next-line no-await-in-loop -- Construct the observed directory before sampling.
+      await writeFile(join(dir, name), "");
+    }
+    expect(databaseFiles(root)).toMatchObject({ path: join(dir, "opencode.db"), present: ["opencode.db", "opencode.db-wal", "opencode.db-shm"] });
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test("a peer that exited before rejection still counts as closing at the time of the native error", () => {
+  const peers = [{ start: 1, opened: 2, closing: 8, ended: 12 }, { start: 1, opened: 3 }, { start: 9 }, { start: 30 }];
+  expect(peersAt(peers, 10)).toEqual({ open: 1, closing: 1, opening: 1 });
+  expect(peersAt(peers, 12)).toEqual({ open: 1, closing: 0, opening: 1 });
+});

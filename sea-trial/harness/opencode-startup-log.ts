@@ -1,6 +1,7 @@
 import { open } from "node:fs/promises";
 import { join } from "node:path";
 import type { StartSession } from "../../packages/oar/src/contracts/session.js";
+import { databaseFiles, observeLifetime, peersAt, type OpenLifetime } from "./opencode-database-context.js";
 import { record } from "./trace.js";
 
 const reasons = [
@@ -57,17 +58,26 @@ export async function readStartupErrors(dataRoot: string, start: number, end: nu
 
 /** A native exit can reach OAR before its stderr. Inspect rejected opens even when the wrapper omitted its readiness message. */
 export function observeOpenCodeStartup(openSession: StartSession, dataRoot: string): StartSession {
-  return async (installation, options) => {
+  const lifetimes: OpenLifetime[] = [];
+  return async (installation, options, context) => {
     const start = Date.now();
+    const lifetime: OpenLifetime = { start };
+    lifetimes.push(lifetime);
     try {
-      return await openSession(installation, options);
+      const session = await openSession(installation, options, context);
+      try { observeLifetime(lifetime, session); } catch { /* Diagnostic registration must preserve a successful open. */ }
+      return session;
     } catch (error) {
       const end = Date.now();
+      lifetime.ended = end;
       try {
+        const database = databaseFiles(dataRoot);
+        const peers = lifetimes.filter(peer => peer !== lifetime);
         const errors = await readStartupErrors(dataRoot, start, end).catch(() => null);
         const readiness = error instanceof Error && error.message.includes("Standalone server exited before reporting readiness");
         if (readiness || (errors !== null && errors.length > 0)) {
-          record({ kind: "opencode_startup_database", start, end, status: errors === null ? "unavailable" : "read", errors });
+          record({ kind: "opencode_startup_database", start, end, status: errors === null ? "unavailable" : "read", database,
+            peersAtRejection: peersAt(peers, end), errors: errors?.map(({ timestamp, operations: ops, reasons: why, codes: sqlite }) => ({ timestamp, operations: ops, reasons: why, codes: sqlite, peers: peersAt(peers, Date.parse(timestamp)) })) ?? null });
         }
       } catch { /* A trace write failure must preserve the original open error. */ }
       throw error;
