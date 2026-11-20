@@ -1,9 +1,8 @@
 import path from "node:path";
-import type { InstallationProbe } from "../../contracts/installation.js";
-import { environmentValue, sessionEnvironment } from "../../shared/environment.js";
+import { environmentValue } from "../../shared/environment.js";
 import { environmentHome } from "../../shared/environment-home.js";
 import { executableInstallation } from "../../shared/installation.js";
-import { antigravityVersionRefusal, readAntigravityVersion } from "./version.js";
+import { ANTIGRAVITY_MINIMUM_VERSION, antigravityVersionRefusal, readAntigravityVersion } from "./version.js";
 
 export { readAntigravityVersion } from "./version.js";
 
@@ -21,29 +20,32 @@ export function antigravityInstalledExecutableCandidates(
   return [path.posix.join(home, ".local", "bin", "agy")];
 }
 
-const cliInstallation = executableInstallation(
-  "OAR_ANTIGRAVITY_BIN", "agy",
+/**
+ * Older CLI releases accept unknown subcommands by printing help, so `--help`
+ * verifies Antigravity CLI identity while the version policy enforces the 1.5.0
+ * native ACP floor (and lets an official install win over an older PATH copy).
+ */
+export const antigravityInstallation = executableInstallation(
+  "OAR_ANTIGRAVITY_BIN",
+  "agy",
   (env) => antigravityInstalledExecutableCandidates(process.platform, environmentHome(env), env),
-  undefined,
-  { versionTimeoutMs: 30_000, readVersion: readAntigravityVersion },
+  ["--help"],
+  {
+    versionTimeoutMs: 30_000,
+    readVersion: readAntigravityVersion,
+    identity: {
+      vendor: "Antigravity CLI (agy)",
+      help: /\bUsage of\b[\s\S]*(?:--conversation|--print-timeout|--remote-agent|\bantigravity-cli\b|Start the Agent Client Protocol \(ACP\) stdio server)/u,
+    },
+    versionPolicy: {
+      label: "Antigravity CLI",
+      lines: [{ min: ANTIGRAVITY_MINIMUM_VERSION, stableOnly: true }],
+      required: ANTIGRAVITY_MINIMUM_VERSION,
+      formatReason: (command, _installed, raw) => {
+        const base = antigravityVersionRefusal(raw)?.reason
+          ?? `Antigravity requires a stable agy CLI ${ANTIGRAVITY_MINIMUM_VERSION} or newer with native ACP; this installation reports an unrecognized CLI version`;
+        return `${base} (${command}). Update that CLI or point OAR_ANTIGRAVITY_BIN at a supported agy, not agy_acp_server`;
+      },
+    },
+  },
 );
-
-/** Older CLI releases accept unknown subcommands by printing help, so a successful help exit is not an ACP gate. */
-export const antigravityInstallation: InstallationProbe = async (options) => {
-  const env = sessionEnvironment(options?.env);
-  const snapshot = await cliInstallation(options);
-  if (snapshot.kind !== "available" || snapshot.via !== "executable") { return snapshot; }
-  const refusal = antigravityVersionRefusal(snapshot.version);
-  if (refusal === null) { return snapshot; }
-  const pinned = environmentValue(env, "OAR_ANTIGRAVITY_BIN");
-  if (pinned === undefined || pinned === "") {
-    for (const candidate of antigravityInstalledExecutableCandidates(process.platform, environmentHome(env), env)) {
-      if (candidate === snapshot.command) { continue; }
-      // The official install may be newer than a copy earlier on PATH.
-      // oxlint-disable-next-line no-await-in-loop -- Probe candidates in discovery order.
-      const fallback = await cliInstallation({ env: { ...options?.env, OAR_ANTIGRAVITY_BIN: candidate } });
-      if (fallback.kind === "available" && fallback.via === "executable" && antigravityVersionRefusal(fallback.version) === null) { return fallback; }
-    }
-  }
-  return { ...refusal, via: "executable", command: snapshot.command, reason: `${refusal.reason} (${snapshot.command}). Update that CLI or point OAR_ANTIGRAVITY_BIN at a supported agy, not agy_acp_server` };
-};

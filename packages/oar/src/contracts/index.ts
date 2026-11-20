@@ -32,9 +32,14 @@ export type {
   AvailableInstallation,
   BundledInstallation,
   ExecutableInstallation,
+  HostUnsupportedInstallation,
   InstallationProbe,
   InstallationProbeOptions,
   InstallationSnapshot,
+  ReadinessFailedInstallation,
+  UnrecognizedExecutableInstallation,
+  UnsupportedHostCode,
+  UnsupportedInstallation,
   VersionUnsupportedInstallation,
 } from "./installation.js";
 export type {

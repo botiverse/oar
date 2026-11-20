@@ -18,6 +18,7 @@ if (state.captureEnv !== undefined) {
 state.calls = [...state.calls ?? [], args];
 if (args[0] === "login") { state.loginBrowser = process.env.BROWSER; }
 save();
+if (args[0] === "--help") { console.log("Usage: qodercli [options] [command]\nQoder CLI"); process.exit(0); }
 if (args[0] === "--version") { console.log(state.version ?? "1.1.78"); process.exit(0); }
 if (args[0] === "status") {
   if (state.mode === "status-error") { console.error("private-account-must-not-leak"); process.exit(1); }

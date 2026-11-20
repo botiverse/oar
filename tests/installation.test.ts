@@ -223,49 +223,24 @@ test("readiness gates each candidate", async () => {
   assert.deepEqual(ready, { kind: "available", via: "executable", command: nodeOnPath, version: process.version });
 
   // Node rejects the app-server-style subcommand, so the probe is unsupported.
-  const unsupported = await executableInstallation(
-    "OAR_FIXTURE_BIN",
-    "node",
-    [],
-    ["oar-fixture-subcommand", "--help"],
-  )();
-  assert.deepEqual(unsupported, {
-    kind: "unsupported",
-    reason: "oar-fixture-subcommand --help failed",
-  });
+  const unsupported = await executableInstallation("OAR_FIXTURE_BIN", "node", [], ["oar-fixture-subcommand", "--help"])();
+  assert.deepEqual(unsupported, { kind: "unsupported", code: "readiness_failed", via: "executable", command: nodeOnPath, reason: "oar-fixture-subcommand --help failed" });
 });
 
-test("claude and codex probe through their pin env vars", async () => {
-  const claude = await withEnv(
-    { OAR_CLAUDE_BIN: process.execPath },
-    async () => claudeInstallation(),
-  );
-  assert.deepEqual(claude, {
-    kind: "available",
-    via: "executable",
-    command: process.execPath,
-    version: process.version,
-  });
+test("claude and codex refuse non-vendor executables pinned through their env vars", async () => {
+  const claude = await withEnv({ OAR_CLAUDE_BIN: process.execPath }, async () => claudeInstallation());
+  assert.deepEqual(claude, { kind: "unsupported", code: "unrecognized_executable", via: "executable", command: process.execPath, reason: `${process.execPath} did not identify as Claude Code` });
 
-  const codex = await withEnv(
-    { OAR_CODEX_BIN: process.execPath },
-    async () => codexInstallation(),
-  );
-  assert.deepEqual(codex, { kind: "unsupported", reason: "app-server --help failed" });
+  const codex = await withEnv({ OAR_CODEX_BIN: process.execPath }, async () => codexInstallation());
+  assert.deepEqual(codex, { kind: "unsupported", code: "readiness_failed", via: "executable", command: process.execPath, reason: "app-server --help failed" });
 });
 
 test("grok and kimi gate their ACP entrypoints", async () => {
-  const grok = await withEnv(
-    { OAR_GROK_BIN: process.execPath },
-    async () => grokInstallation(),
-  );
-  assert.deepEqual(grok, { kind: "unsupported", reason: "agent stdio --help failed" });
+  const grok = await withEnv({ OAR_GROK_BIN: process.execPath }, async () => grokInstallation());
+  assert.deepEqual(grok, { kind: "unsupported", code: "readiness_failed", via: "executable", command: process.execPath, reason: "agent stdio --help failed" });
 
-  const kimi = await withEnv(
-    { OAR_KIMI_BIN: process.execPath },
-    async () => kimiInstallation(),
-  );
-  assert.deepEqual(kimi, { kind: "unsupported", reason: "acp --help failed" });
+  const kimi = await withEnv({ OAR_KIMI_BIN: process.execPath }, async () => kimiInstallation());
+  assert.deepEqual(kimi, { kind: "unsupported", code: "readiness_failed", via: "executable", command: process.execPath, reason: "acp --help failed" });
 });
 
 test("pi installation reports a versionless bundled availability", async () => {
@@ -277,6 +252,7 @@ test("cursor is the host's SDK, where its native package exists", async () => {
   assert.deepEqual(await cursorInstallation(), { kind: "available", via: "bundled" });
   assert.deepEqual(await cursorInstallationFor("win32", "arm64")(), {
     kind: "unsupported",
+    code: "unsupported_platform",
     reason: "@cursor/sdk has no native package for win32-arm64",
   });
 });

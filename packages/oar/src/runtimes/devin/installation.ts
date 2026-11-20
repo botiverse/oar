@@ -3,9 +3,11 @@ import { environmentValue } from "../../shared/environment.js";
 import { environmentHome } from "../../shared/environment-home.js";
 import { executableInstallation } from "../../shared/installation.js";
 
+const DEVIN_VERSION = /^devin\s+(\d+\.\d+\.\d+(?:-[A-Za-z\d.-]+)?)(?:\s+\([0-9a-f]+\))?$/u;
+
 /** `devin --version` prints `devin <semver>` optionally followed by a short commit hash in parentheses. */
 export function readDevinVersion(stdout: string): string | undefined {
-  return /^devin\s+(\d+\.\d+\.\d+(?:-[A-Za-z\d.-]+)?)(?:\s+\([0-9a-f]+\))?$/u.exec(stdout.trim())?.[1];
+  return DEVIN_VERSION.exec(stdout.trim())?.[1];
 }
 
 /** Official installer locations, including GUI hosts whose PATH omits them. */
@@ -27,5 +29,9 @@ export const devinInstallation = executableInstallation(
   "devin",
   (env) => devinInstalledExecutableCandidates(process.platform, environmentHome(env), env),
   ["acp", "--help"],
-  { versionTimeoutMs: 30_000, readVersion: readDevinVersion },
+  {
+    versionTimeoutMs: 30_000,
+    readVersion: readDevinVersion,
+    identity: { vendor: "Devin CLI", version: DEVIN_VERSION },
+  },
 );

@@ -6,9 +6,17 @@ import { resolveExecutable } from "../../shared/executable/index.js";
 import { npmGlobalBin, npmGlobalPrefix } from "../../shared/install-npm.js";
 import { executableInstallation } from "../../shared/installation.js";
 
-const directInstallation = executableInstallation("OAR_CODEBUDDY_BIN", "codebuddy", (env) => [
-  path.join(environmentHome(env), ".local", "bin", process.platform === "win32" ? "codebuddy.exe" : "codebuddy"),
-], ["--help"]);
+const CODEBUDDY_OPTIONS = {
+  identity: { vendor: "CodeBuddy Code", help: /^\s*(?:Usage:\s+(?:codebuddy|cbc)(?:\.exe)?(?:\|(?:codebuddy|cbc))?\b|CodeBuddy Code\b)/imu },
+} as const;
+
+const directInstallation = executableInstallation(
+  "OAR_CODEBUDDY_BIN",
+  "codebuddy",
+  (env) => [path.join(environmentHome(env), ".local", "bin", process.platform === "win32" ? "codebuddy.exe" : "codebuddy")],
+  ["--help"],
+  CODEBUDDY_OPTIONS,
+);
 
 /** A configured override remains exclusive. Only an otherwise missing copy triggers npm's local prefix lookup. */
 export const codebuddyInstallation: InstallationProbe = async (options = {}) => {
@@ -21,5 +29,5 @@ export const codebuddyInstallation: InstallationProbe = async (options = {}) => 
   const prefix = await npmGlobalPrefix(npm, env).catch((): null => null);
   if (prefix === null) { return direct; }
   const command = path.join(npmGlobalBin(prefix), process.platform === "win32" ? "codebuddy.cmd" : "codebuddy");
-  return executableInstallation("OAR_CODEBUDDY_BIN", "codebuddy", [command], ["--help"])(options);
+  return executableInstallation("OAR_CODEBUDDY_BIN", "codebuddy", [command], ["--help"], CODEBUDDY_OPTIONS)(options);
 };

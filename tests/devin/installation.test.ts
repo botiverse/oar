@@ -102,6 +102,9 @@ test("devinInstallation verifies acp --help and --version via OAR_DEVIN_BIN", as
   const unsupportedBin = writeDevinFixture(dir, "bad", { helpExitCode: 1 });
   expect(await devinInstallation({ env: { OAR_DEVIN_BIN: unsupportedBin, PATH: "" } })).toEqual({
     kind: "unsupported",
+    code: "readiness_failed",
+    via: "executable",
+    command: unsupportedBin,
     reason: "acp --help failed",
   });
 

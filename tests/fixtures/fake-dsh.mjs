@@ -4,6 +4,10 @@
 import { readFileSync } from "node:fs";
 
 const mode = process.env.FAKE_DSH_MODE ?? "ok";
+if (process.argv.includes("--help")) {
+  process.stdout.write("Usage: dsh [--profile] <name> [options] [app-args...]\ndsh: boot a DeepSeek Harness profile\n");
+  process.exit(0);
+}
 if (process.argv.includes("--version")) {
   process.stdout.write(`${process.env.FAKE_DSH_VERSION ?? "0.2.1-rc.5"}\n`);
   process.exit(0);

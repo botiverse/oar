@@ -81,18 +81,18 @@ export type CursorRuntime = Runtime & Required<Pick<Runtime, "installation" | "l
  */
 export function createCursorRuntime(options: CursorRuntimeOptions): CursorRuntime {
   if (options.execution === "subprocess") {
-    return cursorRuntime(subprocessAccess(options.sdkModule, options.envBase));
+    return cursorRuntime(subprocessAccess(options.sdkModule, options.envBase), options.sdkModule);
   }
   return cursorRuntime(inProcessAccess(options.sdk, true));
 }
 
-function cursorRuntime(access: CursorSdkAccess): CursorRuntime {
+function cursorRuntime(access: CursorSdkAccess, sdkModule?: string): CursorRuntime {
   const definition = {
     id: "cursor",
     sessionCapabilities: () => ({ steer: true, images: true, contextUsage: { tokens: true, contextWindow: false }, mcpTransports: ["stdio", "http"] as const, stopTask: false }),
     refusedSessionOptions: access.refusedSessionOptions,
     brand: runtimeBrands.cursor,
-    installation: cursorInstallationFor(process.platform, process.arch, access.execution),
+    installation: cursorInstallationFor(process.platform, process.arch, access.execution, sdkModule === undefined ? {} : { sdkModule }),
     listModels: cursorListModelsWith(access),
     login: cursorLoginWith(access),
     logout: cursorLogoutWith(access),

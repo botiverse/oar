@@ -49,6 +49,7 @@ export interface FakeState {
   readonly version: string;
   readonly target: string;
   readonly bareVersion?: boolean;
+  readonly helpOutput?: string;
   readonly mode: "upgrade" | "noop" | "fail" | "prompt" | "hang";
 }
 

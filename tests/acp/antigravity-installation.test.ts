@@ -13,6 +13,17 @@ const runExecutable = vi.hoisted(() => vi.fn<ExecutableRunner>());
 vi.mock("../../packages/oar/src/shared/executable/run.js", () => ({ runExecutable }));
 afterEach(() => { runExecutable.mockReset(); vi.unstubAllEnvs(); });
 
+const AGY_HELP = "Usage of agy:\n  --conversation\n  --print-timeout\nAvailable subcommands:\n  acp             Start the Agent Client Protocol (ACP) stdio server\n";
+
+function mockAgy(versionStdout: string): void {
+  runExecutable.mockImplementation(async (_command, args) => ({
+    ok: true,
+    exitCode: 0,
+    stdout: args[0] === "--help" ? AGY_HELP : versionStdout,
+    stderr: "",
+  }));
+}
+
 test.each([
   ["1.5.0\n", "available"],
   ["1.4.9\n", "unsupported"],
@@ -23,7 +34,7 @@ test.each([
   ["Build label: 1.4.5\n", "unsupported"],
 ])("native ACP requires the CLI version, not a successful unknown-command help: %j", async (stdout, kind) => {
   vi.stubEnv("OAR_ANTIGRAVITY_BIN", process.execPath);
-  runExecutable.mockResolvedValue({ ok: true, exitCode: 0, stdout, stderr: "" });
+  mockAgy(stdout);
   const result = await antigravityInstallation();
   expect(result.kind).toBe(kind);
   if (result.kind === "unsupported") {
@@ -35,7 +46,8 @@ test.each([
     if (version === undefined) { expect(result).not.toHaveProperty("installedVersion"); }
     else { expect(result.installedVersion).toBe(version); }
   }
-  expect(runExecutable).toHaveBeenCalledExactlyOnceWith(process.execPath, ["--version"], { timeoutMs: 30_000, env: process.env });
+  expect(runExecutable).toHaveBeenNthCalledWith(1, process.execPath, ["--help"], { env: process.env });
+  expect(runExecutable).toHaveBeenNthCalledWith(2, process.execPath, ["--version"], { timeoutMs: 30_000, env: process.env });
 });
 
 test("off-PATH discovery follows the official POSIX and Windows install directories", () => {
@@ -77,10 +89,13 @@ test("a supported official install is selected behind an older PATH copy", async
     const old = scratchCli(home, "old", "1.4.9");
     const current = scratchCli(home, officialDirectory, "1.5.0");
     vi.stubEnv("PATH", path.dirname(old));
-    runExecutable.mockImplementation(async (command) => ({ ok: true, exitCode: 0, stdout: command === current ? "1.5.0" : "1.4.9", stderr: "" }));
+    runExecutable.mockImplementation(async (command, args) => {
+      const version = command === current ? "1.5.0" : "1.4.9";
+      return { ok: true, exitCode: 0, stdout: args[0] === "--help" ? AGY_HELP : version, stderr: "" };
+    });
     expect(await antigravityInstallation()).toMatchObject({ kind: "available", command: current, version: "1.5.0" });
     expect(await antigravityInstall()).toMatchObject({ kind: "already_installed", installation: { command: current } });
-    expect(runExecutable.mock.calls.every(([, args]) => JSON.stringify(args) === '["--version"]')).toBe(true);
+    expect(runExecutable.mock.calls.every(([, args]) => args[0] === "--help" || args[0] === "--version")).toBe(true);
   } finally { rmSync(home, { recursive: true, force: true }); }
 });
 
@@ -91,12 +106,18 @@ test.each(["official-old", "pinned-old-server", "pinned-missing"])("migration pr
     const old = scratchCli(home, officialDirectory, "old");
     vi.stubEnv("PATH", "");
     if (scenario !== "official-old") { vi.stubEnv("OAR_ANTIGRAVITY_BIN", scenario === "pinned-missing" ? path.join(home, "missing-agy") : old); }
-    runExecutable.mockResolvedValue({ ok: true, exitCode: 0, stdout: scenario === "official-old" ? "1.4.9" : "Build label: 1.4.5", stderr: "" });
+    const helpStdout = scenario === "official-old" ? AGY_HELP : "Usage: agy_acp_server\n";
+    const versionStdout = scenario === "official-old" ? "1.4.9" : "Build label: 1.4.5";
+    runExecutable.mockImplementation(async (_command, args) => ({
+      ok: true,
+      exitCode: 0,
+      stdout: args[0] === "--help" ? helpStdout : versionStdout,
+      stderr: "",
+    }));
     const plan = await antigravityInstallPlan();
     expect(plan).toMatchObject({ kind: "unsupported", reason: "configuration" });
     expect(plan.kind === "unsupported" ? plan.detail : "").toContain(scenario === "pinned-missing" ? "missing-agy" : old);
     expect(await antigravityInstall()).toEqual(plan);
-    expect(runExecutable.mock.calls.every(([, args]) => JSON.stringify(args) === '["--version"]')).toBe(true);
   } finally { rmSync(home, { recursive: true, force: true }); }
 });
 
@@ -105,12 +126,15 @@ test("antigravity accepts only the CLI release format and rejects a different ex
   assert.equal(readAntigravityVersion("Build label: 1.4.5\n"), undefined);
   assert.equal(readAntigravityVersion("v24.0.0\n"), undefined);
   vi.stubEnv("OAR_ANTIGRAVITY_BIN", process.execPath);
-  runExecutable.mockResolvedValue({ ok: true, exitCode: 0, stdout: "v24.0.0\n", stderr: "" });
+  runExecutable.mockResolvedValue({ ok: true, exitCode: 0, stdout: "Usage: node [options]\n", stderr: "" });
   try {
     const result = await antigravityInstallation();
-    expect(result.kind).toBe("unsupported");
-    expect(result.kind === "unsupported" ? result.reason : "").toContain(process.execPath);
-    expect(result.kind === "unsupported" ? result.reason : "").toContain("stable agy CLI 1.5.0");
+    expect(result).toMatchObject({
+      kind: "unsupported",
+      code: "unrecognized_executable",
+      via: "executable",
+      command: process.execPath,
+    });
   } finally { vi.unstubAllEnvs(); }
 });
 
@@ -121,8 +145,8 @@ test("an old PATH copy does not block a new installation into the absent officia
     isolatedHome(home);
     const old = scratchCli(home, "old", "1.4.9");
     vi.stubEnv("PATH", `${path.dirname(old)}${path.delimiter}${originalPath}`);
-    runExecutable.mockResolvedValue({ ok: true, exitCode: 0, stdout: "1.4.9", stderr: "" });
-    expect(await antigravityInstallation()).toMatchObject({ kind: "unsupported" });
+    mockAgy("1.4.9");
+    expect(await antigravityInstallation()).toMatchObject({ kind: "unsupported", code: "version_unsupported" });
     const plan = await antigravityInstallPlan();
     expect(plan.kind).toBe(process.platform === "win32" ? "unsupported" : "plan");
     if (plan.kind === "unsupported") { expect(plan.reason).toBe("platform"); }

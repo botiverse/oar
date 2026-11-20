@@ -80,15 +80,27 @@ until the host restarts or calls `install()`/`upgrade()`; and kimi's staged
 native update, which kimi swaps in at its next start, until a session or
 usage read starts it.
 
-A located executable whose version is refused returns
-`VersionUnsupportedInstallation`: `kind: "unsupported"`,
-`code: "version_unsupported"`, `via: "executable"`, `command`, `reason`, and
-optional `installedVersion` and `requiredVersion`. Keeping the selected command
-lets the host pass this refusal to `checkUpdate()` or `upgrade()` on an explicit
-request. It does not admit sessions or other readers: those still require
-`AvailableInstallation`. Other unsupported installations carry only their reason.
-These describe discovery, not installer results. `Runtime.minVersion` exposes
-the adapter's declared floor before discovery; it grants no install or upgrade
+Every `unsupported` installation carries a typed `code` and a plain-text
+`reason` (`packages/oar/src/contracts/installation.ts`). Executable probes
+check readiness, vendor identity and any declared per-line version policy in
+one shared rule (`packages/oar/src/shared/installation.ts`), skipping failed
+candidates until a usable fallback wins or returning the first candidate's
+refusal. Bundled and SDK probes check host-environment requirements through
+`packages/oar/src/shared/host-environment.ts`.
+
+| `code` | Meaning | Admitted to `checkUpdate` / `upgrade`? |
+| --- | --- | --- |
+| `version_unsupported` | Identified vendor executable whose version falls outside the adapter's floor or per-line range (`via: "executable"`, `command`, optional `installedVersion` and `requiredVersion`) | Yes, on an explicit request |
+| `unrecognized_executable` | Located program did not identify as this runtime's vendor CLI (`via: "executable"`, `command`) | No |
+| `readiness_failed` | Located program exited non-zero on the runtime's readiness probe (`via: "executable"`, `command`) | No |
+| `unsupported_platform` | Host OS/arch lacks a required native package (`@cursor/sdk` ships darwin/linux arm64/x64 and win32 x64) | No |
+| `unsupported_node_version` | Host Node version is below the runtime's minimum (`@cursor/sdk` 1.4.1 `engines.node`: `>=22.13`) | No |
+| `unsupported_host` | Host build cannot spawn the runtime's Node subprocess (Node SEA / Bun standalone for Cursor subprocess or default Pi RPC; Electron for default Pi RPC) | No |
+| `dependency_missing` | Required JS module or entry point is not resolvable on disk (`sdkModule` for Cursor subprocess; `@earendil-works/pi-coding-agent/rpc-entry` for default Pi RPC) | No |
+
+None of these admit sessions or other readers: those still require
+`AvailableInstallation`. `Runtime.minVersion` exposes a single numeric floor
+before discovery when a runtime has one; it grants no install or upgrade
 action. See [version requirements](orientation.md#adapter-version-requirements).
 
 ## Lines

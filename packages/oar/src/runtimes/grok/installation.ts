@@ -25,9 +25,17 @@ export function grokInstalledExecutableCandidates(
   ];
 }
 
+/** Verify xAI Grok CLI identity on both `agent stdio --help` and `--version` (measured on 1.0.89). */
 export const grokInstallation = executableInstallation(
   "OAR_GROK_BIN",
   "grok",
   (env) => grokInstalledExecutableCandidates(process.platform, environmentHome(env), env),
   ["agent", "stdio", "--help"],
+  {
+    identity: {
+      vendor: "Grok CLI",
+      help: /\bUsage:\s+grok(?:\.exe)?\s+agent\s+stdio\b/iu,
+      version: /^grok\s+\d+\.\d+\.\d+/iu,
+    },
+  },
 );

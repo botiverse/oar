@@ -136,16 +136,27 @@ A newer explicit command passes admission without an OAR release; this is a
 compatibility floor, not a claim that every future release was tested. Daily
 inspection exercises the latest explicit command and records protocol or
 behavior changes.
-A single-file host without a separate Node executable must provide a command.
+A single-file or Electron host without a separate Node executable must provide
+a `command`. `createPiRuntime({ execution: "subprocess" }).installation()`
+checks these host requirements before returning `bundled`: without an explicit
+`command`, it returns `unsupported` with `code: "unsupported_host"` on a
+compiled single executable (Node SEA or Bun standalone) or an Electron host
+(Pi RPC launches `process.execPath` without `ELECTRON_RUN_AS_NODE`), and
+`code: "dependency_missing"` when `@earendil-works/pi-coding-agent/rpc-entry`
+cannot be resolved on disk. With an explicit `command`, `installation()`
+locates the command (`not_found` when absent) and checks its `--version`
+against `PI_RPC_MINIMUM_VERSION` (`1.4.0`), returning `version_unsupported`
+when below the floor or unreadable. OAR does not refuse Windows here because
+the gating `pi-rpc-windows` CI job runs both behavior and vendor suites on
+`windows-latest` (`verifiedPlatforms.pi` includes `win32`).
 
 Pi has native `pi update --self --no-approve`: an isolated npm installation
 successfully moved from 1.3.0 to 1.5.2 without stdin
 ([evidence](../../experiments/old-cli-upgrade/README.md)). OAR has not exposed
-that updater yet. Its installation probe still reports `bundled` even for
-an explicit subprocess command, which may be a host executable with prefix
-arguments. Correct selected-executable discovery must precede upgrade support;
-upgrading the host or Node executable would be wrong. Bundled SDK dependencies
-remain the embedding application's responsibility.
+that updater yet: an explicit subprocess `command` can be a host executable
+with prefix arguments, and upgrading the host or Node executable would be
+wrong. Bundled SDK dependencies remain the embedding application's
+responsibility.
 
 With a normal package tree OAR reads the dependency's package metadata directly.
 For a bundled host it uses Pi's source `PI_AI_VERSION` constant; the test suite
