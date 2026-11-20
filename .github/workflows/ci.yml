@@ -10,6 +10,10 @@ on:
   # `stamp workflow run ci.yml --repo botiverse/oar` (agents cannot rerun push runs).
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # The selector runs affected backends on Linux for pull requests. OpenCode's
   # two pins also run on Windows. Main pushes and dispatches run the full matrix.

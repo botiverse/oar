@@ -289,7 +289,8 @@ none; `experiments/` code reaches all, because vendor tests and the behavior
 harness import its probes). The Windows-only Pi RPC job also waits for main. A push to main and a
 dispatch run every backend on every platform, and the release gate waits for
 that run on the released commit, so a platform regression found after merge
-still cannot ship.
+still cannot ship. A newer push or dispatch on the same ref cancels any
+in-progress or queued `ci.yml` run it supersedes.
 
 - `check`: `pnpm run check` and `pnpm run build` on Linux, macOS and Windows,
   plus offline Cursor SDK skill-loader parity against the same local fixtures,
