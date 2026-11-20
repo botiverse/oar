@@ -40,7 +40,8 @@ async function open(phase: Phase) {
   onTestFinished(async () => provider.stop());
   // Canonical spelling: macOS tmpdir() is under /var, a symlink to /private/var,
   // and an aliased HOME is refused by userConfiguration: "exclude".
-  const cwd = await realpath(await mkdtemp(path.join(tmpdir(), "oar-claude-notification-")));
+  const temporary = await mkdtemp(path.join(tmpdir(), "oar-claude-notification-"));
+  const cwd = await realpath(temporary);
   onTestFinished(async () => { await rm(cwd, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }); });
   const session = await claudeRuntime.session({ kind: "available", via: "executable", command: process.env.OAR_CLAUDE_BIN ?? "claude" },
     { ...options, cwd, model: "haiku", userConfiguration: "exclude", env: { ...provider.env, HOME: cwd, CLAUDE_CONFIG_DIR: path.join(cwd, ".claude") } });
