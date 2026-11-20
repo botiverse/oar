@@ -7,23 +7,37 @@ import { asRecord } from "../packages/oar/src/shared/json.js";
 
 const quote = (value: string): string => `'${value.replaceAll("'", String.raw`'\''`)}'`;
 
-async function recoveryScript(): Promise<string> {
-  const workflow = await readFile(".github/workflows/release.yml", "utf8");
-  const [, job] = workflow.split("\n  release_only:\n");
-  expect(job).toBeDefined();
-  const [, block] = job?.split("        run: |\n") ?? [];
-  expect(block).toBeDefined();
-  return block?.split("\n").map(line => line.slice(10)).join("\n") ?? "";
+function readBlock(workflow: string, marker: string, indent: number): string {
+  const [, after] = workflow.split(marker);
+  expect(after, marker).toBeDefined();
+  const lines: string[] = [];
+  for (const line of after?.split("\n") ?? []) {
+    if (line.length > 0 && !line.startsWith(" ".repeat(indent))) { break; }
+    lines.push(line.slice(indent));
+  }
+  return lines.join("\n");
 }
 
-async function prepare(directory: string, scenario: Record<string, unknown>): Promise<NodeJS.ProcessEnv> {
+async function workflowScripts(): Promise<{ readonly filter: string; readonly gate: string; readonly recovery: string; readonly raw: string }> {
+  const content = await readFile(".github/workflows/release.yml", "utf8");
+  const raw = content.replaceAll("\r\n", "\n");
+  const filter = readBlock(raw, "  RELEASE_PR_FILTER: |\n", 4);
+  const [, publishJob] = raw.split("\n  publish:\n");
+  const gate = readBlock(publishJob ?? "", "        run: |\n", 10);
+  const [, recoveryJob] = raw.split("\n  release_only:\n");
+  const recovery = readBlock(recoveryJob ?? "", "        run: |\n", 10);
+  return { filter, gate, recovery, raw };
+}
+
+async function prepare(directory: string, scenario: Record<string, unknown>, filter: string): Promise<NodeJS.ProcessEnv> {
   const fixture = path.resolve("tests/fixtures/release-only-cli.ts");
   await Promise.all(["gh", "npm"].map(async tool => writeFile(path.join(directory, tool),
     `#!/bin/sh\nexec ${quote(process.execPath)} ${quote(fixture)} ${tool} "$@"\n`, { mode: 0o700 })));
   const scenarioFile = path.join(directory, "scenario.json");
   await writeFile(scenarioFile, JSON.stringify(scenario));
   return { ...process.env, GH_TOKEN: "", PATH: `${directory}${path.delimiter}${process.env.PATH ?? ""}`,
-    GITHUB_REF: "refs/heads/main", GITHUB_REPOSITORY: "botiverse/oar", TAG: "v0.80.2",
+    GITHUB_REF: "refs/heads/main", GITHUB_REPOSITORY: "botiverse/oar", GITHUB_SHA: "a".repeat(40),
+    TAG: "v0.80.2", RELEASE_PR_FILTER: filter,
     RECOVERY_SCENARIO: scenarioFile, RECOVERY_CALLS: path.join(directory, "calls.jsonl") };
 }
 
@@ -38,15 +52,57 @@ async function execute(script: string, directory: string, env: NodeJS.ProcessEnv
 
 // Execute the actual bash step with command responses controlled at the network boundary.
 // The job itself runs only on ubuntu-latest; other systems do not need bash/jq installed.
-async function recovery(scenario: Record<string, unknown> = {}, env: Record<string, string> = {}): Promise<{ ok: boolean; calls: ReturnType<typeof asRecord>[]; output: string }> {
+async function runStep(
+  step: "gate" | "recovery",
+  scenario: Record<string, unknown> = {},
+  env: Record<string, string> = {},
+): Promise<{ ok: boolean; calls: ReturnType<typeof asRecord>[]; output: string }> {
   const directory = await mkdtemp(path.join(os.tmpdir(), "oar-release '"));
   try {
-    const prepared = await prepare(directory, scenario);
-    const result = await execute(await recoveryScript(), directory, { ...prepared, ...env });
+    const scripts = await workflowScripts();
+    const prepared = await prepare(directory, scenario, scripts.filter);
+    const result = await execute(scripts[step], directory, { ...prepared, ...env });
     const log = await readFile(path.join(directory, "calls.jsonl"), "utf8").catch(() => "");
     return { ...result, calls: log.trim().split("\n").filter(Boolean).map(line => asRecord(JSON.parse(line))) };
   } finally { await rm(directory, { recursive: true, force: true }); }
 }
+
+const recovery = async (scenario: Record<string, unknown> = {}, env: Record<string, string> = {}): ReturnType<typeof runStep> => {
+  const result = await runStep("recovery", scenario, env);
+  return result;
+};
+
+const dispatchGate = async (scenario: Record<string, unknown> = {}, env: Record<string, string> = {}): ReturnType<typeof runStep> => {
+  const result = await runStep("gate", scenario, env);
+  return result;
+};
+
+test("publish declares pull-requests: read and shares RELEASE_PR_FILTER with release_only", async () => {
+  const { gate, recovery: recoveryCode, raw } = await workflowScripts();
+  const publishPermissions = readBlock(raw.split("\n  publish:\n")[1] ?? "", "    permissions:\n", 6);
+  expect(publishPermissions).toContain("pull-requests: read");
+  expect(gate).toContain('"$RELEASE_PR_FILTER"');
+  expect(recoveryCode).toContain('"$RELEASE_PR_FILTER"');
+});
+
+test.skipIf(process.platform !== "linux")("dispatch gate accepts a matching merged release PR whose CI succeeded", async () => {
+  const result = await dispatchGate();
+  expect(result.ok, result.output).toBe(true);
+  expect(result.calls.map(call => call?.args)).toEqual([
+    ["api", "repos/botiverse/oar/git/matching-refs/tags/v0.80.2", "--jq", '.[] | select(.ref == "refs/tags/v0.80.2") | .ref'],
+    ["api", "--paginate", "--slurp", `repos/botiverse/oar/commits/${"a".repeat(40)}/pulls?per_page=100`],
+    ["api", `repos/botiverse/oar/actions/workflows/ci.yml/runs?head_sha=${"a".repeat(40)}`, "--jq", '[.workflow_runs[] | select(.event == "push" or .event == "workflow_dispatch") | {status, conclusion}] | first // empty'],
+  ]);
+});
+
+test.skipIf(process.platform !== "linux").each([
+  { nonReleasePr: true }, { wrongCommit: true }, { unmerged: true }, { ambiguous: true },
+  { nullNotes: true }, { apiFailure: true }, { existingTag: true },
+])("dispatch gate refuses non-release or mismatched commits before polling CI: %j", async scenario => {
+  const result = await dispatchGate(scenario);
+  expect(result.ok, result.output).toBe(false);
+  expect(result.calls.some(call => JSON.stringify(call).includes("/actions/workflows/ci.yml/runs"))).toBe(false);
+});
 
 test.skipIf(process.platform !== "linux").each([false, true])("recovery uses the tagged commit's release notes (lightweight=%s)", async lightweight => {
   const result = await recovery({ lightweight });

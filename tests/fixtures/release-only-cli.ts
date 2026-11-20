@@ -22,6 +22,7 @@ function pulls(): void {
     merge_commit_sha: scenario.wrongCommit === true ? "d".repeat(40) : commit,
     base: { ref: "main", repo: { full_name: "botiverse/oar" } }, body: notes() };
   const unrelated = { ...release, title: "unrelated main change", body: "Wrong notes" };
+  if (scenario.nonReleasePr === true) { emit([[unrelated]]); return; }
   emit([scenario.ambiguous === true ? [release, release] : [unrelated, release]]);
 }
 
@@ -42,11 +43,17 @@ function manifest(endpoint: string): void {
 function api(): void {
   if (scenario.apiFailure === true) { process.exit(1); }
   const endpoint = args.find(arg => arg.startsWith("repos/")) ?? "";
-  if (endpoint.includes("/git/ref/tags/")) { ref(); }
-  else if (endpoint.includes("/git/tags/")) { emit({ object: { type: scenario.badObject === true ? "tree" : "commit", sha: commit } }); }
-  else if (endpoint.includes("/contents/packages/")) { manifest(endpoint); }
-  else if (endpoint.includes(`/commits/${commit}/pulls`)) { pulls(); }
-  else { throw new Error(`unexpected API request: ${endpoint}`); }
+  const routes: readonly [string, () => void][] = [
+    ["/git/matching-refs/tags/", () => { process.stdout.write(scenario.existingTag === true ? "refs/tags/v0.80.2\n" : ""); }],
+    ["/actions/workflows/ci.yml/runs", () => { emit({ status: "completed", conclusion: scenario.ciConclusion ?? "success" }); }],
+    ["/git/ref/tags/", ref],
+    ["/git/tags/", () => { emit({ object: { type: scenario.badObject === true ? "tree" : "commit", sha: commit } }); }],
+    ["/contents/packages/", () => { manifest(endpoint); }],
+    [`/commits/${commit}/pulls`, pulls],
+  ];
+  const matched = routes.find(([pattern]) => endpoint.includes(pattern));
+  if (matched === undefined) { throw new Error(`unexpected API request: ${endpoint}`); }
+  matched[1]();
 }
 
 record({ tool, args });

@@ -40,6 +40,13 @@ concurrency:
 
 env:
   TAG: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
+  # Shared by the dispatch gate and release_only recovery so the release PR
+  # match rule lives in one place without checking out code in release_only.
+  RELEASE_PR_FILTER: |
+    [ .[][] | select(.merged_at != null and .merge_commit_sha == $commit
+      and .base.ref == "main" and .base.repo.full_name == $repo and .title == $title) ]
+    | if length == 1 and (.[0].body | type) == "string" then .[0].body
+      else error("expected exactly one merged release PR for the commit") end
 
 jobs:
   publish:
@@ -48,6 +55,7 @@ jobs:
     permissions:
       contents: read
       actions: read # reads ci.yml's run for the released commit
+      pull-requests: read # verifies the dispatched commit is the matching release PR
       id-token: write
     steps:
       - uses: actions/checkout@v4
@@ -73,6 +81,12 @@ jobs:
           if [ -n "$existing" ]; then
             echo "$TAG already exists"; exit 1
           fi
+          # Refuse unless $GITHUB_SHA is the merge commit of the matching release PR,
+          # reusing the same filter as release_only so a commit merged after the release
+          # PR cannot be published with another PR's notes.
+          prs=$(gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls?per_page=100")
+          jq -er --arg commit "$GITHUB_SHA" --arg repo "$GITHUB_REPOSITORY" --arg title "chore: release $TAG" \
+            "$RELEASE_PR_FILTER" <<< "$prs" >/dev/null
           for attempt in $(seq 1 60); do
             # The newest push or hand-started run on this exact commit: a run
             # started with `stamp workflow run ci.yml` replaces a flaked one.
@@ -209,12 +223,8 @@ jobs:
           done
           # Select the release PR for the tagged commit, never the current main PR.
           prs=$(gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/commits/$commit/pulls?per_page=100")
-          jq -er --arg commit "$commit" --arg repo "$GITHUB_REPOSITORY" --arg title "chore: release $TAG" '
-            [ .[][] | select(.merged_at != null and .merge_commit_sha == $commit
-              and .base.ref == "main" and .base.repo.full_name == $repo and .title == $title) ]
-            | if length == 1 and (.[0].body | type) == "string" then .[0].body
-              else error("expected exactly one merged release PR for the tagged commit") end
-          ' <<< "$prs" \
+          jq -er --arg commit "$commit" --arg repo "$GITHUB_REPOSITORY" --arg title "chore: release $TAG" \
+            "$RELEASE_PR_FILTER" <<< "$prs" \
             | sed -e '/<!-- stamp:review:v1 -->/,/<!-- \/stamp:review:v1 -->/d' -e '/Generated with \[Claude Code\]/d' > notes.md
           [ -n "$(tr -d '[:space:]' < notes.md)" ] || { echo "release notes are empty"; exit 1; }
           # Reject a moved tag rather than attaching checked notes to another commit.
