@@ -5,6 +5,7 @@ import { isHttpMcpServer } from "../../shared/mcp-servers.js";
 import type { JsonRecord } from "../../shared/json.js";
 
 export const factoryRefusedSessionOptions: RefusedSessionOptions = {
+  modelRequests: "This adapter has no verified capture of the root agent's provider request",
   fork: "OAR has not verified a native droid fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted droid turn's processes while its session stays usable",

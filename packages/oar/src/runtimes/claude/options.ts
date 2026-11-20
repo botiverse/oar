@@ -1,3 +1,6 @@
+import { UnsupportedOptionError } from "../../contracts/errors.js";
+import { asRecord, type JsonRecord } from "../../shared/json.js";
+import { semverAtLeast } from "../../shared/semver.js";
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 
 export const claudeMcpCredentialRefusal = "OAR has not verified that Claude reads a regular-file MCP configuration only at startup";
@@ -8,3 +11,21 @@ export const claudeRefusedSessionOptions: RefusedSessionOptions = {
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted Claude turn's processes while its session stays usable",
   nativeMemoryDefault: "Claude Code has no configuration layer below user settings for a soft native-memory default",
 };
+
+/** Oldest verified combination of a native sdk attribution and a readable effective setting. */
+export function claudeModelRequestRefusal(version?: string): RefusedSessionOptions {
+  return semverAtLeast(version, "2.1.274") ? {} : { modelRequests: "Claude model request capture needs a verified installation of 2.1.274 or later" };
+}
+
+export function verifyClaudeModelRequestSetting(reported: JsonRecord | null, expected: string): void {
+  const key = "OTEL_LOG_RAW_API_BODIES";
+  const effective = asRecord(asRecord(reported?.effective)?.env)?.[key];
+  if (effective === expected) { return; }
+  const source: unknown = Array.isArray(reported?.sources) && effective !== undefined
+    ? reported.sources.findLast((item: unknown) => asRecord(asRecord(asRecord(item)?.settings)?.env)?.[key] === effective)
+    : undefined;
+  const name = asRecord(source)?.source;
+  const known = ["userSettings", "projectSettings", "localSettings", "flagSettings", "policySettings"];
+  const origin = typeof name === "string" && known.includes(name) ? name : "unknown";
+  throw new UnsupportedOptionError("modelRequests", `Claude could not confirm the request capture directory (source: ${origin})`);
+}

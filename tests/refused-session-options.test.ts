@@ -29,6 +29,7 @@ const given: Readonly<Record<RefusableSessionOption, Partial<SessionOptions>>> =
   name: { name: "probe" },
   fork: { fork: { through: "anchor" }, resume: "source" },
   nativeMemoryDefault: { nativeMemoryDefault: "off" },
+  modelRequests: { modelRequests: "latest" },
 };
 
 // Declared refusals are checked before anything starts, so an installation
@@ -65,20 +66,20 @@ test("every declared refusal is what session() rejects with", async () => {
 test("the declarations say which options each runtime refuses", () => {
   const refused = Object.fromEntries(allRuntimes.list().map((runtime) => [runtime.id, Object.keys(runtime.refusedSessionOptions ?? {}).toSorted()]));
   assert.deepEqual(refused, {
-    antigravity: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "mcpServerCredentials", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
+    antigravity: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
     claude: ["endTurnProcessesOnAbort", "goals", ...(process.platform === "win32" ? ["mcpServerCredentials"] : []), "nativeMemoryDefault"],
-    codebuddy: ["additionalDirectories", "appendSystemPrompt", "endTurnProcessesOnAbort", "fork", "goals", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
-    codex: ["nativeMemoryDefault", "userConfiguration"],
-    cursor: ["appendSystemPrompt", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "mcpServerCredentials", "name", "nativeMemoryDefault", "outputSchema", "partialUserConfiguration", "serviceTier", "systemPrompt"],
-    devin: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "mcpServerCredentials", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
-    dsh: ["endTurnProcessesOnAbort", "fork", "launchArgs", "mcpServerCredentials", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
-    factory: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
-    grok: ["additionalDirectories", "disallowedTools", "fork", "goals", "name", "nativeMemoryDefault", "serviceTier", "userConfiguration"],
-    kimi: ["appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
-    opencode: ["disallowedTools", "endTurnProcessesOnAbort", "goals", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
-    pi: ["additionalDirectories", "endTurnProcessesOnAbort", "fork", "goals", "launchArgs", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
-    qoder: ["endTurnProcessesOnAbort", "fork", "goals", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
-    qwen: ["endTurnProcessesOnAbort", "fork", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
+    codebuddy: ["additionalDirectories", "appendSystemPrompt", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
+    codex: ["modelRequests", "nativeMemoryDefault", "userConfiguration"],
+    cursor: ["appendSystemPrompt", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "partialUserConfiguration", "serviceTier", "systemPrompt"],
+    devin: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
+    dsh: ["endTurnProcessesOnAbort", "fork", "launchArgs", "mcpServerCredentials", "modelRequests", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
+    factory: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
+    grok: ["additionalDirectories", "disallowedTools", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "serviceTier", "userConfiguration"],
+    kimi: ["appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
+    opencode: ["disallowedTools", "endTurnProcessesOnAbort", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
+    pi: ["additionalDirectories", "endTurnProcessesOnAbort", "fork", "goals", "launchArgs", "modelRequests", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
+    qoder: ["endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
+    qwen: ["endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "outputSchema", "serviceTier", "userConfiguration"],
   });
 });
 
@@ -201,7 +202,7 @@ test("claude, codex and opencode can take fork, and they refuse one without resu
 
 test("the scripted runtime declares and refuses fork: a script keeps no conversation to copy", async () => {
   const runtime = scriptedRuntime({ turn: () => assert.fail("never opened") });
-  expect(runtime.refusedSessionOptions).toEqual({ fork: "a scripted runtime keeps no saved conversation to fork" });
+  expect(runtime.refusedSessionOptions).toEqual({ fork: "a scripted runtime keeps no saved conversation to fork", modelRequests: "The scripted runtime sends no provider request" });
   await expect(runtime.session({ kind: "available", via: "bundled" }, { cwd: "/tmp", resume: "source", fork: {} })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "fork", message: "a scripted runtime keeps no saved conversation to fork" });
 });
 

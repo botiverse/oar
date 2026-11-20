@@ -1,4 +1,7 @@
 /* oxlint-disable import/max-dependencies -- Opening combines private readbacks, native failures, redaction and the hook deadline. */
+import { verifyClaudeModelRequestSetting } from "./options.js";
+import type { ClaudeModelRequests } from "./model-requests.js";
+import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
 import { sessionCredentialRedactor } from "../../shared/credential-redactor.js";
 import { randomUUID } from "node:crypto";
@@ -14,7 +17,7 @@ import { claudeForkIdRefusal, claudeStatusRequest } from "./fork-identity.js";
 import { ClaudeOpenDeadline, claudeOpenLimits, type ClaudeOpenLimits } from "./open-deadline.js";
 
 type Method = "get_settings" | "initialize" | "get_usage" | "get_status";
-type Option = "effort" | "serviceTier" | "resume";
+type Option = "effort" | "serviceTier" | "resume" | "modelRequests";
 
 function failedInitialization(message: JsonRecord): boolean {
   return message.type === "result" && message.subtype === "error_during_execution";
@@ -33,6 +36,7 @@ function refusalFor(answer: JsonRecord | Error, option: Option, requested: strin
     const errors = Array.isArray(answer.errors) ? answer.errors.filter((error): error is string => typeof error === "string") : [];
     return errors.join("\n") || "claude initialization failed (result/error_during_execution)";
   }
+  if (option === "modelRequests") { return "Claude could not confirm its model request capture settings"; }
   if (option === "effort") { return claudeEffortRefusal(requested, answer); }
   if (option === "serviceTier") { return claudeServiceTierRefusal(requested, answer); }
   const response = asRecord(answer.response);
@@ -59,7 +63,7 @@ interface OpenSettings {
   /** True for private readbacks, whose account details and configuration must not enter records. */
   consume(message: JsonRecord): boolean;
   exited(code: number | null): void;
-  confirm(options: SessionOptions): Promise<void>;
+  confirm(options: SessionOptions, capture?: ClaudeModelRequests): Promise<void>;
   /**
    * A resume's token baseline: claude's `get_usage` `session.model_usage`,
    * the running total the resumed process continues (token-usage.ts). Never
@@ -81,7 +85,7 @@ export function claudeOpenSettings(child: ClaudeProcess, limits: ClaudeOpenLimit
   const lifetime: { exited: boolean; code: number | null; failure: JsonRecord | null } = { exited: false, code: null, failure: null };
   let opening = true;
   const exitError = (method: Method): Error => new Error(`claude exited (code ${String(lifetime.code)}) before answering ${method}`);
-  const confirm = async (method: Method, option: Option, options: SessionOptions): Promise<void> => {
+  const confirm = async (method: Method, option: Option, options: SessionOptions, capture?: ClaudeModelRequests): Promise<void> => {
     const requested = options[option];
     if (requested === undefined) { return; }
     const { redact } = sessionCredentialRedactor(options);
@@ -95,7 +99,16 @@ export function claudeOpenSettings(child: ClaudeProcess, limits: ClaudeOpenLimit
       else if (lifetime.exited) { resolve(exitError(method)); }
       else { child.write(method === "get_settings" ? claudeSettingsRequest(id) : `${JSON.stringify({ type: "control_request", request_id: id, request: { subtype: method } })}\n`); }
       const answer = await promise;
-      const refusal = refusalFor(answer, option, requested, options);
+      const reported = asRecord(asRecord(asRecord(answer)?.response)?.response);
+      if (method === "get_settings" && capture !== undefined) {
+        verifyClaudeModelRequestSetting(reported, capture.setting);
+      }
+      if (method === "initialize") {
+        const provider = asRecord(reported?.account)?.apiProvider;
+        if (typeof provider === "string") { capture?.setProvider(provider); }
+      }
+      const confirmedCapture = option === "modelRequests" && !(answer instanceof Error) && asRecord(answer.response)?.subtype === "success";
+      const refusal = confirmedCapture ? null : refusalFor(answer, option, requested, options);
       if (refusal !== null) {
         const native = failureNative(answer);
         const cause = native === undefined ? undefined : nativeErrorCause(method, native, redact);
@@ -105,6 +118,7 @@ export function claudeOpenSettings(child: ClaudeProcess, limits: ClaudeOpenLimit
           && Array.isArray(native.errors) && isMissingResumeError(native.errors[0]) && cause !== undefined) {
           throw new SessionNotFoundError(redact(requested), redact(refusal), cause);
         }
+        if (option === "modelRequests") { throw new UnsupportedOptionError(option, redact(refusal)); }
         throw new Error(redact(refusal), cause === undefined ? undefined : { cause });
       }
     } catch (error) {
@@ -174,13 +188,16 @@ export function claudeOpenSettings(child: ClaudeProcess, limits: ClaudeOpenLimit
         pending = null;
       }
     },
-    async confirm(options) {
+    async confirm(options, capture) {
       try {
         // Missing resumes report a result error and exit without an initialize
         // answer. Confirm that handshake before any settings readback.
-        if (options.resume !== undefined) { await confirm("initialize", "resume", options); }
-        if (options.effort !== undefined) { await confirm("get_settings", "effort", options); }
-        if (options.serviceTier !== undefined && options.resume === undefined) { await confirm("initialize", "serviceTier", options); }
+        const init = options.resume !== undefined ? "resume" : (options.serviceTier !== undefined ? "serviceTier" : undefined);
+        if (init === "resume") { await confirm("initialize", init, options, capture); }
+        const settings = options.effort !== undefined ? "effort" : (capture === undefined ? undefined : "modelRequests");
+        if (settings !== undefined) { await confirm("get_settings", settings, options, capture); }
+        if (init === "serviceTier") { await confirm("initialize", init, options, capture); }
+        if (init === undefined && capture !== undefined) { await confirm("initialize", "modelRequests", options, capture); }
       } finally {
         deadline.stop();
         opening = false;

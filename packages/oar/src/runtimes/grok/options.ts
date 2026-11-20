@@ -5,6 +5,7 @@ import { semverAtLeast } from "../../shared/semver.js";
 /* Declared refusals, apart from the session code so the runtime entry loads no ACP SDK until a session opens. */
 
 export const grokRefusedSessionOptions: RefusedSessionOptions = {
+  modelRequests: "This adapter has no verified capture of the root agent's provider request",
   fork: "OAR has not verified a native Grok fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",
   userConfiguration: "grok has no verified separation of user configuration from its native login",

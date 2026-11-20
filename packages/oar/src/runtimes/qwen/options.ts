@@ -3,6 +3,7 @@ import { checkManagedLaunchArgs } from "../../shared/launch-args.js";
 import { semverAtLeast } from "../../shared/semver.js";
 
 export const qwenRefusedSessionOptions: RefusedSessionOptions = {
+  modelRequests: "This adapter has no verified capture of the root agent's provider request",
   fork: "OAR has not verified a native Qwen fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted Qwen turn's processes while its session stays usable",

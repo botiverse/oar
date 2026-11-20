@@ -11,6 +11,7 @@ import type { RefusedSessionOptions, SessionCapabilityDeclaration } from "../../
  * mapping is upstream's.
  */
 export const opencodeRefusedSessionOptions: RefusedSessionOptions = {
+  modelRequests: "This adapter has no verified capture of the root agent's provider request",
   goals: "This runtime interface exposes no structured native goal controls",
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted OpenCode turn's processes while its session stays usable",
   userConfiguration: "opencode has no verified separation of user configuration from its native login",

@@ -41,6 +41,7 @@ function sessionCredentials(options: SessionOptions, context: SessionOpenContext
       ...(adapter.stopTask === undefined ? {} : { stopTask: guard(adapter.stopTask.bind(adapter), clean) }),
       abort: guard(adapter.abort.bind(adapter), clean),
       dispose: guard(adapter.dispose.bind(adapter), clean),
+      ...(adapter.lastModelRequest === undefined ? {} : { lastModelRequest: guard(adapter.lastModelRequest.bind(adapter), clean, true) }),
       ...(adapter.contextBreakdown === undefined ? {} : { contextBreakdown: guard(adapter.contextBreakdown.bind(adapter), clean) }),
       ...(adapter.resources === undefined ? {} : { resources: guard(adapter.resources.bind(adapter), clean) }),
     }),
