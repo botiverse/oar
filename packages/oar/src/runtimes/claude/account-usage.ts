@@ -159,7 +159,7 @@ export const claudeAccountUsage: AccountUsageReader = async (installation, optio
     const child = spawnLineProcess(installation.command, [
       "-p", "--input-format", "stream-json", "--output-format", "stream-json",
       "--verbose", "--no-session-persistence", "--safe-mode",
-    ], { env, killTree: true });
+    ], { env, killTree: true, shutdown: "stdin" });
     let pending: { id: string; resolve: (reply: JsonRecord | null) => void } | null = null;
     let ended = false;
     child.onLine((line) => {

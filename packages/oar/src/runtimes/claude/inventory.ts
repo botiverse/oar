@@ -191,7 +191,7 @@ function reader<T>(read: (request: NativeInventoryRequest, scope: InventoryScope
     const answer = await inventoryRead(async (_signal, own) => {
       const child = own(spawnLineProcess(installation.command, [
         "-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--no-session-persistence",
-      ], { cwd: scope.cwd, env: claudeEnv(options.env), killTree: true }));
+      ], { cwd: scope.cwd, env: claudeEnv(options.env), killTree: true, shutdown: "stdin" }));
       let pending: { id: string; resolve(value: JsonRecord): void; reject(error: Error): void } | null = null;
       let closed = false;
       child.onLine((line) => {

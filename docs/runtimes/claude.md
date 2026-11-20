@@ -1475,10 +1475,18 @@ back, leave the file holding a retired token; the next refresh gets
 machine is logged out until someone signs in again
 ([claude-code#102265](https://github.com/anthropics/claude-code/issues/102265),
 [#88947](https://github.com/anthropics/claude-code/issues/88947),
-[#91009](https://github.com/anthropics/claude-code/issues/91009); open, no
-upstream fix as of 2.1.299). A host that runs many sessions, or polls
-`listModels` and `accountUsage` (each a short-lived `claude -p` OAR ends right
-after its answer), meets this more often than one person at a terminal.
+[#91009](https://github.com/anthropics/claude-code/issues/91009); open as of
+2.1.328: on a normal exit `claude -p` waits up to `2000 ms` for an in-flight
+OAuth refresh and then exits without waiting further, leaving the retired
+refresh token on disk if the exchange takes longer, while only subcommands
+such as `auth status` enable the longer 8.5 s startup deadline). OAR closes
+its short-lived `claude -p` queries (`listModels`, `accountUsage`, and
+inventory reads) with `stdin` EOF (`shutdown: "stdin"`, escalating only after
+`KILL_GRACE_MS`, default 10 s) rather than sending `SIGTERM` or Windows
+`taskkill /T /F` immediately after the answer, so OAR lets claude run its own
+shutdown wait on every platform instead of cutting an in-flight refresh short.
+A host that runs many sessions or polls those queries still meets the
+upstream 2000 ms bound more often than one person at a terminal.
 
 claude's own way around it is a long-lived token: `claude setup-token` (a
 browser sign-in, like `auth login`) prints an OAuth token valid for a year,

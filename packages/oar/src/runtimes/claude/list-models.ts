@@ -83,7 +83,7 @@ async function readListModels(command: string, cwd: string, timeoutMs: number, e
       "--settings", "{\"disableAllHooks\":true}",
       "--strict-mcp-config",
       "--mcp-config", "{\"mcpServers\":{}}",
-    ], { cwd, env: claudeEnv(env), killTree: true }));
+    ], { cwd, env: claudeEnv(env), killTree: true, shutdown: "stdin" }));
     const requestId = `oar-list-models-${randomUUID()}`;
     const { promise: answered, resolve } = Promise.withResolvers<JsonRecord | null>();
     child.onLine((line) => {
