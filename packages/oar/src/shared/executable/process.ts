@@ -88,6 +88,13 @@ export interface LineProcess {
    * already belong to another process.
    */
   kill(): void;
+  /**
+   * Immediately force-end the process and its tree without a graceful SIGTERM
+   * or grace-period delay (SIGKILL to the process group and tracked descendants
+   * on POSIX; taskkill /T /F on Windows when `killTree` is set). Used after a
+   * caller's own graceful shutdown wait (such as stdin EOF) has already expired.
+   */
+  forceKill(): void;
   /** The child's memory with its group and descendants (process-resources.ts); null once it has exited. */
   readonly resources: ReturnType<typeof treeResourcesReader>;
 }
@@ -235,5 +242,6 @@ export function spawnLineProcess(
     },
     resources: treeResourcesReader(child, () => ended),
     kill: () => { shutdown.stop(); },
+    forceKill: () => { shutdown.forceStop(); },
   };
 }

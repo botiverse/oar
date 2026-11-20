@@ -4,6 +4,9 @@ import { createInterface } from "node:readline";
 
 const [stopFile] = process.argv.slice(2);
 assert.ok(stopFile !== undefined);
+if (process.env.OAR_IGNORE_SIGTERM === "1") {
+  process.on("SIGTERM", () => { console.log("sigterm"); });
+}
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }

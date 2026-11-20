@@ -75,7 +75,7 @@ export async function qoderDaemonSession(child: LineProcess, sessionId: string, 
       diagnostics: () => ({ ...child.diagnostics(), ...(failure.error === undefined ? {} : {
         error: { code: "QODER_PROTOCOL_ERROR", message: failure.error.message },
       }) }), resources: child.resources,
-      kill: () => { child.kill(); }, onExit: (handler) => { child.onExit(handler); },
+      kill: () => { child.kill(); }, forceKill: () => { child.forceKill(); }, onExit: (handler) => { child.onExit(handler); },
       onLine(handler) {
         handlers.push(handler);
         if (ready) { return; }

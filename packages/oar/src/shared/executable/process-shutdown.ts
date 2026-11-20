@@ -11,6 +11,7 @@ interface ShutdownOptions { readonly killTree?: boolean; readonly shutdown?: "st
 export function processShutdown(child: ChildProcess, options: ShutdownOptions): {
   readonly finished: Promise<void>;
   stop(): void;
+  forceStop(): void;
   prepare(): Promise<void>;
   markNativeStop(): void;
   observeCancellation(): Promise<CancellationObservation>;
@@ -21,6 +22,7 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
 } {
   const shutdownId = processTimingId();
   let stopping = false;
+  let forced = false;
   let ended = false;
   let stopAction = false;
   const cancellations = new Set<symbol>();
@@ -47,7 +49,7 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
     }
   };
   const close = (): void => {
-    if (!alive()) { return; }
+    if (!alive() || forced) { return; }
     stopAction = true;
     child.stdin?.end();
     // Pi reenters shutdown on EOF plus SIGTERM and skips its native hooks.
@@ -55,7 +57,7 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
       if (process.platform === "win32" && options.killTree === true) { killProcessTree(child); }
       else { signalProcessGroup(child, "SIGTERM"); }
     }
-    escalation = setTimeout(() => { phase = force(); }, killGraceMs());
+    escalation = setTimeout(() => { forced = true; phase = force(); }, killGraceMs());
   };
   const ownedCleanup = (): ReturnType<typeof processTreeCleanup> => {
     if (cleanup === undefined) {
@@ -83,6 +85,10 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
     await prepared;
     try { close(); }
     catch (error) { cleanup?.failed(error, "before_force"); await force(); }
+  };
+  const captureAndForce = async (prepared: Promise<void>): Promise<void> => {
+    await prepared;
+    await force();
   };
   const finish = async (): Promise<void> => {
     await nativeExit.promise;
@@ -146,6 +152,20 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
       // exit first, leaving tools outside taskkill's remaining parent chain.
       const prepared = prepare();
       phase = captureAndClose(prepared);
+    },
+    forceStop() {
+      if (!alive() || forced) { return; }
+      forced = true;
+      clearTimeout(escalation);
+      if (!stopping) {
+        processTiming({ kind: "stop_requested", shutdownId });
+        stopping = true;
+      }
+      stopAction = true;
+      child.stdin?.end();
+      if (options.killTree !== true || child.pid === undefined) { phase = force(); return; }
+      const prepared = prepare();
+      phase = captureAndForce(prepared);
     },
   };
 }

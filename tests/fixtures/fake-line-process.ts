@@ -86,6 +86,12 @@ class ScriptedLineProcess implements FakeLineProcess {
     this.end(null);
   }
 
+  forceKill(): void {
+    this.wasKilled = true;
+    this.stdin.end();
+    this.end(null);
+  }
+
   /** A scripted process has no memory of its own to report. */
   readonly resources = async (): Promise<null> => null;
 
