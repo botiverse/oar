@@ -11,7 +11,7 @@ export interface QoderProjection extends StreamJsonProjectionState {
   readonly taskDescriptions: ReadonlyMap<string, string>;
 }
 export function initialQoderProjection(tokensExposed = true): QoderProjection {
-  return { ...initialStreamJsonProjection, usage: noTokens, tokensExposed, taskDescriptions: new Map() };
+  return { ...initialStreamJsonProjection, startupInit: "pending", usage: noTokens, tokensExposed, taskDescriptions: new Map() };
 }
 
 /** Qoder reports the query's usage, not a conversation total. Its default wire format hides token counts. */
@@ -38,7 +38,7 @@ function outcome(message: JsonRecord): TurnOutcome {
 
 export const qoderProjectionProfile: StreamJsonProjectionProfile<QoderProjection> = {
   compactingStatus: true,
-  name: "qoder", duplicateReason: "Qoder refused the input", initStartsTurn: false, assistantAfterMessageStop: true, partialMessageIds: false,
+  name: "qoder", duplicateReason: "Qoder refused the input", assistantAfterMessageStop: true, partialMessageIds: false,
   assistant: (state) => state,
   result: (state, message, agentPath) => {
     const report = state.tokensExposed && agentPath.length === 0 ? qoderUsage(message) : null;

@@ -4,6 +4,8 @@ import type { StreamJsonPartials } from "./content.js";
 
 /** Protocol bookkeeping only; each runtime adds its own usage, failure and readback state. */
 export interface StreamJsonProjectionState {
+  /** A dialect with a startup init reports turn inits after the opening handshake. */
+  readonly startupInit?: "pending" | "received";
   readonly abortRequested: boolean;
   /** Prompt requests and root init/results delimit a turn, including native spontaneous turns. */
   readonly turnActive: boolean;
@@ -49,7 +51,5 @@ export interface StreamJsonSessionState<S extends StreamJsonProjectionState> {
   child: LineProcess;
   /** The prompt request whose turn is running; null while idle. Spontaneous turns (a drained queue message) run with no request. */
   active: RequestRecord | null;
-  /** True while the runtime is executing a turn we did not prompt (queue drain or task notification). */
-  spontaneous: boolean;
   projection: S;
 }

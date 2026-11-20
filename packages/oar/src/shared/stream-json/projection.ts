@@ -103,7 +103,7 @@ export function foldStreamJsonStdout<S extends StreamJsonProjectionState>(
         return event({ events: [{ kind: "compaction_ended", outcome: "completed", ...(typeof trigger === "string" ? { trigger } : {}) }] }, profile.compacted(withCompactingAgent(state, agentPath, false), agentPath.length === 0));
       }
       if (message.subtype === "init") {
-        const initialized = profile.initStartsTurn === false ? { state, events: [] } : streamJsonInitialized(state, agentPath.length === 0, profile.commandLifecycle !== false);
+        const initialized = streamJsonInitialized(state, agentPath.length === 0, profile.commandLifecycle !== false);
         return event({ events: [...initialized.events,
           ...(typeof message.model === "string" ? [{ kind: "model" as const, model: message.model }] : []),
           ...profile.init(message)] }, initialized.state);
