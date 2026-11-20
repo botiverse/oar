@@ -7,7 +7,8 @@ name: release
 #   the GitHub release, whose notes are the body of the pull request that
 #   produced the commit. A tag pushed with GITHUB_TOKEN starts no workflow,
 #   so this path publishes once.
-# - a pushed `v*` tag, as before: publishes that commit, nothing else.
+# - a pushed `v*` tag: publishes that commit if it is the matching release PR,
+#   without the dispatch-only checks or GitHub release.
 # - workflow_dispatch with release_only: verifies an existing tag and both
 #   published npm versions, then creates only the missing GitHub release.
 # Auth is npm trusted publishing (OIDC): the publish job only requests an
@@ -40,8 +41,9 @@ concurrency:
 
 env:
   TAG: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
-  # Shared by the dispatch gate and release_only recovery so the release PR
-  # match rule lives in one place without checking out code in release_only.
+  # Shared by the dispatch gate, tag-push gate, and release_only recovery so
+  # the release PR match rule lives in one place without checking out code in
+  # release_only.
   RELEASE_PR_FILTER: |
     [ .[][] | select(.merged_at != null and .merge_commit_sha == $commit
       and .base.ref == "main" and .base.repo.full_name == $repo and .title == $title) ]
@@ -55,7 +57,7 @@ jobs:
     permissions:
       contents: read
       actions: read # reads ci.yml's run for the released commit
-      pull-requests: read # verifies the dispatched commit is the matching release PR
+      pull-requests: read # verifies the published commit is the matching release PR
       id-token: write
     steps:
       - uses: actions/checkout@v4
@@ -111,6 +113,21 @@ jobs:
             sleep 60
           done
           echo "CI on $GITHUB_SHA did not finish within an hour"; exit 1
+      # A pushed tag skips dispatch-only checks (main ref, unused tag, CI poll),
+      # but still requires the tagged commit to be the matching merged release PR.
+      - name: gate a tagged release on its release PR
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "not a version: $TAG"; exit 1
+          fi
+          prs=$(gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls?per_page=100")
+          jq -er --arg commit "$GITHUB_SHA" --arg repo "$GITHUB_REPOSITORY" --arg title "chore: release $TAG" \
+            "$RELEASE_PR_FILTER" <<< "$prs" >/dev/null
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
