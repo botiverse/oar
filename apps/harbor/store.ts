@@ -51,6 +51,14 @@ export interface AgentState extends AgentSpec {
   readonly dayTokens?: DayTokens;
   /** The context size the session last reported, so a session resumed after a harbor restart can be recycled before it reports again. */
   readonly contextTokens?: number;
+  /** Messages not yet consumed by a turn (waiting, or accepted and unanswered), so a harbor restart delivers them again. */
+  readonly undelivered?: readonly Undelivered[];
+}
+
+export interface Undelivered {
+  readonly seq: number;
+  /** Sent by a person, so an answer is expected. */
+  readonly person: boolean;
 }
 
 export interface RunState {

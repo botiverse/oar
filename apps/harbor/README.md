@@ -81,7 +81,9 @@ its channel.
 An input the session accepted is tracked until a turn consumes it. One the
 stream hands back (`input_dropped`), or that a closed or crashed session never
 consumed, is delivered again to the next session and journaled as
-`redelivering`. Open, close and restart run one at a time per agent, and only
+`redelivering`. What is waiting or unconsumed is kept in state.json, so the
+same holds across `harbor down` and `up` or a crash of the daemon: the next
+daemon delivers it first (`why: "harbor restarted"`). Open, close and restart run one at a time per agent, and only
 the current session's root events count.
 
 ## What is recorded

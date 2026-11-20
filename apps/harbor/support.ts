@@ -103,6 +103,23 @@ export function processesIn(dir: string): number[] {
   return pids;
 }
 
+/** Runs steps one at a time, each after the previous one settled (whether it threw or not). */
+export class Serial {
+  private last: Promise<void> = Promise.resolve();
+
+  async run(step: () => Promise<void>): Promise<void> {
+    const previous = this.last;
+    const { promise, resolve } = Promise.withResolvers<void>();
+    this.last = promise;
+    try {
+      await previous;
+      await step();
+    } finally {
+      resolve();
+    }
+  }
+}
+
 export function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }

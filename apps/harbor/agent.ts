@@ -6,7 +6,7 @@ import { AgentBudget, handoff, openedState } from "./budget.js";
 import { Contracts, type Op } from "./contracts.js";
 import { Deliveries } from "./deliveries.js";
 import type { AgentState, Message, Store } from "./store.js";
-import { messageOf, openWithRules, preamble, processesIn, statusLine, type AgentOptions, type AgentStatusLine } from "./support.js";
+import { messageOf, openWithRules, preamble, processesIn, Serial, statusLine, type AgentOptions, type AgentStatusLine } from "./support.js";
 
 /**
  * One long-lived agent: an OAR session that receives channel messages the way
@@ -21,7 +21,8 @@ export class HarborAgent {
   private recorder: VoyageRecorder | null = null;
   private unsubscribe: (() => void) | null = null;
   private voyage: string | null = null;
-  private lifecycle: Promise<void> = Promise.resolve();
+  /** Lifecycle steps run one at a time, each after the previous settled. */
+  private readonly lifecycle = new Serial();
   private starting = false;
   /** False once `close()` was asked for: nothing reopens after that. */
   private wanted = true;
@@ -56,10 +57,12 @@ export class HarborAgent {
       ready: (nextSeq): boolean => this.budget.ready(this.session, async () => {
         // Raft's constructed initial context: a fresh session whose first delivery carries a handoff, kept until one opens.
         this.fresh = { handoff: handoff(this.store.messages(), this.name, nextSeq) };
-        await this.serial(async () => { await this.closeNow("recycle"); await this.openNow(true); });
+        await this.lifecycle.run(async () => { await this.closeNow("recycle"); await this.openNow(true); });
       }),
       finding: (check, detail): void => { this.finding(check, detail); },
+      outstanding: (undelivered): void => { this.state = { ...this.state, undelivered }; this.onState(); },
     });
+    this.deliveries.restore(state.undelivered ?? [], store.messages());
   }
 
   get name(): string {
@@ -71,7 +74,7 @@ export class HarborAgent {
   }
 
   async open(fresh = false): Promise<void> {
-    await this.serial(async () => {
+    await this.lifecycle.run(async () => {
       await this.openNow(fresh);
     });
   }
@@ -79,7 +82,7 @@ export class HarborAgent {
   /** Dispose the session as a host restart would, check for leftovers, then reopen (resuming unless `fresh`). */
   async restart(fresh: boolean): Promise<void> {
     this.store.journal({ agent: this.name, kind: "restart", fresh });
-    await this.serial(async () => {
+    await this.lifecycle.run(async () => {
       await this.closeNow("restart");
       this.wanted = true;
       await this.openNow(fresh);
@@ -88,7 +91,7 @@ export class HarborAgent {
 
   async close(): Promise<void> {
     this.wanted = false;
-    await this.serial(async () => {
+    await this.lifecycle.run(async () => {
       await this.closeNow("down");
     });
   }
@@ -100,19 +103,6 @@ export class HarborAgent {
   /** The agent posted to the channel: whatever it was asked has an answer. */
   replied(): void {
     this.deliveries.awaitingReply = false;
-  }
-
-  /** Lifecycle steps run one at a time, each after the previous settled. */
-  private async serial(step: () => Promise<void>): Promise<void> {
-    const previous = this.lifecycle;
-    const { promise, resolve } = Promise.withResolvers<void>();
-    this.lifecycle = promise;
-    try {
-      await previous;
-      await step();
-    } finally {
-      resolve();
-    }
   }
 
   private async openNow(requested: boolean): Promise<void> {

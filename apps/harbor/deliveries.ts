@@ -1,5 +1,5 @@
 import type { Event, Session } from "../../packages/oar/src/index.js";
-import type { Message, Store } from "./store.js";
+import type { Message, Store, Undelivered } from "./store.js";
 import { formatMessage, preamble, reminder } from "./support.js";
 
 export interface DeliveriesHost {
@@ -11,11 +11,15 @@ export interface DeliveriesHost {
   /** May a delivery start now? False holds it until `resume()`; the session identity stays `current()`. */
   ready?(nextSeq: number): boolean;
   finding(check: string, detail: Record<string, unknown>): void;
+  /** What is not yet consumed changed: persist it, so a harbor restart delivers it again. */
+  outstanding?(undelivered: readonly Undelivered[]): void;
 }
 
 interface Accepted {
   readonly batch: readonly Message[];
   readonly landed: "prompted" | "steered" | "queued";
+  /** Seqs a person sent, kept until consumed so a redelivery still expects an answer. */
+  readonly people: readonly number[];
 }
 
 /** Rejections that mean this session is gone: wait for the reopen instead of retrying. */
@@ -55,7 +59,32 @@ export class Deliveries {
       this.fromPeople.add(message.seq);
     }
     this.inbox.push(message);
+    this.changed();
     void this.pump();
+  }
+
+  /** At startup: what the previous harbor process left unconsumed goes first, before anything new. */
+  restore(undelivered: readonly Undelivered[], messages: readonly Message[]): void {
+    const bySeq = new Map(messages.map((message) => [message.seq, message]));
+    const found = undelivered.flatMap((entry) => {
+      const message = bySeq.get(entry.seq);
+      return message === undefined ? [] : [{ message, person: entry.person }];
+    });
+    if (found.length === 0) {
+      return;
+    }
+    this.host.store.journal({ agent: this.host.name, kind: "redelivering", why: "harbor restarted", seqs: found.map((entry) => entry.message.seq) });
+    for (const { message, person } of found) {
+      this.add(message, person);
+    }
+  }
+
+  /** Waiting plus accepted-but-unconsumed, oldest first. */
+  private changed(): void {
+    const messages = [...[...this.accepted.values()].flatMap((entry) => entry.batch), ...this.inbox];
+    const seqs = [...new Set(messages.map((message) => message.seq))].toSorted((left, right) => left - right);
+    const people = new Set([...this.fromPeople, ...[...this.accepted.values()].flatMap((entry) => entry.people)]);
+    this.host.outstanding?.(seqs.map((seq) => ({ seq, person: people.has(seq) })));
   }
 
   /** A session opened; a fresh one has never seen the channel rules, unless they are in its system prompt. */
@@ -84,6 +113,7 @@ export class Deliveries {
         this.accepted.delete(inputId);
       }
     }
+    this.changed();
     if (event.outcome.kind === "failed") {
       // turn_failed already names this turn; a silent agent after a failure is not a second finding.
       this.awaitingReply = false;
@@ -100,6 +130,7 @@ export class Deliveries {
       return;
     }
     this.accepted.clear();
+    this.changed();
     if (this.awaitingReply) {
       this.awaitingReply = false;
       this.host.finding("no_reply", { seq, note: "went idle after a delivery without posting to the channel" });
@@ -111,18 +142,32 @@ export class Deliveries {
     this.host.finding("input_dropped", { seq: event.seq, inputId: event.inputId ?? null, reason: event.reason, seqs: entry?.batch.map((message) => message.seq) ?? null });
     if (entry !== undefined && event.inputId !== undefined) {
       this.accepted.delete(event.inputId);
+      this.unaccept([entry]);
       this.inbox.unshift(...entry.batch);
+      this.changed();
       void this.pump();
     }
   }
 
   /** The session closed or exited: inputs it accepted and never consumed are delivered again to the next one. */
   sessionGone(why: string): void {
-    const batches = [...this.accepted.values()].flatMap((entry) => entry.batch);
+    const entries = [...this.accepted.values()];
+    const batches = entries.flatMap((entry) => entry.batch);
+    this.unaccept(entries);
     this.accepted.clear();
     if (batches.length > 0) {
       this.host.store.journal({ agent: this.host.name, kind: "redelivering", why, seqs: batches.map((message) => message.seq) });
       this.inbox.unshift(...batches);
+    }
+    this.changed();
+  }
+
+  /** Inputs going back to the inbox still expect the answers they expected. */
+  private unaccept(entries: readonly Accepted[]): void {
+    for (const entry of entries) {
+      for (const seq of entry.people) {
+        this.fromPeople.add(seq);
+      }
     }
   }
 
@@ -177,10 +222,12 @@ export class Deliveries {
       if (this.compactions === compactions) {
         this.needsPreamble = false;
       }
-      if (seqs.some((seq) => this.fromPeople.delete(seq))) {
+      const people = seqs.filter((seq) => this.fromPeople.delete(seq));
+      if (people.length > 0) {
         this.awaitingReply = true;
       }
-      this.accepted.set(result.inputId, { batch, landed: result.landed });
+      this.accepted.set(result.inputId, { batch, landed: result.landed, people });
+      this.changed();
       this.host.store.journal({ agent: this.host.name, kind: "delivered", seqs, landed: result.landed, inputId: result.inputId, ms: Date.now() - started });
       return true;
     }
@@ -199,6 +246,7 @@ export class Deliveries {
       for (const seq of seqs) {
         this.fromPeople.delete(seq);
       }
+      this.changed();
       this.host.finding("delivery_dropped", { seqs, note: `rejected ${MAX_ATTEMPTS} times` });
       return true;
     }
