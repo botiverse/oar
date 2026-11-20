@@ -171,7 +171,8 @@ Lookup accepts that spelling as well as the supplied cwd within the same
 session directory, so macOS `/var` aliases and linked project directories can
 resume without moving their files or searching other projects.
 The adapter reads back the model and thinking level after startup. Name
-and system prompt replacement use native startup flags.
+and system prompt replacement use native startup flags. These startup
+options leave the global model and thinking defaults unchanged.
 
 System and appended prompt text travels in separate files inside the private
 session directory, with 0600 file permissions and a 0700 directory on POSIX.
@@ -868,7 +869,8 @@ resource loader's resolved append list. The RPC startup extension selects
 the file under the CLI's session trust setting and adds the host text before
 Pi reads its prompt arguments. User extensions see both instructions at
 `session_start`.
-[Provider-request checks](../../sea-trial/vendor/configured-append.vendor.test.ts).
+[Provider-request checks](../../sea-trial/vendor/configured-append.vendor.test.ts). An extension-triggered reload on the SDK rereads the
+configured file. RPC keeps the composed startup file until the next open.
 
 **Replace is not the whole system prompt:** pi's
 `buildSystemPrompt` (`core/system-prompt.js`, `customPrompt` branch) keeps its
@@ -1505,3 +1507,22 @@ another attempt follows. pi-ai keeps the status apart (`normalizeProviderError`)
 but puts only the text on the message, and exports `isContextOverflow(message)`
 for overflow texts (`[src]`). No `resetsAt` is reported (for a ChatGPT plan
 pi-ai 1.1.0 words it "Try again in ~N min." `[src]`).
+
+## Latest model request
+
+With the in-process Pi SDK, open a session with `modelRequests: "latest"`
+to read its latest primary provider request, including system instructions,
+tools and history. OAR copies the payload after configured extensions have
+applied their transformations. A read returns `null` before the first call
+in this open and from the start of disposal. Resume starts with an empty
+reading. Manual compaction leaves the latest primary request in place.
+
+On Pi 1.5.2 the final SDK payload matched the scripted provider's HTTP JSON
+for Anthropic Messages, OpenAI Chat and OpenAI Responses. The reader reports
+`anthropic.messages`, `openai.chat` or `openai.responses` respectively.
+OAR checks the selected model's API at open. If a later model call uses an
+unverified API, a read rejects until a supported request replaces it.
+Google's hook held SDK parameters that the Google client converted into a
+different JSON document. RPC runs OAR's CLI extension before configured
+extensions that can replace the body. RPC declares a refusal for the option.
+[Provider comparisons](../../sea-trial/vendor/pi-model-requests.vendor.test.ts)

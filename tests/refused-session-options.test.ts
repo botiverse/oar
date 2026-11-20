@@ -77,7 +77,7 @@ test("the declarations say which options each runtime refuses", () => {
     grok: ["additionalDirectories", "disallowedTools", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "serviceTier", "userConfiguration"],
     kimi: ["appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
     opencode: ["disallowedTools", "endTurnProcessesOnAbort", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
-    pi: ["additionalDirectories", "endTurnProcessesOnAbort", "fork", "goals", "launchArgs", "modelRequests", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
+    pi: ["additionalDirectories", "endTurnProcessesOnAbort", "fork", "goals", "launchArgs", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
     qoder: ["endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
     qwen: ["endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "outputSchema", "serviceTier", "userConfiguration"],
   });

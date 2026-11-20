@@ -1,5 +1,6 @@
 /* oxlint-disable import/max-dependencies -- Session controls compose native startup, projection, input admission, compaction and lifecycle. */
 import { sessionFileLocator } from "../../shared/native-session-file.js";
+import { bindPiExtensions } from "./model-requests.js";
 import { piQueueBarrier } from "./queue-barrier.js";
 import { piManualCompaction } from "./compaction.js";
 import { handledInput, refusedInput, startedInput, type PiHeldInput } from "./input-disposition.js";
@@ -186,12 +187,9 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
   // session_start may start a run and await its settlement hook before binding
   // returns. Subscribe first so its real activity keeps prompt admission busy.
   // Model validation and credential registration have already completed.
-  try {
-    await piAgentSession.bindExtensions({ onError: native => { kernel.frame({ type: "extension_error", native, events: [] }); } });
-  } catch (error) {
-    await disposePiAgentSession(piAgentSession, piAgentSession.isStreaming);
-    throw error;
-  }
+  const requests = await bindPiExtensions(piAgentSession, {
+    onError: native => { kernel.frame({ type: "extension_error", native, events: [] }); },
+  }, options.modelRequests === "latest");
   queueBarrier.observeRun();
   const openedModel = piEffectiveModel(piAgentSession);
   if (openedModel !== null) {
@@ -210,6 +208,7 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
   const sessionFile = piAgentSession.sessionFile;
   const session: Session = credentials.seal({
     nativeSessionFile: sessionFileLocator(sessionFile, credentials.redact),
+    ...(requests === null ? {} : { lastModelRequest: requests.read }),
     id: kernel.sessionId,
     capabilities,
     compact: compaction.compact,
@@ -280,6 +279,7 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
     records: () => kernel.records(),
     graph: () => kernel.graph(),
     dispose: async () => {
+      requests?.close();
       // Publishing dispose releases the compaction observation before Pi is stopped.
       const abortCompaction = compaction.busy();
       await kernel.dispose(async request => {

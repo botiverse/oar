@@ -159,6 +159,8 @@ export async function startPiAimock(
     readonly settings?: Readonly<Record<string, unknown>>;
     /** Also list `aimock/aimock-thinking`, a `reasoning: true` model, so pi has thinking levels to apply (`aimock-model` has none). */
     readonly reasoningModel?: boolean;
+    /** Native API and dummy API key used by provider-body comparisons. */
+    readonly provider?: { readonly api: string; readonly apiKey: string };
     /** List `aimock-model` as taking images too (`input: ["text", "image"]`); pi drops images for a text-only model. */
     readonly imageInput?: boolean;
   } & AimockOptions = {},
@@ -186,8 +188,8 @@ export async function startPiAimock(
       aimock: {
         name: "aimock",
         baseUrl: url,
-        apiKey: "aimock",
-        api: "anthropic-messages",
+        apiKey: piOptions.provider?.apiKey ?? "aimock",
+        api: piOptions.provider?.api ?? "anthropic-messages",
         models: [
           { ...model("aimock-model", false), name: "aimock" },
           ...(piOptions.reasoningModel === true ? [model("aimock-thinking", true)] : []),
