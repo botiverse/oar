@@ -106,7 +106,7 @@ Turn numbers count per session, as `trace --session N --turn T` does.
 | `turn_failed` | the runtime ended a turn as failed (its reason is kept) |
 | `stalled` | a running turn produced no record for `--stall-min` minutes (default 10) |
 | `declaration_mismatch` | an opened session's `steer`, `stopTask`, `images` or `compact` disagrees with what the installation declared before open |
-| `context_usage_missing` | a completed root turn left `contextUsage()` without the `tokens` or `contextWindow` its declaration promises |
+| `context_usage_missing` | a completed root turn left `contextUsage()` without the `tokens` or `contextWindow` its declaration promises (a turn that compacted may leave `tokens` unknown, per `ContextUsageCapability`) |
 | `usage_decreased` | the session's token total went down |
 | `abort_without_turn_end` | `harbor op <agent> abort` was accepted but no root `turn_ended` followed within 30 s |
 | `abort_rejected_while_running` | an abort was rejected while the session reported a running turn (review: may be a late race) |

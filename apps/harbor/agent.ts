@@ -182,6 +182,7 @@ export class HarborAgent {
   }
 
   private observe(event: Event): void {
+    if (this.session !== null) { this.contracts.event(this.session, event); }
     if (event.kind === "turn_started" || (event.kind === "turn_active" && this.turnStartedAt === null)) {
       this.turns += 1;
       this.turnStartedAt = event.receivedAt;
@@ -190,7 +191,6 @@ export class HarborAgent {
       const ms = this.turnStartedAt === null ? null : event.receivedAt - this.turnStartedAt;
       this.turnStartedAt = null;
       this.budget.turnEnded(this.session, event.receivedAt);
-      if (this.session !== null) { this.contracts.turnEnded(this.session, event); }
       this.lastOutcome = event.outcome.kind;
       const reason = event.outcome.kind === "failed" ? { reason: event.outcome.reason } : {};
       this.store.journal({ agent: this.name, kind: "turn_ended", session: this.state.opens, turn: this.turns, seq: event.seq, outcome: event.outcome.kind, ms, ...reason });

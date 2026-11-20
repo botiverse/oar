@@ -32,6 +32,8 @@ const ABORT_SETTLES_MS = 30_000;
 export class Contracts {
   private declared: SessionCapabilityDeclaration = {};
   private lastTokens = 0;
+  /** The current turn compacted: its context may be unknown until the next model response, as `ContextUsage` allows. */
+  private compactedThisTurn = false;
   private readonly stalled = new Set<string>();
 
   constructor(private readonly host: ContractsHost) {}
@@ -53,8 +55,18 @@ export class Contracts {
     }
   }
 
+  /** Every root event of the current session. */
+  event(session: Session, event: Event): void {
+    if (event.kind === "compaction_ended") {
+      this.compactedThisTurn = true;
+    } else if (event.kind === "turn_ended") {
+      this.turnEnded(session, event);
+      this.compactedThisTurn = false;
+    }
+  }
+
   /** A root turn ended: what a completed turn promises to report, and usage that only grows. */
-  turnEnded(session: Session, event: Extract<Event, { kind: "turn_ended" }>): void {
+  private turnEnded(session: Session, event: Extract<Event, { kind: "turn_ended" }>): void {
     const total = session.usage().value.total;
     const tokens = total === null ? 0 : total.input + total.output;
     if (tokens < this.lastTokens) {
@@ -66,7 +78,7 @@ export class Contracts {
     }
     const context = session.contextUsage().value;
     const promised = this.declared.contextUsage;
-    if (promised?.tokens === true && (context?.tokens ?? null) === null) {
+    if (promised?.tokens === true && !this.compactedThisTurn && (context?.tokens ?? null) === null) {
       this.host.finding("context_usage_missing", { session: this.host.opens(), seq: event.seq, field: "tokens" });
     }
     if (promised?.contextWindow === true && (context?.contextWindow ?? null) === null) {

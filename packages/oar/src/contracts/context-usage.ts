@@ -9,7 +9,9 @@ export interface ContextUsage {
  * Whether `Session.contextUsage()` reliably reports trustworthy `tokens` and
  * `contextWindow` by the end of each normally completed root turn (fresh and
  * resumed sessions alike; aborted turns are not promised, and earlier readings
- * are a bonus).
+ * are a bonus). A turn that compacted may end with `tokens: null`: the context
+ * is unknown until the next model response, as `ContextUsage` says, so a
+ * compaction-only turn (a manual compact) never reports it.
  */
 export interface ContextUsageCapability {
   readonly tokens: boolean;

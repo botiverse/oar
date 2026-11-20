@@ -190,10 +190,9 @@ answer: whatever the static map refuses, every version refuses.
 `manualCompaction` is this installation's value,
 `compactionEvents` says whether native automatic compaction reports
 `compaction_started` and `compaction_ended`, and `contextUsage` says whether
-`Session.contextUsage()` reliably reports trustworthy `tokens` and
-`contextWindow` by the end of each normally completed root turn (fresh and
-resumed sessions alike; aborted turns are not promised, and earlier readings
-are a bonus); each is absent where not established. `session.capabilities-match-declaration` asserts every declared `steer`, `images`, `stopTask` and `contextUsage` claim against the opened session. For `mcpTransports`, it checks open-time acceptance when `"http"` is declared (opening with a local loopback HTTP MCP server) or open-time `UnsupportedOptionError("mcpServers")` when `mcpTransports` omits `"http"`; opening alone does not prove end-to-end HTTP transport execution because several runtimes drop a server that fails to attach without failing the open, so end-to-end HTTP tool invocation is proved by each runtime's MCP vendor test or probe linked in the table above. `defineRuntime` and `installedSessionCapabilities(runtime,
+`Session.contextUsage()` reports `tokens` and `contextWindow` by the end of a
+completed turn ([`ContextUsageCapability`](../../packages/oar/src/contracts/context-usage.ts)
+names which turns, and the compaction exception); each is absent where not established. `session.capabilities-match-declaration` asserts every declared `steer`, `images`, `stopTask` and `contextUsage` claim against the opened session. For `mcpTransports`, it checks open-time acceptance when `"http"` is declared (opening with a local loopback HTTP MCP server) or open-time `UnsupportedOptionError("mcpServers")` when `mcpTransports` omits `"http"`; opening alone does not prove end-to-end HTTP transport execution because several runtimes drop a server that fails to attach without failing the open, so end-to-end HTTP tool invocation is proved by each runtime's MCP vendor test or probe linked in the table above. `defineRuntime` and `installedSessionCapabilities(runtime,
 installation)` merge the static declarations in, so a host reads one answer
 and never branches on a runtime's name. `orient()` returns it for every
 available installation ([orientation](orientation.md#session-capabilities)).
