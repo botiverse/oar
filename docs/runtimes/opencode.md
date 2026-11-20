@@ -332,13 +332,14 @@ nine of ten checks passed, cold MCP resume failed.
 
 **Known limitation: concurrent first starts over a fresh native database can
 fail before readiness**, confirmed by native SQLite errors. Native starts are the
-OAR-free startup probe, which starts native servers simultaneously against
-a fresh database; ACP opens go through OAR.
+OAR-free startup probes. The Windows 2.2.7 comparison opened two sessions
+per fresh database, first with two direct ACP processes and then through OAR.
 
 | Version | Failed | Succeeded | Evidence |
 | --- | --- | --- | --- |
 | 2.3.0, November 18 | 9 of 24 concurrent native ACP first starts (`table account_state already exists`) | 24/24 with OAR's startup gate; 24/24 through the full adapter | [Fresh-database comparison](../../experiments/opencode-database-lock/v2-2026-11-18.md#fresh-database-controls) |
 | 2.3.0 | 3 of 4 concurrent native first starts (table-creation conflict) | 2 serial and 4 prepared native starts; both cold and both prepared ACP opens | [November 13](../../experiments/runtime-version-checks/2026-11-13.md#opencode-230) |
+| 2.2.7, Windows | In all 20 direct ACP pairs, one process exited during initialize before standalone readiness (20/40 opens failed) | 40/40 public OAR session opens across 20 fresh shared databases | [Direct native ACP](https://github.com/botiverse/oar/actions/runs/44718334020/job/136227332763), [OAR](https://github.com/botiverse/oar/actions/runs/44721342939/job/136237573443) |
 | 2.2.7 | 1 of 4 concurrent native starts (`table account_state already exists`); 1 of 2 cold ACP opens, with only a readiness error | 2 serial and 4 concurrent native starts after initialization; both prepared ACP opens | [November 10](../../experiments/runtime-version-checks/2026-11-10.md#opencode-227) |
 | 2.2.6 | 1 of 2 concurrent fresh-database ACP opens exited before readiness; stderr says `Standalone server exited before reporting readiness`, with no native SQLite error, so this sample does not establish the same cause | both ACP opens after serial initialization | [November 7](../../experiments/runtime-version-checks/2026-11-07.md#opencode-226) |
 | 2.2.5 | 2 of 4 native starts exited 1 (`table account_state already exists`) | 2 sequential and 4 concurrent starts over an initialized database | [October 31](../../experiments/runtime-version-checks/2026-10-31.md#native-startup) |
