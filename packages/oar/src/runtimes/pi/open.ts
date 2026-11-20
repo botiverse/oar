@@ -102,7 +102,6 @@ export function piEffectiveModel(session: PiModelSource): string | null {
 
 /** Options the in-process SDK cannot honor, refused before anything opens. */
 export const piRefusedSessionOptions: RefusedSessionOptions = {
-  modelRequests: "This adapter has no verified capture of the root agent's provider request",
   fork: "OAR has not verified a native Pi fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",
   endTurnProcessesOnAbort: "pi has no verified per-turn process ownership: its SDK form runs in the host process and its RPC form was not probed for this",

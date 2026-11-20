@@ -29,6 +29,7 @@ export default async function oarPiRpcExtension(pi) {
     if (waiter !== undefined) { clearTimeout(waiter.timer); waiter.resolve(); }
   });
   const config = JSON.parse(readFileSync(path.join(directory, "config.json"), "utf8"));
+  // Match DefaultResourceLoader.discoverAppendSystemPromptFile in the selected Pi.
   // Pi loads CLI extensions before reading the prompt flags. Use the selected
   // CLI's own config directory and the trust choice passed to --[no-]approve.
   if (config.hasHostAppend) {

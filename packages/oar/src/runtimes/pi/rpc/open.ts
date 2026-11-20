@@ -29,6 +29,7 @@ import { ModelConfirmationError } from "../../../contracts/model-confirmation-er
 
 export const piRpcRefusedSessionOptions: RefusedSessionOptions = {
   ...piRefusedSessionOptions,
+  modelRequests: "Pi runs RPC command-line extensions before user extensions that can replace the provider request",
   mcpServerCredentials: "Pi RPC keeps its MCP configuration on disk while the session is running",
   launchArgs: "OAR owns Pi's RPC startup arguments; arbitrary CLI flags are not supported",
 };
