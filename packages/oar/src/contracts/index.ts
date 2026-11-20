@@ -182,3 +182,5 @@ export { UserShellEnvironmentError } from "./shell-environment.js";
 export type { UserShellEnvironment, UserShellEnvironmentOptions, UserShellEnvironmentFailure } from "./shell-environment.js";
 
 export type { PlacementRequest, SessionPlacement, SessionOpenContext, SessionCleanup, SessionRelease, RuntimePlacementOptions } from "./placement.js";
+
+export type { SideQuestionOptions } from "./side-question.js";

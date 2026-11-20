@@ -3,7 +3,7 @@ import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import { createModels } from "@earendil-works/pi-ai-durable/models";
 import { Harness, MemoryStorage, createRegistry } from "@earendil-works/pi-durable";
 import { createMorphRuntime } from "../packages/oar/src/community/morph/index.js";
-import { codebuddyRuntime, codexRuntime, createCursorRuntime, createPiRuntime, defineRuntime, grokRuntime, installedSessionCapabilities, kimiRuntime, opencodeRuntime, qwenRuntime, type AvailableInstallation } from "../packages/oar/src/index.js";
+import { claudeRuntime, codebuddyRuntime, codexRuntime, createCursorRuntime, createPiRuntime, defineRuntime, grokRuntime, installedSessionCapabilities, kimiRuntime, opencodeRuntime, qwenRuntime, type AvailableInstallation } from "../packages/oar/src/index.js";
 import { createPiDurableRuntime } from "../packages/oar/src/pi-durable.js";
 import { scriptedRuntime } from "../packages/oar/src/testing/index.js";
 import { allRuntimes } from "../sea-trial/harness/runtimes.js";
@@ -18,7 +18,7 @@ describe("Runtime.sessionCapabilities", () => {
       expect(runtime.sessionCapabilities, runtime.id).toBeTypeOf("function");
       const declared = runtime.sessionCapabilities?.(executable("1.0.0"));
       expect(declared, runtime.id).not.toBeInstanceOf(Promise);
-      const known = new Set(["steer", "images", "refusedSessionOptions", "manualCompaction", "compactionEvents", "contextUsage", "mcpTransports", "stopTask", "fileChanges", "nativeSessionFile"]);
+      const known = new Set(["steer", "images", "refusedSessionOptions", "manualCompaction", "compactionEvents", "contextUsage", "mcpTransports", "stopTask", "fileChanges", "nativeSessionFile", "sideQuestion"]);
       expect(Object.keys(declared ?? {}).every((key) => known.has(key)), runtime.id).toBe(true);
       // The static declarations are always part of the answer, and the answer is plain data a host can send on.
       expect(declared?.refusedSessionOptions ?? {}, runtime.id).toMatchObject(runtime.refusedSessionOptions ?? {});
@@ -55,6 +55,14 @@ describe("Runtime.sessionCapabilities", () => {
     expect(steer(executable())).toBeUndefined();
     expect(steer({ kind: "available", via: "bundled" })).toBeUndefined();
   });
+});
+
+it("offers side questions only on verified Claude installations", () => {
+  for (const version of [undefined, "unreadable", "2.1.325", "2.1.326-rc.1"]) {
+    expect(claudeRuntime.sessionCapabilities(executable(version))).not.toHaveProperty("sideQuestion");
+  }
+  expect(claudeRuntime.sessionCapabilities(executable("2.1.326")).sideQuestion).toBe(true);
+  expect(claudeRuntime.sessionCapabilities({ kind: "available", via: "bundled" })).not.toHaveProperty("sideQuestion");
 });
 
 describe("SessionCapabilityDeclaration.contextUsage", () => {

@@ -159,23 +159,23 @@ that installation would open: `steer` is whether `Session.steer` exists,
 handshake at open can tell; a host treats absent as unknown, never as false,
 and the opened session stays authoritative.
 
-| runtime | `steer` | `images` | `stopTask` | `mcpTransports` | `contextUsage` | `fileChanges` | `nativeSessionFile` |
-|---|---|---|---|---|---|---|---|
-| antigravity | true | absent: advertised by `initialize` | false | `["stdio", "http"]` (`minVersion` 1.5.0 with `--process-per-session`, credential-free only per `refusedSessionOptions.mcpServerCredentials`; [mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | absent |
-| claude | true | true | true | `["stdio", "http"]` ([mcp-servers.vendor.test.ts](../../sea-trial/vendor/mcp-servers.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | absent |
-| codebuddy | false | absent: advertised by `initialize` | false | `["stdio", "http"]` on `>= 2.178.1` ([codebuddy.vendor.test.ts](../../sea-trial/vendor/codebuddy.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: false, contextWindow: false }` (native `0/0` when model limit is unknown is not trustworthy) | absent | absent |
-| codex | true | true | true | `["stdio", "http"]` ([mcp-servers.vendor.test.ts](../../sea-trial/vendor/mcp-servers.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` on `>= 0.151.0`; absent on older or unreadable versions | true from 0.160.1, absent on older or unreadable versions | true from 0.169.0, absent on older or unreadable versions |
-| cursor | true (an individual steer can still be rejected: `unsupported` with images, `runtime_refused` when the run cannot take it, as above) | true | false | `["stdio", "http"]` ([cursor-mcp.ts](../../experiments/cursor-mcp.ts)) | `{ tokens: true, contextWindow: false }` | absent | absent |
-| devin | false | absent: advertised by `initialize` | false | absent: handshake-dependent and unverified in CI | absent: live turns unverified | absent | absent |
-| dsh | absent: the bridge reports the agent's methods at open | absent: the selected model and native attachment store determine image support | true | `["stdio"]` ([dsh-mcp.vendor.test.ts](../../sea-trial/vendor/dsh-mcp.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | absent |
-| factory | true | true | false | absent: HTTP MCP tool invocation unverified (only stdio is exercised in [factory.vendor.test.ts](../../sea-trial/vendor/factory.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | absent |
-| grok | true | true | false | `["stdio", "http"]` on `>= 1.0.46` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: false }` | absent | absent |
-| kimi | false | absent: advertised by `initialize` | false | `["stdio", "http"]` on `>= 2.1.1` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: true }` (except models whose catalog entry has no size) | absent | absent |
-| opencode | true on a v1 installation; absent on v2 or an unreadable version (`initialize` advertises steering) | absent: advertised by `initialize` | false | `["stdio", "http"]` on v1 `>= 1.18.30` and v2 `>= 2.0.26` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: true }` on readable v1/v2 versions; absent on unreadable versions | absent | absent |
-| pi | true | true | false | `["stdio", "http"]` ([mcp-servers-pi.vendor.test.ts](../../sea-trial/vendor/mcp-servers-pi.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | true |
-| pi-durable | true | false | false | `[]` | `{ tokens: false, contextWindow: false }` | absent | absent |
-| qoder | true | false | true | `["stdio", "http"]` ([qoder.vendor.test.ts](../../sea-trial/vendor/qoder.vendor.test.ts)) | `{ tokens: false, contextWindow: false }` | absent | absent |
-| qwen | false | false | false | `["stdio", "http"]` on `>= 0.26.0` ([qwen.vendor.test.ts](../../sea-trial/vendor/qwen.vendor.test.ts)); `["stdio"]` on readable `< 0.26.0` (HTTP refused at open); absent on unreadable versions | `{ tokens: true, contextWindow: true }` on `>= 0.26.0`; absent on older or unreadable versions | absent | absent |
+| runtime | `steer` | `images` | `stopTask` | `mcpTransports` | `contextUsage` | `fileChanges` | `nativeSessionFile` | `sideQuestion` |
+|---|---|---|---|---|---|---|---|---|
+| antigravity | true | absent: advertised by `initialize` | false | `["stdio", "http"]` (`minVersion` 1.5.0 with `--process-per-session`, credential-free only per `refusedSessionOptions.mcpServerCredentials`; [mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | absent | absent |
+| claude | true | true | true | `["stdio", "http"]` ([mcp-servers.vendor.test.ts](../../sea-trial/vendor/mcp-servers.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | absent | true from 2.1.326, absent on older or unreadable versions |
+| codebuddy | false | absent: advertised by `initialize` | false | `["stdio", "http"]` on `>= 2.178.1` ([codebuddy.vendor.test.ts](../../sea-trial/vendor/codebuddy.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: false, contextWindow: false }` (native `0/0` when model limit is unknown is not trustworthy) | absent | absent | absent |
+| codex | true | true | true | `["stdio", "http"]` ([mcp-servers.vendor.test.ts](../../sea-trial/vendor/mcp-servers.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` on `>= 0.151.0`; absent on older or unreadable versions | true from 0.160.1, absent on older or unreadable versions | true from 0.169.0, absent on older or unreadable versions | absent |
+| cursor | true (an individual steer can still be rejected: `unsupported` with images, `runtime_refused` when the run cannot take it, as above) | true | false | `["stdio", "http"]` ([cursor-mcp.ts](../../experiments/cursor-mcp.ts)) | `{ tokens: true, contextWindow: false }` | absent | absent | absent |
+| devin | false | absent: advertised by `initialize` | false | absent: handshake-dependent and unverified in CI | absent: live turns unverified | absent | absent | absent |
+| dsh | absent: the bridge reports the agent's methods at open | absent: the selected model and native attachment store determine image support | true | `["stdio"]` ([dsh-mcp.vendor.test.ts](../../sea-trial/vendor/dsh-mcp.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | absent | absent |
+| factory | true | true | false | absent: HTTP MCP tool invocation unverified (only stdio is exercised in [factory.vendor.test.ts](../../sea-trial/vendor/factory.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | absent | absent |
+| grok | true | true | false | `["stdio", "http"]` on `>= 1.0.46` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: false }` | absent | absent | absent |
+| kimi | false | absent: advertised by `initialize` | false | `["stdio", "http"]` on `>= 2.1.1` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: true }` (except models whose catalog entry has no size) | absent | absent | absent |
+| opencode | true on a v1 installation; absent on v2 or an unreadable version (`initialize` advertises steering) | absent: advertised by `initialize` | false | `["stdio", "http"]` on v1 `>= 1.18.30` and v2 `>= 2.0.26` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: true }` on readable v1/v2 versions; absent on unreadable versions | absent | absent | absent |
+| pi | true | true | false | `["stdio", "http"]` ([mcp-servers-pi.vendor.test.ts](../../sea-trial/vendor/mcp-servers-pi.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | true | absent |
+| pi-durable | true | false | false | `[]` | `{ tokens: false, contextWindow: false }` | absent | absent | absent |
+| qoder | true | false | true | `["stdio", "http"]` ([qoder.vendor.test.ts](../../sea-trial/vendor/qoder.vendor.test.ts)) | `{ tokens: false, contextWindow: false }` | absent | absent | absent |
+| qwen | false | false | false | `["stdio", "http"]` on `>= 0.26.0` ([qwen.vendor.test.ts](../../sea-trial/vendor/qwen.vendor.test.ts)); `["stdio"]` on readable `< 0.26.0` (HTTP refused at open); absent on unreadable versions | `{ tokens: true, contextWindow: true }` on `>= 0.26.0`; absent on older or unreadable versions | absent | absent | absent |
 
 Every runtime built with `defineRuntime` has the member; one that declares
 neither field answers with its static declarations only. Community runtimes
@@ -243,6 +243,24 @@ Clients that read different sets of variables have separate precedence rules. Se
 | `model_route` | Selects the model or cloud deployment that receives the request. |
 | `credential_source` | Identifies a credential provider, profile, file, directory or descriptor. |
 | `headers` | Supplies request headers that can carry credentials. These are secret. |
+
+### One side question from a saved session
+
+`runtime.sideQuestion(installation, { sessionId, cwd, question })` answers once
+from the history already saved by that native session. The source may be
+running or stopped. The host can also supply `env`, `model`, `timeoutMs` and
+`signal`. Claude declares `sessionCapabilities(installation).sideQuestion`
+from 2.1.326. Other runtimes omit the operation.
+
+Pass the source's environment overrides, including any `CLAUDE_CONFIG_DIR`,
+so Claude can find the session in the same native store. When `model` is
+omitted, Claude selects its configured default. Pass the source model
+explicitly when it should answer the side question.
+
+The fork has no tools or MCP servers, disables user and project hooks, and
+saves no transcript. Administrator policy still applies. The answer is
+returned to the caller. Source history stays unchanged. See the [Claude
+runtime page](../runtimes/claude.md#side-questions).
 
 ### Native tasks and single-task stop
 

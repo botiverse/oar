@@ -17,6 +17,9 @@ export const sessionCapabilitiesCases: readonly TrialCase[] = [
       assert.ok(installation?.kind === "available", "the subject opens sessions from an available installation");
       const declared = subject.runtime.sessionCapabilities?.(installation);
       assert.ok(declared !== undefined);
+      if (declared.sideQuestion === true) {
+        assert.equal(typeof subject.runtime.sideQuestion, "function", "declared sideQuestion requires the runtime operation");
+      }
       const session = await subject.startSession();
       try {
         if (declared.steer !== undefined) {

@@ -8,6 +8,7 @@ import type { McpTransport, SessionOptions } from "./session-options.js";
 // oxlint-disable-next-line import/consistent-type-specifier-style -- Keep types and implementation from the same contract in one import.
 import { type PlacementRequest, type RuntimePlacementOptions, placementSession } from "./placement.js";
 import type { UpdateChecker, Upgrader } from "./update.js";
+import type { AskSideQuestion } from "./side-question.js";
 import type { ContextUsageCapability } from "./context-usage.js";
 import type { ManualCompaction } from "./compaction.js";
 import type { ModelLister } from "./list-models.js";
@@ -43,6 +44,7 @@ export type RefusedSessionOptions = Readonly<Partial<Record<RefusableSessionOpti
  * compaction declarations. Every declared refusal applies at open.
  */
 export interface SessionCapabilityDeclaration {
+  readonly sideQuestion?: boolean; // Can ask once from a discarded native fork of a stored session.
   readonly steer?: boolean;
   readonly images?: boolean;
   readonly refusedSessionOptions?: RefusedSessionOptions;
@@ -153,6 +155,7 @@ export interface Runtime extends RuntimeInventories {
   /** Operating systems where OAR's behavior suite ran this runtime's real binary or SDK. Absent: not verified in CI, which is unknown, not unsupported. */
   readonly verifiedPlatforms?: readonly RuntimePlatform[];
   readonly credentials?: RuntimeCredentials;
+  readonly sideQuestion?: AskSideQuestion;
   readonly session: StartSession; // the core capability: a runtime without sessions is not usable
   /**
    * Declared before any session opens, so a host leaves a refused option out
