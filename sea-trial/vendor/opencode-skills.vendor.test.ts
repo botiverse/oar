@@ -1,11 +1,11 @@
 /* oxlint-disable import/no-namespace -- Observe the real process while retaining native behavior. */
-import assert from "node:assert/strict";
 import * as nativeProcess from "node:child_process";
 import { mkdir, mkdtemp, realpath, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve as resolvePath } from "node:path";
 import { createConnection, createServer } from "node:net";
-import { describe, expect, test, vi } from "vitest";
+import { assert, describe, expect, test, vi } from "vitest";
+import { alive, captureProcess, type ProcessIdentity } from "../../tests/fixtures/process-tree.js";
 import { opencodeRuntime } from "../../packages/oar/src/runtimes/opencode/index.js";
 import * as executable from "../../packages/oar/src/shared/executable/index.js";
 import { sessionEnvironment } from "../../packages/oar/src/shared/environment.js";
@@ -62,13 +62,14 @@ describe.skipIf(!enabled)("OpenCode native skill discovery", () => {
       assert.ok(address !== null && typeof address === "object");
       const child = executable.spawnLineProcess(process.execPath, ["-e", "process.exitCode = 0"], { cwd: process.cwd() });
       await child.spawned;
-      await assert.rejects(assertListenerClosed(address.port, child), /listener accepted a connection after owned cleanup/u);
+      await expect(assertListenerClosed(address.port, child)).rejects.toThrow(/listener accepted a connection after owned cleanup/u);
     } finally { await listener[Symbol.asyncDispose](); }
   });
 
   test.for(["success", "failure", "timeout", "plugin-failure"])("%s preserves native paths and reclaims the owned process", { timeout: 60_000 }, async (mode, context) => {
     const f = await fixture();
     const children: executable.LineProcess[] = [];
+    const servers: ProcessIdentity[] = [];
     const ports: number[] = [];
     const spawn = executable.spawnLineProcess;
     const command = process.env.OAR_OPENCODE_BIN === undefined ? "opencode" : resolvePath(process.env.OAR_OPENCODE_BIN);
@@ -86,6 +87,7 @@ describe.skipIf(!enabled)("OpenCode native skill discovery", () => {
       const nativeStarts = vi.mocked(nativeProcess.spawn).mock.results.length;
       vi.spyOn(executable, "spawnLineProcess").mockImplementation((...args) => {
         const child = spawn(...args); children.push(child);
+        if (child.pid !== undefined) { servers.push(captureProcess(child.pid)); }
         child.onLine(line => { const match = /^server listening on http:\/\/127\.0\.0\.1:([0-9]+)/u.exec(line); if (match?.[1] !== undefined) { ports.push(Number(match[1])); } });
         return child;
       });
@@ -97,7 +99,7 @@ describe.skipIf(!enabled)("OpenCode native skill discovery", () => {
       }
       const result = await opencodeRuntime.skills({ kind: "available", via: "executable", command, version: version.stdout.trim() }, { cwd: f.cwd, env: f.env, timeoutMs: mode === "timeout" ? 15_000 : 30_000 });
       if (mode === "success" || mode === "plugin-failure") {
-        assert.equal(result.kind, "ok", JSON.stringify(result));
+        assert.ok(result.kind === "ok", JSON.stringify(result));
         expect(result.partial).toBe(mode === "plugin-failure"); expect(result.view).toBe("discovered");
         expect(Buffer.byteLength(JSON.stringify(result.items))).toBeGreaterThan(64 * 1024);
         await Promise.all(Object.entries(f.roots).map(async ([name, path]) => {
@@ -124,12 +126,13 @@ describe.skipIf(!enabled)("OpenCode native skill discovery", () => {
         expect(await readFile(join(f.roots["home-claude"], "home-claude", "SKILL.md"), "utf8")).toContain("PRIVATE SKILL BODY");
       } else { expect(result).toMatchObject({ kind: "unavailable", code: mode === "timeout" ? "timeout" : "query_failed" }); }
       const legacyChildren = vi.mocked(nativeProcess.spawn).mock.results.slice(nativeStarts).flatMap(call => call.type === "return" ? [call.value] : []);
-      const observed = major === 1 ? legacyChildren : children;
-      expect(observed).toHaveLength(1);
       const assertExited = (): void => {
-        for (const { pid } of observed) {
-          assert.ok(pid !== undefined);
-          expect(() => process.kill(pid, 0)).toThrow(expect.objectContaining({ code: "ESRCH" }));
+        if (major === 1) {
+          expect(legacyChildren).toHaveLength(1);
+          expect(legacyChildren.every(child => child.exitCode !== null || child.signalCode !== null)).toBe(true);
+        } else {
+          expect(servers).toHaveLength(1);
+          expect(servers.some(server => alive(server))).toBe(false);
         }
       };
       if (mode === "timeout") { await vi.waitFor(assertExited, { timeout: 15_000 }); }

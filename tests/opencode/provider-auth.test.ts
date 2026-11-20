@@ -207,7 +207,7 @@ test("the server stops after the idle period and the next operation starts anoth
     const first = fake.read().serverPid;
     await expect.poll(() => serverRunning(fake), { timeout: 5000 }).toBe(false);
     expect(await auth.status("poe")).toEqual({ providerId: "poe", configured: false });
-    expect(fake.read().serverPid).not.toBe(first);
+    expect(fake.read().serverPid).not.toEqual(first);
   }, { idleMs: 50 });
 });
 

@@ -7,7 +7,7 @@ import { codexSession } from "../packages/oar/src/runtimes/codex/session.js";
 import { acpSession } from "../packages/oar/src/shared/acp/session.js";
 import { processTreeResources } from "../packages/oar/src/shared/executable/process-resources.js";
 import { fixture as acpAgent, profile } from "./fixtures/acp-session-support.js";
-import { agentTreeModule, fakeAgentBinary, withTreeProbe } from "./fixtures/process-tree.js";
+import { agentTreeModule, fakeAgentBinary, withTreeProbe, fixtureIdentityPath, reportedProcess, signalFixture } from "./fixtures/process-tree.js";
 
 type Open = (dir: string, options: SessionOptions) => Promise<Session>;
 
@@ -42,6 +42,12 @@ describe.skipIf(process.platform === "win32")("Session.resources() counts the ru
   });
 });
 
+function readMembers(report: string) {
+  const members: unknown = JSON.parse(report);
+  if (!Array.isArray(members) || members.length !== 3) { throw new Error("Missing resource fixture process identities"); }
+  return members.map(member => reportedProcess(member));
+}
+
 test.skipIf(process.platform === "win32").each(process.platform === "linux" ? ["linux", "darwin"] as const : ["darwin"] as const)(
   "the %s reader counts a process, its group and a descendant that left it",
   async (platform) => {
@@ -51,17 +57,16 @@ test.skipIf(process.platform === "win32").each(process.platform === "linux" ? ["
       const sleep = ["-e", "setTimeout(() => {}, 60000)"];
       const kept = spawn(process.execPath, sleep, { stdio: "ignore" });
       const left = spawn(process.execPath, sleep, { stdio: "ignore", detached: true });
-      Promise.all([kept, left].map((child) => new Promise((resolve) => child.once("spawn", resolve)))).then(() => process.stdout.write(left.pid + "\n"));
+      Promise.all([kept, left].map((child) => new Promise((resolve) => child.once("spawn", resolve)))).then(() => console.log(JSON.stringify([process.pid, left.pid, kept.pid].map(require(${JSON.stringify(fixtureIdentityPath)}).captureProcess))));
       setTimeout(() => {}, 60000);
     `], { stdio: ["ignore", "pipe", "ignore"], detached: true });
     const reported: unknown[] = await once(leader.stdout, "data");
-    const left = Number(String(reported[0]));
+    const owned = readMembers(String(reported[0]));
     try {
       const resources = await processTreeResources(leader.pid ?? 0, platform);
       expect([resources?.processes, (resources?.rss ?? 0) > 3 * NODE_RSS]).toEqual([3, true]);
     } finally {
-      process.kill(-(leader.pid ?? 0), "SIGKILL");
-      process.kill(left, "SIGKILL");
+      for (const member of owned) { signalFixture(member); }
     }
   },
 );

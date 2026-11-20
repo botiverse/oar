@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 
 // Executed in a separate host: native patches cannot affect the Vitest process.
 const asyncCleanupHost = String.raw`
+import { captureProcess } from ${JSON.stringify(new URL("process-tree.ts", import.meta.url).href)};
 import fs from "node:fs";
 import fsAsync from "node:fs/promises";
 import cp from "node:child_process";
@@ -11,7 +12,7 @@ import { spawnLineProcess } from ${JSON.stringify(new URL("../../packages/oar/sr
 process.on("unhandledRejection", () => { fs.writeFileSync(process.env.OAR_UNHANDLED, "rejected"); process.exit(98); });
 const phase = process.env.OAR_CLEANUP_PHASE;
 const root = spawnLineProcess(process.execPath, [${JSON.stringify(fileURLToPath(new URL("async-cleanup-tree.mjs", import.meta.url)))}], { killTree: true, shutdown: "stdin" });
-await new Promise((resolve) => { root.onLine((line) => { if (/^\d+$/u.test(line)) { resolve(); } }); });
+await new Promise((resolve) => { root.onLine((line) => { if (line.startsWith("{")) { resolve(); } }); });
 let reads = 0;
 const shouldPause = () => ++reads === (phase === "capture" ? 1 : 2);
 const interrupted = () => {
@@ -30,7 +31,7 @@ const spawn = cp.spawn;
 cp.spawn = (command, ...args) => {
   if ((command === "ps" || command === "powershell.exe") && shouldPause()) {
     const query = spawn(process.execPath, ["-e", "setTimeout(() => {}, 60000)"], args[1]);
-    fs.writeFileSync(process.env.OAR_QUERY_PID, String(query.pid));
+    fs.writeFileSync(process.env.OAR_QUERY_PID, JSON.stringify(captureProcess(query.pid)));
     interrupted(); return query;
   }
   return spawn(command, ...args);

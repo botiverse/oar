@@ -7,7 +7,7 @@ import { cleanupFailureReason, processTreeCleanup } from "../packages/oar/src/sh
 import * as tree from "../packages/oar/src/shared/executable/process-tree.js";
 // oxlint-disable-next-line import/no-namespace -- Spy on asynchronous cleanup observations.
 import * as asyncTree from "../packages/oar/src/shared/executable/process-table-async.js";
-import { gone } from "./fixtures/process-tree.js";
+import { gone, type ProcessIdentity, fixtureIdentityPath, reportedProcess, signalFixture } from "./fixtures/process-tree.js";
 import { expectCleanupEvidence } from "./fixtures/cleanup-evidence.js";
 
 vi.mock("node:child_process", async (original) => ({ ...await original<object>(), execFile: vi.fn() }));
@@ -107,7 +107,7 @@ const nativeTree = String.raw`
   tool.once('disconnect', () => {
     if (!ready) { console.error('tool disconnected before readiness'); process.exit(1); }
     tool.unref();
-    console.log(tool.pid);
+    console.log(JSON.stringify(require(${JSON.stringify(fixtureIdentityPath)}).captureProcess(tool.pid)));
   });
   process.stdin.resume();
   process.stdin.on('end', () => { console.log('hook-complete'); process.exit(0); });
@@ -117,16 +117,16 @@ const nativeTree = String.raw`
 test.each(["capture-fails", "retry-recovers", "revalidation-fails"])("native graceful shutdown and detached descendant: %s", async (scenario) => {
   const sentinel = spawnLineProcess(process.execPath, ["-e", "setTimeout(() => {}, 60000)"]);
   const child = spawnLineProcess(process.execPath, ["-e", nativeTree], { killTree: true, shutdown: "stdin" });
-  const ready = Promise.withResolvers<number>();
+  const ready = Promise.withResolvers<string>();
   const lines: string[] = [];
-  child.onLine((line) => { lines.push(line); if (/^\d+$/u.test(line)) { ready.resolve(Number(line)); } });
-  let tool: number | undefined = undefined;
+  child.onLine((line) => { lines.push(line); if (line.startsWith("{")) { ready.resolve(line); } });
+  let tool: ProcessIdentity | undefined = undefined;
   let sentinelExited = false;
   sentinel.onExit(() => { sentinelExited = true; });
   const exits: { code: number | null; reason: string | undefined }[] = [];
   child.onExit((code, reason) => { exits.push({ code, reason }); });
   try {
-    tool = await ready.promise;
+    tool = reportedProcess(JSON.parse(await ready.promise));
     expect(await gone(tool, 50), "the independent tool must be ready and alive before shutdown").toBe(false);
     const nativeRead = asyncTree.observeProcessTableAsync;
     const read = vi.spyOn(asyncTree, "observeProcessTableAsync");
@@ -161,7 +161,7 @@ test.each(["capture-fails", "retry-recovers", "revalidation-fails"])("native gra
     expect(read.mock.calls).toHaveLength(readsBeforeLateKill);
   } finally {
     vi.restoreAllMocks();
-    if (tool !== undefined) { try { process.kill(tool, "SIGKILL"); } catch { /* Already cleaned up. */ } }
+    if (tool !== undefined) { signalFixture(tool); }
     child.kill(); sentinel.kill();
     await Promise.all([child.exited, sentinel.exited]);
   }

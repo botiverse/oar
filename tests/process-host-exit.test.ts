@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "vitest";
-import { agentTreeModule, fakeAgentBinary, gone, withTreeProbe } from "./fixtures/process-tree.js";
+import { agentTreeModule, fakeAgentBinary, gone, withTreeProbe, reportedProcess, type ProcessIdentity, signalFixture } from "./fixtures/process-tree.js";
 
 const claudeModule = new URL("../packages/oar/src/runtimes/claude/session.ts", import.meta.url).href;
 const executableModule = new URL("../packages/oar/src/shared/executable/index.ts", import.meta.url).href;
@@ -44,9 +44,9 @@ test.each(["probe", "isolated", "login", "terminal", ...(process.platform === "w
             await delay(20);
           }
           if (${JSON.stringify(kind)} === "probe-after-exit") {
-            const pid = JSON.parse(readFileSync(${JSON.stringify(otherProbe.env.OAR_FIXTURE_PIDS)}, "utf8")).agent;
-            while (true) {
-              try { process.kill(pid, 0); } catch { break; }
+            const identity = JSON.parse(readFileSync(${JSON.stringify(otherProbe.env.OAR_FIXTURE_PIDS)}, "utf8")).agent;
+            const { alive } = await import(${JSON.stringify(new URL("fixtures/process-tree.ts", import.meta.url).href)});
+            while (alive(identity)) {
               if (Date.now() > deadline) throw new Error("probe leader did not exit");
               await delay(20);
             }
@@ -95,12 +95,21 @@ test.skipIf(process.platform === "win32")("host exit kills a live session's tool
   });
 });
 
+const identityPath = fileURLToPath(new URL("fixtures/process-tree.ts", import.meta.url));
+const reportIdentityAndWait = `
+  const { captureProcess } = require(${JSON.stringify(identityPath)});
+  const fs = require("node:fs"), file = process.argv[1];
+  fs.writeFileSync(file + ".tmp", JSON.stringify(captureProcess(process.pid)));
+  fs.renameSync(file + ".tmp", file);
+  setInterval(() => {}, 1000);
+`;
+
 // Direct native children must be reclaimed too, without needing a launcher.
 // oxlint-disable-next-line eslint/max-statements -- Spawn, observe and reclaim the same host and its two children.
 test.each(process.platform === "win32" ? [false] : [false, true])("host exit kills its live transport and one-shot child (table unavailable: %s)", async (unavailable) => {
   const dir = mkdtempSync(path.join(tmpdir(), "oar-host-exit-"));
   const files = [path.join(dir, "session.pid"), path.join(dir, "probe.pid")];
-  const children: number[] = [];
+  const children: ProcessIdentity[] = [];
   try {
     const source = `
       import { existsSync } from "node:fs";
@@ -117,7 +126,7 @@ test.each(process.platform === "win32" ? [false] : [false, true])("host exit kil
         syncBuiltinESMExports();
       }
       const files = ${JSON.stringify(files)};
-      const child = "const fs = require('node:fs'); const file = process.argv[1]; fs.writeFileSync(file + '.tmp', String(process.pid)); fs.renameSync(file + '.tmp', file); setInterval(() => {}, 1000)";
+      const child = ${JSON.stringify(reportIdentityAndWait)};
       await spawnLineProcess(process.execPath, ["-e", child, files[0]]).spawned;
       void runExecutable(process.execPath, ["-e", child, files[1]], { timeoutMs: 60_000 });
       const deadline = Date.now() + 10_000;
@@ -128,7 +137,7 @@ test.each(process.platform === "win32" ? [false] : [false, true])("host exit kil
       process.exit(23);
     `;
     const host = spawnSync(process.execPath, ["--import", "tsx", "--input-type=module", "-e", source], { encoding: "utf8", timeout: 20_000 });
-    children.push(...files.map((file) => Number(readFileSync(file, "utf8"))));
+    children.push(...files.map((file) => reportedProcess(JSON.parse(readFileSync(file, "utf8")))));
     expect(host.error).toBeUndefined();
     if (unavailable) {
       expect(host.stderr).toContain("Descendant cleanup could not be verified");
@@ -140,7 +149,7 @@ test.each(process.platform === "win32" ? [false] : [false, true])("host exit kil
     expect(await Promise.all(children.map(async (pid) => gone(pid)))).toEqual([true, true]);
   } finally {
     for (const pid of children) {
-      try { process.kill(pid, "SIGKILL"); } catch { /* Already gone. */ }
+      signalFixture(pid);
     }
     rmSync(dir, { recursive: true, force: true });
   }

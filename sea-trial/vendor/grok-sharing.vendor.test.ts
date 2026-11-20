@@ -2,6 +2,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test, vi } from "vitest";
+import { reportedProcess, alive, fixtureIdentityPath, type ProcessIdentity } from "../../tests/fixtures/process-tree.js";
 import type { Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
 import { experimentalGrokRuntime } from "../../experiments/sharing/grok-candidate.js";
 import { scopedHttpMcp } from "../../experiments/sharing/mcp-http-scope.js";
@@ -18,7 +19,6 @@ import { cwdEvidence } from "../../experiments/sharing/observation.js";
 import { cleanupObserver } from "./support/opencode-cleanup.js";
 
 const enabled = process.env.OAR_TEST === "grok-shared";
-const alive = (pid: number): boolean => { try { process.kill(pid, 0); return true; } catch { return false; } };
 interface Wire { method: string; params: JsonRecord; at: number }
 function childTiming(session: Session, peer: Session, wire: readonly Wire[]) {
   const relation = session.graph().edges.find(e => e.parent === session.id && e.child !== session.id);
@@ -68,7 +68,7 @@ for (const placement of ["auto", "isolated"] as const) {
         "else{const file=process.argv[3].replace('.json','-child.json');",
         // oxlint-disable-next-line eslint/no-template-curly-in-string -- The generated fixture evaluates this template.
         "const child=spawn(process.execPath,['-e',`require('node:fs').writeFileSync(${JSON.stringify(file)},JSON.stringify({pid:process.pid,ppid:process.ppid}));setTimeout(()=>{},300000)`],{stdio:'ignore'});",
-        "writeFileSync(process.argv[3],JSON.stringify({parent:process.pid,child:child.pid,cwd:process.cwd()}));console.log('TOOL_READY');setTimeout(()=>{},300000);}",
+        `const {captureProcess}=require(${JSON.stringify(fixtureIdentityPath)});writeFileSync(process.argv[3],JSON.stringify({parent:captureProcess(process.pid),child:captureProcess(child.pid),cwd:process.cwd()}));console.log('TOOL_READY');setTimeout(()=>{},300000);}`,
       ].join("\n"));
       const configPath = path.join(f.env.GROK_HOME ?? "", "config.toml");
       const config = await readFile(configPath, "utf8");
@@ -103,20 +103,22 @@ for (const placement of ["auto", "isolated"] as const) {
       await a.abort(); expect(await awaitTurnEnd(a, pending.request.seq)).toMatchObject({ kind: "aborted" });
       expect(await promptAndWait(b, "ACP_SHARE_B_afterabort")).toMatchObject({ kind: "ended" });
       const tools = await Promise.all([a.prompt("ACP_SHARE_A_tool"), b.prompt("ACP_SHARE_B_tool")]);
-      const ids: { parent: number; child: number }[] = [];
+      const ids: { parent: ProcessIdentity; child: ProcessIdentity }[] = [];
       for (const label of ["A", "B"]) {
         await expect.poll(async () => { const value = await readFile(path.join(f.home, `${label}-child.json`), "utf8").catch(() => ""); return value; }, { timeout: 30_000 }).not.toBe("");
         const parentText = await readFile(path.join(f.home, `${label}.json`), "utf8");
         const childText = await readFile(path.join(f.home, `${label}-child.json`), "utf8");
         const parent = asRecord(JSON.parse(parentText)); const child = asRecord(JSON.parse(childText));
-        expect(typeof parent?.parent).toBe("number"); expect(typeof parent?.child).toBe("number");
-        const pair = { parent: Number(parent?.parent), child: Number(parent?.child) }; ids.push(pair);
-        expect(child).toMatchObject({ pid: pair.child, ppid: pair.parent }); expect(alive(pair.parent)).toBe(true); expect(alive(pair.child)).toBe(true);
+
+        const pair = { parent: reportedProcess(parent?.parent), child: reportedProcess(parent?.child) }; ids.push(pair);
+        expect(child).toMatchObject({ pid: pair.child.pid, ppid: pair.parent.pid }); expect(alive(pair.parent)).toBe(true); expect(alive(pair.child)).toBe(true);
       }
+      const [first, second] = ids;
+      if (first === undefined || second === undefined) { throw new Error("Missing owned terminal identities"); }
       await cleanup.sample("before-dispose");
       await a.dispose(); await awaitTurnEnd(a, tools[0].request.seq);
-      await expect.poll(() => [alive(ids[0]?.parent ?? -1), alive(ids[0]?.child ?? -1)], { timeout: 15_000 }).toEqual([false, false]);
-      expect(alive(ids[1]?.parent ?? -1)).toBe(true); expect(alive(ids[1]?.child ?? -1)).toBe(true);
+      await expect.poll(() => [alive(first.parent), alive(first.child)], { timeout: 15_000 }).toEqual([false, false]);
+      expect(alive(second.parent)).toBe(true); expect(alive(second.child)).toBe(true);
       expect(a.records().filter(r => r.kind === "response" && r.body.kind === (placement === "auto" ? "released" : "exited"))).toHaveLength(1);
       const reused = await open("A"); expect(reused.placement).toBe(placement === "auto" ? "shared" : "isolated");
       await promptAndWait(reused, "ACP_SHARE_A_mcpafter"); await reused.dispose();
@@ -125,7 +127,7 @@ for (const placement of ["auto", "isolated"] as const) {
       if (placement === "auto") { expect(runtimes).toHaveLength(1); }
       // B is the last lease with a live owned terminal tree, not an empty idle session.
       await b.dispose(); await awaitTurnEnd(b, tools[1].request.seq);
-      await expect.poll(() => [alive(ids[1]?.parent ?? -1), alive(ids[1]?.child ?? -1)], { timeout: 15_000 }).toEqual([false, false]);
+      await expect.poll(() => [alive(second.parent), alive(second.child)], { timeout: 15_000 }).toEqual([false, false]);
       expect(b.records().filter(r => r.kind === "response" && r.body.kind === "exited")).toHaveLength(1);
       expect(runtimes.every(r => r.closed)).toBe(true);
       // Recheck the complete log after every turn to catch delayed duplicate or misrouted calls.

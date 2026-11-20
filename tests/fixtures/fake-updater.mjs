@@ -7,6 +7,7 @@
 // an answer on stdin before doing nothing (kimi without -y in a terminal),
 // "hang" starts a worker that holds the output pipes (npm under `curl | sh`)
 // and never finishes.
+import { captureProcess } from "./process-tree.ts";
 import { spawn } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 
@@ -34,7 +35,7 @@ if (command === "--help") {
     process.exitCode = 3;
   } else if (state.mode === "hang") {
     const worker = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: ["ignore", "inherit", "inherit"] });
-    save({ ...seen, workerPid: worker.pid });
+    save({ ...seen, workerPid: captureProcess(worker.pid) });
     setInterval(() => {}, 1000);
   } else {
     process.stdout.write("Install update now? [y/N] ");

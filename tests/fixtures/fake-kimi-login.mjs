@@ -1,4 +1,5 @@
 /* oxlint-disable eslint/max-statements, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument, typescript/no-unsafe-return, typescript/strict-boolean-expressions -- Standalone untyped fixture executable. */
+import { captureProcess } from "./process-tree.ts";
 import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import saveLoginState from "./login-state.mjs";
@@ -9,7 +10,7 @@ const save = () => { saveLoginState(stateFile, state); };
 state.calls ??= [];
 state.calls.push(args);
 state.pids ??= [];
-state.pids.push(process.pid);
+state.pids.push(captureProcess(process.pid));
 state.environment = { home: process.env.KIMI_CODE_HOME, absent: process.env.OAR_KIMI_DELETE, marker: process.env.OAR_KIMI_MARKER };
 state.environments ??= []; state.environments.push(state.environment);
 save();

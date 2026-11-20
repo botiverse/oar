@@ -5,16 +5,13 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { expect, test } from "vitest";
+import { reportedProcess, type ProcessIdentity, alive } from "./fixtures/process-tree.js";
 import { asRecord } from "../packages/oar/src/shared/json.js";
 
 const pwsh = process.platform === "win32" ? "pwsh.exe" : process.env.OAR_TEST_PWSH_PATH;
-function alive(pid: number): boolean {
-  try { process.kill(pid, 0); return true; } catch { return false; }
-}
-async function targetPid(directory: string): Promise<number | null> {
+async function targetIdentity(directory: string): Promise<ProcessIdentity | null> {
   const text = await readFile(path.join(directory, "ready.json"), "utf8").catch(() => null);
-  const pid = text === null ? undefined : asRecord(JSON.parse(text))?.pid;
-  return typeof pid === "number" ? pid : null;
+  return text === null ? null : reportedProcess(JSON.parse(text));
 }
 async function waitUntil(predicate: () => boolean, timeoutMs: number): Promise<void> {
   const end = performance.now() + timeoutMs;
@@ -69,25 +66,25 @@ test.skipIf(pwsh === undefined).each(["normal", "unreturned", "error", "returned
     const result = await exit.promise;
     clearTimeout(timeout);
     expect(result.code, output).toBe(124);
-    const pid = await targetPid(directory);
-    assert.ok(pid !== null, output);
-    if (mode !== "normal") { expect(await readFile(path.join(directory, "entered.txt"), "utf8")).toBe(String(pid)); }
-    expect(alive(pid)).toBe(mode !== "normal");
+    const target = await targetIdentity(directory);
+    assert.ok(target !== null, output);
+    if (mode !== "normal") { expect(await readFile(path.join(directory, "entered.txt"), "utf8")).toBe(String(target.pid)); }
+    expect(alive(target)).toBe(mode !== "normal");
     const contents = await readFile(path.join(directory, "records.jsonl"), "utf8");
     const records = contents.trim().split("\n").map((line) => asRecord(JSON.parse(line)));
-    expectTermination(records, mode, { pid, exitedAt: result.at });
+    expectTermination(records, mode, { pid: target.pid, exitedAt: result.at });
     // Root exit can precede delivery of the last flushed output chunk.
     await waitUntil(() => output.includes('"kind":"stage_exit"'), 1000);
     expect(output.trim().split(/\r?\n/u).map((line) => asRecord(JSON.parse(line)))).toEqual(records);
   } finally {
     clearTimeout(timeout);
     await writeFile(path.join(directory, "stop"), "");
-    const pid = await targetPid(directory);
-    if (pid !== null) { await waitUntil(() => !alive(pid), 5000); }
+    const target = await targetIdentity(directory);
+    if (target !== null) { await waitUntil(() => !alive(target), 5000); }
     if (child.exitCode === null) { child.kill(); }
     await waitUntil(() => closed, 5000);
     child.stdout.destroy(); child.stderr.destroy();
-    expect(pid === null || !alive(pid), "The synthetic target must stop during cleanup").toBe(true);
+    expect(target === null || !alive(target), "The synthetic target must stop during cleanup").toBe(true);
     await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
     expect(closed, "Pipes must close after the synthetic target stops").toBe(true);
   }

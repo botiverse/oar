@@ -8,7 +8,7 @@ import { claudeInstallation, type Session, claudeRuntime } from "../../packages/
 
 import { startClaudeAimock } from "../harness/aimock.js";
 import { runTurn } from "./support/asserts.js";
-import { hookMarks, processRunning, sessionStartHook } from "./support/session-start-hook.js";
+import { expectHookExited, hookMarks, sessionStartHook } from "./support/session-start-hook.js";
 
 const claudeSession = claudeRuntime.session;
 
@@ -73,9 +73,7 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude caps a real Sessio
     expect(failure).toMatchObject({ message: "claude SessionStart hooks exceeded the 8000 ms opening pause budget while waiting for get_settings; still running: SessionStart:startup, so effort low cannot be confirmed" });
     const marks = await hookMarks(env.hook.file);
     expect(marks.map(({ phase }) => phase)).toEqual(["start"]);
-    const pid = marks[0]?.pid;
-    assert.ok(typeof pid === "number");
-    await vi.waitFor(() => { expect(processRunning(pid)).toBe(false); }, { timeout: 10_000 });
+    await expectHookExited(marks[0]);
     expect(env.provider.mock.getRequests()).toEqual([]);
   } finally { await opened.session?.dispose(); await env.close(); }
 }, 120_000);

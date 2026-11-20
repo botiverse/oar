@@ -12,7 +12,7 @@ import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startPiAimock } from "../harness/aimock.js";
 import { stdioEcho } from "./support/echo-mcp.js";
 import { piChildCwd } from "./support/pi-runtime.js";
-import { eventually, gone } from "../../tests/fixtures/process-tree.js";
+import { eventually, gone, type ProcessIdentity } from "../../tests/fixtures/process-tree.js";
 
 const runtime = createPiRuntime(piRpcTestOptions());
 const builtins = ["read", "bash", "powershell", "edit", "write", "grep", "find", "ls"];
@@ -204,10 +204,11 @@ describe.skipIf(process.env.OAR_TEST !== "pi-rpc-aimock")("bundled Pi RPC proces
     const f = await fixture(`
       const fs = await import("node:fs");
       const cp = await import("node:child_process");
+      const { captureProcess } = await import(${JSON.stringify(new URL("../../tests/fixtures/process-tree.ts", import.meta.url).href)});
       pi.on("session_start", (_event, ctx) => {
         const tool = cp.spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { detached: true, stdio: "ignore" });
         tool.unref();
-        fs.writeFileSync(ctx.cwd + "/pids.json", JSON.stringify({ agent: process.pid, tool: tool.pid,
+        fs.writeFileSync(ctx.cwd + "/pids.json", JSON.stringify({ agent: captureProcess(process.pid), tool: captureProcess(tool.pid),
           privateDir: process.env.OAR_PI_RPC_DIRECTORY, argv: process.argv }));
       });
       pi.on("session_shutdown", async (_event, ctx) => {
@@ -219,7 +220,7 @@ describe.skipIf(process.env.OAR_TEST !== "pi-rpc-aimock")("bundled Pi RPC proces
       await expect(f.open({ mcpServers: [stdioEcho("private", "fixture-value")] })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "mcpServers" });
       const session = await f.open({ mcpServers: [stdioEcho("plain")] });
       // oxlint-disable-next-line typescript/no-unsafe-assignment -- This test extension wrote the file immediately before get_state.
-      const pids: { agent: number; tool: number; privateDir: string; argv: string[] } = JSON.parse(readFileSync(path.join(f.cwd, "pids.json"), "utf8"));
+      const pids: { agent: ProcessIdentity; tool: ProcessIdentity; privateDir: string; argv: string[] } = JSON.parse(readFileSync(path.join(f.cwd, "pids.json"), "utf8"));
       expect(pids.argv.join(" ")).not.toContain("fixture-value");
       const privateFiles = await readdir(pids.privateDir);
       expect(privateFiles.toSorted()).toEqual(["config.json", "extension.mjs", "ready"]);

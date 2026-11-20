@@ -3,6 +3,7 @@
 // 2026-11-11 (docs/runtimes/opencode.md#provider-authentication): the
 // listening line, basic auth, a registry that fills after startup, key and
 // OAuth connects, attempt status, complete, cancel and credential.remove.
+import { alive, captureProcess } from "./process-tree.ts";
 import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
 import saveLoginState from "./login-state.mjs";
@@ -19,10 +20,10 @@ if (state.hangSecondStart) {
   state.starts = (state.starts ?? 0) + 1;
   hangPlugin = state.starts === 2;
   if (state.serverPid !== undefined) {
-    try { process.kill(state.serverPid, 0); state.overlapped = true; } catch { state.overlapped = false; }
+    state.overlapped = alive(state.serverPid);
   }
 }
-state.serverPid = process.pid;
+state.serverPid = captureProcess(process.pid);
 const env = (name) => process.env[name] ?? null;
 state.env = { username: env("OPENCODE_SERVER_USERNAME"), browser: env("BROWSER"), autoupdate: env("OPENCODE_DISABLE_AUTOUPDATE"), modelsFetch: env("OPENCODE_DISABLE_MODELS_FETCH") };
 save();

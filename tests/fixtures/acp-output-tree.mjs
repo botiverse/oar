@@ -1,4 +1,5 @@
-/* oxlint-disable typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call -- Standalone native ACP fixture. */
+/* oxlint-disable typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument -- Standalone native ACP fixture. */
+import { captureProcess } from "./process-tree.ts";
 import { spawn } from "node:child_process";
 
 const tool = spawn(process.execPath, ["-e", "setTimeout(() => {}, 60000); process.send('ready', () => process.disconnect());"], {
@@ -9,7 +10,7 @@ tool.once("message", (value) => { ready = value === "ready"; });
 tool.once("disconnect", () => {
   if (!ready) { throw new Error("tool disconnected before readiness"); }
   tool.unref();
-  console.log(JSON.stringify({ jsonrpc: "2.0", method: "fixture/ready", params: { root: process.pid, tool: tool.pid } }));
+  console.log(JSON.stringify({ jsonrpc: "2.0", method: "fixture/ready", params: { root: captureProcess(process.pid), tool: captureProcess(tool.pid) } }));
   setInterval(() => {
     process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", method: "fixture/pulse", params: {} })}\n`);
   }, 1);

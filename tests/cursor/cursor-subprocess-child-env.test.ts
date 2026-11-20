@@ -1,4 +1,4 @@
-import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, expect, test, vi } from "vitest";
@@ -11,7 +11,7 @@ import { bundled, lastResult, printEnvironment, tempDirectory } from "../fixture
  * native companion paths, resolved from `sdkModule` the way
  * `cursorNativeEnvironment()` resolves them, unless the environment has
  * them; and `ELECTRON_RUN_AS_NODE` put back to the environment's own value.
- * The fake SDK module is copied next to a stand-in companion package, so
+ * The fake SDK entry point is placed next to a stand-in companion package, so
  * the child resolves it from there.
  */
 
@@ -26,7 +26,8 @@ function sdkWithCompanion(): { readonly sdkModule: string; readonly companion: s
   mkdirSync(companion, { recursive: true });
   writeFileSync(path.join(companion, "package.json"), "{}");
   const module = path.join(root, "sdk.mjs");
-  copyFileSync(path.join(import.meta.dirname, "../fixtures/fake-cursor-sdk-module.mjs"), module);
+  const implementation = new URL("../fixtures/fake-cursor-sdk-module.mjs", import.meta.url);
+  writeFileSync(module, `export * from ${JSON.stringify(implementation.href)};\n`);
   return { sdkModule: pathToFileURL(module).href, companion };
 }
 

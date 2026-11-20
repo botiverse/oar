@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
+import { alive } from "../../tests/fixtures/process-tree.js";
 import { runTurn } from "./support/asserts.js";
 import { dshEnabled, eventsOf, expectedDirectory, withDshFixture } from "./support/dsh-fixture.js";
-import { alive, configuredMcp, mcp, mcpNames, mcpReply, trackedMcp } from "./support/dsh-mcp.js";
+import { configuredMcp, mcp, mcpNames, mcpReply, trackedMcp } from "./support/dsh-mcp.js";
 import { lastInput } from "./support/dsh-provider.js";
 import { openTrace, record } from "../harness/trace.js";
 
@@ -21,7 +22,7 @@ describe.skipIf(!dshEnabled)("DSH session MCP", () => {
       const child = await tracked.read();
       expect(expectedDirectory(child.cwd)).toBe(expectedDirectory(aimock.cwd));
       expect(child.args).toEqual(["a b", "$(not-a-command)", ""]);
-      expect(alive(child.pid)).toBe(true);
+      expect(alive(child)).toBe(true);
       const seen = eventsOf(first.records());
       expect(seen).toContainEqual(expect.objectContaining({ kind: "tool_call_started", tool: "mcp__echo__echo" }));
       expect(seen).toContainEqual(expect.objectContaining({ kind: "tool_call_ended", result: "ok", content: [{ type: "text", text: "echo:FIRST via=stdio token=none" }] }));
@@ -38,7 +39,7 @@ describe.skipIf(!dshEnabled)("DSH session MCP", () => {
       expect(names("SECOND")).toEqual(["mcp__configured__echo", "mcp__other__echo"]);
       expect(names("PLAIN")).toEqual(["mcp__configured__echo"]);
       await first.dispose();
-      expect(alive(child.pid)).toBe(false);
+      expect(alive(child)).toBe(false);
       const resumed = await open({ resume: first.id, mcpServers: [mcp("fresh")] });
       expect(resumed.id).toBe(first.id);
       expect(await runTurn(resumed, "MCP:fresh:RESUPPLIED")).toEqual({ kind: "completed" });
@@ -59,7 +60,7 @@ describe.skipIf(!dshEnabled)("DSH session MCP", () => {
       await expect(open({ mcpServers: [tracked.server, { name: "missing", command: path.join(aimock.cwd, "does-not-exist"), args: [] }] })).rejects.toThrow();
       expect(provider.requests).toEqual([]);
       const child = await tracked.read();
-      expect(alive(child.pid)).toBe(false);
+      expect(alive(child)).toBe(false);
       const next = await open();
       expect(await runTurn(next, "healthy after refusal")).toEqual({ kind: "completed" });
     });

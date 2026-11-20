@@ -49,8 +49,8 @@ windowsTest.each(["timeout", "cancelled", "stdout", "stderr", "closed-timeout", 
     expect(result).toMatchObject({ ok: false, exitCode: null, diagnostics: mode.endsWith("timeout")
       ? { timeoutMs: 3000 }
       : { error: { code: mode.endsWith("cancelled") ? "ABORT_ERR" : "ERR_CHILD_PROCESS_STDIO_MAXBUFFER" } } });
-    expect(await gone(tree.agent), `agent ${String(tree.agent)} exited`).toBe(true);
-    expect(await gone(tree.grandchild), `descendant ${String(tree.grandchild)} exited`).toBe(true);
+    expect(await gone(tree.agent), `agent ${String(tree.agent.pid)} exited`).toBe(true);
+    expect(await gone(tree.grandchild), `descendant ${String(tree.grandchild.pid)} exited`).toBe(true);
   });
 });
 
@@ -63,8 +63,8 @@ windowsTest.each(["kill", "release", "dispose"])("ACP terminal %s ends the comma
     try {
       const stopped = stopTerminal(terminal, identity, operation);
       expect(await bounded(stopped.then(() => true)), "terminal shutdown settles with its output pipes closed").toBe(true);
-      expect(await gone(tree.agent), `agent ${String(tree.agent)} exited`).toBe(true);
-      expect(await gone(tree.grandchild), `descendant ${String(tree.grandchild)} exited`).toBe(true);
+      expect(await gone(tree.agent), `agent ${String(tree.agent.pid)} exited`).toBe(true);
+      expect(await gone(tree.grandchild), `descendant ${String(tree.grandchild.pid)} exited`).toBe(true);
     } finally {
       // withTreeProbe reaps a failed test's tree before disposal waits for its pipes.
       void terminal.dispose();

@@ -6,14 +6,14 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "vitest";
 import { descendantsOf, killEntries, readProcessTable, type ProcessEntry } from "../packages/oar/src/shared/executable/process-tree.js";
-import { eventually, gone } from "./fixtures/process-tree.js";
+import { eventually, gone, type ProcessIdentity, captureProcess, fixtureIdentityPath, reportedProcess, signalFixture } from "./fixtures/process-tree.js";
 
 const posix = process.platform !== "win32";
 const SLEEP = ["-e", "setTimeout(() => {}, 60000)"];
 // A leader in a session of its own that reports a member of its group: a process only the group signal reaches.
 const LEADER = String.raw`
   const member = require("node:child_process").spawn(process.execPath, ["-e", "setTimeout(() => {}, 60000)"], { stdio: "ignore" });
-  member.once("spawn", () => { process.stdout.write(member.pid + "\n"); });
+  member.once("spawn", () => { console.log(JSON.stringify(require(${JSON.stringify(fixtureIdentityPath)}).captureProcess(member.pid))); });
   setTimeout(() => {}, 60000);
 `;
 
@@ -23,8 +23,8 @@ function sleeper(options: { readonly detached?: boolean; readonly command?: stri
 }
 
 /** Run `body` with the children started; SIGKILL them (and `extra` pids) afterwards. */
-async function withChildren(children: readonly ChildProcess[], body: (pids: readonly number[], extra: number[]) => Promise<void>): Promise<void> {
-  const extra: number[] = [];
+async function withChildren(children: readonly ChildProcess[], body: (pids: readonly number[], extra: ProcessIdentity[]) => Promise<void>): Promise<void> {
+  const extra: ProcessIdentity[] = [];
   try {
     await Promise.all(children.map(async (child) => once(child, "spawn")));
     await body(children.map((child) => child.pid ?? 0), extra);
@@ -33,7 +33,7 @@ async function withChildren(children: readonly ChildProcess[], body: (pids: read
       child.kill("SIGKILL");
     }
     for (const pid of extra) {
-      try { process.kill(pid, "SIGKILL"); } catch { /* Gone. */ }
+      signalFixture(pid);
     }
   }
 }
@@ -86,46 +86,57 @@ test.skipIf(process.platform !== "linux")("procfs reads a command name holding s
   }
 });
 
+test("fixture liveness and cleanup spare a live replacement with the same PID", async () => {
+  await withChildren([sleeper()], async ([pid = 0]) => {
+    const current = captureProcess(pid);
+    const previous = { ...current, start: `${current.start}-previous` };
+    assert.equal(await gone(previous, 0), true);
+    signalFixture(previous);
+    assert.equal(await gone(current, 0), false);
+    signalFixture(current);
+    assert.equal(await gone(current), true);
+  });
+});
+
 test.skipIf(!posix)("killEntries spares a pid whose start time differs: it may be another process by now", async () => {
   await withChildren([sleeper({ detached: true })], async ([pid = 0]) => {
     const table = readProcessTable();
     const current = table.get(pid);
     assert.ok(current !== undefined);
     killEntries([{ ...current, start: `${current.start}-earlier` }], table);
-    assert.equal(await gone(pid, 300), false, "a different start time is not signalled");
+    assert.equal(await gone(current, 300), false, "a different start time is not signalled");
     killEntries([current], readProcessTable());
-    assert.equal(await gone(pid), true, "the same process is");
+    assert.equal(await gone(current), true, "the same process is");
   });
 });
 
 test.skipIf(!posix)("killEntries takes each entry's process group too, never the host or its group", async () => {
   const leader = spawn(process.execPath, ["-e", LEADER], { stdio: ["ignore", "pipe", "ignore"], detached: true });
-  const reported = once(leader.stdout, "data");
+  const reported: Promise<unknown[]> = once(leader.stdout, "data");
   await withChildren([leader, sleeper(), sleeper()], async ([leaderPid = 0, target = 0, sibling = 0], extra) => {
-    const data: unknown[] = await reported;
-    const member = Number(String(data[0]));
-    extra.push(member);
+    const [data]: unknown[] = await reported;
+    const memberId = reportedProcess(JSON.parse(String(data))); extra.push(memberId);
     const table = readProcessTable();
-    const [host, leaderEntry, targetEntry] = [table.get(process.pid), table.get(leaderPid), table.get(target)];
-    assert.ok(host !== undefined && leaderEntry !== undefined && targetEntry !== undefined);
-    assert.deepEqual([targetEntry.pgid, table.get(member)?.pgid], [host.pgid, leaderPid], "an attached sleeper shares the host's group; the member is in the leader's");
+    const [host, leaderEntry, targetEntry, siblingId] = [process.pid, leaderPid, target, sibling].map(pid => table.get(pid));
+    assert.ok(host !== undefined && leaderEntry !== undefined && targetEntry !== undefined && siblingId !== undefined);
+    assert.deepEqual([targetEntry.pgid, table.get(memberId.pid)?.pgid], [host.pgid, leaderPid], "an attached sleeper shares the host's group; the member is in the leader's");
     killEntries([host, leaderEntry, targetEntry], table);
-    assert.deepEqual([await gone(leaderPid), await gone(member), await gone(target)], [true, true, true], "the entries and the leader's group go");
-    assert.equal(await gone(sibling, 300), false, "the host's group is not signalled");
+    assert.deepEqual([await gone(leaderEntry), await gone(memberId), await gone(targetEntry)], [true, true, true], "the entries and the leader's group go");
+    assert.equal(await gone(siblingId, 300), false, "the host's group is not signalled");
   });
 });
 
 test.skipIf(posix)("Windows process creation times identify owned descendants after their parent exits", async () => {
   await withChildren([sleeper()], async ([pid = 0]) => {
+    const child = captureProcess(pid);
     const table = readProcessTable("windows");
     const current = table.get(pid);
     assert.ok(current !== undefined, "the native CIM table reports the child");
-    assert.equal(current.ppid, process.pid);
-    assert.ok(current.start.length > 0);
+    assert.deepEqual([current.ppid, current.start.length > 0], [process.pid, true]);
     assert.equal(readProcessTable("windows").get(pid)?.start, current.start);
     killEntries([{ ...current, start: `${current.start}-old` }], table);
-    assert.equal(await gone(pid, 300), false, "a reused PID is not signalled");
+    assert.equal(await gone(child, 300), false, "a reused PID is not signalled");
     killEntries([current], readProcessTable("windows"));
-    assert.equal(await gone(pid), true);
+    assert.equal(await gone(child), true);
   });
 });

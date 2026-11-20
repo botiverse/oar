@@ -1,9 +1,11 @@
 /* oxlint-disable typescript/no-unsafe-assignment, typescript/no-unsafe-call, typescript/no-unsafe-member-access, typescript/no-unsafe-argument, typescript/no-unsafe-return, typescript/strict-boolean-expressions, typescript/promise-function-async, eslint/max-statements, eslint/max-lines-per-function, promise/avoid-new, promise/prefer-await-to-then, promise/prefer-await-to-callbacks -- Standalone untyped ACP adversarial wire fixture, with independent reply scheduling and raw native payloads. */
+import { captureProcess, fixtureIdentityPath } from "./process-tree.ts";
 import readline from 'node:readline';
 import { appendFileSync, readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 
 const instanceId = randomUUID();
+const processIdentity = captureProcess(process.pid);
 const sessions = new Map();
 const requests = new Map();
 const lateNewReplies = new Map();
@@ -45,7 +47,7 @@ async function handle(message) {
     send({ method: 'fixture/usage', params: { sessionId, key: 'before-open' } });
     let delay = nextSession === 1 ? 30 : 0;
     if (params.cwd.endsWith("slow-new")) { delay = 500; }
-    const answer = () => { result(id, { sessionId, instanceId, pid: process.pid, initialized, cwd: params.cwd, servers: params.mcpServers.map(s => s.name) }); send({ method: 'fixture/usage', params: { sessionId, key: 'after-open' } }); };
+    const answer = () => { result(id, { sessionId, instanceId, ...processIdentity, initialized, cwd: params.cwd, servers: params.mcpServers.map(s => s.name) }); send({ method: 'fixture/usage', params: { sessionId, key: 'after-open' } }); };
     if (params.cwd.endsWith('late-new')) { lateNewReplies.set(id, answer); }
     else { setTimeout(answer, delay); }
   } else if (method === '$/cancel_request') {
@@ -54,7 +56,7 @@ async function handle(message) {
   } else if (method === 'session/resume' || method === 'session/load') {
     resumes++;
     if (params.cwd.endsWith('resume-failure')) { send({ id, error: { code: -32_000, message: 'native resume refused' } }); return; }
-    sessions.set(params.sessionId, { ...params, pending: null, ignore: false }); update(params.sessionId, 'resume-replay'); result(id, { instanceId, pid: process.pid, initialized });
+    sessions.set(params.sessionId, { ...params, pending: null, ignore: false }); update(params.sessionId, 'resume-replay'); result(id, { instanceId, ...processIdentity, initialized });
   } else if (method === 'session/close') {
     const session = sessions.get(params.sessionId);
     if (session?.pending) { result(session.pending, { stopReason: 'cancelled' }); }
@@ -100,7 +102,7 @@ async function handle(message) {
       const answer = await host('session/request_permission', { sessionId: params.sessionId, toolCall: { toolCallId: `call-${params.sessionId}`, title: 'permission' }, options: [{ optionId: `allow-${params.sessionId}`, kind: 'allow_once', name: 'Allow' }] });
       update(params.sessionId, JSON.stringify(answer));
     } else if (text === 'terminal') {
-      const program = `require('node:fs').writeFileSync('terminal-${params.sessionId}.pid', String(process.pid)); setInterval(() => {}, 1000)`;
+      const program = `const { captureProcess } = require(${JSON.stringify(fixtureIdentityPath)}); require('node:fs').writeFileSync('terminal-${params.sessionId}.pid', JSON.stringify(captureProcess(process.pid))); setInterval(() => {}, 1000)`;
       const answer = await host('terminal/create', { sessionId: params.sessionId, command: process.execPath, args: ['-e', program] });
       session.terminal = answer.terminalId; update(params.sessionId, `terminal:${answer.terminalId}`);
     } else if (text === 'terminal-peer') {

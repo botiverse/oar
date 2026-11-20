@@ -24,7 +24,7 @@ describe.skipIf(process.env.OAR_TEST !== "kimi-login")("Kimi native device login
       expect(interaction.events).toEqual([{ kind: "device_code", userCode: "OAR-CODE", verificationUri: `${fixture.origin  }/device?code=OAR-CODE` }]);
       const executions = await fixture.executions();
       const calls = executions.filter((entry) => /^(?:xdg-open|open|powershell\.exe)$/u.test(path.basename(entry.file)));
-      const launched = calls.filter((entry) => entry.pid !== undefined);
+      const launched = calls.filter((entry) => entry.child !== undefined);
       expect(launched).toHaveLength(1);
       const executable = launched[0]?.file; assert.ok(executable !== undefined);
       if (openBrowser) { expect(executable).toBe(fixture.controlBrowser); }
@@ -33,9 +33,9 @@ describe.skipIf(process.env.OAR_TEST !== "kimi-login")("Kimi native device login
         expect(path.basename(path.dirname(executable))).toMatch(/^oar-kimi-browser-/u);
         expect(existsSync(executable)).toBe(false);
       }
-      const pid = launched[0]?.pid; assert.ok(pid !== undefined);
+      const browser = launched[0]?.child; assert.ok(browser !== undefined);
       // Kimi can exit before its browser callback runs. Check the actual helper.
-      expect(fixture.processRunning(pid)).toBe(false);
+      expect(fixture.processRunning(browser)).toBe(false);
       const config = await readFile(path.join(fixture.home, "config.toml"), "utf8");
       expect(config).toContain("synthetic-model");
       expect(config).toContain("managed:kimi-code");

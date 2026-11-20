@@ -1,4 +1,5 @@
 /* oxlint-disable typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument -- Standalone untyped JSON-RPC process fixture. */
+import { captureProcess } from "./process-tree.ts";
 import { existsSync, watch, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { createInterface } from "node:readline";
@@ -16,7 +17,7 @@ if (release !== undefined && stopping !== undefined) {
   // Closing stdin alone must not release the SIGTERM barrier.
   setInterval(() => {}, 1000);
 }
-writeFileSync(pid, String(process.pid));
+writeFileSync(pid, JSON.stringify(captureProcess(process.pid)));
 createInterface({ input: process.stdin }).on("line", (line) => {
   const request = JSON.parse(line);
   if (typeof request.id !== "number") { return; }

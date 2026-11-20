@@ -6,6 +6,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test, vi } from "vitest";
+import { captureProcess, alive } from "../../tests/fixtures/process-tree.js";
 import { expectRunning, expectStarted, processTable } from "./support/codex-process-count.js";
 
 // No runtime needed: exercise a failing count, including BSD/GNU ps formatting and long commands.
@@ -47,6 +48,7 @@ test.skipIf(process.platform === "win32")("fixture readiness distinguishes shell
   const waits = `(while [ ! -f ${JSON.stringify(gate)} ]; do sleep 0.05; done) & `.repeat(3);
   const command = `${waits}wait; exec ${JSON.stringify(process.execPath)} -e ${JSON.stringify(code)} ${JSON.stringify(started)} ${marker}`;
   const child = spawn("/bin/bash", ["--noprofile", "--norc", "-c", command], { stdio: "ignore", detached: true });
+  const leader = child.pid === undefined ? undefined : captureProcess(child.pid);
   try {
     await once(child, "spawn");
     await vi.waitFor(() => { expectRunning(marker).toHaveLength(4); }, { timeout: 5000, interval: 25 });
@@ -61,8 +63,8 @@ test.skipIf(process.platform === "win32")("fixture readiness distinguishes shell
     // Reclaim matching shells too if the test failed before the fixture started.
     await writeFile(gate, "");
     const exited = child.exitCode === null && child.signalCode === null ? once(child, "exit") : null;
-    if (child.pid !== undefined) {
-      try { process.kill(-child.pid, "SIGKILL"); } catch { /* The owned group is already gone. */ }
+    if (leader !== undefined && alive(leader)) {
+      process.kill(-leader.pid, "SIGKILL");
     }
     if (exited !== null) { await exited; }
     await rm(directory, { recursive: true, force: true });

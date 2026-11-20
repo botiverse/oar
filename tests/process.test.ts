@@ -3,7 +3,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { afterEach, describe, test, vi } from "vitest";
 import { KILL_GRACE_MS, killGraceMs, spawnLineProcess } from "../packages/oar/src/shared/executable/index.js";
 import { readProcessTable } from "../packages/oar/src/shared/executable/process-tree.js";
-import { fakeAgent, gone, timed, withTreeProbe } from "./fixtures/process-tree.js";
+import { fakeAgent, gone, timed, withTreeProbe, fixtureIdentityPath, reportedProcess, signalFixture } from "./fixtures/process-tree.js";
 
 
 test("line buffering joins partial chunks and splits complete lines", async () => {
@@ -174,17 +174,17 @@ describe.skipIf(process.platform === "win32")("kill takes down the child's proce
     // kill must not reach the group through the reaped pid.
     const child = spawnLineProcess(process.execPath, [
       "-e",
-      String.raw`const tool = require("node:child_process").spawn("sleep", ["60"], { stdio: "ignore" }); tool.unref(); process.stdout.write(tool.pid + "\n");`,
+      String.raw`const tool = require("node:child_process").spawn("sleep", ["60"], { stdio: "ignore" }); tool.unref(); console.log(JSON.stringify(require(${JSON.stringify(fixtureIdentityPath)}).captureProcess(tool.pid)));`,
     ]);
     const { promise: reported, resolve } = Promise.withResolvers<string>();
     child.onLine(resolve);
-    const leftover = Number(await reported);
+    const leftover = reportedProcess(JSON.parse(await reported));
     try {
       assert.equal(await child.exited, 0);
       child.kill();
       assert.equal(await gone(leftover, 300), false, "the leftover was not signalled");
     } finally {
-      process.kill(leftover, "SIGKILL");
+      signalFixture(leftover);
     }
   });
 });
@@ -200,7 +200,7 @@ describe.skipIf(process.platform === "win32")("kill with killTree also takes the
     await withTreeProbe({ ignoreSigterm: false, detachTool: true }, async (probe) => {
       const child = spawnLineProcess(process.execPath, [fakeAgent], { env: { ...process.env, ...probe.env }, killTree: true });
       const tree = await probe.tree();
-      assert.equal(readProcessTable().get(tree.grandchild)?.pgid, tree.grandchild, "the tool leads a group of its own");
+      assert.equal(readProcessTable().get(tree.grandchild.pid)?.pgid, tree.grandchild.pid, "the tool leads a group of its own");
       const elapsed = await timed(async () => {
         child.kill();
         await child.exited;

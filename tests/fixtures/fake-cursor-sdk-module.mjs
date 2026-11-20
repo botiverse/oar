@@ -4,6 +4,8 @@ import { createHash } from "node:crypto";
 import { once } from "node:events";
 import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { captureProcess } from "./process-tree.ts";
 import { setTimeout as delay } from "node:timers/promises";
 
 /*
@@ -130,7 +132,7 @@ function crash(run) {
 function startTool(run, file, detached = true) {
   const grandchild = spawn(process.execPath, ["-e", "setTimeout(() => {}, 60000)"], { stdio: "ignore", detached });
   grandchild.once("spawn", () => {
-    writeFileSync(`${file}.tmp`, JSON.stringify({ child: process.pid, grandchild: grandchild.pid }));
+    writeFileSync(`${file}.tmp`, JSON.stringify({ child: captureProcess(process.pid), grandchild: captureProcess(grandchild.pid) }));
     renameSync(`${file}.tmp`, file);
     run.end("finished");
   });
@@ -138,7 +140,8 @@ function startTool(run, file, detached = true) {
 
 function background(run, file, unmarked = false) {
   const env = unmarked ? Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith("OAR_CURSOR_CHILD_"))) : process.env;
-  const shell = spawn("/bin/sh", ["-c", `sleep 300 & echo $! > "${file}.tmp" && mv "${file}.tmp" "${file}"`], { stdio: "ignore", detached: true, env });
+  const reporter = fileURLToPath(new URL("report-process.ts", import.meta.url));
+  const shell = spawn("/bin/sh", ["-c", 'sleep 300 & exec "$1" "$2" "$3" "$!"', "sh", process.execPath, reporter, file], { stdio: "ignore", detached: true, env });
   shell.once("exit", () => { run.end("finished"); });
 }
 

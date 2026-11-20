@@ -19,7 +19,7 @@ import type { ProcessTableObservation } from "../packages/oar/src/shared/executa
 // oxlint-disable-next-line import/no-namespace -- Retain each real cancellation observation in failure diagnostics.
 import * as cancellation from "../packages/oar/src/shared/executable/process-cancellation.js";
 import { processTablePreparation } from "../packages/oar/src/shared/executable/process-table-preparation.js";
-import { gone } from "./fixtures/process-tree.js";
+import { gone, type ProcessIdentity, reportedProcess, signalFixture } from "./fixtures/process-tree.js";
 import captureProcessTiming from "./fixtures/process-timing.js";
 import { captureCleanupEvidence, expectCleanupEvidence, expectOrphanReclaimed } from "./fixtures/cleanup-evidence.js";
 
@@ -74,7 +74,7 @@ test.each(["acp", "stream"])("%s cancellation retains orphan identities across t
   const cleanupEvidence = captureCleanupEvidence();
   const observations = cancellationDiagnostics();
   const session = await open(protocol, true);
-  const owned: number[] = [];
+  const owned: ProcessIdentity[] = [];
   try {
     // Preparation removes cold startup work, but a fresh capture can still
     // exceed its deadline. Only that operation's timeout can explain a miss.
@@ -85,9 +85,9 @@ test.each(["acp", "stream"])("%s cancellation retains orphan identities across t
       // eslint-disable-next-line no-await-in-loop -- The second turn must start after the first cancellation completed.
       const prompt = await session.prompt(`round-${round}`);
       // eslint-disable-next-line no-await-in-loop -- Native readiness, cancellation and the next turn are ordered.
-      await expect.poll(() => messages(session, prompt.seq).find(value => typeof value.tool === "number"), { timeout: 10_000 }).toBeDefined();
-      const ready = messages(session, prompt.seq).find(value => typeof value.tool === "number");
-      const middle = Number(ready?.middle), tool = Number(ready?.tool); owned.push(tool, middle);
+      await expect.poll(() => messages(session, prompt.seq).find(value => value.tool !== undefined), { timeout: 10_000 }).toBeDefined();
+      const ready = messages(session, prompt.seq).find(value => value.tool !== undefined);
+      const middle = reportedProcess(ready?.middle), tool = reportedProcess(ready?.tool); owned.push(tool, middle);
       // eslint-disable-next-line no-await-in-loop -- Tool liveness before cancellation is a required assertion.
       expect(await gone(tool, 50)).toBe(false);
       // eslint-disable-next-line no-await-in-loop -- The native cancellation severs the captured parent chain.
@@ -110,12 +110,12 @@ test.each(["acp", "stream"])("%s cancellation retains orphan identities across t
     expect(observations.map(entry => entry.ok), diagnostic).toEqual(captures.map(entry => entry.ok));
     await Promise.all(captures.map(async (capture, round) => {
       await expectOrphanReclaimed(owned[round * 2], evidence, capture);
-      expect(await gone(Number(owned[round * 2 + 1])), diagnostic).toBe(true);
+      expect(await gone(reportedProcess(owned[round * 2 + 1])), diagnostic).toBe(true);
     }));
     expect(session.records().filter(record => record.kind === "response" && record.body.kind === "exited")).toHaveLength(1);
   } finally {
     await session.dispose();
-    for (const pid of owned) { try { process.kill(pid, "SIGKILL"); } catch { /* Owned fixture already reclaimed. */ } }
+    for (const pid of owned) { signalFixture(pid); }
   }
 });
 
@@ -124,11 +124,11 @@ test.each(["acp", "stream"])("%s cancellation cleans captured tools when its roo
   vi.stubEnv("OAR_CANCEL_EXIT", "1");
   const cleanupEvidence = captureCleanupEvidence();
   const session = await open(protocol, false);
-  let tool: number | undefined = undefined;
+  let tool: ProcessIdentity | undefined = undefined;
   try {
     const prompt = await session.prompt("exit-on-cancel");
-    await expect.poll(() => messages(session, prompt.seq).find(value => typeof value.tool === "number"), { timeout: 10_000 }).toBeDefined();
-    tool = Number(messages(session, prompt.seq).find(value => typeof value.tool === "number")?.tool);
+    await expect.poll(() => messages(session, prompt.seq).find(value => value.tool !== undefined), { timeout: 10_000 }).toBeDefined();
+    tool = reportedProcess(messages(session, prompt.seq).find(value => value.tool !== undefined)?.tool);
     expect(await gone(tool, 50)).toBe(false);
     await session.abort();
     await expect.poll(() => session.records().some(record => record.kind === "response" && record.body.kind === "exited"), { timeout: 10_000 }).toBe(true);
@@ -140,7 +140,7 @@ test.each(["acp", "stream"])("%s cancellation cleans captured tools when its roo
     await expectOrphanReclaimed(tool, evidence, captures[0]);
   } finally {
     await session.dispose();
-    if (tool !== undefined) { try { process.kill(tool, "SIGKILL"); } catch { /* Already reclaimed. */ } }
+    if (tool !== undefined) { signalFixture(tool); }
   }
 });
 
@@ -151,10 +151,10 @@ test("ACP observation expiry releases the next turn without cancelling it", asyn
   vi.stubEnv("OAR_CANCEL_NATURAL_FILE", signal);
   const session = await open("acp", false);
   const gate = Promise.withResolvers<ProcessTableObservation>();
-  const owned: number[] = [];
+  const owned: ProcessIdentity[] = [];
   try {
     const a = await session.prompt("A");
-    await expect.poll(() => messages(session, a.seq).find(value => typeof value.tool === "number"), { timeout: 10_000 }).toBeDefined();
+    await expect.poll(() => messages(session, a.seq).find(value => value.tool !== undefined), { timeout: 10_000 }).toBeDefined();
     await session.queue("B");
     const entered = Promise.withResolvers<void>();
     const read = vi.spyOn(tables, "observeProcessTableAsync").mockImplementationOnce(async () => { entered.resolve(); return gate.promise; });
@@ -164,14 +164,14 @@ test("ACP observation expiry releases the next turn without cancelling it", asyn
     expect(await awaitTurnEnd(session, a.seq)).toEqual({ kind: "completed" });
     const abortResult = await abort;
     expect(abortResult.response.body).toMatchObject({ kind: "rejected", code: "no_active_turn" });
-    await expect.poll(() => messages(session, a.seq).filter(value => typeof value.tool === "number").length, { timeout: 10_000 }).toBe(2);
+    await expect.poll(() => messages(session, a.seq).filter(value => value.tool !== undefined).length, { timeout: 10_000 }).toBe(2);
     expect(messages(session, a.seq).some(value => value.cancelled === true)).toBe(false);
     expect(read).toHaveBeenCalledOnce();
   } finally {
-    for (const value of messages(session, 0)) { if (typeof value.tool === "number") { owned.push(value.tool, Number(value.middle)); } }
+    for (const value of messages(session, 0)) { if (value.tool !== undefined) { owned.push(reportedProcess(value.tool), reportedProcess(value.middle)); } }
     gate.resolve({ ok: false, source: "windows", reason: "timeout", elapsedMs: 5000, timeoutMs: 5000 });
     vi.restoreAllMocks(); await session.dispose();
-    for (const pid of owned) { try { process.kill(pid, "SIGKILL"); } catch { /* Already reclaimed. */ } }
+    for (const pid of owned) { signalFixture(pid); }
     await rm(dir, { recursive: true, force: true });
   }
 });
@@ -180,11 +180,11 @@ test("ACP observation expiry releases the next turn without cancelling it", asyn
 test("ACP sends cancel after one observation timeout and preserves unverified cleanup", async () => {
   const session = await open("acp", false);
   const gate = Promise.withResolvers<ProcessTableObservation>();
-  let tool: number | undefined = undefined;
+  let tool: ProcessIdentity | undefined = undefined;
   try {
     const prompt = await session.prompt("A");
-    await expect.poll(() => messages(session, prompt.seq).find(value => typeof value.tool === "number"), { timeout: 10_000 }).toBeDefined();
-    tool = Number(messages(session, prompt.seq).find(value => typeof value.tool === "number")?.tool);
+    await expect.poll(() => messages(session, prompt.seq).find(value => value.tool !== undefined), { timeout: 10_000 }).toBeDefined();
+    tool = reportedProcess(messages(session, prompt.seq).find(value => value.tool !== undefined)?.tool);
     const read = vi.spyOn(tables, "observeProcessTableAsync").mockReturnValueOnce(gate.promise);
     const abortResult = await session.abort();
     expect(abortResult.kind).toBe("accepted");
@@ -198,7 +198,7 @@ test("ACP sends cancel after one observation timeout and preserves unverified cl
   } finally {
     gate.resolve({ ok: false, source: "windows", reason: "timeout", elapsedMs: 5000, timeoutMs: 5000 });
     vi.restoreAllMocks(); await session.dispose();
-    if (tool !== undefined) { try { process.kill(tool, "SIGKILL"); } catch { /* The unverified fixture tool is ours to reclaim. */ } }
+    if (tool !== undefined) { signalFixture(tool); }
   }
 });
 
@@ -207,11 +207,11 @@ test.each(["acp", "stream"])("%s kill fallback retains ownership from before the
   vi.stubEnv("OAR_CANCEL_HANG", "1");
   const cleanupEvidence = captureCleanupEvidence();
   const session = await open(protocol, false);
-  let tool: number | undefined = undefined;
+  let tool: ProcessIdentity | undefined = undefined;
   try {
     const prompt = await session.prompt("never-finish-cancel");
-    await expect.poll(() => messages(session, prompt.seq).find(value => typeof value.tool === "number"), { timeout: 10_000 }).toBeDefined();
-    tool = Number(messages(session, prompt.seq).find(value => typeof value.tool === "number")?.tool);
+    await expect.poll(() => messages(session, prompt.seq).find(value => value.tool !== undefined), { timeout: 10_000 }).toBeDefined();
+    tool = reportedProcess(messages(session, prompt.seq).find(value => value.tool !== undefined)?.tool);
     expect(await gone(tool, 50)).toBe(false);
     const abortResult = await session.abort();
     expect(abortResult.kind).toBe("accepted");
@@ -225,6 +225,6 @@ test.each(["acp", "stream"])("%s kill fallback retains ownership from before the
     expect(session.records().filter(record => record.kind === "response" && record.body.kind === "exited")).toHaveLength(1);
   } finally {
     await session.dispose();
-    if (tool !== undefined) { try { process.kill(tool, "SIGKILL"); } catch { /* Already reclaimed. */ } }
+    if (tool !== undefined) { signalFixture(tool); }
   }
 }, 30_000);

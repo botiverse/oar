@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { reportedProcess, type ProcessIdentity } from "../../../tests/fixtures/process-tree.js";
 import { asRecord, asRecordList, parseJson } from "../../../packages/oar/src/shared/json.js";
 import type { McpServer } from "../../../packages/oar/src/contracts/session.js";
 import { lastInput, type ProviderRequest, type Reply } from "./dsh-provider.js";
@@ -27,20 +28,16 @@ export function mcpNames(request: ProviderRequest): readonly string[] {
 }
 
 /** Capture only this fixture's own child, with its actual cwd and literal arguments. */
-export async function trackedMcp(cwd: string): Promise<{ readonly server: McpServer; readonly read: () => Promise<{ pid: number; cwd: string; args: unknown }> }> {
+export async function trackedMcp(cwd: string): Promise<{ readonly server: McpServer; readonly read: () => Promise<ProcessIdentity & { cwd: string; args: unknown }> }> {
   const wrapper = path.join(cwd, "tracked-mcp.mjs");
   const log = path.join(cwd, "mcp-start.json");
-  await writeFile(wrapper, `import { writeFileSync } from 'node:fs';\nwriteFileSync(process.argv[2], JSON.stringify({pid:process.pid,cwd:process.cwd(),args:process.argv.slice(3)}));\nawait import(${JSON.stringify(pathToFileURL(echoServer).href)});\n`);
+  await writeFile(wrapper, `import { captureProcess } from ${JSON.stringify(new URL("../../../tests/fixtures/process-tree.ts", import.meta.url).href)};\nimport { writeFileSync } from 'node:fs';\nwriteFileSync(process.argv[2], JSON.stringify({...captureProcess(process.pid),cwd:process.cwd(),args:process.argv.slice(3)}));\nawait import(${JSON.stringify(pathToFileURL(echoServer).href)});\n`);
   return {
     server: { name: "echo", command: process.execPath, args: [wrapper, log, "a b", "$(not-a-command)", ""] },
     read: async () => {
       const value = asRecord(parseJson(await readFile(log, "utf8")));
       assert.ok(typeof value?.pid === "number" && typeof value.cwd === "string");
-      return { pid: value.pid, cwd: value.cwd, args: value.args };
+      return { ...reportedProcess(value), cwd: value.cwd, args: value.args };
     },
   };
-}
-
-export function alive(pid: number): boolean {
-  try { process.kill(pid, 0); return true; } catch { return false; }
 }

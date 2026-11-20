@@ -7,7 +7,7 @@ import type { UpdateCheck, UpdateChecker } from "../packages/oar/src/contracts/u
 import { codexCheckUpdate } from "../packages/oar/src/runtimes/codex/update.js";
 import { kimiUpgrade, kimiUpgrader } from "../packages/oar/src/runtimes/kimi/update.js";
 import { comparedCheck, executableUpdate, upgradeExecutable } from "../packages/oar/src/shared/update.js";
-import { fakeRuntime as makeFakeRuntime, printingExecutable, type FakeRuntime, type FakeState } from "./fixtures/update-fixtures.js";
+import { workerExited, fakeRuntime as makeFakeRuntime, printingExecutable, type FakeRuntime, type FakeState } from "./fixtures/update-fixtures.js";
 
 let dir = "";
 
@@ -137,23 +137,14 @@ test("kimi from 0.43.0 runs its updater with -y", async () => {
   assert.deepEqual(fake.read().updateArgs, ["-y"]);
 });
 
-function alive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
+
 
 test.skipIf(process.platform === "win32")("a timed out updater is stopped with everything it started", async () => {
   const fake = fakeRuntime("hangs", { version: "1.0.0", target: "1.1.0", mode: "hang" });
   const result = await upgradeExecutable(executable(fake.command, "fake 1.0.0"), { check: fixedCheck(available), args: ["update"] }, { timeoutMs: 1000 });
   assert.ok(result.kind === "failed");
   assert.match(result.output, /stopped the updater after 1000 ms/u);
-  const worker = fake.read().workerPid;
-  assert.equal(typeof worker, "number");
-  await expect.poll(() => alive(Number(worker)), { timeout: 5000 }).toBe(false);
+  expect(await workerExited(fake)).toBe(true);
 });
 
 test("codex's check reads doctor's JSON even when doctor exits 1", async () => {

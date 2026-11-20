@@ -1,4 +1,5 @@
 /* oxlint-disable typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument, typescript/no-unsafe-return, typescript/promise-function-async, promise/avoid-new, promise/prefer-await-to-callbacks -- Standalone ACP process fixture with real independently grouped descendants. */
+import { captureProcess } from "./process-tree.ts";
 import { spawn } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import readline from "node:readline";
@@ -9,13 +10,13 @@ const start = childRole => new Promise(resolve => {
   child.once("message", value => { child.disconnect(); child.unref(); resolve(value); });
 });
 if (role === "mcp") {
-  setInterval(() => {}, 1000); process.send({ pid: process.pid });
+  setInterval(() => {}, 1000); process.send(captureProcess(process.pid));
 } else if (role === "server") {
   const mcps = await Promise.all([start("mcp"), start("mcp")]);
-  setInterval(() => {}, 1000); process.send({ server: process.pid, mcps: mcps.map(child => child.pid) });
+  setInterval(() => {}, 1000); process.send({ server: captureProcess(process.pid), mcps });
 } else {
   const tree = await start("server");
-  writeFileSync(process.env.FIXTURE_TREE_REPORT, JSON.stringify({ root: process.pid, ...tree }));
+  writeFileSync(process.env.FIXTURE_TREE_REPORT, JSON.stringify({ root: captureProcess(process.pid), ...tree }));
   let next = 0;
   const lines = readline.createInterface({ input: process.stdin });
   lines.on("line", line => {

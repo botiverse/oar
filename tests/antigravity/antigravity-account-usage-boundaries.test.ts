@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, expect, test } from "vitest";
 import { antigravityAccountUsage, projectAntigravityUsage } from "../../packages/oar/src/runtimes/antigravity/account-usage.js";
-import { fakeAgentBinary, gone } from "../fixtures/process-tree.js";
+import { fakeAgentBinary, gone, reportedProcess } from "../fixtures/process-tree.js";
 
 const dirs: string[] = [];
 afterEach(() => { for (const dir of dirs.splice(0)) { rmSync(dir, { recursive: true, force: true }); } });
@@ -49,14 +49,14 @@ function fakeAgy(mode: "unknown" | "logged_out" | "logged_in", stall?: "models" 
   writeFileSync(script, [
     'import { appendFileSync } from "node:fs";',
     `appendFileSync(${JSON.stringify(calls)}, process.argv.slice(2).join(" ") + String.fromCharCode(10));`,
-    `if (${JSON.stringify(stall)} === (process.argv[2] === "models" ? "models" : "usage")) { appendFileSync(${JSON.stringify(pid)}, String(process.pid)); await new Promise(() => setInterval(() => {}, 1000)); }`,
+    `if (${JSON.stringify(stall)} === (process.argv[2] === "models" ? "models" : "usage")) { const { captureProcess } = await import(${JSON.stringify(new URL("../fixtures/process-tree.ts", import.meta.url).href)}); appendFileSync(${JSON.stringify(pid)}, JSON.stringify(captureProcess(process.pid))); await new Promise(() => setInterval(() => {}, 1000)); }`,
     `if (process.argv[2] === "models") { process.stderr.write(${JSON.stringify(mode === "logged_out" ? "Please sign in to view available models" : "unavailable")}); process.exit(${String(MODELS_EXIT[mode])}); }`,
     `process.stdout.write(${JSON.stringify(reply)});`,
   ].join("\n"));
   return {
     installation: { kind: "available", via: "executable", command: fakeAgentBinary(dir, [script]), version: "1.5.7" } as const,
     env: { HOME: dir, USERPROFILE: dir },
-    calls: () => existsSync(calls) ? readFileSync(calls, "utf8").trim().split("\n") : [], pid: () => Number(readFileSync(pid, "utf8")),
+    calls: () => existsSync(calls) ? readFileSync(calls, "utf8").trim().split("\n") : [], pid: () => reportedProcess(JSON.parse(readFileSync(pid, "utf8"))),
   };
 }
 

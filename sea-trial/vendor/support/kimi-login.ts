@@ -5,31 +5,34 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { resolveRunDir } from "../../harness/trace.js";
 import { environmentValue } from "../../../packages/oar/src/shared/environment.js";
-import { processRunning } from "./session-start-hook.js";
+import { alive, fixtureIdentityPath, reportedProcess, type ProcessIdentity } from "../../../tests/fixtures/process-tree.js";
 
-interface BrowserExecution { readonly file: string; readonly observerPid: number; readonly pid?: number; readonly code?: number | null }
-interface ObserverExit { readonly pid: number; readonly code: number }
+interface BrowserExecution { readonly file: string; readonly observer: ProcessIdentity; readonly child?: BrowserChild; readonly code?: number | null }
+interface BrowserChild { readonly pid: number; readonly start: string | null }
+interface ObserverExit { readonly observer: ProcessIdentity; readonly code: number }
 interface KimiLoginFixture {
   readonly dir: string; readonly home: string; readonly origin: string; readonly controlBrowser: string;
   readonly requests: readonly { method: string; path: string }[];
   readonly env: Readonly<Record<string, string | null>>;
   executions(): Promise<readonly BrowserExecution[]>;
   observerExits(): Promise<readonly ObserverExit[]>;
-  processRunning(pid: number): boolean;
+  processRunning(child: BrowserChild): boolean;
   dispose(): Promise<void>;
 }
 
 function parseExecution(line: string): BrowserExecution {
   const parsed: unknown = JSON.parse(line);
   assert.ok(typeof parsed === "object" && parsed !== null && "file" in parsed && typeof parsed.file === "string");
-  assert.ok("observerPid" in parsed && typeof parsed.observerPid === "number");
-  return { file: parsed.file, observerPid: parsed.observerPid, ...("pid" in parsed && typeof parsed.pid === "number" ? { pid: parsed.pid } : {}), ...("code" in parsed && (typeof parsed.code === "number" || parsed.code === null) ? { code: parsed.code } : {}) };
+  assert.ok("observer" in parsed);
+  const child = "pid" in parsed && typeof parsed.pid === "number" && "start" in parsed && (parsed.start === null || typeof parsed.start === "string")
+    ? { pid: parsed.pid, start: parsed.start } : undefined;
+  return { file: parsed.file, observer: reportedProcess(parsed.observer), ...(child === undefined ? {} : { child }), ...("code" in parsed && (typeof parsed.code === "number" || parsed.code === null) ? { code: parsed.code } : {}) };
 }
 
 function parseObserverExit(line: string): ObserverExit {
   const parsed: unknown = JSON.parse(line);
-  assert.ok(typeof parsed === "object" && parsed !== null && "pid" in parsed && typeof parsed.pid === "number" && "code" in parsed && typeof parsed.code === "number");
-  return { pid: parsed.pid, code: parsed.code };
+  assert.ok(typeof parsed === "object" && parsed !== null && "observer" in parsed && "code" in parsed && typeof parsed.code === "number");
+  return { observer: reportedProcess(parsed.observer), code: parsed.code };
 }
 
 /** Real Kimi, synthetic local OAuth and models, isolated credentials and browser commands. */
@@ -51,12 +54,14 @@ export async function kimiLoginFixture(mode: "success" | "pending" | "denied" | 
   const processes: { pid: number; running: boolean }[] = [];
   await writeFile(preload, `const cp = require('node:child_process');
 const fs = require('node:fs');
-const log = value => fs.appendFileSync(process.env.OAR_KIMI_EXEC_LOG, JSON.stringify({...value, observerPid:process.pid})+'\\n');
-process.on('exit', code => fs.appendFileSync(process.env.OAR_KIMI_EXIT_LOG, JSON.stringify({pid:process.pid, code})+'\\n'));
+const { captureProcess, processStart } = require(${JSON.stringify(fixtureIdentityPath)});
+const observer = captureProcess(process.pid);
+const log = value => fs.appendFileSync(process.env.OAR_KIMI_EXEC_LOG, JSON.stringify({...value, observer})+'\\n');
+process.on('exit', code => fs.appendFileSync(process.env.OAR_KIMI_EXIT_LOG, JSON.stringify({observer, code})+'\\n'));
 const original = cp.execFile;
 cp.execFile = function(file, ...args) {
   const child = Reflect.apply(original, this, [file, ...args]);
-  log({file, pid:child.pid});
+  log({file, pid:child.pid, start:child.pid === undefined ? null : processStart(child.pid) ?? null});
   child.on('exit', (code, signal) => log({file, code, signal}));
   return child;
 };
@@ -109,9 +114,9 @@ require('node:module').syncBuiltinESMExports();
     },
     executions: readExecutions,
     observerExits: readObserverExits,
-    processRunning(pid): boolean {
+    processRunning({ pid, start }): boolean {
       // Observe from the surviving test process, independently of Kimi's event loop.
-      const running = processRunning(pid);
+      const running = start !== null && alive({ pid, start });
       processes.push({ pid, running });
       return running;
     },

@@ -6,7 +6,7 @@ import { afterEach, expect, vi } from "vitest";
 import type { ProcessCleanupDiagnostics, Observation } from "../../packages/oar/src/shared/executable/process-cleanup-diagnostics.js";
 // oxlint-disable-next-line import/no-namespace -- Observe the actual cleanup instance without replacing any read or deadline.
 import * as cleanup from "../../packages/oar/src/shared/executable/process-cleanup.js";
-import { gone } from "./process-tree.js";
+import { gone, type ProcessIdentity } from "./process-tree.js";
 
 const reports: unknown[] = [];
 afterEach(async context => {
@@ -71,12 +71,12 @@ export function expectCleanupEvidence(
 }
 
 /** Check the real orphan even when capture timed out; finalizers reap any survivors separately. */
-export async function expectOrphanReclaimed(pid: number | undefined, evidence: ProcessCleanupDiagnostics, capture: Observation | undefined): Promise<void> {
-  assert.ok(pid !== undefined && Number.isInteger(pid) && pid > 0);
+export async function expectOrphanReclaimed(pid: ProcessIdentity | undefined, evidence: ProcessCleanupDiagnostics, capture: Observation | undefined): Promise<void> {
+  assert.ok(pid !== undefined);
   assert.ok(capture);
   const reclaimed = await gone(pid, capture.ok ? 5000 : 100);
-  const diagnostic = JSON.stringify({ evidence, capture, reclaimed });
-  reports.push({ evidence, capture, reclaimed });
+  const diagnostic = JSON.stringify({ evidence, capture, process: pid, reclaimed });
+  reports.push({ evidence, capture, process: pid, reclaimed });
   const revalidationTimedOut = evidence.observations.some(entry => !entry.ok && entry.reason === "timeout"
     && (entry.phase === "after_exit" || entry.phase === "before_force"));
   // A later read cannot recover an orphan whose parent chain was already severed.

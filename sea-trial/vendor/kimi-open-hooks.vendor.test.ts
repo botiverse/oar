@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
-import { expect, test, vi } from "vitest";
+import { expect, test } from "vitest";
 import { type Session, kimiRuntime } from "../../packages/oar/src/index.js";
 
 import { kimiAcpProfile } from "../../packages/oar/src/runtimes/kimi/session.js";
 import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
 import { startKimiAimock } from "../harness/aimock-acp.js";
-import { hookMarks, processRunning, sessionStartHook } from "./support/session-start-hook.js";
+import { expectHookExited, hookMarks, sessionStartHook } from "./support/session-start-hook.js";
 
 const kimiInstallation = kimiRuntime.installation;
 
@@ -54,9 +54,7 @@ test.skipIf(process.env.OAR_TEST !== "kimi-aimock")("Kimi kills the process tree
     expect(failure).toMatchObject({ kind: "timeout", method: "session/new", timeoutMs: 32_000 });
     const marks = await hookMarks(env.hook.file);
     expect(marks.map(({ phase }) => phase)).toEqual(["start"]);
-    const pid = marks[0]?.pid;
-    assert.ok(typeof pid === "number");
-    await vi.waitFor(() => { expect(processRunning(pid)).toBe(false); }, { timeout: 10_000 });
+    await expectHookExited(marks[0]);
     expect(env.provider.mock.getRequests()).toEqual([]);
   } finally { await opened.session?.dispose(); await env.provider.stop(); }
 }, 120_000);

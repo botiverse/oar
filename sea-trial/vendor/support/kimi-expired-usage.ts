@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fixtureIdentityPath } from "../../../tests/fixtures/process-tree.js";
 import { asRecord, parseJson } from "../../../packages/oar/src/shared/json.js";
 
 interface RefreshCall { path: string; fresh: boolean; status?: number; submittedGeneration?: number; expectedGeneration?: number }
@@ -65,7 +66,7 @@ export async function kimiExpiredUsageFixture(mode: "success" | "empty" | "rejec
   await writeFile(preload, `
 const fs = require('node:fs');
 const http = require('node:http');
-fs.appendFileSync(process.env.OAR_KIMI_USAGE_TRACE, JSON.stringify({pid: process.pid})+'\\n');
+fs.appendFileSync(process.env.OAR_KIMI_USAGE_TRACE, JSON.stringify(require(${JSON.stringify(fixtureIdentityPath)}).captureProcess(process.pid))+'\\n');
 const emit = http.Server.prototype.emit;
 http.Server.prototype.emit = function(event, ...args) {
   if (event === 'request') {

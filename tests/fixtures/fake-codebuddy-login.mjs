@@ -1,4 +1,5 @@
 /* oxlint-disable eslint/max-statements, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument, typescript/no-unsafe-return, typescript/strict-boolean-expressions -- Standalone untyped fixture executable. */
+import { captureProcess } from "./process-tree.ts";
 import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import saveLoginState from "./login-state.mjs";
@@ -25,7 +26,7 @@ const emit = (message) => process.stdout.write(`${JSON.stringify(message)}\n`);
 const reply = (request_id, response) => emit({ type: "control_response", response: { subtype: "success", request_id, response } });
 const fail = (request_id, error) => emit({ type: "control_response", response: { subtype: "error", request_id, error } });
 const emitAuth = (request) => emit({ type: "control_request", request_id: "native-auth-callback", request });
-state.pids = [...state.pids ?? [], process.pid];
+state.pids = [...state.pids ?? [], captureProcess(process.pid)];
 state.browser = process.env.BROWSER;
 state.browsers = [...state.browsers ?? [], process.env.BROWSER ?? null];
 state.environment = process.env.CODEBUDDY_INTERNET_ENVIRONMENT;

@@ -28,11 +28,12 @@ export async function populateDshSkills(f: DshFixture): Promise<Readonly<Record<
 /** A native provider failure is a partial catalog; a provider that never settles tests the owner deadline. */
 export async function dshSkillProvider(f: DshFixture, mode: "failure" | "hang"): Promise<readonly unknown[]> {
   const plugin = path.join(f.aimock.home, `skill-provider-${mode}.mjs`);
-  await writeFile(plugin, `import { writeFileSync } from "node:fs";
+  await writeFile(plugin, `import { captureProcess } from ${JSON.stringify(new URL("../../../tests/fixtures/process-tree.ts", import.meta.url).href)};
+import { writeFileSync } from "node:fs";
 export const name = "fixture-skill-provider";
 export const inject = ["skills"];
 export function apply(ctx) { ctx.skills.registerProvider(() => ({ name: "fixture-${mode}",
-list: async () => { writeFileSync(${JSON.stringify(path.join(f.aimock.home, "provider-entered"))}, String(process.pid)); ${mode === "failure" ? 'throw new Error("PRIVATE_PROVIDER_ERROR");' : 'await new Promise(() => {}); return [];'} },
+list: async () => { writeFileSync(${JSON.stringify(path.join(f.aimock.home, "provider-entered"))}, JSON.stringify(captureProcess(process.pid))); ${mode === "failure" ? 'throw new Error("PRIVATE_PROVIDER_ERROR");' : 'await new Promise(() => {}); return [];'} },
 get: async () => undefined })); }
 `);
   return [{ insert: [{ id: "fixture-skill-provider", name: pathToFileURL(plugin).href }] }];

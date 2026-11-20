@@ -4,6 +4,7 @@ import path from "node:path";
 import type { LoginResult } from "../../packages/oar/src/contracts/login.js";
 import { kimiRuntime } from "../../packages/oar/src/runtimes/kimi/index.js";
 import { kimiLoginFixture } from "../../sea-trial/vendor/support/kimi-login.js";
+import { captureProcess } from "../../tests/fixtures/process-tree.js";
 import { recordedInteraction } from "../../tests/fixtures/login-interaction.js";
 
 assert.equal(process.platform, "linux", "This probe uses a Linux shell browser helper");
@@ -20,14 +21,14 @@ async function probe(delayMs: number, executable: string): Promise<Observation> 
     assert.deepEqual(result, { kind: "logged_in" });
     const executions = await fixture.executions();
     const calls = executions.filter((entry) => entry.file === fixture.controlBrowser);
-    const launches = calls.filter((entry) => entry.pid !== undefined);
+    const launches = calls.filter((entry) => entry.child !== undefined);
     assert.equal(launches.length, 1);
-    const [launch] = launches; assert.ok(launch?.pid !== undefined);
-    const browserRunning = fixture.processRunning(launch.pid);
-    const observerRunning = fixture.processRunning(launch.observerPid);
+    const [launch] = launches; assert.ok(launch?.child !== undefined);
+    const browserRunning = fixture.processRunning(launch.child);
+    const observerRunning = fixture.processRunning(launch.observer);
     const exits = await fixture.observerExits();
-    const observerExit = exits.find((entry) => entry.pid === launch.observerPid);
-    assert.equal(fixture.processRunning(process.pid), true, "The surviving observer is a live-process control");
+    const observerExit = exits.find((entry) => entry.observer.pid === launch.observer.pid && entry.observer.start === launch.observer.start);
+    assert.equal(fixture.processRunning(captureProcess(process.pid)), true, "The surviving observer is a live-process control");
     assert.equal(browserRunning, false);
     assert.equal(observerRunning, false);
     assert.equal(observerExit?.code, 0);

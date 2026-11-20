@@ -12,7 +12,7 @@ import { processTableCommand } from "../packages/oar/src/shared/executable/proce
 import { processTreeCleanup } from "../packages/oar/src/shared/executable/process-cleanup.js";
 // oxlint-disable-next-line import/no-namespace -- Delay only table observations, retaining real native processes.
 import * as tables from "../packages/oar/src/shared/executable/process-table-async.js";
-import { gone } from "./fixtures/process-tree.js";
+import { gone, type ProcessIdentity, reportedCleanupTree, signalFixture } from "./fixtures/process-tree.js";
 
 const rejected: unknown[] = [];
 const onRejected = (error: unknown): void => { rejected.push(error); };
@@ -73,13 +73,13 @@ test("stopping remains responsive and writes after kill are ignored before EOF",
 // oxlint-disable-next-line eslint/max-statements -- Observe root exit before releasing revalidation, then require a single final exit and a dead tool.
 test("final exit waits for asynchronous descendant cleanup and late listeners fire once", async () => {
   const child = spawnLineProcess(process.execPath, [fileURLToPath(new URL("fixtures/async-cleanup-tree.mjs", import.meta.url))], { killTree: true, shutdown: "stdin" });
-  const entered = Promise.withResolvers<void>(), ready = Promise.withResolvers<number>(), release = Promise.withResolvers<void>();
-  child.onLine((line) => { if (/^\d+$/u.test(line)) { ready.resolve(Number(line)); } });
+  const entered = Promise.withResolvers<void>(), ready = Promise.withResolvers<string>(), release = Promise.withResolvers<void>();
+  child.onLine((line) => { if (line.startsWith("{")) { ready.resolve(line); } });
   const exits: (number | null)[] = [];
   child.onExit((code) => { exits.push(code); });
-  let tool: number | undefined = undefined;
+  let tool: ProcessIdentity | undefined = undefined;
   try {
-    tool = await ready.promise;
+    ({ tool } = reportedCleanupTree(await ready.promise));
     expect(await gone(tool, 50)).toBe(false);
     const nativeRead = tables.observeProcessTableAsync;
     vi.spyOn(tables, "observeProcessTableAsync").mockImplementationOnce(nativeRead).mockImplementationOnce(async () => {
@@ -99,7 +99,7 @@ test("final exit waits for asynchronous descendant cleanup and late listeners fi
     child.kill();
   } finally {
     release.resolve(); vi.restoreAllMocks(); child.kill(); await child.exited;
-    if (tool !== undefined) { try { process.kill(tool, "SIGKILL"); } catch { /* Already gone. */ } }
+    if (tool !== undefined) { signalFixture(tool); }
   }
 });
 

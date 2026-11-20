@@ -1,8 +1,8 @@
 /* oxlint-disable max-statements, max-lines-per-function -- Compare native and public catalogs inside one owned fixture. */
-import assert from "node:assert/strict";
 import { readFile, readdir, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
-import { describe, expect, test, vi } from "vitest";
+import { assert, describe, expect, test, vi } from "vitest";
+import { reportedProcess, alive } from "../../tests/fixtures/process-tree.js";
 import { dshRuntime } from "../../packages/oar/src/runtimes/dsh/index.js";
 import { nativeRows } from "../../packages/oar/src/shared/inventory.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
@@ -27,7 +27,7 @@ describe.skipIf(!dshEnabled)("DSH native skill discovery", () => {
         expect(rows.map(row => row.name)).toEqual(expect.arrayContaining(["bundled-fixture", "project-agents", "project-dsh", "user-agents", "user-dsh"]));
         expect(native.complete).toBe(true);
         const result = await dshRuntime.skills(f.installation, { cwd: f.aimock.cwd, env });
-        assert.equal(result.kind, "ok", JSON.stringify(result));
+        assert.ok(result.kind === "ok", JSON.stringify(result));
         expect(result.items).toEqual(rows.map(row => ({ name: row.name, description: row.description, path: row.path, source: row.source,
           scope: row.source === "bundled" ? "builtin" : (String(row.source).startsWith("user-") ? "user" : "project"),
           userInvocable: asRecord(row.invocation)?.userInvocable, disableModelInvocation: asRecord(row.invocation)?.modelInvocable === false })));
@@ -54,12 +54,13 @@ describe.skipIf(!dshEnabled)("DSH native skill discovery", () => {
       const rows = nativeRows(parseJson(await readFile(config, "utf8")));
       await writeFile(config, JSON.stringify([...rows, ...await dshSkillProvider(f, mode)]));
       const result = await dshRuntime.skills(f.installation, { cwd: f.aimock.cwd, env, timeoutMs: 15_000 });
-      const pid = Number(await readFile(path.join(f.aimock.home, "provider-entered"), "utf8"));
-      const exited = (): void => { expect(() => process.kill(pid, 0)).toThrow(expect.objectContaining({ code: "ESRCH" })); };
+      const report = await readFile(path.join(f.aimock.home, "provider-entered"), "utf8");
+      const child = reportedProcess(JSON.parse(report));
+      const exited = (): void => { expect(alive(child)).toBe(false); };
       if (mode === "hang") { await vi.waitFor(exited, { timeout: 15_000 }); }
       else { exited(); }
       if (mode === "failure") {
-        assert.equal(result.kind, "ok");
+        assert.ok(result.kind === "ok");
         expect(result.partial).toBe(true);
         await withNativeProbe({ ...f, aimock: { ...f.aimock, env } }, { source, rows: [] }, async control => {
           const native = await control.request("nativeSkills", { cwd: f.aimock.cwd });

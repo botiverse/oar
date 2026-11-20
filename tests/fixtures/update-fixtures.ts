@@ -3,6 +3,7 @@ import { once } from "node:events";
 import { chmodSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import path from "node:path";
+import { reportedProcess, gone } from "./process-tree.js";
 
 /** A local stand-in for runtime release sources: each path answers a fixed status and body. */
 export interface ReleaseServer {
@@ -75,4 +76,9 @@ export function fakeRuntime(dir: string, name: string, state: FakeState): FakeRu
     return Object.fromEntries(Object.entries(parsed));
   };
   return { command, read };
+}
+
+/** Check the worker recorded by the fake updater before the timeout. */
+export async function workerExited(fake: FakeRuntime): Promise<boolean> {
+  return gone(reportedProcess(fake.read().workerPid));
 }

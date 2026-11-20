@@ -1,8 +1,9 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { expect, test } from "vitest";
+import { alive, signalFixture } from "../fixtures/process-tree.js";
 import { killedHost } from "../fixtures/cursor-killed-host.js";
-import { alive, reportedPids, tempDirectory, until } from "../fixtures/cursor-subprocess.js";
+import { reportedProcesses, tempDirectory, until } from "../fixtures/cursor-subprocess.js";
 
 /*
  * A host SIGKILLed while a subprocess-mode cursor session is open runs no
@@ -28,7 +29,7 @@ test.each([
   const dir = tempDirectory();
   const file = path.join(dir, "pids.json");
   const host = killedHost(dir, file, { how, envBase });
-  const { child, grandchild } = reportedPids(file);
+  const { child, grandchild } = reportedProcesses(file);
   try {
     // Windows terminates the process outright (exit 1); the session was open either way, or stderr says why not.
     expect(process.platform === "win32" ? { status: host.status, stderr: host.stderr } : { signal: host.signal, stderr: host.stderr })
@@ -39,7 +40,7 @@ test.each([
     expect(existsSync(path.join(dir, "closed"))).toBe(true);
   } finally {
     for (const pid of [child, grandchild]) {
-      if (alive(pid)) { process.kill(pid, "SIGKILL"); }
+      signalFixture(pid);
     }
   }
 });

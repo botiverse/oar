@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import { claudeLogout } from "../../packages/oar/src/runtimes/claude/logout.js";
-import { fakeLoginCli, reportedPid, type FakeCli } from "../fixtures/login-fixtures.js";
+import { fakeLoginCli, reportedIdentity, type FakeCli } from "../fixtures/login-fixtures.js";
 import { gone } from "../fixtures/process-tree.js";
 
 let dir = "";
@@ -102,8 +102,8 @@ test("past the deadline the logout is stopped with everything it started, and th
       "reason": "timed_out",
     }
   `);
-  assert.ok(await gone(reportedPid(fake, "pid")), "claude auth logout outlived the deadline");
-  assert.ok(await gone(reportedPid(fake, "workerPid")), "a process claude started outlived the deadline");
+  assert.ok(await gone(reportedIdentity(fake, "pid")), "claude auth logout outlived the deadline");
+  assert.ok(await gone(reportedIdentity(fake, "workerPid")), "a process claude started outlived the deadline");
   // Logged out already: a logout that hangs still ends logged_out, since the status reads so.
   const signedOut = fakeClaude({ logoutMode: "hang", loggedIn: false });
   assert.deepEqual(await claudeLogout(installation(signedOut), { timeoutMs: 500 }), { kind: "logged_out" });

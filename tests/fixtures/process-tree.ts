@@ -1,4 +1,7 @@
-import { chmodSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import assert from "node:assert/strict";
+import { execFileSync, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { chmodSync, existsSync, linkSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -10,10 +13,105 @@ export const fakeAgent = fileURLToPath(new URL("fake-agent-process.mjs", import.
 /** The process-tree module alone, for `node --import` into another fixture. */
 export const agentTreeModule = new URL("agent-tree.mjs", import.meta.url).href;
 
+export const fixtureIdentityPath = import.meta.filename;
+const reporter = fileURLToPath(new URL("report-process.ts", import.meta.url));
+// Called by a POSIX shell immediately after spawning its background job.
+const quote = (value: string): string => `'${value.replaceAll("'", "'\"'\"'")}'`;
+export const reportShellChild = [quote(process.execPath), quote(reporter), "-", '"$!"', '"$$"'].join(" ");
+
+/** Concurrent suites share only builds with identical source. */
+function windowsReaderPath(): string {
+  const source = readFileSync(new URL("process-start.cs", import.meta.url));
+  const hash = createHash("sha256").update(source).digest("hex");
+  return path.resolve(import.meta.dirname, "../../node_modules/.cache/oar-fixtures", `process-start-${hash}.exe`);
+}
+const windowsReader = process.platform === "win32" ? windowsReaderPath() : "";
+
+/** Build the fixture once before timed tests. A PowerShell startup alone can exceed their deadline. */
+export function prepareProcessStart(): string {
+  if (process.platform !== "win32" || existsSync(windowsReader)) { return windowsReader; }
+  const directory = path.dirname(windowsReader);
+  mkdirSync(directory, { recursive: true });
+  const stage = mkdtempSync(path.join(directory, "build-"));
+  try { compileReader(path.join(stage, "process-start.exe")); }
+  finally { rmSync(stage, { recursive: true, force: true }); }
+  return windowsReader;
+}
+
+function compileReader(executable: string): void {
+  const compiler = path.join(process.env.SystemRoot ?? String.raw`C:\Windows`, "Microsoft.NET", "Framework64", "v4.0.30319", "csc.exe");
+  const source = fileURLToPath(new URL("process-start.cs", import.meta.url));
+  execFileSync(compiler, ["/nologo", "/target:exe", `/out:${executable}`, source]);
+  // Another Vitest instance may have published an identical completed build.
+  try { linkSync(executable, windowsReader); }
+  catch (error) { if (!(error instanceof Error && "code" in error && error.code === "EEXIST")) { throw error; } }
+}
+
+export interface ProcessIdentity {
+  readonly pid: number;
+  readonly start: string;
+}
+
+// The standalone Node fixtures import this module directly, including those with a
+// subsecond runtime deadline. Read just one identity without loading a TS runner.
+function missingProcess(error: unknown): boolean {
+  return error instanceof Error && "code" in error && (error.code === "ENOENT" || error.code === "ESRCH");
+}
+
+function procfsStart(pid: number): string | undefined {
+  try {
+    const stat = readFileSync(`/proc/${String(pid)}/stat`, "utf8");
+    // Field 22 is the start in clock ticks. The command in field 2 may contain ')'.
+    const start = stat.slice(stat.lastIndexOf(")") + 2).split(" ").at(19);
+    assert.ok(start !== undefined && /^\d+$/u.test(start), "Invalid procfs start time");
+    return start;
+  } catch (error) { if (missingProcess(error) && existsSync("/proc/self/stat")) { return undefined; } throw error; }
+}
+
+export function processStart(pid: number): string | undefined {
+  assert.ok(Number.isSafeInteger(pid) && pid > 0, "Invalid fixture PID");
+  if (process.platform === "linux") { return procfsStart(pid); }
+  const result = process.platform === "win32"
+    ? spawnSync(prepareProcessStart(), [String(pid)], { encoding: "utf8", timeout: 5000, windowsHide: true })
+    : spawnSync("ps", ["-p", String(pid), "-o", "lstart="], { env: { ...process.env, LC_ALL: "C" }, encoding: "utf8", timeout: 5000 });
+  if (result.error !== undefined) { throw result.error; }
+  if (result.status === 1 && result.stdout.trim() === "" && result.stderr.trim() === "") { return undefined; }
+  assert.ok(result.status === 0 && result.stdout.trim() !== "", `Unable to identify fixture process ${String(pid)}: ${result.stderr.trim()}`);
+  return result.stdout.trim();
+}
+
+/** Record the process while the fixture still owns it, before triggering cleanup. */
+export function captureProcess(pid: number): ProcessIdentity {
+  const start = processStart(pid);
+  assert.ok(start !== undefined, `Missing fixture process ${String(pid)}`);
+  return { pid, start };
+}
+
+/** Publish a complete identity from the process or its owner at spawn. */
+export function writeProcessReport(file: string, pid: number): void {
+  const identity = captureProcess(pid);
+  writeFileSync(`${file}.tmp`, JSON.stringify(identity));
+  renameSync(`${file}.tmp`, file);
+}
+
+/** Decode a child report without looking up the current owner of its PID. */
+export function reportedProcess(value: unknown): ProcessIdentity {
+  assert.ok(typeof value === "object" && value !== null && "pid" in value && typeof value.pid === "number"
+    && Number.isSafeInteger(value.pid) && value.pid > 0 && "start" in value && typeof value.start === "string" && value.start.length > 0,
+    "Missing fixture process identity");
+  return { pid: value.pid, start: value.start };
+}
+
+export function reportedCleanupTree(line: string): { root: ProcessIdentity; tool: ProcessIdentity } {
+  const value: unknown = JSON.parse(line);
+  assert.ok(typeof value === "object" && value !== null && "root" in value && "tool" in value);
+  return { root: reportedProcess(value.root), tool: reportedProcess(value.tool) };
+}
+
 /** The pids a fake agent reports (agent-tree.mjs): itself, and the tool it started. */
 export interface AgentTree {
-  readonly agent: number;
-  readonly grandchild: number;
+  readonly agent: ProcessIdentity;
+  readonly grandchild: ProcessIdentity;
 }
 
 /** One fake agent's scratch directory: the env that grows its tree, and where it reports it. */
@@ -23,7 +121,7 @@ export interface TreeProbe {
   /** The reported pids, once the grandchild runs. */
   tree(): Promise<AgentTree>;
   /** The pid of the tool the agent started on SIGTERM (`lateTool`), once it runs. */
-  lateTool(): Promise<number>;
+  lateTool(): Promise<ProcessIdentity>;
 }
 
 /** How the fake agent behaves (agent-tree.mjs): see the env switches there. */
@@ -40,13 +138,26 @@ function noSuchProcess(error: unknown): boolean {
   return error instanceof Error && "code" in error && error.code === "ESRCH";
 }
 
-function alive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return !noSuchProcess(error);
+export function alive(processId: ProcessIdentity): boolean {
+  return processStart(processId.pid) === processId.start;
+}
+
+function terminateWindowsFixture(processId: ProcessIdentity): void {
+  const result = spawnSync(prepareProcessStart(), [String(processId.pid), processId.start], { encoding: "utf8", timeout: 5000, windowsHide: true });
+  if (result.error !== undefined) { throw result.error; }
+  assert.ok(result.status === 0 || (result.status === 1 && result.stderr.trim() === ""), result.stderr);
+}
+
+/** Only signal the original fixture process. An exit between observation and signal is normal. */
+export function signalFixture(processId: ProcessIdentity, signal: NodeJS.Signals = "SIGKILL"): void {
+  if (process.platform === "win32") {
+    assert.ok(signal === "SIGKILL" || signal === "SIGTERM");
+    terminateWindowsFixture(processId);
+    return;
   }
+  if (!alive(processId)) { return; }
+  try { process.kill(processId.pid, signal); }
+  catch (error) { if (!noSuchProcess(error)) { throw error; } }
 }
 
 /** Poll `predicate` until it holds; false when the deadline passes first. */
@@ -62,8 +173,8 @@ export async function eventually(predicate: () => boolean, withinMs: number): Pr
   return true;
 }
 
-/** Poll `process.kill(pid, 0)` until it answers ESRCH; false when the pid outlives the deadline. */
-export async function gone(pid: number, withinMs = 5000): Promise<boolean> {
+/** Wait until the recorded fixture exits, including when its PID has already been reused. */
+export async function gone(pid: ProcessIdentity, withinMs = 5000): Promise<boolean> {
   return eventually(() => !alive(pid), withinMs);
 }
 
@@ -86,7 +197,7 @@ export async function withTreeProbe<Result>(
   const dir = mkdtempSync(path.join(tmpdir(), "oar-process-tree-"));
   const pidFile = path.join(dir, "pids.json");
   const lateFile = path.join(dir, "late.pid");
-  const reported: number[] = [];
+  let tree: AgentTree | undefined = undefined;
   try {
     return await body({
       dir,
@@ -101,41 +212,35 @@ export async function withTreeProbe<Result>(
           throw new Error(`the fake agent never reported its pids in ${pidFile}`);
         }
         // The fixture renames a complete file into place, so one read suffices.
-        // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- Shape written by agent-tree.mjs.
-        const tree = JSON.parse(readFileSync(pidFile, "utf8")) as AgentTree;
-        reported.push(tree.agent, tree.grandchild);
+        tree = readTree(pidFile);
         return tree;
       },
       async lateTool() {
         if (!await eventually(() => existsSync(lateFile), 10_000)) {
           throw new Error(`the fake agent never reported a late tool in ${lateFile}`);
         }
-        const pid = Number(readFileSync(lateFile, "utf8"));
-        reported.push(pid);
-        return pid;
+        return reportedProcess(JSON.parse(readFileSync(lateFile, "utf8")));
       },
     });
   } finally {
-    // Started on a SIGTERM the test may not have got to look at.
-    if (existsSync(lateFile)) {
-      reported.push(Number(readFileSync(lateFile, "utf8")));
-    }
-    await reap(reported, dir);
+    await reap(tree, { pidFile, lateFile, dir });
   }
 }
 
-/** SIGKILL whatever of `pids` is still alive and remove `dir`. */
-async function reap(pids: readonly number[], dir: string): Promise<void> {
-  for (const pid of pids) {
-    try {
-      process.kill(pid, "SIGKILL");
-    } catch (error) {
-      // Already gone, possibly only just: a dispose may still be ending the
-      // tree, so a check for life before the signal can pass and still miss.
-      if (!noSuchProcess(error)) {
-        throw error;
-      }
-    }
+function readTree(file: string): AgentTree {
+  const row: unknown = JSON.parse(readFileSync(file, "utf8"));
+  assert.ok(typeof row === "object" && row !== null && "agent" in row && "grandchild" in row);
+  return { agent: reportedProcess(row.agent), grandchild: reportedProcess(row.grandchild) };
+}
+
+/** Also collect a report a test failed before it could consume. */
+async function reap(tree: AgentTree | undefined, files: { pidFile: string; lateFile: string; dir: string }): Promise<void> {
+  const { pidFile, lateFile, dir } = files;
+  const owned = tree ?? (existsSync(pidFile) ? readTree(pidFile) : undefined);
+  if (owned !== undefined) { signalFixture(owned.agent); signalFixture(owned.grandchild); }
+  if (existsSync(lateFile)) {
+    const late: unknown = JSON.parse(readFileSync(lateFile, "utf8"));
+    signalFixture(reportedProcess(late));
   }
   // Let process exit/close handlers run while Windows releases open files,
   // so a failed assertion is not masked by a still-locked fixture directory.

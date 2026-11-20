@@ -1,4 +1,5 @@
 /* oxlint-disable typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument -- Standalone untyped child-process fixture. */
+import { captureProcess } from "./process-tree.ts";
 import { spawn } from "node:child_process";
 import { renameSync, writeFileSync } from "node:fs";
 
@@ -25,7 +26,7 @@ if (process.env.OAR_FIXTURE_IGNORE_SIGTERM === "1") {
     if (lateTool !== undefined) {
       const tool = spawn(process.execPath, sleeper, { stdio: "ignore", detached: true });
       tool.once("spawn", () => {
-        writeFileSync(`${lateTool}.tmp`, String(tool.pid));
+        writeFileSync(`${lateTool}.tmp`, JSON.stringify(captureProcess(tool.pid)));
         renameSync(`${lateTool}.tmp`, lateTool);
       });
     }
@@ -38,7 +39,7 @@ const pidFile = process.env.OAR_FIXTURE_PIDS;
 if (pidFile !== undefined) {
   const grandchild = spawn(process.execPath, sleeper, { stdio: "ignore", detached: process.env.OAR_FIXTURE_DETACH_TOOL === "1" });
   grandchild.once("spawn", () => {
-    writeFileSync(`${pidFile}.tmp`, JSON.stringify({ agent: process.pid, grandchild: grandchild.pid }));
+    writeFileSync(`${pidFile}.tmp`, JSON.stringify({ agent: captureProcess(process.pid), grandchild: captureProcess(grandchild.pid) }));
     renameSync(`${pidFile}.tmp`, pidFile);
   });
 }

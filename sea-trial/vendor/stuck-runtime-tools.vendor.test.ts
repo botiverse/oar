@@ -1,4 +1,6 @@
-import { execFileSync } from "node:child_process";
+import { alive, signalFixture, type ProcessIdentity } from "../../tests/fixtures/process-tree.js";
+import { observeProcessTable } from "../../packages/oar/src/shared/executable/process-tree.js";
+import { processTable } from "./support/codex-process-count.js";
 import { expect, test, vi } from "vitest";
 import { claudeInstallation, defineRuntime, claudeRuntime, codexRuntime } from "../../packages/oar/src/index.js";
 
@@ -20,12 +22,16 @@ const codexSession = codexRuntime.session;
  * or what this pins (and the runtime pages say) has changed.
  */
 
-interface Row { readonly pid: number; readonly ppid: number; readonly pgid: number; readonly args: string }
+interface Row extends ProcessIdentity { readonly ppid: number; readonly pgid: number; readonly args: string }
 
 function processes(): Row[] {
-  return execFileSync("ps", ["-A", "-o", "pid=,ppid=,pgid=,args="], { encoding: "utf8" }).split("\n").flatMap((line) => {
-    const match = /^\s*(\d+)\s+(\d+)\s+(\d+)\s+(.*)$/u.exec(line);
-    return match === null ? [] : [{ pid: Number(match[1]), ppid: Number(match[2]), pgid: Number(match[3]), args: match[4] ?? "" }];
+  const before = observeProcessTable();
+  const commands = processTable();
+  const after = observeProcessTable();
+  if (!before.ok || !after.ok) { throw new Error("Cannot identify the native tool and runtime"); }
+  return commands.flatMap(row => {
+    const entry = after.table.get(row.pid);
+    return entry !== undefined && entry.start === before.table.get(row.pid)?.start ? [{ ...row, start: entry.start }] : [];
   });
 }
 
@@ -35,15 +41,6 @@ function below(rows: readonly Row[], pid: number): Row[] {
     found.push(child, ...below(rows, child.pid));
   }
   return found;
-}
-
-function alive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 const COMMAND = "tail -f /dev/null";
@@ -63,7 +60,7 @@ for (const runtime of runtimes) {
         mock.on({ hasToolResult: true }, { content: "done" });
       });
       const seen: Row[] = [];
-      const stopped: number[] = [];
+      const stopped: ProcessIdentity[] = [];
       try {
         await withProcessEnv({ OAR_KILL_GRACE_MS: "500" }, async () => {
           const session = await runtimeUnderTest(defineRuntime(runtime), env.env).startSession();
@@ -78,19 +75,19 @@ for (const runtime of runtimes) {
               return { host, tool };
             }, { timeout: 60_000, interval: 200 });
             expect(command.tool.pgid, "the command runs out of the runtime's process group").not.toBe(command.host.pid);
-            process.kill(command.host.pid, "SIGSTOP");
-            stopped.push(command.host.pid);
+            signalFixture(command.host, "SIGSTOP");
+            stopped.push(command.host);
           } finally {
             await session.dispose();
           }
           await vi.waitFor(() => {
-            expect(seen.filter((row) => alive(row.pid)).map((row) => `${String(row.pid)} ${row.args}`)).toEqual([]);
+            expect(seen.filter(row => alive(row)).map((row) => `${String(row.pid)} ${row.args}`)).toEqual([]);
           }, { timeout: 5000, interval: 100 });
         });
       } finally {
-        for (const pid of stopped.filter((stoppedPid) => alive(stoppedPid))) { process.kill(pid, "SIGCONT"); }
+        for (const host of stopped) { signalFixture(host, "SIGCONT"); }
         for (const row of seen) {
-          if (alive(row.pid)) { process.kill(row.pid, "SIGKILL"); }
+          signalFixture(row);
         }
         await env.stop();
       }

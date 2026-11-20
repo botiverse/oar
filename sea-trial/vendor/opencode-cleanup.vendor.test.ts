@@ -2,6 +2,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { expect, test, vi } from "vitest";
+import { reportedProcess, alive, fixtureIdentityPath } from "../../tests/fixtures/process-tree.js";
 import type { Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
 import { opencodeRuntime } from "../../packages/oar/src/runtimes/opencode/index.js";
 // oxlint-disable-next-line import/no-namespace -- Spy observes real native launches without replacing their behavior.
@@ -15,7 +16,6 @@ import { asRecord, asRecordList } from "../../packages/oar/src/shared/json.js";
 
 const enabled = process.env.OAR_TEST === "opencode-cleanup";
 const expectedVersion = process.env.OAR_CI_CANDIDATE_VERSION ?? "2.2.7";
-function alive(pid: number): boolean { try { process.kill(pid, 0); return true; } catch { return false; } }
 function text(session: Session): string { return session.records().flatMap(r => r.kind === "frame" ? r.body.events.filter(e => e.kind === "text_delta").map(e => e.text) : []).join(""); }
 
 for (const placement of ["isolated"] as const) {
@@ -42,7 +42,7 @@ for (const placement of ["isolated"] as const) {
         "else { const file=path.join(path.dirname(process.argv[3]),'A-child.json');",
         // oxlint-disable-next-line eslint/no-template-curly-in-string -- Template is evaluated by the generated fixture, not by this test.
         "const child=spawn(process.execPath,['-e',`require('node:fs').writeFileSync(${JSON.stringify(file)},JSON.stringify({pid:process.pid,ppid:process.ppid,cwd:process.cwd(),executable:process.execPath}));setTimeout(()=>{},300000)`],{stdio:'ignore'});",
-        "writeFileSync(process.argv[3],JSON.stringify({parent:process.pid,ppid:process.ppid,child:child.pid,cwd:process.cwd(),executable:process.execPath})); console.log('TOOL_READY');setTimeout(()=>{},300000); }",
+        `const {captureProcess}=require(${JSON.stringify(fixtureIdentityPath)});writeFileSync(process.argv[3],JSON.stringify({parent:captureProcess(process.pid),ppid:process.ppid,child:captureProcess(child.pid),cwd:process.cwd(),executable:process.execPath})); console.log('TOOL_READY');setTimeout(()=>{},300000); }`,
       ].join("\n"));
       const configPath = path.join(f.provider.env.XDG_CONFIG_HOME ?? "", "opencode", "opencode.json");
       const configText = await readFile(configPath, "utf8");
@@ -91,12 +91,12 @@ for (const placement of ["isolated"] as const) {
       await expect.poll(async () => readFile(path.join(f.home, "A.json"), "utf8").catch(() => ""), { timeout: 30_000 }).not.toBe("");
       const toolFile = await readFile(path.join(f.home, "A.json"), "utf8");
       const tool = asRecord(JSON.parse(toolFile));
-      expect(typeof tool?.parent).toBe("number"); expect(typeof tool?.child).toBe("number");
-      const parent = Number(tool?.parent); const child = Number(tool?.child);
+
+      const child = reportedProcess(tool?.child), parent = reportedProcess(tool?.parent);
       await expect.poll(async () => readFile(path.join(f.home, "A-child.json"), "utf8").catch(() => ""), { timeout: 30_000 }).not.toBe("");
       const childReadyFile = await readFile(path.join(f.home, "A-child.json"), "utf8");
       const childReady = asRecord(JSON.parse(childReadyFile));
-      expect(childReady).toMatchObject({ pid: child, ppid: parent });
+      expect(childReady).toMatchObject({ pid: child.pid, ppid: parent.pid });
       expect(alive(parent)).toBe(true); expect(alive(child)).toBe(true);
       await cleanup.sample("before-dispose");
       await a.dispose(); await awaitTurnEnd(a, runningTool.request.seq);

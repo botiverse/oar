@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "vitest";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
-import { eventually, gone } from "../fixtures/process-tree.js";
+import { eventually, gone, reportShellChild, reportedProcess } from "../fixtures/process-tree.js";
 import { createAcpTerminalHost, type AcpTerminalHost } from "../../packages/oar/src/shared/acp/terminal.js";
 
 const scoreSource = "Number(require('node:fs').readFileSync('/proc/self/oom_score_adj','utf8'))";
@@ -94,10 +94,10 @@ test.skipIf(process.platform !== "linux")("releasing a priority-adjusted termina
   await withAgent(async (pid, _score, cwd) => {
     const host = createAcpTerminalHost(cwd, process.env, { agentPid: () => pid, shellCommand: true });
     try {
-      const { terminalId } = await host.create({ sessionId: "tree", command: "sleep 60 & echo $!; wait" });
+      const { terminalId } = await host.create({ sessionId: "tree", command: `sleep 60 & ${reportShellChild}; wait` });
       const identity = { sessionId: "tree", terminalId };
-      assert.ok(await eventually(() => /^\d+/u.test(host.output(identity).output), 5000));
-      const descendant = Number(host.output(identity).output.trim());
+      assert.ok(await eventually(() => host.output(identity).output.endsWith("\n"), 5000));
+      const descendant = reportedProcess(JSON.parse(host.output(identity).output));
       await host.release(identity);
       assert.equal(await gone(descendant), true);
     } finally { await host.dispose(); }

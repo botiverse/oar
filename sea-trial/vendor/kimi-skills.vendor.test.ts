@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join, resolve as resolvePath } from "node:path";
 import { createConnection } from "node:net";
 import { describe, expect, test, vi } from "vitest";
+import { reportedProcess, alive, fixtureIdentityPath } from "../../tests/fixtures/process-tree.js";
 import { versionAtLeast } from "../../packages/oar/src/shared/update.js";
 import { sessionEnvironment } from "../../packages/oar/src/shared/environment.js";
 import { readExecutableVersion, spawnLineProcess } from "../../packages/oar/src/shared/executable/index.js";
@@ -25,7 +26,7 @@ async function fixture() {
   const trace = join(root, "processes.jsonl");
   const preload = join(root, "observe.cjs");
   await writeFile(preload, `const fs = require('node:fs');
-fs.appendFileSync(process.env.OAR_SKILL_TRACE, JSON.stringify({pid: process.pid})+'\\n');
+fs.appendFileSync(process.env.OAR_SKILL_TRACE, JSON.stringify(require(${JSON.stringify(fixtureIdentityPath)}).captureProcess(process.pid))+'\\n');
 const write = process.stdout.write.bind(process.stdout);
 process.stdout.write = function(chunk, ...rest) {
   const m = /http:\\/\\/127\\.0\\.0\\.1:([0-9]+)/.exec(String(chunk));
@@ -42,13 +43,12 @@ async function assertStopped(trace: string) {
   const entries = text.trim().split("\n").map((line) => {
     const entry = asRecord(parseJson(line));
     assert.ok(entry !== null);
-    return { pid: typeof entry.pid === "number" ? entry.pid : undefined, port: typeof entry.port === "number" ? entry.port : undefined };
+    return { child: entry.pid === undefined ? undefined : reportedProcess(entry), port: typeof entry.port === "number" ? entry.port : undefined };
   });
   const ports = entries.flatMap((entry) => entry.port === undefined ? [] : [entry.port]);
   expect(ports.length).toBeGreaterThan(0);
   for (const entry of entries) {
-    const pid = entry.pid;
-    if (pid !== undefined) { expect(() => process.kill(pid, 0)).toThrow(); }
+    if (entry.child !== undefined) { expect(alive(entry.child)).toBe(false); }
   }
   for (const port of ports) {
     const reachable = await new Promise<boolean>((resolve) => {

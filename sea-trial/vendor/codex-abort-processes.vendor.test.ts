@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { describe, expect, test, vi } from "vitest";
+import { reportedProcess, signalFixture, fixtureIdentityPath } from "../../tests/fixtures/process-tree.js";
 import type { ControlResult, Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
 import type { SessionCleanup } from "../../packages/oar/src/contracts/placement.js";
 import { awaitTurnEnd, promptAndWait, codexRuntime } from "../../packages/oar/src/index.js";
@@ -30,10 +31,22 @@ const codexSession = codexRuntime.session;
  * own control, codex-abort-processes-no-groups.vendor.test.ts.
  */
 
+// Each marker owns one file. A failed readiness or a killed runtime can leave a
+// detached child behind, so record the identity before advertising readiness.
+const recordIdentity = `
+const { writeProcessReport } = require(${JSON.stringify(fixtureIdentityPath)});
+const path = require("node:path");
+const remember = (marker, pid) => writeProcessReport(path.join(__dirname, marker + ".json"), pid);
+`;
+
 const COMMAND_SCRIPT = `
+${recordIdentity}
 const { spawn } = require("node:child_process");
 const detached = process.argv[3];
-spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)", detached], { detached: true, stdio: "ignore" }).unref();
+remember(process.argv[2], process.pid);
+const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)", detached], { detached: true, stdio: "ignore" });
+remember(detached, child.pid);
+child.unref();
 console.log("command started");
 setInterval(() => {}, 1000);
 `;
@@ -45,11 +58,17 @@ setInterval(() => {}, 1000);
  * tag, so `running(marker)` finds only the process it names.
  */
 const FORKS_ON_TRIGGER = `
+${recordIdentity}
 const { spawn } = require("node:child_process");
 const { existsSync, appendFileSync } = require("node:fs");
 const [, , trigger, marker, server] = process.argv;
+remember(marker, process.pid);
 appendFileSync(trigger + "." + marker + ".started", String(process.pid) + "\\n");
-const run = (detached, name) => spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)", name], { detached, stdio: "ignore" }).unref();
+const run = (detached, name) => {
+  const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)", name], { detached, stdio: "ignore" });
+  remember(name, child.pid);
+  child.unref();
+};
 const poll = setInterval(() => {
   if (existsSync(trigger)) {
     clearInterval(poll);
@@ -91,12 +110,16 @@ function running(marker: string): number[] {
   return processTable().filter(row => row.args.includes(marker)).map(row => row.pid);
 }
 
-function killAll(markers: Markers): void {
-  for (const marker of [markers.mcp, workerOf(markers.mcp), detachedWorkerOf(markers.mcp), markers.earlier, workerOf(markers.earlier), detachedWorkerOf(markers.earlier), markers.command, markers.detached]) {
-    for (const pid of running(marker)) {
-      try { process.kill(pid, "SIGKILL"); } catch { /* Gone meanwhile. */ }
+async function cleanFixtureProcesses(directory: string, markers: Markers): Promise<void> {
+  const names = [markers.mcp, workerOf(markers.mcp), detachedWorkerOf(markers.mcp), markers.earlier, workerOf(markers.earlier), detachedWorkerOf(markers.earlier), markers.command, markers.detached];
+  await Promise.all(names.map(async marker => {
+    try {
+      const report = await readFile(path.join(directory, `${marker}.json`), "utf8");
+      signalFixture(reportedProcess(JSON.parse(report)));
+    } catch (error) {
+      if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) { throw error; }
     }
-  }
+  }));
 }
 
 function scripted(markers: Markers, script: string, older: string, trigger: string) {
@@ -203,7 +226,7 @@ async function abortedTurn({ options, markers, turn, earlier, after }: Scenario)
     throw error;
   } finally {
     await session?.dispose();
-    killAll(markers);
+    await cleanFixtureProcesses(directory, markers);
     await provider.stop();
     await removeFixtureDirectory(directory, "codex-abort-processes");
   }

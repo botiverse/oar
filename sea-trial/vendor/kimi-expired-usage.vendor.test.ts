@@ -1,6 +1,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
+import { reportedProcess, gone } from "../../tests/fixtures/process-tree.js";
 import { kimiRuntime } from "../../packages/oar/src/runtimes/kimi/index.js";
 import { parseJson, asRecord } from "../../packages/oar/src/shared/json.js";
 import { resolveRunDir } from "../harness/trace.js";
@@ -22,10 +23,10 @@ function failureMessages(error: unknown): string[] {
 async function stopped(trace: string): Promise<void> {
   const content = await readFile(trace, "utf8");
   const rows = content.trim().split("\n");
-  for (const row of rows) {
-    const pid = asRecord(parseJson(row))?.pid;
-    if (typeof pid === "number") { await expect.poll(() => { try { process.kill(pid, 0); return false; } catch { return true; } }, { timeout: 15_000 }).toBe(true); }
-  }
+  await Promise.all(rows.map(async row => {
+    const child = reportedProcess(parseJson(row));
+    expect(await gone(child, 15_000)).toBe(true);
+  }));
 }
 describe.skipIf(process.env.OAR_TEST !== "kimi-login")("Kimi native expired-token usage", () => {
   test.skipIf(windows)("native empty quota preserves refreshed login and returns quota_unavailable", { timeout: 60_000 }, async () => {

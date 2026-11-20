@@ -1,9 +1,10 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { expect, test } from "vitest";
+import { alive } from "../fixtures/process-tree.js";
 import type { Session } from "../../packages/oar/src/contracts/session.js";
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
-import { alive, bundled, fakeCursorRuntime, reportedPids, responsesOf, tempDirectory, until, type CursorMode } from "../fixtures/cursor-subprocess.js";
+import { bundled, fakeCursorRuntime, reportedProcesses, responsesOf, tempDirectory, until, type CursorProcesses, type CursorMode } from "../fixtures/cursor-subprocess.js";
 
 /*
  * What only the subprocess mode has: a crash recorded as `exited`, dispose
@@ -29,11 +30,11 @@ function frameTypes(session: Session): string[] {
 }
 
 /** Has the session's run start a tool (`spawn` or `spawn-in-group`), and returns the child's and the tool's pids. */
-async function startTool(session: Session, how: "spawn" | "spawn-in-group"): Promise<{ readonly child: number; readonly grandchild: number }> {
+async function startTool(session: Session, how: "spawn" | "spawn-in-group"): Promise<CursorProcesses> {
   const file = path.join(tempDirectory(), "pids.json");
   const prompt = await session.prompt(`${how}:${file}`);
   await awaitTurnEnd(session, prompt.seq);
-  return reportedPids(file);
+  return reportedProcesses(file);
 }
 
 /** The responses to the session's one dispose request. */
@@ -43,7 +44,7 @@ function disposeAnswers(session: Session): unknown[] {
   return session.records().flatMap((record) => (record.kind === "response" && record.requestId === requests[0] ? [record.body] : []));
 }
 
-async function gone(pids: { readonly child: number; readonly grandchild: number }): Promise<{ readonly child: boolean; readonly grandchild: boolean }> {
+async function gone(pids: CursorProcesses): Promise<{ readonly child: boolean; readonly grandchild: boolean }> {
   await until(() => !alive(pids.child) && !alive(pids.grandchild));
   return { child: !alive(pids.child), grandchild: !alive(pids.grandchild) };
 }

@@ -8,7 +8,7 @@ function publishState(pending, file) {
   for (let retries = 0; ; retries++) {
     try { renameSync(pending, file); return; }
     catch (error) {
-      if (process.platform !== "win32" || retries >= 10
+      if ((process.env.OAR_RENAME_PLATFORM ?? process.platform) !== "win32" || retries >= 10
         || !(error instanceof Error) || !("code" in error) || error.code !== "EPERM") { throw error; }
       // A Windows reader can temporarily prevent replacement. Keep the old
       // snapshot intact; add at most 250 ms of waits before surfacing failure.
