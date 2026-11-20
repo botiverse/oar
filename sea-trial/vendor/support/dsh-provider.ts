@@ -30,13 +30,36 @@ export interface DshProvider {
   stop(this: void): Promise<void>;
 }
 
+const SYSTEM_REMINDER_OPEN = "<system-reminder>";
+const SYSTEM_REMINDER_CLOSE = "</system-reminder>";
+
+function isDshSyntheticText(text: unknown): boolean {
+  if (typeof text !== "string") { return false; }
+  const trimmed = text.trim();
+  if (trimmed.startsWith("Current runtime context.")) { return true; }
+  if (!trimmed.startsWith(SYSTEM_REMINDER_OPEN) || !trimmed.endsWith(SYSTEM_REMINDER_CLOSE)) { return false; }
+  return !trimmed.slice(SYSTEM_REMINDER_OPEN.length, -SYSTEM_REMINDER_CLOSE.length).includes(SYSTEM_REMINDER_CLOSE);
+}
+
+/**
+ * Whether a `role: "user"` message content is synthetic trailing context DSH
+ * adds after the user's input: the runtime-context snapshot or a standalone
+ * `<system-reminder>...</system-reminder>` block (such as Windows' bundled
+ * `skill-catalog`). Never matches combined reminder-plus-prompt envelopes
+ * (such as Qoder's `<system-reminder>...\n\n<prompt>`).
+ */
+export function isDshSyntheticContextMessage(content: unknown): boolean {
+  if (typeof content === "string") { return isDshSyntheticText(content); }
+  return Array.isArray(content) && content.length > 0 && content.every((part) => isDshSyntheticText(asRecord(part)?.text));
+}
+
 /**
  * The latest user message that is not DSH's own context. A first request carries the
  * input, then a runtime-context snapshot and, where DSH has bundled skills to offer
  * (Windows, in `skill-catalog`), a system reminder.
  */
 export function lastInput(request: ProviderRequest): string {
-  const users = request.messages.filter((message) => message.role === "user" && !/Current runtime context|<system-reminder>/u.test(JSON.stringify(message.content)));
+  const users = request.messages.filter((message) => message.role === "user" && !isDshSyntheticContextMessage(message.content));
   return JSON.stringify(users.at(-1)?.content ?? "");
 }
 
