@@ -845,3 +845,50 @@ built on a vendor's server. A record per request would grow the stream with
 the square of the conversation's length; like `contextBreakdown()`, this is
 a reading, and a host that wants every request stores it itself.
 
+
+## Using a runtime's stored credentials (2026-11-20)
+
+**Considered:** a blanket rule that OAR never reads a runtime's stored
+login credentials. It was stated in review on 2026-11-20 to rule out
+showing the Antigravity account email, which `agy` 1.5.13 keeps only in its
+stored OIDC `id_token`: no CLI command, print-mode command or ACP method
+returns it, while the TUI banner shows it.
+
+**Refused as a rule.** OAR already reads stored credentials: Kimi and
+Factory account usage resolve their credential files and call the vendor's
+usage endpoint ([account usage](../spec/account-usage.md#environment)). The
+project owner stated the actual principle: OAR does not create usage the
+runtime's own client would not create.
+
+1. **Reading without a request is allowed.** Anything OAR can learn
+   locally, a stored credential included, it may read. Decoding the email
+   claim from a stored `id_token` sends nothing anywhere.
+2. **A request is allowed when the native client makes the same one** in
+   ordinary use, for example its usage or user-info call, at a comparable
+   rate. OAR does not invent request patterns a person using the client
+   would never produce, and it never proxies the vendor's API with the
+   credential (a reverse proxy, or serving model requests for anything but
+   the runtime itself).
+3. **The runtime still owns its store.** OAR never writes, refreshes or
+   migrates a stored credential, because the running client may be
+   refreshing it at the same time. Token bytes, file paths and raw provider
+   replies never reach results, records, logs or error text.
+4. **An OS keychain or credential manager needs its own decision.** A read
+   there can prompt the person or be attributed to OAR rather than the
+   runtime. Status and usage polls do not read it; a runtime that keeps its
+   only copy there gets a decision of its own before OAR reads it.
+5. **Private storage only feeds what fails safely.** A value used only for
+   display, such as an email or plan name, may come from a private format,
+   version-gated and omitted when unrecognised. A fact a host acts on, such
+   as a turn's outcome or a session's liveness, may not
+   ([Reading a runtime's internal conversation database](#reading-a-runtimes-internal-conversation-database-2026-11-15)),
+   because a silent format change would become a wrong answer instead of a
+   missing one.
+
+The runtime's own interface still comes first where it gives the fact
+(Claude account usage through `get_usage`, Grok identity through its ACP
+method): it is cheaper to keep correct than a private format.
+
+**What would change it:** a vendor stating that a specific use in 1 or 2
+violates its terms in a way that affects users, or a measured case where a
+read changed the runtime's own state.
