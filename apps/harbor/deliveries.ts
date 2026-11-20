@@ -36,6 +36,8 @@ const MAX_ATTEMPTS = 5;
 export class Deliveries {
   private readonly inbox: Message[] = [];
   private readonly accepted = new Map<string, Accepted>();
+  /** The batch handed to `Session.deliver` and not yet accepted or put back: still outstanding. */
+  private inFlight: readonly Message[] = [];
   private readonly attempts = new Map<number, number>();
   /** Messages a person sent: only these expect an answer, not one agent's note to another. */
   private readonly fromPeople = new Set<number>();
@@ -75,13 +77,19 @@ export class Deliveries {
     }
     this.host.store.journal({ agent: this.host.name, kind: "redelivering", why: "harbor restarted", seqs: found.map((entry) => entry.message.seq) });
     for (const { message, person } of found) {
-      this.add(message, person);
+      if (person) {
+        this.fromPeople.add(message.seq);
+      }
     }
+    // One batch, ahead of anything newer.
+    this.inbox.unshift(...found.map((entry) => entry.message));
+    this.changed();
+    void this.pump();
   }
 
   /** Waiting plus accepted-but-unconsumed, oldest first. */
   private changed(): void {
-    const messages = [...[...this.accepted.values()].flatMap((entry) => entry.batch), ...this.inbox];
+    const messages = [...[...this.accepted.values()].flatMap((entry) => entry.batch), ...this.inFlight, ...this.inbox];
     const seqs = [...new Set(messages.map((message) => message.seq))].toSorted((left, right) => left - right);
     const people = new Set([...this.fromPeople, ...[...this.accepted.values()].flatMap((entry) => entry.people)]);
     this.host.outstanding?.(seqs.map((seq) => ({ seq, person: people.has(seq) })));
@@ -210,7 +218,10 @@ export class Deliveries {
     const compactions = this.compactions;
     const seqs = batch.map((message) => message.seq);
     const started = Date.now();
-    const result = await session.deliver(text);
+    this.inFlight = batch;
+    const result = await session.deliver(text).finally(() => {
+      this.inFlight = [];
+    });
     if (this.host.current() !== session) {
       // Restarted or exited during the call: the next session gets it.
       this.inbox.unshift(...batch);

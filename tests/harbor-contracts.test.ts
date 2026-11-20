@@ -54,3 +54,16 @@ test("usage that goes down is a finding", () => {
   checks.event(sessionWith(5, 4), event("turn_ended", 2));
   expect(findings).toEqual(["usage_decreased"]);
 });
+
+test("a compaction in a replaced session does not excuse the next session's first turn", () => {
+  const findings: string[] = [];
+  const checks = contracts(findings);
+  const unknown = sessionWith(null, 10);
+  const promised = { contextUsage: { tokens: true, contextWindow: true } };
+  checks.opened(unknown, promised);
+  checks.event(unknown, event("compaction_ended", 1));
+  // The session is replaced before that turn ends.
+  checks.opened(unknown, promised);
+  checks.event(unknown, event("turn_ended", 1));
+  expect(findings).toEqual(["context_usage_missing"]);
+});

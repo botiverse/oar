@@ -62,8 +62,10 @@ export class HarborAgent {
       finding: (check, detail): void => { this.finding(check, detail); },
       outstanding: (undelivered): void => { this.state = { ...this.state, undelivered }; this.onState(); },
     });
-    this.deliveries.restore(state.undelivered ?? [], store.messages());
   }
+
+  /** What the previous daemon left unconsumed, delivered first; called once every agent is registered. */
+  restore(messages: readonly Message[]): void { this.deliveries.restore(this.state.undelivered ?? [], messages); }
 
   get name(): string {
     return this.state.name;

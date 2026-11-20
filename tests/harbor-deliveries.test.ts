@@ -244,3 +244,31 @@ test("a consumed turn leaves nothing to redeliver", async () => {
   deliveries.turnEnded(ended);
   expect(saved.at(-1)).toEqual([]);
 });
+
+/** The first deliver call never answers before harbor goes down; message 2, from another agent, waits behind it. */
+async function downDuringDeliver(): Promise<Undelivered[]> {
+  const saved: Undelivered[][] = [];
+  const holding = { ...sessionStandIn, deliver: async () => Promise.withResolvers<never>().promise };
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion, typescript/consistent-type-assertions -- Only deliver and status are used.
+  const held = holding as unknown as Session;
+  const { deliveries } = persistingHarness(saved, () => held);
+  deliveries.add(message("qa"), true);
+  await vi.advanceTimersByTimeAsync(0);
+  deliveries.add({ ...message("b"), seq: 2, text: "second" }, false);
+  deliveries.sessionGone("down");
+  return saved.at(-1) ?? [];
+}
+
+test("a batch still in Session.deliver when harbor goes down stays outstanding, ahead of what waits behind it", async () => {
+  vi.useFakeTimers();
+  const undelivered = await downDuringDeliver();
+  expect(undelivered).toEqual([{ seq: 1, person: true }, { seq: 2, person: false }]);
+  const sent: string[] = [];
+  const recording = { ...sessionStandIn, deliver: async (text: string) => { sent.push(text); return { landed: "prompted", inputId: "input-1" }; } };
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion, typescript/consistent-type-assertions -- Only deliver and status are used.
+  const next = recording as unknown as Session;
+  const { deliveries } = persistingHarness([], () => next);
+  deliveries.restore(undelivered, [message("qa"), { ...message("b"), seq: 2, text: "second" }]);
+  await vi.runAllTimersAsync();
+  expect(sent.map((text) => text.indexOf("hello") < text.indexOf("second"))).toEqual([true]);
+});

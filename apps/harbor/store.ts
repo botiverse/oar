@@ -1,5 +1,5 @@
 /* oxlint-disable typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- Every file read here is one harbor itself wrote with these shapes. */
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import type { DayTokens } from "./budget.js";
@@ -118,8 +118,11 @@ export class Store {
     return existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as RunState) : null;
   }
 
+  /** Written beside and renamed over, so an interrupted save leaves the previous state readable. */
   saveState(state: RunState): void {
-    writeFileSync(join(this.dir, "state.json"), `${JSON.stringify(state, null, 2)}\n`);
+    const file = join(this.dir, "state.json");
+    writeFileSync(`${file}.tmp`, `${JSON.stringify(state, null, 2)}\n`);
+    renameSync(`${file}.tmp`, file);
   }
 }
 

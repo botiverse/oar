@@ -42,6 +42,8 @@ export class Contracts {
   opened(session: Session, declared: SessionCapabilityDeclaration): void {
     this.declared = declared;
     this.lastTokens = 0;
+    // A compaction in the previous session's unfinished turn says nothing about this one.
+    this.compactedThisTurn = false;
     const checks: [string, boolean | undefined, boolean][] = [
       ["steer", declared.steer, session.steer !== undefined],
       ["stopTask", declared.stopTask, session.stopTask !== undefined],

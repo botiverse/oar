@@ -69,9 +69,13 @@ export async function up(dir: string, specs: readonly string[], upOptions: UpOpt
   const save = (): void => {
     store.saveState({ agents: [...agents.values()].map((agent) => agent.state) });
   };
-  const addAgent = (state: AgentState): void => {
+  const register = (state: AgentState): HarborAgent => {
     const agent = new HarborAgent(state, store, { stallMs, bin: writeBin(dir, state.name), recycle: upOptions.recycle, dayTokens: upOptions.dayTokens }, save);
     agents.set(state.name, agent);
+    return agent;
+  };
+  const addAgent = (state: AgentState): void => {
+    const agent = register(state);
     save();
     void openReporting(agent);
   };
@@ -182,8 +186,13 @@ export async function up(dir: string, specs: readonly string[], upOptions: UpOpt
   writeFileSync(join(dir, "daemon.json"), `${JSON.stringify({ pid: process.pid, port, startedAt: Date.now() })}\n`);
   store.journal({ kind: "up", pid: process.pid, port, agents: states.map((state) => state.name) });
   console.log(`harbor up: ${dir} (port ${port}); agents ${states.map((state) => state.name).join(", ")}`);
-  for (const state of states) {
-    addAgent(state);
+  // Every agent is registered before the first save, so an interrupted start cannot drop one or its messages.
+  const restarting = states.map((state) => register(state));
+  save();
+  const messages = store.messages();
+  for (const agent of restarting) {
+    agent.restore(messages);
+    void openReporting(agent);
   }
   for (const signal of ["SIGINT", "SIGTERM"] as const) {
     process.on(signal, () => {
