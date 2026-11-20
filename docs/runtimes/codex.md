@@ -912,7 +912,10 @@ read-back][oar-open], [unit test](../../tests/codex/codex-session-effort.test.ts
 
 **Instructions:** `systemPrompt` maps to `baseInstructions` (replaces codex's
 base prompt) and `appendSystemPrompt` to `developerInstructions` (appended as
-a developer message); `instructions` / `userInstructions` are silently
+a developer message). For each open, cold resume and fork with an append, OAR reads
+`developer_instructions` from native `config/read` for the session cwd. It sends
+the configured text followed by the host text in the one developer slot. An
+omitted append leaves the slot to Codex. `instructions` / `userInstructions` are silently
 ignored by `thread/start`. Cwd and the process environment overlay are
 forwarded. Requested and effective configuration remain distinct.
 On an open thread, the append reached the model as developer text after
@@ -926,8 +929,7 @@ applies immediately, and an omitted one keeps the saved replacement, after
 compaction too. On a cold resume or fork (0.171.0), the first request still carries the saved
 append. At the next compaction a supplied `appendSystemPrompt` replaces it.
 Omitting it restores the new-session default. **Pass the current append on
-every resume and fork** when it must stay in effect. [Reopen evidence](../../experiments/codex-instruction-retention/README.md#cold-resume-and-fork). OAR forwards the
-values without comparing prompts or injecting an extra user message.
+every resume and fork** when it must stay in effect. [Reopen evidence](../../experiments/codex-instruction-retention/README.md#cold-resume-and-fork). Codex applies the composed developer text at its native compaction boundary.
 `Runtime.resumedSessionOptions` declares replacement as `immediate` / `saved`
 and append as `next_compaction` / `saved_until_compaction`.
 

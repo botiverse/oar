@@ -15,7 +15,7 @@ import { newSessionLinks } from "../../shared/session-links.js";
 import { startAppServerClient, type RpcOutcome } from "./app-server-client.js";
 import { CODEX_SETTINGS_REPORT_MS, codexOpenReadback, codexResumeEffortRefusal, codexThreadName, codexThreadOpen } from "./open.js";
 import { foldCodexNotification, initialCodexProjection, type CodexProjectionState } from "./projection.js";
-import { prepareCodexToolDenials } from "./tool-denials.js";
+import { prepareCodexOpenParams } from "./open-config.js";
 import { missingDirectoryError, nameThread, openThread, rpcControl, updateThreadEffort, type RpcControlPlan } from "./rpc-control.js";
 import { codexControlRefusal, codexVersion } from "./refusal.js";
 import { codexServerRequests } from "./runtime-requests.js";
@@ -59,7 +59,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
     })) ?? installation.version ?? null;
     client.notify("initialized", {});
     if (options.goals === true) { await confirmCodexGoals(client); }
-    const filteredOpenParams = await prepareCodexToolDenials(client, options, openParams);
+    const effectiveOpenParams = await prepareCodexOpenParams(client, options, openParams);
     // The open event is marked at the reply's wire position AS the reply line
     // is read (onSettled → client.mark), not after this await: a frame codex
     // wrote in the same chunk right after the reply (thread/started) would
@@ -72,7 +72,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       }
     };
     const started = await openThread(openMethod, async () => {
-      const reply = await client.request(openMethod, filteredOpenParams, markOpen);
+      const reply = await client.request(openMethod, effectiveOpenParams, markOpen);
       return reply;
     }, { version, serviceTier: options.serviceTier, resumeId: options.resume, through: options.fork?.through });
     const threadId = asRecord(started.thread)?.id;

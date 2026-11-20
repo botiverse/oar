@@ -216,19 +216,19 @@ export interface SessionOptions {
    * the saved value only until compaction, then uses the new-session default.
    * Codex replaces immediately and retains the saved value when omitted.
    * See Runtime.resumedSessionOptions for measured timing and omission behavior.
-   * Refused by cursor, kimi, antigravity, opencode v2 and pi-durable with
+   * Refused by cursor, kimi, antigravity and pi-durable with
    * UnsupportedOptionError; see Runtime.refusedSessionOptions and the runtime
    * matrix for version/value-specific refusals.
    */
   readonly systemPrompt?: string;
   /**
-   * APPEND to the built-in prompt, keeping the native harness instructions.
+   * Append after the included native configuration and harness instructions, preserving both.
    * On Claude and Codex resume a different value takes effect after native
    * compaction. Omitting it retains the saved value only until compaction,
    * then uses the new-session default. Supply the current Claude/Codex prompt
    * on every open to retain it after compaction. Other runtimes' measured timing and
    * omission behavior are declared in Runtime.resumedSessionOptions; absence
-   * means untested. Refused by cursor, kimi, opencode v2 and codebuddy with
+   * means untested. Refused by cursor, kimi and codebuddy with
    * UnsupportedOptionError; antigravity also refuses when its server does not
    * advertise append support. Grok append-only resume must omit this option to
    * retain the saved value; changing it requires systemPrompt as well.

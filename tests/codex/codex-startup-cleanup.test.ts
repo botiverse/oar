@@ -24,6 +24,7 @@ const failures: FailureCase[] = [
   { failure: "thread/resume", options: { resume: "fixture-thread" }, reason: /fixture refused thread\/resume/u },
   { failure: "missing-thread-id", reason: /returned no thread id/u },
   { failure: "config/read", options: { disallowedTools: ["mcp__missing__tool"] }, reason: /fixture refused config\/read/u },
+  { failure: "append-preflight", options: { appendSystemPrompt: "host text" }, reason: /no effective configuration for appendSystemPrompt/u },
   { failure: "tool-preflight", options: { disallowedTools: ["mcp__missing__tool"] }, reason: /cannot identify one configured MCP server/u },
   { failure: "model-readback", options: { model: "requested-model" }, reason: /requested-model/u },
   { failure: "thread/settings/update", options: { resume: "fixture-thread", effort: "high" }, reason: /fixture refused thread\/settings\/update/u },
