@@ -124,24 +124,24 @@ of a `prompt` request that reentrantly calls `queue` places the queued entry
 before that `prompt` decides, so adapter-held sessions refuse the `prompt` as
 `busy` and drain the queued entry instead.
 
-| runtime | `steer` | `withdraw` | `capabilities.queue.durable` | `fileChanges` |
-|---|---|---|---|---|
-| dsh | yes where the bridge reports the agent's `steer` at open: `agent.steer`, the native next-step inbox | yes: native `inbox.remove`, for input held for a later turn | no: native dispose clears the inbox; a crash can leave input that runs at the next wake ([mapping](../runtimes/dsh.md#session-options)) | absent |
-| factory | yes: a second `droid.add_user_message`, queued `end_of_turn` and drained into the running turn, which ends once | yes, while held | no ([mapping](../runtimes/factory.md#prompting-steering-queueing-and-abort)) | absent |
-| qoder | yes: stdin user message with `priority: next`, joining at a tool boundary or following a text-only turn | yes, while held | no | absent |
-| qwen | no: native busy writes queue | yes, while held | no | absent |
-| claude | yes: a user message written to stdin mid-turn | yes | no | absent |
-| codex | yes: `turn/steer` with `expectedTurnId` | no: the queue is codex's own (`thread/queue/add`; [why](record-stream.md#withdrawing-held-input)) | yes | true from 0.160.1, absent on older or unreadable versions |
-| pi-durable | yes: native `submit`, `whenBusy: steer` | yes: `submission.abort()` | yes | absent |
-| pi | yes: the SDK session's `steer` | yes | no | absent |
-| cursor (`@cursor/sdk`) | yes, text only: `run.steer` (images are rejected `unsupported`); `complete_delivered` and SDK 1.4.0 `queued` are accepted (a queued steer is Cursor's follow-up, unobserved by OAR), `revert_to_followup` is refused ([mapping](../runtimes/cursor.md#prompt-steering-queueing-and-abort)) | yes | no | absent |
-| grok (ACP) | yes: `_x.ai/interject`, taken into the running turn at its next safe point without cancelling it; one that misses the turn runs as Grok's own ([mapping](../runtimes/grok.md#prompting-steering-queuing-and-cancellation)) | yes | no | absent |
-| codebuddy (ACP) | absent: no verified injection interface | yes | no | absent |
-| devin (ACP) | absent: no verified injection interface | yes | no | absent |
-| kimi (ACP) | no | yes | no | absent |
-| antigravity (CLI ACP) | yes | yes | no | absent |
-| opencode v1 (ACP) | yes: a plain prompt RPC mid-turn, which joins the running loop at its next step; both prompts are answered at idle | yes | no | absent |
-| opencode v2 (ACP) | yes where `initialize` advertises `_meta.steering.supported` (2.2.7 and later): `_session/steering`, `injected` is accepted into the running turn, `promptRequired` is `no_active_turn` ([mapping](../runtimes/opencode.md#v2-session-behavior); verified natively on 2.3.0, including that abort keeps an accepted steer and slash commands steer as text). Otherwise absent: concurrent native prompts are refused; `steerOrQueue` and `deliver` use the host queue | yes | no | absent |
+| runtime | `steer` | `withdraw` | `capabilities.queue.durable` |
+|---|---|---|---|
+| dsh | yes where the bridge reports the agent's `steer` at open: `agent.steer`, the native next-step inbox | yes: native `inbox.remove`, for input held for a later turn | no: native dispose clears the inbox; a crash can leave input that runs at the next wake ([mapping](../runtimes/dsh.md#session-options)) |
+| factory | yes: a second `droid.add_user_message`, queued `end_of_turn` and drained into the running turn, which ends once | yes, while held | no ([mapping](../runtimes/factory.md#prompting-steering-queueing-and-abort)) |
+| qoder | yes: stdin user message with `priority: next`, joining at a tool boundary or following a text-only turn | yes, while held | no |
+| qwen | no: native busy writes queue | yes, while held | no |
+| claude | yes: a user message written to stdin mid-turn | yes | no |
+| codex | yes: `turn/steer` with `expectedTurnId` | no: the queue is codex's own (`thread/queue/add`; [why](record-stream.md#withdrawing-held-input)) | yes |
+| pi-durable | yes: native `submit`, `whenBusy: steer` | yes: `submission.abort()` | yes |
+| pi | yes: the SDK session's `steer` | yes | no |
+| cursor (`@cursor/sdk`) | yes, text only: `run.steer` (images are rejected `unsupported`); `complete_delivered` and SDK 1.4.0 `queued` are accepted (a queued steer is Cursor's follow-up, unobserved by OAR), `revert_to_followup` is refused ([mapping](../runtimes/cursor.md#prompt-steering-queueing-and-abort)) | yes | no |
+| grok (ACP) | yes: `_x.ai/interject`, taken into the running turn at its next safe point without cancelling it; one that misses the turn runs as Grok's own ([mapping](../runtimes/grok.md#prompting-steering-queuing-and-cancellation)) | yes | no |
+| codebuddy (ACP) | absent: no verified injection interface | yes | no |
+| devin (ACP) | absent: no verified injection interface | yes | no |
+| kimi (ACP) | no | yes | no |
+| antigravity (CLI ACP) | yes | yes | no |
+| opencode v1 (ACP) | yes: a plain prompt RPC mid-turn, which joins the running loop at its next step; both prompts are answered at idle | yes | no |
+| opencode v2 (ACP) | yes where `initialize` advertises `_meta.steering.supported` (2.2.7 and later): `_session/steering`, `injected` is accepted into the running turn, `promptRequired` is `no_active_turn` ([mapping](../runtimes/opencode.md#v2-session-behavior); verified natively on 2.3.0, including that abort keeps an accepted steer and slash commands steer as text). Otherwise absent: concurrent native prompts are refused; `steerOrQueue` and `deliver` use the host queue | yes | no |
 
 For ACP runtimes with `steer` (Grok, Antigravity, OpenCode v1 and v2), OAR
 rechecks the original active turn after startup waits and at SDK dispatch.
@@ -159,23 +159,23 @@ that installation would open: `steer` is whether `Session.steer` exists,
 handshake at open can tell; a host treats absent as unknown, never as false,
 and the opened session stays authoritative.
 
-| runtime | `steer` | `images` | `stopTask` | `mcpTransports` | `contextUsage` |
-|---|---|---|---|---|---|
-| antigravity | true | absent: advertised by `initialize` | false | `["stdio", "http"]` (`minVersion` 1.5.0 with `--process-per-session`, credential-free only per `refusedSessionOptions.mcpServerCredentials`; [mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` |
-| claude | true | true | true | `["stdio", "http"]` ([mcp-servers.vendor.test.ts](../../sea-trial/vendor/mcp-servers.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` |
-| codebuddy | false | absent: advertised by `initialize` | false | `["stdio", "http"]` on `>= 2.178.1` ([codebuddy.vendor.test.ts](../../sea-trial/vendor/codebuddy.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: false, contextWindow: false }` (native `0/0` when model limit is unknown is not trustworthy) |
-| codex | true | true | true | `["stdio", "http"]` ([mcp-servers.vendor.test.ts](../../sea-trial/vendor/mcp-servers.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` on `>= 0.151.0`; absent on older or unreadable versions |
-| cursor | true (an individual steer can still be rejected: `unsupported` with images, `runtime_refused` when the run cannot take it, as above) | true | false | `["stdio", "http"]` ([cursor-mcp.ts](../../experiments/cursor-mcp.ts)) | `{ tokens: true, contextWindow: false }` |
-| devin | false | absent: advertised by `initialize` | false | absent: handshake-dependent and unverified in CI | absent: live turns unverified |
-| dsh | absent: the bridge reports the agent's methods at open | absent: the selected model and native attachment store determine image support | true | `["stdio"]` ([dsh-mcp.vendor.test.ts](../../sea-trial/vendor/dsh-mcp.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` |
-| factory | true | true | false | absent: HTTP MCP tool invocation unverified (only stdio is exercised in [factory.vendor.test.ts](../../sea-trial/vendor/factory.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` |
-| grok | true | true | false | `["stdio", "http"]` on `>= 1.0.46` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: false }` |
-| kimi | false | absent: advertised by `initialize` | false | `["stdio", "http"]` on `>= 2.1.1` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: true }` (except models whose catalog entry has no size) |
-| opencode | true on a v1 installation; absent on v2 or an unreadable version (`initialize` advertises steering) | absent: advertised by `initialize` | false | `["stdio", "http"]` on v1 `>= 1.18.30` and v2 `>= 2.0.26` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: true }` on readable v1/v2 versions; absent on unreadable versions |
-| pi | true | true | false | `["stdio", "http"]` ([mcp-servers-pi.vendor.test.ts](../../sea-trial/vendor/mcp-servers-pi.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` |
-| pi-durable | true | false | false | `[]` | `{ tokens: false, contextWindow: false }` |
-| qoder | true | false | true | `["stdio", "http"]` ([qoder.vendor.test.ts](../../sea-trial/vendor/qoder.vendor.test.ts)) | `{ tokens: false, contextWindow: false }` |
-| qwen | false | false | false | `["stdio", "http"]` on `>= 0.26.0` ([qwen.vendor.test.ts](../../sea-trial/vendor/qwen.vendor.test.ts)); `["stdio"]` on readable `< 0.26.0` (HTTP refused at open); absent on unreadable versions | `{ tokens: true, contextWindow: true }` on `>= 0.26.0`; absent on older or unreadable versions |
+| runtime | `steer` | `images` | `stopTask` | `mcpTransports` | `contextUsage` | `fileChanges` |
+|---|---|---|---|---|---|---|
+| antigravity | true | absent: advertised by `initialize` | false | `["stdio", "http"]` (`minVersion` 1.5.0 with `--process-per-session`, credential-free only per `refusedSessionOptions.mcpServerCredentials`; [mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent |
+| claude | true | true | true | `["stdio", "http"]` ([mcp-servers.vendor.test.ts](../../sea-trial/vendor/mcp-servers.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent |
+| codebuddy | false | absent: advertised by `initialize` | false | `["stdio", "http"]` on `>= 2.178.1` ([codebuddy.vendor.test.ts](../../sea-trial/vendor/codebuddy.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: false, contextWindow: false }` (native `0/0` when model limit is unknown is not trustworthy) | absent |
+| codex | true | true | true | `["stdio", "http"]` ([mcp-servers.vendor.test.ts](../../sea-trial/vendor/mcp-servers.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` on `>= 0.151.0`; absent on older or unreadable versions | true from 0.160.1, absent on older or unreadable versions |
+| cursor | true (an individual steer can still be rejected: `unsupported` with images, `runtime_refused` when the run cannot take it, as above) | true | false | `["stdio", "http"]` ([cursor-mcp.ts](../../experiments/cursor-mcp.ts)) | `{ tokens: true, contextWindow: false }` | absent |
+| devin | false | absent: advertised by `initialize` | false | absent: handshake-dependent and unverified in CI | absent: live turns unverified | absent |
+| dsh | absent: the bridge reports the agent's methods at open | absent: the selected model and native attachment store determine image support | true | `["stdio"]` ([dsh-mcp.vendor.test.ts](../../sea-trial/vendor/dsh-mcp.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent |
+| factory | true | true | false | absent: HTTP MCP tool invocation unverified (only stdio is exercised in [factory.vendor.test.ts](../../sea-trial/vendor/factory.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent |
+| grok | true | true | false | `["stdio", "http"]` on `>= 1.0.46` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: false }` | absent |
+| kimi | false | absent: advertised by `initialize` | false | `["stdio", "http"]` on `>= 2.1.1` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: true }` (except models whose catalog entry has no size) | absent |
+| opencode | true on a v1 installation; absent on v2 or an unreadable version (`initialize` advertises steering) | absent: advertised by `initialize` | false | `["stdio", "http"]` on v1 `>= 1.18.30` and v2 `>= 2.0.26` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: true }` on readable v1/v2 versions; absent on unreadable versions | absent |
+| pi | true | true | false | `["stdio", "http"]` ([mcp-servers-pi.vendor.test.ts](../../sea-trial/vendor/mcp-servers-pi.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent |
+| pi-durable | true | false | false | `[]` | `{ tokens: false, contextWindow: false }` | absent |
+| qoder | true | false | true | `["stdio", "http"]` ([qoder.vendor.test.ts](../../sea-trial/vendor/qoder.vendor.test.ts)) | `{ tokens: false, contextWindow: false }` | absent |
+| qwen | false | false | false | `["stdio", "http"]` on `>= 0.26.0` ([qwen.vendor.test.ts](../../sea-trial/vendor/qwen.vendor.test.ts)); `["stdio"]` on readable `< 0.26.0` (HTTP refused at open); absent on unreadable versions | `{ tokens: true, contextWindow: true }` on `>= 0.26.0`; absent on older or unreadable versions | absent |
 
 Every runtime built with `defineRuntime` has the member; one that declares
 neither field answers with its static declarations only. Community runtimes
