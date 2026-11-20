@@ -1,0 +1,23 @@
+name: OpenCode Windows readiness measurement
+on:
+  pull_request:
+    paths:
+      - 'experiments/opencode-windows-readiness/**'
+      - '.github/workflows/opencode-readiness-measure.yml'
+permissions:
+  contents: read
+jobs:
+  measure:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - run: node .github/scripts/runtime-install.mjs opencode-cleanup
+      - name: Compare serial and overlapping opens on the same runner
+        shell: pwsh
+        run: ./experiments/opencode-windows-readiness/measure.ps1
