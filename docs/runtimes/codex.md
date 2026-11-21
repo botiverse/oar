@@ -1211,8 +1211,19 @@ unreachable url). Every error the app-server client reports (codex's
 message, the exit's stderr tail) passes a redactor that replaces each value
 with `[redacted]` ([test](../../tests/codex/codex-session-mcp-servers.test.ts)).
 
-A `serveMcpTools` entry attaches here as any http entry does
-([host-served tools](../spec/runtime-matrix.md#host-served-tools)). A
+Codex guarantees that [host-served tools](../spec/runtime-matrix.md#host-served-tools)
+have finished discovery before the first prompt. For entries returned by
+`serveMcpTools`, OAR sends `required = true` and a 30-second native MCP
+startup timeout on new, resumed and forked threads. Codex itself waits during
+open. If discovery fails or times out, the open rejects with the native
+reason before a model request. Ordinary configured servers retain their native
+startup policy. Tool filters and approval settings still apply. The in-process
+server normally answers immediately. The first-turn echo was missing once in
+[Linux CI](https://github.com/botiverse/oar/actions/runs/44910411500) without an
+added delay. The held-list control above reproduced the omission and verified
+that the native required setting waits for discovery.
+
+A
 running session keeps the tool set its servers listed at open and never
 lists again after `notifications/tools/list_changed`, so
 `Runtime.mcpToolsListChanged` is `none` ([env] 0.162.0 and 0.162.1, still

@@ -23,7 +23,9 @@ export type McpTransport = "stdio" | "http";
  */
 export type McpServer =
   | { readonly name: string; readonly command: string; readonly args?: readonly string[]; readonly env?: Readonly<Record<string, string>> }
-  | { readonly name: string; readonly type: "http"; readonly url: string; readonly headers?: Readonly<Record<string, string>> };
+  | { readonly name: string; readonly type: "http"; readonly url: string; readonly headers?: Readonly<Record<string, string>>;
+      /** Set by serveMcpTools so the runtime can require the host's server during startup. */
+      readonly origin?: "serveMcpTools" };
 
 /**
  * SessionOptions.fork. `through` cuts the copy after one turn: the
