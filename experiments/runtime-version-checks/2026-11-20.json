@@ -1,0 +1,1761 @@
+{
+  "window": {
+    "fromExclusive": "2026-11-19T21:09:10.722Z",
+    "throughInclusive": "2026-11-20T21:07:59Z"
+  },
+  "localProbeDate": "2026-11-21",
+  "localOarCommit": "6674fe6d129711a06223a72d211e181be12b5d7c",
+  "realModelSubmissions": 0,
+  "inventory": [
+    {
+      "runtime": "antigravity",
+      "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json",
+      "previous": "1.5.12",
+      "frozen": "1.5.13",
+      "history": "mutable vendor manifest; morning workflow frozen version"
+    },
+    {
+      "runtime": "claude",
+      "package": "@anthropic-ai/claude-code",
+      "previous": "2.1.328",
+      "windowReleases": [
+        {
+          "version": "2.1.330",
+          "published": "2026-11-20T19:16:01.070Z"
+        }
+      ]
+    },
+    {
+      "runtime": "codex",
+      "package": "@openai/codex",
+      "previous": "0.170.0",
+      "windowReleases": [
+        {
+          "version": "0.171.0",
+          "published": "2026-11-20T00:51:29.762Z"
+        }
+      ]
+    },
+    {
+      "runtime": "cursor",
+      "package": "@cursor/sdk",
+      "previous": "1.4.2",
+      "windowReleases": []
+    },
+    {
+      "runtime": "dsh",
+      "package": "@deepseek-ai/dsh",
+      "previous": "0.2.2-rc.5",
+      "windowReleases": []
+    },
+    {
+      "runtime": "factory",
+      "package": "droid",
+      "previous": "1.15.0",
+      "windowReleases": [
+        {
+          "version": "1.16.0",
+          "published": "2026-11-20T02:05:33.080Z"
+        }
+      ]
+    },
+    {
+      "runtime": "grok",
+      "package": "@xai-official/grok",
+      "previous": "1.0.89",
+      "windowReleases": [
+        {
+          "version": "1.0.92",
+          "published": "2026-11-20T01:08:17.818Z"
+        },
+        {
+          "version": "1.0.93",
+          "published": "2026-11-20T19:43:44.262Z"
+        }
+      ]
+    },
+    {
+      "runtime": "kimi",
+      "package": "@moonshot-ai/kimi-code",
+      "previous": "2.7.0",
+      "windowReleases": [
+        {
+          "version": "2.7.1",
+          "published": "2026-11-20T06:43:45.965Z"
+        },
+        {
+          "version": "2.7.2",
+          "published": "2026-11-20T09:15:06.305Z"
+        }
+      ]
+    },
+    {
+      "runtime": "opencode",
+      "package": "opencode-ai",
+      "previous": "1.19.6",
+      "windowReleases": []
+    },
+    {
+      "runtime": "opencode",
+      "package": "@opencode/cli",
+      "previous": "2.3.2",
+      "windowReleases": []
+    },
+    {
+      "runtime": "codebuddy",
+      "package": "@tencent-ai/codebuddy-code",
+      "previous": "2.185.0",
+      "windowReleases": []
+    },
+    {
+      "runtime": "qoder",
+      "package": "@qoder-ai/qodercli",
+      "previous": "1.1.93",
+      "windowReleases": [
+        {
+          "version": "1.1.94",
+          "published": "2026-11-20T12:51:00.886Z"
+        }
+      ]
+    },
+    {
+      "runtime": "qwen",
+      "package": "@qwen-code/qwen-code",
+      "previous": "0.28.0",
+      "windowReleases": []
+    },
+    {
+      "runtime": "pi",
+      "package": "@earendil-works/pi-coding-agent",
+      "previous": "1.5.2",
+      "windowReleases": [
+        {
+          "version": "1.6.0",
+          "published": "2026-11-20T11:09:15.529Z"
+        }
+      ]
+    },
+    {
+      "runtime": "pi-durable",
+      "package": "@earendil-works/pi-durable",
+      "previous": "1.5.2",
+      "windowReleases": [
+        {
+          "version": "1.6.0",
+          "published": "2026-11-20T11:05:17.451Z"
+        }
+      ]
+    }
+  ],
+  "candidates": {
+    "frozenAt": "2026-11-20T06:31:22.850Z",
+    "url": "https://github.com/botiverse/oar/actions/runs/44688370385",
+    "runtimes": {
+      "claude-aimock": "2.1.329",
+      "codex-aimock": "0.171.0",
+      "qwen-aimock": "0.28.0",
+      "factory-aimock": "1.16.0",
+      "kimi-aimock": "2.7.0",
+      "grok-aimock": "1.0.89",
+      "codebuddy-aimock": "2.185.0",
+      "opencode-aimock": "1.19.6",
+      "opencode-cleanup": "2.3.2",
+      "kimi-login": "2.7.0",
+      "kimi-skills": "2.7.0",
+      "antigravity-aimock": "1.5.13"
+    },
+    "sdks": {
+      "cursor": {
+        "@cursor/sdk": "1.4.2"
+      },
+      "pi": {
+        "@earendil-works/pi-coding-agent": "1.5.2",
+        "undici": "8.12.3",
+        "@earendil-works/pi-ai": "1.5.2",
+        "@earendil-works/pi-durable": "1.5.2",
+        "@earendil-works/chord": "1.5.2"
+      }
+    },
+    "exclusions": [
+      {
+        "key": "qoder-native",
+        "policy": "replay",
+        "version": "1.1.81"
+      },
+      {
+        "key": "dsh-aimock",
+        "policy": "minimum",
+        "version": "0.2.1-rc.5"
+      },
+      {
+        "key": "grok-long-initialize",
+        "policy": "historical",
+        "version": "1.0.70"
+      },
+      {
+        "key": "pi-rpc-minimum",
+        "policy": "minimum",
+        "version": "1.4.0"
+      }
+    ]
+  },
+  "localTests": [
+    {
+      "name": "qoder-gate",
+      "runtime": "qoder",
+      "version": "1.1.94",
+      "result": "passed",
+      "logSha256": "16777186f5b70a5001d785f5d2c9125e68e10b95b687486487032b05127ee97b"
+    },
+    {
+      "name": "grok-prompt-options",
+      "runtime": "grok",
+      "version": "1.0.92",
+      "result": "passed",
+      "logSha256": "8b06ae24f7736c83aba976b1782745c8dfaf59597dc61fdd92dbb7e682434caa"
+    },
+    {
+      "name": "claude-local-oauth",
+      "runtime": "claude",
+      "version": "2.1.330",
+      "result": "failed",
+      "logSha256": "d25dff2b9608906d80b50736bb92a40fffa5aebd1c362fd0ef9b598be55d3475"
+    },
+    {
+      "name": "factory-native",
+      "runtime": "factory",
+      "version": "1.16.0",
+      "result": "passed",
+      "logSha256": "a957982f350e4c85d0a81431e6cafa83aa4e539d5ca36ae5e833c2f5d741a624"
+    },
+    {
+      "name": "kimi-login",
+      "runtime": "kimi",
+      "version": "2.7.2",
+      "result": "passed",
+      "passed": 17,
+      "skipped": 0,
+      "logSha256": "2ee6fa95acc0b2d8091e09558514c9f9cea5a3bcdfcb8e3d19f40b637154ebaf"
+    },
+    {
+      "name": "kimi-fresh-skills",
+      "runtime": "kimi",
+      "version": "2.7.2",
+      "result": "passed",
+      "passed": 4,
+      "skipped": 0,
+      "logSha256": "6ddcf38ab184293a8608289347410031fe4b55a4a3b0d340863cdbc4a4e674c6"
+    },
+    {
+      "name": "kimi-behavior",
+      "runtime": "kimi",
+      "version": "2.7.2",
+      "result": "passed",
+      "passed": 16,
+      "skipped": 4,
+      "logSha256": "77a958d31d98de0b4a33b7f007566b13e41bbbc39d74736c52ad563c92db999e"
+    },
+    {
+      "name": "codex-behavior",
+      "runtime": "codex",
+      "version": "0.171.0",
+      "result": "passed",
+      "passed": 17,
+      "skipped": 3,
+      "logSha256": "f86f27be64dc00fe247d3086b1ca1ea23208f72856b3fea7f26a6ab3d1c093e9"
+    },
+    {
+      "name": "grok-behavior",
+      "runtime": "grok",
+      "version": "1.0.92",
+      "result": "passed",
+      "passed": 18,
+      "skipped": 2,
+      "logSha256": "0dc5122391bd0a14b1e811cd2fc191600ded27bd3ac17bc68c16cc088ced4d5b"
+    },
+    {
+      "name": "factory-behavior",
+      "runtime": "factory",
+      "version": "1.16.0",
+      "result": "passed",
+      "passed": 20,
+      "skipped": 0,
+      "logSha256": "07fb34dd19433f8a7c552ed8e8671d6b2a1f0935f7674e2097407c599ca4cafc"
+    },
+    {
+      "name": "claude-behavior",
+      "runtime": "claude",
+      "version": "2.1.330",
+      "result": "passed",
+      "passed": 18,
+      "skipped": 2,
+      "logSha256": "6659bd26a40431166b4df9dc88ffeb83973c616db62dda38c71257f0507240b2"
+    },
+    {
+      "name": "kimi-vendor",
+      "runtime": "kimi",
+      "version": "2.7.2",
+      "result": "passed",
+      "passed": 19,
+      "skipped": 583,
+      "logSha256": "043718ee6d26f69c9f6beb356590b1d932a3789b7dc6c02c01474f69ef039192"
+    },
+    {
+      "name": "codex-vendor",
+      "runtime": "codex",
+      "version": "0.171.0",
+      "result": "passed",
+      "passed": 100,
+      "skipped": 502,
+      "logSha256": "c2694639b41e2bac7f54713adb8127fe81b65bffa894044babf24f43711333c2"
+    },
+    {
+      "name": "grok-vendor",
+      "runtime": "grok",
+      "version": "1.0.92",
+      "result": "passed",
+      "passed": 31,
+      "skipped": 570,
+      "logSha256": "a6b844253833c58491f20a93290459697388fe44dc9e88b6e6e09149bf5efaeb"
+    },
+    {
+      "name": "factory-vendor",
+      "runtime": "factory",
+      "version": "1.16.0",
+      "result": "passed",
+      "passed": 13,
+      "skipped": 589,
+      "logSha256": "1dd79c1e91f56d75d1e92e7ca655773ad0024625c595e2178db96bd1fae91d5e"
+    },
+    {
+      "name": "claude-vendor",
+      "runtime": "claude",
+      "version": "2.1.330",
+      "result": "passed",
+      "passed": 107,
+      "skipped": 495,
+      "logSha256": "973d60feb836ba5dabf929a51e4c6354875e1d5ad7fe0707b95fc5665f1a150f"
+    },
+    {
+      "name": "pi-aimock",
+      "version": "1.6.0",
+      "result": "passed",
+      "passed": 18,
+      "skipped": 2,
+      "logSha256": "92cdeb1172c00ebd9e326cf6dc6d0b3143bedca45b8316c96639bafd68fbf245"
+    },
+    {
+      "name": "pi-rpc-aimock",
+      "version": "1.6.0",
+      "result": "passed",
+      "passed": 18,
+      "skipped": 2,
+      "logSha256": "50fc34ab97a74123ec0401a198d765483076054733ef383393be0b6a061d4aff"
+    },
+    {
+      "name": "pi-durable-aimock",
+      "version": "1.6.0",
+      "result": "passed",
+      "passed": 19,
+      "skipped": 1,
+      "logSha256": "2d72efa75649b4aeada643dc3615e8338c643a936ebb724c91e3ff770759ada7"
+    }
+  ],
+  "claudeLocalOAuth": [
+    {
+      "version": "2.1.330",
+      "mode": "default",
+      "browserOpens": 1,
+      "exchanges": 0,
+      "profiles": 0,
+      "verified": false,
+      "login": "failed",
+      "urls": 0
+    },
+    {
+      "version": "2.1.330",
+      "mode": "default",
+      "browserOpens": 1,
+      "exchanges": 0,
+      "profiles": 0,
+      "verified": false,
+      "login": "failed",
+      "urls": 0
+    },
+    {
+      "version": "2.1.326",
+      "mode": "default",
+      "browserOpens": 1,
+      "exchanges": 1,
+      "profiles": 1,
+      "verified": true,
+      "login": "logged_in",
+      "urls": 1
+    },
+    {
+      "version": "2.1.326",
+      "mode": "suppressed",
+      "browserOpens": 0,
+      "exchanges": 1,
+      "profiles": 1,
+      "verified": true,
+      "login": "logged_in",
+      "urls": 1
+    },
+    {
+      "version": "2.1.326",
+      "mode": "failing-browser",
+      "browserOpens": 1,
+      "exchanges": 1,
+      "profiles": 1,
+      "verified": true,
+      "login": "logged_in",
+      "urls": 1
+    }
+  ],
+  "factory": {
+    "addUserMessageReply": {},
+    "turnEnds": [
+      "first"
+    ],
+    "steerQueuedAs": "end_of_turn",
+    "steerEchoed": true,
+    "lastProviderRequestHasSteer": true,
+    "endReason": "completed"
+  },
+  "qoder": {
+    "version": "1.1.94",
+    "status": "no_offline_replay_requires_real_account",
+    "submittedPrompts": 0
+  },
+  "ci": {
+    "outcomesSampled": "2026-11-21",
+    "workflows": {
+      "ci.yml": {
+        "runs": 145,
+        "attempts": 159,
+        "uniqueJobs": 4768,
+        "outcomes": {
+          "success": 4192,
+          "cancelled": 335,
+          "skipped": 137,
+          "failure": 104
+        },
+        "zeroJobAttempts": [],
+        "windowsPiRpcVendor": {
+          "success": 47,
+          "cancelled": 2,
+          "failure": 1
+        }
+      },
+      "acp-windows.yml": {
+        "runs": 49,
+        "attempts": 49,
+        "uniqueJobs": 147,
+        "outcomes": {
+          "success": 97,
+          "skipped": 49,
+          "failure": 1
+        },
+        "zeroJobAttempts": []
+      },
+      "runtime-latest.yml": {
+        "runs": 1,
+        "attempts": 1,
+        "uniqueJobs": 42,
+        "outcomes": {
+          "success": 41,
+          "failure": 1
+        },
+        "zeroJobAttempts": []
+      }
+    },
+    "failedJobs": [
+      {
+        "workflow": "ci.yml",
+        "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+        "steps": [
+          "Run pnpm run sea-trial"
+        ],
+        "tests": [
+          "session.capabilities-match-declaration"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44649846441/job/136001756272",
+        "logSha256": "dff60148d6b4bcdf0fe15de51404ceb34fd3046c8af5941d397d21bb0d8965bf"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (macos-latest)",
+        "steps": [
+          "Native agy ACP vendor regressions"
+        ],
+        "tests": [
+          "sea-trial/vendor/mcp-servers-acp.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44660715868/job/136037982069",
+        "logSha256": "9c5546b6dc943d4e3c2db74f5cf8ec4934d11c66e8572a25c5ebd6b4c18ff9ce"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+        "steps": [
+          "Run pnpm run sea-trial"
+        ],
+        "tests": [
+          "session.effort-never-substituted"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44665635103/job/136054155704",
+        "logSha256": "127790f6f09f85f30b2f6707afd6c813c7c2c689002a40377146e9d6b3715da9"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+        "steps": [
+          "Run pnpm run sea-trial"
+        ],
+        "tests": [
+          "session.effort-never-substituted"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44666066647/job/136055613842",
+        "logSha256": "e6e19a12513388907cca0829f1fc625f13f9f273ed5f45c7ac99c32e0724965b"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [
+          "tests/claude/claude-session-mcp-servers.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44667975951/job/136061856705",
+        "logSha256": "d9fe653157184d1bb94189b77a6a9d92b0e808bcd902107cb013e0504e3fab9d"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "pi-rpc-minimum",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/credential-redaction-mcp.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44667975951/job/136061903627",
+        "logSha256": "ed498e9c8f5d02149c8f0090bc56b0c958cf07c222c0b73a0341b06db990d7ea"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (ubuntu-latest, pi-rpc-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/credential-redaction-mcp.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44667975951/job/136061903656",
+        "logSha256": "1afc8223bb326dc23465dba390a4918c837ab872dba741c64f6e5c3595adc780"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [
+          "tests/claude/claude-session-mcp-servers.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44668987707/job/136065130835",
+        "logSha256": "b4f7ccdffb4aaf294b8ba664fd3bf7f543bfc66bc5995f5328e8d858291786b8"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (macos-latest)",
+        "steps": [
+          "Native agy ACP behavior"
+        ],
+        "tests": [
+          "session.query-readbacks-carry-stream-seq"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44671119270/job/136072058327",
+        "logSha256": "37e8b2485f9993d6e7e9e6f088ab7c9030c6f709eacc5778cdc766889dd8ce6f"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+        "steps": [
+          "Run pnpm run sea-trial"
+        ],
+        "tests": [
+          "session.effort-never-substituted"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44671119270/job/136072174461",
+        "logSha256": "49e69c9e47cf410adea53c7cb1e0ee7aa78d8432b6788a3b464635faf1ca4aaa"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (macos-latest)",
+        "steps": [
+          "Native agy ACP behavior"
+        ],
+        "tests": [
+          "session.query-readbacks-carry-stream-seq"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44671119270/job/136078759496",
+        "logSha256": "e0ff1d5047ee09064bff6f2f8a2591228a3856058c8dc8d2822eec649e8c2601"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+        "steps": [
+          "Run pnpm run sea-trial"
+        ],
+        "tests": [
+          "session.effort-never-substituted"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44679085708/job/136097935486",
+        "logSha256": "a4eaf3e87efbcd08ff697f6bc17919a485f7b90ae6811452ee50aab484a70c5d"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+        "steps": [
+          "Run pnpm run sea-trial"
+        ],
+        "tests": [
+          "session.effort-never-substituted"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44680565532/job/136102737915",
+        "logSha256": "93919967a5e059baf35763a3e6fe59885764c731084f84cd52d2519f777b93d1"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (macos-latest, claude-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/stream-json-notification-delivery.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44683469823/job/136112174941",
+        "logSha256": "d1f2995730386447517352f9f4f0a1b3c439924b3c5f64f6cf4a973736efa20f"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [
+          "tests/pi-rpc-diagnostics.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44685259154/job/136117956959",
+        "logSha256": "cfa1663e698cb866d64f8c0160760d66cd2f9f35f265717dce3a56ca69d246a5"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+        "steps": [
+          "Run pnpm run sea-trial"
+        ],
+        "tests": [
+          "session.effort-never-substituted"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44685259154/job/136118065344",
+        "logSha256": "035caebe37f4df0e4c2d99386488860d064b2c0d99d84e16a44c3706c8b6bcef"
+      },
+      {
+        "workflow": "runtime-latest.yml",
+        "name": "native (claude-aimock, macos-latest, behavior)",
+        "steps": [
+          "Native vendor contracts"
+        ],
+        "tests": [
+          "sea-trial/vendor/stream-json-notification-delivery.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44688370385/job/136128098427",
+        "logSha256": "beef78fd397e424c27e259c20bfa57d46d0002d5a3d79ff29ecbb4aed7ec4850"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+        "steps": [
+          "Run pnpm run sea-trial"
+        ],
+        "tests": [
+          "session.effort-never-substituted"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44689193077/job/136130755606",
+        "logSha256": "2ba3094c0b515b08b0a0e8e876f5efd3969a1b78af59588b0e02f7d3cad31e9d"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+        "steps": [
+          "Run pnpm run sea-trial"
+        ],
+        "tests": [
+          "session.capabilities-match-declaration"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44692100453/job/136140133847",
+        "logSha256": "635afe189eaee6d56d0ccb3ca514d9e1bfd319679f3ff32970d1f295bbd71a21"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (ubuntu-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [],
+        "url": "https://github.com/botiverse/oar/actions/runs/44701333824/job/136170180039",
+        "logSha256": "bd0ed8578bd81494be789d97fa03f3e0fcc3115581ddfe229cf820669c194a75"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [],
+        "url": "https://github.com/botiverse/oar/actions/runs/44701333824/job/136170180115",
+        "logSha256": "a5525c32db763f1abf6ea0a20514e7b60adb9ae831a6176783dbbbb89dfceab5"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (macos-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [],
+        "url": "https://github.com/botiverse/oar/actions/runs/44701333824/job/136170180143",
+        "logSha256": "08f2b792c4756cc7bb54d0215e7c9255f66fa0d6e31bda25b76eabb47217594d"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+        "steps": [
+          "Run pnpm run sea-trial"
+        ],
+        "tests": [
+          "session.effort-never-substituted"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44702440583/job/136173879247",
+        "logSha256": "7e7bc663d101a10e3e845912f8f3ae7ea62d1c6c21bb7adeec1fd5182a6d4242"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "pi-rpc-minimum",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/pi-input-handled.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44708360019/job/136193572092",
+        "logSha256": "e3a382f4e47c118f28ea2a9faa2c69f94e844ee2eabb2f7faecfbf402556581e"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (ubuntu-latest, pi-rpc-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/pi-input-handled.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44708360019/job/136193572217",
+        "logSha256": "0f59aec2433428fd43ac05fb43bd385fa1aeff3e1a11cc0d22247dfcb60e44ed"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (ubuntu-latest, pi-durable-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/pi-durable-watch.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44708360019/job/136193572297",
+        "logSha256": "1aa412dd3d82dab0b0aa3ddb95fd29d82eec7e5eed27665bb31ee31ad63b4096"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+        "steps": [
+          "Run pnpm run sea-trial"
+        ],
+        "tests": [
+          "session.effort-never-substituted"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44709670725/job/136197948828",
+        "logSha256": "4afb24a17c0dcfe263fd1469365ccac2016f6898bbef8b3bd0d84ad0a75f4bf1"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44710123448/job/136199483774",
+        "logSha256": "f366aed0f5ebeb2815f36f8ddc46e7d0207de64a275e78fa63137af967ef6275"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44710148399/job/136199569862",
+        "logSha256": "4fb82c69c0045cbd2dec0e3bf7bcbb2c9f3e786dbc07352c0eb9976f6aff86a8"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (macos-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm run sea-trial"
+        ],
+        "tests": [
+          "session.query-readbacks-carry-stream-seq"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44710148399/job/136199570104",
+        "logSha256": "650c53a6438554a4a113f958c59c69e9b01da8ef017443622734f0a29ab29e1c"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (macos-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [],
+        "url": "https://github.com/botiverse/oar/actions/runs/44710755589/job/136201516568",
+        "logSha256": "26375d49363d2f768c4a18dcc1657c0780b985f7072e2e89293beea0c09a9846"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (ubuntu-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [],
+        "url": "https://github.com/botiverse/oar/actions/runs/44710755589/job/136201516574",
+        "logSha256": "36ecbf2d38eaea150b6a16ded8ff1f1fb073005858821844ed77bbbfb428196c"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [],
+        "url": "https://github.com/botiverse/oar/actions/runs/44710755589/job/136201516671",
+        "logSha256": "40f97f1a444be1d28b63d8525abcd66793ba4387c4f54e3e9b716f2c1f0df920"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44710195034/job/136201868900",
+        "logSha256": "67dfb85dfda7762c199d870045e46438ab9532baad418d3a7c252363aa8ba4f3"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44710407001/job/136202203007",
+        "logSha256": "194059bb9b7465df9560aee86e3fdba7812d9c59714b5e33da37ca4d8cf5c946"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44710242726/job/136202209550",
+        "logSha256": "ba419302d532fab15314c06939a6b6f288fa7ee3b8fa7b94c5d2046d1e756826"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44710730711/job/136202288849",
+        "logSha256": "b9bcf217b59c1f376adc87576b932b33967786418c8b45f0e889b8b9ef76ca57"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+        "steps": [
+          "Run pnpm run sea-trial"
+        ],
+        "tests": [
+          "session.effort-never-substituted"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44710755589/job/136202373225",
+        "logSha256": "c9aec56863b6cc9d8abe362992e99fd80824dcdf4d949cd108708719b6c5ba1d"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44710755589/job/136202373770",
+        "logSha256": "a3c76b2e200c1c424a4cc58725733ac03937a1c3672fad12e406db553c88a103"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (macos-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [],
+        "url": "https://github.com/botiverse/oar/actions/runs/44713608387/job/136211248726",
+        "logSha256": "189f7675090fb58a3f2e79be55d0976a3acf1ce2012724c4ba8879852695e487"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [],
+        "url": "https://github.com/botiverse/oar/actions/runs/44713608387/job/136211248760",
+        "logSha256": "1d36c7910449fe02c73f4a27c09bea11d86d2dbb5b3698dbf0831d98782f4e5e"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (ubuntu-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [],
+        "url": "https://github.com/botiverse/oar/actions/runs/44713608387/job/136211248809",
+        "logSha256": "e71dce8f9b27575d332c0ec528e782e25161aaf04f518e2064c0f189fc980cf8"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44713608387/job/136211328037",
+        "logSha256": "6f2d30dd2f23233d901aaa8f8ed144d3fa1a995aee53443e0ba6666ee9ae4781"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+        "steps": [
+          "Run pnpm run sea-trial"
+        ],
+        "tests": [
+          "session.effort-never-substituted"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44715350753/job/136217317831",
+        "logSha256": "82556b5becd28653721807340e47c01e76f8bb8f727ba853bf8531e1c98b9e69"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44715350753/job/136217318148",
+        "logSha256": "fad54f4e8b8c2e8c961a59a264e9a4f4e19c4f4fcba4a71c0b6a1bfd3cc4ec95"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "steps": [
+          "Native agy ACP vendor regressions"
+        ],
+        "tests": [
+          "sea-trial/vendor/antigravity-skills.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44716960548/job/136222695533",
+        "logSha256": "7196d3c8fb2e9b274c4680c867345581c051d9d9f70dd19ef3668988fefd4ddc"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (macos-latest)",
+        "steps": [
+          "Native agy ACP vendor regressions"
+        ],
+        "tests": [
+          "sea-trial/vendor/mcp-servers-acp.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44717033529/job/136222944890",
+        "logSha256": "9b7211e65959659185371d96b6570e76d0d4755150c77c65bc2d47dc49407293"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (macos-latest)",
+        "steps": [
+          "Native agy ACP vendor regressions"
+        ],
+        "tests": [
+          "sea-trial/vendor/mcp-servers-acp.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44718334120/job/136227333541",
+        "logSha256": "12d5e5839f2ee50e728a72cf6273ba27d1ba1d461d8b75fc3416e22bc179a8a5"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+        "steps": [
+          "Run pnpm run sea-trial"
+        ],
+        "tests": [
+          "session.effort-never-substituted"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44718951258/job/136229587061",
+        "logSha256": "a3397517a1231f37616d2b278da15a66449e58d265d6a6075a4885b92a300935"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44718951258/job/136229587604",
+        "logSha256": "368e475ff4f4a16a54815ed1ea6331ca941a1794a6ee3e7534338fa04ee9dc80"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, codex-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/native-session-file.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44718951258/job/136229587858",
+        "logSha256": "3e38d2692145125e01b7de0ed5c1d068ecaa8cc3f0ec591af1b792823b513b40"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [
+          "tests/opencode/shared-session.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44720226926/job/136233776601",
+        "logSha256": "67612b2adcbee4f25537b56e685338bd2286d94c78871c9d3e9560f353752151"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, codex-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/native-session-file.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44721187025/job/136237109619",
+        "logSha256": "2e609b687b0d2ed9170c5baa3d7292452ff2a4a1d19bdbf0d3c7a416295c2fb8"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44721187025/job/136237109776",
+        "logSha256": "56f3bee7cd28094a7243ab46a367ffb3b9f972fd8b0981824614de6d1bcdf789"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+        "steps": [
+          "Run pnpm run sea-trial"
+        ],
+        "tests": [
+          "session.effort-never-substituted"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44721268632/job/136237442390",
+        "logSha256": "5528daf04177c0924da48d501979c1c50170c68063663eb3ac6350bcf9a53b56"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [
+          "tests/cancellation-orphan-cleanup.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44722115047/job/136240212681",
+        "logSha256": "b690f61dc7c8d9e24bb0088bb733fed39d6e59d6fe6bfd42ab7da6255eb24957"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (ubuntu-latest, dsh-aimock)",
+        "steps": [
+          "Install and verify accepted native runtime"
+        ],
+        "tests": [],
+        "url": "https://github.com/botiverse/oar/actions/runs/44724750253/job/136249289128",
+        "logSha256": "aae6ca43c7e2c7095bbe23f1c5b8eb721e86d5929ec4236e52fc99420c9b885a"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44726277014/job/136254468425",
+        "logSha256": "c28ba983b589333a3f3097f9cceb21f0c4e184040eb676c172341438a2dc913b"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, codex-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/native-session-file.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44726277014/job/136254468484",
+        "logSha256": "3d40793906be847526c47e6c1ea702cf5d530f2cb39fc11b05b2b0765eeb04a2"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, codex-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/native-session-file.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44726692201/job/136255890599",
+        "logSha256": "f303cd91cb9be36ec34c1985abc769e364d652dea7d003ec63fa2cc428d8b563"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44726692201/job/136255890703",
+        "logSha256": "420d00ae6db35bff768b01ed87250578ab07b52a8a3395dc0a46f4511c04f6cc"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+        "steps": [
+          "Run pnpm run sea-trial"
+        ],
+        "tests": [
+          "session.capabilities-match-declaration"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44727886489/job/136259931803",
+        "logSha256": "63739ad135e5859db2fc2b9e13393b74a90f66147dd1e20ce0b4eb4ba37d677c"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "pi-rpc-windows (vendor)",
+        "steps": [
+          "Pi RPC vendor - RPC protocol, files, readers and bundled host"
+        ],
+        "tests": [
+          "sea-trial/vendor/pi-rpc-readers.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44728473944/job/136261891688",
+        "logSha256": "8d20365c643c3277b57e59c0c15b91e98cfdb81dbccaf33e407d08e970317a2e"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, codex-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/native-session-file.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44728473944/job/136261892499",
+        "logSha256": "e2b35fa538a9472d88ce976f382e37b86547d7596d0e30fcb797da8e442f2ad2"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44728473944/job/136261892578",
+        "logSha256": "8c0c9401e4df911741f9cdf9cf72df77e7bf161de89ca4f0c8c33ac9adf925a0"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, codex-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/native-session-file.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44729172022/job/136264252196",
+        "logSha256": "02161017754533dc9cd63178cd0414a8723a439631f5bdf801d520b2adb8c929"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44729172022/job/136264252339",
+        "logSha256": "822eb3331c891095ffc9f6876b498cf6dc662e8c27f0e7c7d4481d7be78dbb60"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, codex-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/native-session-file.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44730012618/job/136267123969",
+        "logSha256": "4c65ebb087901e94d717ab61557d245e2ba47b1492a64e4b7cd19245b21cc911"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44730012618/job/136267124069",
+        "logSha256": "08b7eafeba1b272dd6bbb5b8da962f50cbc21c59b9a7f5f322d762fea3a25e82"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44731083254/job/136270787963",
+        "logSha256": "da5deb5de3afb66c97fa37c14ded1ccd5bf21d00e0e3ebcf81e7e170883ccac2"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, codex-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/native-session-file.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44731083254/job/136270788058",
+        "logSha256": "e0074665cdada14be551190d0fc461efd823dc502319ae5129c9502921f8be24"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, codex-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/native-session-file.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44731287320/job/136271471468",
+        "logSha256": "ea90c1ec97d1bd1f5561a868d0ee80376461453c6083378411974528fc25d29f"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44731287320/job/136271471599",
+        "logSha256": "76121950c6c545f0c445b048abfb14380a8513ee53d39219c9451add77014571"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (macos-latest, qoder-native)",
+        "steps": [
+          "Install and verify accepted native runtime"
+        ],
+        "tests": [],
+        "url": "https://github.com/botiverse/oar/actions/runs/44731287320/job/136271471671",
+        "logSha256": "0a7b33ecd38c07e721170fbc3ba09d89b48fe9644806b8fb6c188982a884f5b7"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [
+          "tests/codebuddy/install.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44731461904/job/136271995983",
+        "logSha256": "28cfea25c883774eee2d2e3e243faed56b23418d410e6761b6c8ded5ced22330"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "pi-rpc-minimum",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/pi-rpc-bundled.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44731461904/job/136272155372",
+        "logSha256": "d340bfd2f6b853310fb7b708b736250a087d2e40e6d7f788ade53e67aba9635c"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (ubuntu-latest, pi-rpc-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/pi-rpc-bundled.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44731461904/job/136272155431",
+        "logSha256": "52cdeda6af0538bf88d28e711d0f731c0dc6ca7de550b34de9ccec1603112b55"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [
+          "tests/codebuddy/install.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44732904457/job/136276910837",
+        "logSha256": "a47a559e519f2492a82ffb58c365a0c1b90e8822d0212561542453e76754a403"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (macos-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [
+          "tests/claude/claude-credentials.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44737767357/job/136293377506",
+        "logSha256": "fd7e057bf79b5218f4fcaa6d952a7865f85792503920238a8740e67b25af9d76"
+      },
+      {
+        "workflow": "acp-windows.yml",
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "steps": [
+          "Observe Grok vendor processes"
+        ],
+        "tests": [
+          "sea-trial/vendor/grok-structured-output.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44738501176/job/136295852193",
+        "logSha256": "d1208193fbacbe34940f73543cac4939b5caa68ffd413341ab8ce8f9c9dde3d0"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44738501140/job/136295954269",
+        "logSha256": "967a70838ef8dd93901429bcd234212b37a2d3025d0fde9acb76f62d849815f8"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, codex-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/native-session-file.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44738501140/job/136295954287",
+        "logSha256": "1d2efb72b21d0d3aa52de0594bfb2a4ff2a24e43c96e045ee470401cdac01505"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (macos-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [
+          "tests/claude/claude-credentials.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44739202336/job/136298224275",
+        "logSha256": "71872a036ad2016e05c44594e24b3458b89b79b06db0467592c7c95f689c0d3a"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, codex-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/native-session-file.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44751339691/job/136339804611",
+        "logSha256": "22ccfcbd6f0554b03c945206925306b2f33b0bf1c2283a6406d9462efcb467e8"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44751339691/job/136339804774",
+        "logSha256": "6060fe6c808afb85bcf944587c9e90796fcca20809845f1824e57df553f6996c"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (macos-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [
+          "tests/claude/claude-credentials.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44751967093/job/136341857820",
+        "logSha256": "b64c4c92429715799f434d173cf88076a3cb306fd998205a208709963214f7b9"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+        "steps": [
+          "Run pnpm run sea-trial"
+        ],
+        "tests": [
+          "session.effort-never-substituted"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44758089023/job/136363152492",
+        "logSha256": "a9e292c3eb83492bcfec467078dc5b998468f7dd9a19cb67717b5998f9644d36"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44758089023/job/136363153038",
+        "logSha256": "5a23aa89aa8643b92bf3d22e9e07cef3bd4daca5e7f26eb8dba6520f7943474f"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [
+          "tests/sea-trial-required.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44766644818/job/136392911928",
+        "logSha256": "b7afdf4fb8676b0a2cb6205154539579261a8f1146a4c8a991f35feb69f81e1c"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [
+          "tests/login/codebuddy-login.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44770042974/job/136404940644",
+        "logSha256": "a3e46b7ca6f85be13e9f03be43ee30efe4939fa1e563de1710eea81d7e05a3bb"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44770042974/job/136405066297",
+        "logSha256": "84d968ae7a8c78007751aba2ae10ff4b7ba22d10a9a8323ab234c584683393e3"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44777833935/job/136432378055",
+        "logSha256": "7ed138ce167fe217f5a8a174ef010b8ae98879ada56c7d1ab5f50b2df0d2f738"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (macos-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [
+          "tests/grok/shared-session.test.ts",
+          "tests/grok/sharing-disabled.test.ts",
+          "tests/opencode/shared-session.test.ts",
+          "tests/opencode/sharing-disabled.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44784489080/job/136455584321",
+        "logSha256": "33b1c77a07031cb44b6c0b920c5815b7767a0f1a0b4512ef84aa2641148f31ee"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44784700637/job/136456409926",
+        "logSha256": "92c575fd0aeee6c0b13428efa65573a94c4ea6cc8cf25c30b5ca87ff97599532"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [
+          "tests/native-query-deadlines.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44787545777/job/136466275967",
+        "logSha256": "7ea195f990dc7173236249db86a9d198309dde3f2a778cad5797fa6ea28253b7"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (ubuntu-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm run sea-trial"
+        ],
+        "tests": [
+          "session.steer-after-end"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44787545777/job/136466363684",
+        "logSha256": "670898747109309c763b97a313a863763474652557d31557cfe4b9599aed054a"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "acp-behavior (windows-latest, opencode-aimock)",
+        "steps": [
+          "Run pnpm run sea-trial"
+        ],
+        "tests": [
+          "session.multi-turn-conversation"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44789881962/job/136474508458",
+        "logSha256": "76149966cd87198e593f61c8741e77988fee1c499da8c15cd7fca88c5707c960"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "steps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "tests": [
+          "sea-trial/vendor/configured-append.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44797596386/job/136501167188",
+        "logSha256": "0bc07344ee21de345d5959df30936426143898f41f780975bc37aa13943b906c"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (macos-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [
+          "tests/community/cybion/cybion-session.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44806851536/job/136533002388",
+        "logSha256": "76f5b42f35d11e867f0c84b7ebf43e81793bd1e38b273661de792b48d2cba387"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [
+          "tests/community/cybion/cybion-session.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44806851536/job/136533002584",
+        "logSha256": "dff358982066a7a0da84eb7783825f912e043e546f821b4f9e0165614be3634b"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (ubuntu-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [
+          "tests/community/cybion/cybion-session.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44806851536/job/136533002672",
+        "logSha256": "af3800dde1e138c8ef5a734dcbf032b4f1bda9ceb1bb585800a9d618c6dad578"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+        "steps": [
+          "Run pnpm run sea-trial"
+        ],
+        "tests": [
+          "session.effort-never-substituted"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44806851536/job/136533097397",
+        "logSha256": "5bc2df5fde4eb6c9a645dfc4f30fb0746871929bf346b3adca6be608cf6ae61a"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [
+          "tests/release-only-workflow.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44810734250/job/136546309214",
+        "logSha256": "3e2e64d5bce63e681e60468fb68b5d349417e2252590a7c726b4c346fad216d1"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (ubuntu-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [
+          "tests/community/cybion/cybion-session.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44811073007/job/136547446453",
+        "logSha256": "ee14f7ec041001545112889964d7a87b67631633915b189050fcc10606d49bb8"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (macos-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [
+          "tests/community/cybion/cybion-session.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44811073007/job/136547446454",
+        "logSha256": "0b8cb0dec6cd20fdf4a8c68e9dbdd0f1153f8ef1aa190e76adcee7577a836e47"
+      },
+      {
+        "workflow": "ci.yml",
+        "name": "check (windows-latest)",
+        "steps": [
+          "Run pnpm run check"
+        ],
+        "tests": [
+          "tests/community/cybion/cybion-session.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44811073007/job/136547446483",
+        "logSha256": "2113f5bf3042cac618e4f2df407c6bd3e38cc899b8d3db4650addfbffb120fef"
+      }
+    ]
+  },
+  "upstream": {
+    "dsh": {
+      "sha": "2e39e70496aa02986ca6a820c5d497e816b69d7e",
+      "url": "https://github.com/deepseek-ai/deepseek-harness/commit/2e39e70496aa02986ca6a820c5d497e816b69d7e"
+    },
+    "agy": {
+      "sha": "74b5ed6a9764c460d501155af1dc861f3994cb15",
+      "url": "https://github.com/google-antigravity/antigravity-cli/commit/74b5ed6a9764c460d501155af1dc861f3994cb15"
+    },
+    "zcode": {
+      "sha": "fec975905a2abd4c07e35c40d51fa097a2258ec9",
+      "url": "https://github.com/zai-org/ZCode/commit/fec975905a2abd4c07e35c40d51fa097a2258ec9"
+    },
+    "qwen16586": {
+      "url": "https://github.com/QwenLM/qwen-code/pull/16586",
+      "head": "84069baadc82fbb7c9132512b5810fca42edae70",
+      "state": "open"
+    },
+    "zcodeRelease": "v3.18.2"
+  },
+  "kimiResume": {
+    "version": "2.7.2",
+    "omitted": "both tools declared, both calls returned not found",
+    "empty": "both tools declared, both calls returned not found",
+    "replacement": "both tools declared, both reached replacement servers"
+  },
+  "retention": {
+    "verifiedFiles": 477,
+    "manifestSha256": "bfa8dec802eea898308e295b31c5aa6256e2040bcd225a30fd055ff0f05cea10",
+    "temporaryInstallationsRemoved": 5,
+    "isolatedHomesRemoved": 22
+  }
+}

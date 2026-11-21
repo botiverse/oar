@@ -44,6 +44,8 @@
 
 - [Kimi first Web startup](kimi-web-startup/README.md): native first-token race, readiness gate, warm bypass and reader deadlines; [upstream #5035](https://github.com/MoonshotAI/kimi-code/issues/5035).
 
+- [Runtime version check: 2026-11-20](runtime-version-checks/2026-11-20.md): frozen candidates, the Claude 2.1.330 local login timeout, Pi 1.6.0 and all 106 failed CI jobs.
+
 - [Runtime version check: 2026-11-19](runtime-version-checks/2026-11-19.md): six changed releases, Kimi 2.7.0 resume, Cursor 1.4.2 on three platforms and all 25 CI failure logs.
 - [Runtime version check: 2026-11-18](runtime-version-checks/2026-11-18.md): eight changed releases, native candidate checks, complete CI failure observations and two Windows Grok startup/cleanup traces.
 - [Runtime version check: 2026-11-17](runtime-version-checks/2026-11-17.md): changed releases, complete CI failure observations, Cursor loader follow-up and the Qoder replay boundary.
