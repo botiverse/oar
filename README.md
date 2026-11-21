@@ -168,9 +168,6 @@ host adds one with its own deployment and credentials, so they are not in
   </tr>
 </table>
 
-[Cybion](https://cybion.ntnl.io) runs on a Cybion deployment, where the Thread
-keeps its own context and runs its tools on the owner's devices.
-
 ## Library
 
 One API drives every runtime: swap `"claude"` for `"codex"`, `"grok"` or
