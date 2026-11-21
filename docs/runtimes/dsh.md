@@ -468,9 +468,25 @@ turns them off with `DSH_TELEMETRY_DISABLED` and disabled plugin rows.
 DSH 0.2.1-rc.5 and 0.2.2-rc.5 write the first `profiles/acp/package.json`
 in place. On 0.2.2-rc.5, two native loaders starting together failed to parse
 the manifest in 3 of 100 fresh shared profiles. All 100 pairs with separate
-profiles loaded successfully. In one OAR process, sessions, model listings and
-skill listings sharing that profile wait for the first bridge to report ready.
-Independent OAR processes sharing a fresh profile can still race.
+profiles loaded successfully.
+
+DSH 0.2.2-rc.5 also rewrote `profiles/acp/cordis.yml` in place on all four
+sequential starts measured, including warm starts. Its inode stayed the same
+and its modification time changed each time. The manifest retained both its
+inode and timestamp after the first start. In a separate Linux control,
+all 112 concurrent opens succeeded across fresh and warm profiles in one or
+two OAR processes. A reader sampling the same warm inode during 16 more
+opens saw 1,955 empty reads. A native 0.2.1-rc.5 session failed to parse this
+file while another session was starting on the same warm profile.
+[CI failure](https://github.com/botiverse/oar/actions/runs/44888513603/job/136799023287)
+
+OAR takes an OS-backed write lock on `profiles/acp/.oar-startup.sqlite`
+before launching DSH. New and resumed sessions release it on the native open
+reply. Model and skill queries release it when the bridge reports ready.
+Different profiles start independently, and open sessions run concurrently.
+The lock file can remain after exit. The OS releases the lock if the OAR
+process dies during startup. DSH processes launched outside OAR do not take
+this lock and can still overlap a profile rewrite.
 DSH also creates `dsh-spill-*` and `dsh-subprocess-*` directories in the system
 temporary directory and leaves them there empty; with one process per session they
 accumulate. They are DSH's own, so OAR does not remove them.

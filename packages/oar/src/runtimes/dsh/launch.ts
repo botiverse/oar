@@ -10,7 +10,8 @@ import { dshBridgeSource } from "./bridge.js";
 import { acquireDshProfile } from "./profile-startup.js";
 
 export interface LaunchedDsh {
-  readonly child: LineProcess & { profileReady(): void };
+  readonly child: LineProcess;
+  readonly profileOpened: () => void;
   readonly directory: PrivateTempDir;
 }
 
@@ -41,7 +42,7 @@ export interface DshLaunchOptions {
 export async function launchDsh(command: string, cwd: string, env: NodeJS.ProcessEnv, options: DshLaunchOptions = {}): Promise<LaunchedDsh> {
   const { mcpRows = [], disableSessionLogUpload = false, signal } = options;
   const directory = await privateTempDir("oar-dsh-");
-  let release: ((ready: boolean) => void) | undefined = undefined;
+  let release: (() => void) | undefined = undefined;
   try {
     const bridge = path.join(directory.path, "bridge.mjs");
     const patch = path.join(directory.path, "patch.json");
@@ -60,8 +61,8 @@ export async function launchDsh(command: string, cwd: string, env: NodeJS.Proces
     release = finish;
     signal?.throwIfAborted();
     const child = spawnLineProcess(command, ["--profile", "acp", "--patch", patch], { cwd, env, killTree: true, shutdown: "stdin" });
-    child.onExit(() => { finish(false); directory.remove(); });
+    child.onExit(() => { finish(); directory.remove(); });
     await child.spawned;
-    return { child: { ...child, profileReady: () => { finish(true); } }, directory };
-  } catch (error) { release?.(false); directory.remove(); throw error; }
+    return { child, profileOpened: finish, directory };
+  } catch (error) { release?.(); directory.remove(); throw error; }
 }
