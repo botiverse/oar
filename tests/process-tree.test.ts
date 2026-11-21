@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
-import { mkdtempSync, rmSync, symlinkSync } from "node:fs";
+import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "vitest";
 import { descendantsOf, killEntries, readProcessTable, type ProcessEntry } from "../packages/oar/src/shared/executable/process-tree.js";
-import { eventually, gone, type ProcessIdentity, captureProcess, fixtureIdentityPath, reportedProcess, signalFixture } from "./fixtures/process-tree.js";
+import { spawnLineProcess } from "../packages/oar/src/shared/executable/index.js";
+import { fakeAgentBinary, eventually, gone, type ProcessIdentity, captureProcess, fixtureIdentityPath, reportedProcess, signalFixture } from "./fixtures/process-tree.js";
 
 const posix = process.platform !== "win32";
 const SLEEP = ["-e", "setTimeout(() => {}, 60000)"];
@@ -37,6 +38,22 @@ async function withChildren(children: readonly ChildProcess[], body: (pids: read
     }
   }
 }
+
+const encodedFixtureUrl = "file:///fixture.ts?directory=C%3A%5Cfixture%20home";
+
+test("the fixture wrapper preserves percent escapes in a fixed preload argument", async () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "oar-fixture-wrapper-"));
+  try {
+    const script = path.join(directory, "echo.mjs");
+    writeFileSync(script, "console.log(process.argv[2]);");
+
+    const child = spawnLineProcess(fakeAgentBinary(directory, [script, encodedFixtureUrl]), ["extra"]);
+    const lines: string[] = [];
+    child.onLine(line => { lines.push(line); });
+    await child.exited;
+    assert.deepEqual(lines, [encodedFixtureUrl]);
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
 
 function entry(pid: number, ppid: number): ProcessEntry {
   return { pid, ppid, pgid: pid, start: "0" };

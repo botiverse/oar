@@ -263,7 +263,8 @@ async function reap(tree: AgentTree | undefined, files: { pidFile: string; lateF
 export function fakeAgentBinary(dir: string, entry: readonly string[] = [fakeAgent]): string {
   const windows = process.platform === "win32";
   const binary = path.join(dir, windows ? "fake-agent.cmd" : "fake-agent");
-  const command = [process.execPath, ...entry].map((arg) => `"${arg}"`).join(" ");
+  // Even inside quotes a batch file expands percent escapes in file URLs as positional arguments.
+  const command = [process.execPath, ...entry].map((arg) => `"${windows ? arg.replaceAll("%", "%%") : arg}"`).join(" ");
   writeFileSync(binary, windows ? `@echo off\r\n${command} %*\r\n` : `#!/bin/sh\nexec ${command} "$@"\n`);
   chmodSync(binary, 0o755);
   return binary;
