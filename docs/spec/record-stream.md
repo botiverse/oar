@@ -641,11 +641,16 @@ Further rules:
 - **`turn_ended` is the last event of its turn.** Every event belonging to a
   closing turn, including its closing `usage` (tokens and context) and any
   `service_tier`, `model`, `effort` or `input_dropped` reported on that frame,
-  precedes `turn_ended`, also within one frame. Events of a subsequent turn
-  that opens on the same frame follow `turn_ended` after a `turn_active` event
-  (for example Pi Durable's view handover or Grok's deferred native turn).
+  precedes `turn_ended`, also within one frame. Within one frame, nothing
+  follows `turn_ended` unless a `turn_active` event opens a subsequent turn
+  first (for example Pi Durable's view handover or Grok's deferred native turn).
   Consumers that finalize per-turn summaries at `turn_ended` therefore observe
-  the turn's complete events and usage before closing it.
+  the turn's complete closing-frame events and usage before closing it. Across
+  frames, a runtime can still send a late report after `turn_ended` (such as a
+  Kimi `usage_update` or a Qwen or Factory context reply that arrives after its
+  bounded wait); OAR records that frame where it arrives, folds it into
+  `usage()` and `contextUsage()`, and does not attach it to the already-closed
+  turn.
 - **A turn's completion frame may be boundedly deferred to read current context.**
   An adapter may hold a turn's native completion frame for a bounded window so
   it can query the runtime's current context usage before `turn_ended` is

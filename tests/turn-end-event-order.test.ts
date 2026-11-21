@@ -27,7 +27,7 @@ import { createSessionKernel } from "../packages/oar/src/shared/session-kernel.j
 import { foldStreamJsonStdout } from "../packages/oar/src/shared/stream-json/projection.js";
 import { scriptedRuntime } from "../packages/oar/src/testing/index.js";
 import { startMockSession } from "../sea-trial/fixtures/mock-session.js";
-import { assertNoUsageAfterTurnEnded } from "../sea-trial/harness/stream-order.js";
+import { assertTurnEndedLast } from "../sea-trial/harness/stream-order.js";
 import { fixture as acpFixture, profile as acpProfile, start as startAcp } from "./fixtures/acp-session-support.js";
 
 const fixturesDir = path.join(import.meta.dirname, "replay", "fixtures");
@@ -52,17 +52,19 @@ function replayLines(file: string): readonly string[] {
   return readFileSync(path.join(fixturesDir, file), "utf8").split("\n").filter((entry) => entry.trim().length > 0);
 }
 
-test("contract helper rejects usage after turn_ended without an intervening turn_active, and allows next-turn usage after turn_active", () => {
+test("contract helper rejects any event after turn_ended without an intervening turn_active, and allows next-turn events after turn_active", () => {
   const usage: RuntimeEventBody = { kind: "usage", usage: { tokens: { input: 10, output: 5 } } };
   const ended: RuntimeEventBody = { kind: "turn_ended", outcome: { kind: "completed" } };
   const active: RuntimeEventBody = { kind: "turn_active" };
   const text: RuntimeEventBody = { kind: "text_delta", text: "hi" };
+  const tier: RuntimeEventBody = { kind: "service_tier", serviceTier: "default" };
 
-  expect(() => { assertNoUsageAfterTurnEnded([frameRecord(0, "ok", [usage, ended])]); }).not.toThrow();
-  expect(() => { assertNoUsageAfterTurnEnded([frameRecord(0, "handover", [usage, ended, active, usage])]); }).not.toThrow();
-  expect(() => { assertNoUsageAfterTurnEnded([frameRecord(0, "bad", [ended, usage])]); }).toThrow(/usage after turn_ended/u);
-  expect(() => { assertNoUsageAfterTurnEnded([frameRecord(0, "bad-gap", [ended, text, usage])]); }).toThrow(/usage after turn_ended/u);
-  expect(() => { assertNoUsageAfterTurnEnded([frameRecord(0, "bad-second", [usage, ended, active, ended, usage])]); }).toThrow(/usage after turn_ended/u);
+  expect(() => { assertTurnEndedLast([frameRecord(0, "ok", [usage, ended])]); }).not.toThrow();
+  expect(() => { assertTurnEndedLast([frameRecord(0, "handover", [usage, ended, active, usage])]); }).not.toThrow();
+  expect(() => { assertTurnEndedLast([frameRecord(0, "bad-usage", [ended, usage])]); }).toThrow(/usage after turn_ended/u);
+  expect(() => { assertTurnEndedLast([frameRecord(0, "bad-gap", [ended, text, usage])]); }).toThrow(/text_delta after turn_ended/u);
+  expect(() => { assertTurnEndedLast([frameRecord(0, "bad-second", [usage, ended, active, ended, usage])]); }).toThrow(/usage after turn_ended/u);
+  expect(() => { assertTurnEndedLast([frameRecord(0, "bad-tier", [ended, tier])]); }).toThrow(/service_tier after turn_ended/u);
 });
 
 test("recorded Claude replay fixtures emit usage before turn_ended in every closing frame", () => {
@@ -86,7 +88,7 @@ test("recorded Claude replay fixtures emit usage before turn_ended in every clos
         }
       }
     }
-    assertNoUsageAfterTurnEnded(records);
+    assertTurnEndedLast(records);
   }
   expect(sawClosingUsage).toBe(true);
 });
@@ -111,7 +113,7 @@ test("recorded Pi replay fixtures emit context usage before turn_ended on agent_
         records.push(frameRecord(seq++, `${file}:${type}`, events));
       }
     }
-    assertNoUsageAfterTurnEnded(records);
+    assertTurnEndedLast(records);
   }
   expect(sawClosingUsage).toBe(true);
 });
@@ -134,7 +136,7 @@ test("recorded Codex replay fixtures never emit usage after turn_ended", () => {
         records.push(...frames.map((command, offset) => frameRecord(base + offset, `${file}:${command.body.type}`, command.body.events)));
       }
     }
-    assertNoUsageAfterTurnEnded(records);
+    assertTurnEndedLast(records);
   }
 });
 
@@ -146,7 +148,7 @@ test("ACP closing prompt frame emits usage before turn_ended, and keeps deferred
     const closing = session.records().filter((record): record is Frame => record.kind === "frame" && record.body.type === "session/prompt");
     expect(closing).toHaveLength(1);
     expect(closing[0]?.body.events.map((event) => event.kind)).toEqual(["usage", "turn_ended"]);
-    assertNoUsageAfterTurnEnded(session.records());
+    assertTurnEndedLast(session.records());
   } finally {
     await session.dispose();
   }
@@ -157,7 +159,7 @@ test("ACP closing prompt frame emits usage before turn_ended, and keeps deferred
     expect(run.kind).toBe("ended");
     const closing = handover.records().find((record): record is Frame => record.kind === "frame" && record.body.type === "session/prompt");
     expect(closing?.body.events.map((event) => event.kind).slice(-2)).toEqual(["turn_ended", "turn_active"]);
-    assertNoUsageAfterTurnEnded(handover.records());
+    assertTurnEndedLast(handover.records());
   } finally {
     await handover.dispose();
   }
@@ -195,7 +197,7 @@ test("Cybion community adapter emits usage before turn_ended", async () => {
     const kinds = kernel.records().flatMap((record) => (record.kind === "frame" ? record.body.events.map((event) => event.kind) : []));
     expect(kinds.lastIndexOf("usage")).toBeGreaterThan(-1);
     expect(kinds.lastIndexOf("usage")).toBeLessThan(kinds.indexOf("turn_ended"));
-    assertNoUsageAfterTurnEnded(kernel.records());
+    assertTurnEndedLast(kernel.records());
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -240,7 +242,7 @@ test("Qwen, Qoder, Factory, Cursor, DSH, Pi Durable and Morph closing frames emi
     frameRecord(51, "task/done", morphEnd.events),
     frameRecord(60, durable.frame.type, durable.frame.events),
   ];
-  assertNoUsageAfterTurnEnded(records);
+  assertTurnEndedLast(records);
 });
 
 test("scriptedRuntime and mock session emit usage before turn_ended", async () => {
@@ -248,7 +250,7 @@ test("scriptedRuntime and mock session emit usage before turn_ended", async () =
   try {
     const run = await promptAndWait(scripted, "hello");
     expect(run.kind).toBe("ended");
-    assertNoUsageAfterTurnEnded(scripted.records());
+    assertTurnEndedLast(scripted.records());
   } finally {
     await scripted.dispose();
   }
@@ -257,7 +259,7 @@ test("scriptedRuntime and mock session emit usage before turn_ended", async () =
   try {
     const run = await promptAndWait(mock, "hello");
     expect(run.kind).toBe("ended");
-    assertNoUsageAfterTurnEnded(mock.records());
+    assertTurnEndedLast(mock.records());
   } finally {
     await mock.dispose();
   }
