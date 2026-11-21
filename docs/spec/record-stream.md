@@ -647,7 +647,7 @@ Further rules:
   Consumers that finalize per-turn summaries at `turn_ended` therefore observe
   the turn's complete closing-frame events and usage before closing it. Across
   frames, a runtime can still send a late report after `turn_ended` (such as a
-  Kimi `usage_update` or a Qwen or Factory context reply that arrives after its
+  Kimi or Antigravity `usage_update`, or a Qwen or Factory context reply that arrives after its
   bounded wait); OAR records that frame where it arrives, folds it into
   `usage()` and `contextUsage()`, and does not attach it to the already-closed
   turn.

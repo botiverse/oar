@@ -128,7 +128,18 @@ Google-login account tests:
   updates; `end_turn` is not proof that all native work is idle. A later
   [slow disk-scan probe](../../experiments/antigravity-disk-scan/README.md)
   observed the missing completion and background reply delivered immediately
-  after a new prompt, while subsequent prompts remained usable. Related
+  after a new prompt on 1.5.9. On 1.5.14, the same scan delivered
+  `tool_call_ended`, `text_delta` and context usage before another
+  prompt. On this Linux setup, completion followed the first end by 9.1
+  to 9.6 seconds. Each frame had `agentPath: []` and no `spanId`.
+  Live and replayed status stayed idle. The late context update changed
+  `contextUsage()` from 2,020 to 3,030 tokens. Session usage stayed at
+  2,000 input and 20 output until the next prompt added 4,000 and 40 once.
+  Resume replayed none of the late frames. Its first provider request retained
+  the command result and background reply before the later user prompt.
+  The [reducer test](../../tests/outside-turn-activity.test.ts) shows how the
+  tool result amends its original turn while the text appears as activity.
+  Related
   upstream report:
   [antigravity-cli#1461](https://github.com/google-antigravity/antigravity-cli/issues/1461).
 

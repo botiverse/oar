@@ -25,6 +25,23 @@ test("late root content remains activity without a running turn or stall", () =>
   expect(stallOf(view.status, 20 * 60 * 1000, 15 * 60 * 1000)).toBeNull();
 });
 
+test("Antigravity completes a tool in its original turn and delivers background text as idle activity", () => {
+  const kernel = createSessionKernel("root");
+  kernel.request("toRuntime", { kind: "prompt", input: "scan" });
+  kernel.frame({ type: "tool_call", native: {}, events: [{ kind: "tool_call_started", callId: "scan", tool: "run_command" }] });
+  kernel.frame({ type: "session/prompt", native: {}, events: [{ kind: "turn_ended", outcome: { kind: "completed" } }] });
+  kernel.frame({ type: "tool_call_update", native: {}, events: [{ kind: "tool_call_ended", callId: "scan", result: "ok" }] });
+  kernel.frame({ type: "agent_message_chunk", native: {}, events: [{ kind: "text_delta", text: "scan finished" }] });
+  const view = viewOf(kernel.records());
+  expect(view.openTurn).toBe(-1);
+  expect(view.status.kind).toBe("idle");
+  expect(view.messages).toMatchObject([
+    { kind: "input" },
+    { kind: "turn", sections: [{ parts: [{ callId: "scan", result: "ok" }] }] },
+    { kind: "activity", sections: [{ parts: [{ kind: "text", text: "scan finished" }] }] },
+  ]);
+});
+
 test("a prompt after outside-turn activity owns subsequent root content", () => {
   const kernel = createSessionKernel("root");
   kernel.frame({ type: "late", native: {}, events: [{ kind: "text_delta", text: "outside" }] });
