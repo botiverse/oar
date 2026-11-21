@@ -205,41 +205,21 @@ export async function openPiAgentSession(options: SessionOptions, rememberKey?: 
   const { session } = await sdk.createAgentSessionFromServices({
     services,
     sessionManager,
+    ...(options.resume === undefined ? {} : { noTools: "builtin" as const }),
     ...(options.disallowedTools === undefined ? {} : { excludeTools: [...options.disallowedTools] }),
     ...(model === undefined ? {} : { model }),
     ...(thinkingLevel === undefined ? {} : { thinkingLevel }),
     ...(overlay === undefined ? {} : { customTools: [await piEnvBashTool(options.cwd, overlay)] }),
   });
   if (options.resume !== undefined) {
-    // Pi 1.3 restores the transcript's active tools, including a prior open's
-    // exclusions. OAR's denylist belongs to this open. Restore the current
-    // native defaults before session_start, whose extensions may change them.
-    // Extra builtins (grep/find/ls) and default-inactive extension tools stay
-    // inactive; Pi still applies this open's excludeTools and exposure rules.
+    // Pi restores the transcript's active tools (and keeps unregistered names
+    // pending) when `usesDefaultTools` is true. Passing `noTools: "builtin"`
+    // above skips transcript restoration while keeping every non-excluded
+    // builtin, extension and MCP tool registered and activating default-active
+    // load-time extensions. Re-apply the current native defaults before
+    // session_start so extensions may still change the loadout.
     const defaults = settingsManager.getDefaultTools() ?? sdk.createCodingTools(options.cwd).map((tool) => tool.name);
-    const registered = session.getAllTools();
-    const extensions = registered.filter((tool) =>
-      tool.sourceInfo.path !== `builtin:${tool.name}`
-      && session.getToolDefinition(tool.name)?.defaultActive !== false
-      && (tool.exposure === "direct" || tool.exposure === "model-only"));
-    // Pi keeps unregistered transcript names pending until registration.
-    // Its public setter clears those only when it deactivates an active tool.
-    // Activate the registry first so even an empty default set clears them,
-    // before session_start can register a default-inactive pending tool.
-    session.setActiveToolsByName(registered.map((tool) => tool.name));
-    if (session.getActiveToolNames().length === 0) {
-      // A tool-free transcript needs no reset. Fold it with Pi's own public
-      // helper, then omit registered and explicitly excluded names. Pattern
-      // exclusions are left conservative rather than duplicating Pi's matcher.
-      const { getCurrentTools } = await import("@earendil-works/pi-ai");
-      const known = new Set([...registered.map((tool) => tool.name), ...(options.disallowedTools ?? [])]);
-      if (getCurrentTools(sessionManager.buildSessionContext().messages).some((tool) => !known.has(tool.name))) {
-        session.dispose();
-        throw new UnsupportedOptionError("resume", "pi cannot reset restored pending tools on resume: transcript has unregistered tool names but no registered tool can be activated to clear them; open a new session instead");
-      }
-    }
-    session.setActiveToolsByName([]);
-    session.setActiveToolsByName([...defaults, ...extensions.map((tool) => tool.name)]);
+    session.setActiveToolsByName([...defaults, ...session.getActiveToolNames()]);
   }
   // Read back rather than trust the request: the model record is the
   // runtime's report, and a resume that kept the old model must not pass.

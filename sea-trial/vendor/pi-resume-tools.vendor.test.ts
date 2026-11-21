@@ -1,17 +1,14 @@
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
 import type { AgentSession } from "@earendil-works/pi-coding-agent";
-import { UnsupportedOptionError, type SessionOptions, piRuntime } from "../../packages/oar/src/index.js";
+import type { SessionOptions } from "../../packages/oar/src/index.js";
 
 import { openPiAgentSession } from "../../packages/oar/src/runtimes/pi/open.js";
 import { piSessionDir } from "../../packages/oar/src/runtimes/pi/resolve.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startPiAimock } from "../harness/aimock.js";
-
-const piInstallation = piRuntime.installation;
-const piSession = piRuntime.session;
 
 const inactiveTools = [
   { kind: "default-inactive", flags: { defaultActive: false } },
@@ -110,33 +107,21 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi resumed tool selection
     } finally { await setup.stop(); }
   });
 
-  test.each([false, true])("no activatable registered tools rejects resume before binding and disposes the session; hidden tool=%s", async (hidden) => {
+  test.each([false, true])("no activatable registered tools still resumes with an empty loadout without activating late transcript tools; hidden tool=%s", async (hidden) => {
     const setup = await fixture(`${hidden ? register("hidden_probe", { exposure: "hidden" }) : ""}
       pi.on("session_start", () => { ${register("late_probe", { defaultActive: false })} });`, true);
-    const { AgentSession } = await import("@earendil-works/pi-coding-agent");
     try {
-      const fresh = await setup.open({ disallowedTools: builtins });
-      expect(fresh.getActiveToolNames()).toEqual([]);
+      const options = { disallowedTools: builtins };
+      const fresh = await setup.open(options);
       const resume = await setup.savedTools(["late_probe"]);
-      const installation = await piInstallation();
-      assert.ok(installation.kind === "available", `pi installation: ${installation.kind}`);
-      const dispose = vi.spyOn(AgentSession.prototype, "dispose");
-      const bind = vi.spyOn(AgentSession.prototype, "bindExtensions");
-      const opening = piSession(installation, { cwd: setup.cwd, model: "aimock/aimock-model", resume, disallowedTools: builtins });
-      try {
-        await expect(opening).rejects.toBeInstanceOf(UnsupportedOptionError);
-        await expect(opening).rejects.toMatchObject({
-          option: "resume",
-          message: "pi cannot reset restored pending tools on resume: transcript has unregistered tool names but no registered tool can be activated to clear them; open a new session instead",
-        });
-        expect(bind).not.toHaveBeenCalled();
-        expect(dispose).toHaveBeenCalledOnce();
-      } finally {
-        dispose.mockRestore();
-        bind.mockRestore();
-        const [result] = await Promise.allSettled([opening]);
-        if (result.status === "fulfilled") { await result.value.dispose(); }
-      }
+      const resumed = await setup.open({ ...options, resume });
+      const expectedRegistered = hidden ? ["hidden_probe", "late_probe"] : ["late_probe"];
+      expect(fresh.getAllTools().map((tool) => tool.name).toSorted()).toEqual(expectedRegistered);
+      expect(resumed.getAllTools().map((tool) => tool.name).toSorted()).toEqual(expectedRegistered);
+      expect(fresh.getActiveToolNames()).toEqual([]);
+      expect(resumed.getActiveToolNames()).toEqual([]);
+      expect(fresh.getCallableToolNames()).toEqual([]);
+      expect(resumed.getCallableToolNames()).toEqual([]);
     } finally { await setup.stop(); }
   });
 
