@@ -11,6 +11,7 @@ export const qoderRefusedSessionOptions: RefusedSessionOptions = {
   userConfiguration: "Qoder has no verified way to exclude user configuration while preserving native credentials and history",
   name: "Qoder's session-name persistence has not been verified",
   nativeMemoryDefault: "Qoder has no verified settings layer below user configuration for auto-memory",
+  sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
 };
 
 const QODER_MANAGED_LAUNCH_ARGS = new Set([

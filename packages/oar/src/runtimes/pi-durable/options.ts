@@ -28,6 +28,7 @@ export const piDurableRefusedSessionOptions: RefusedSessionOptions = {
   mcpServers: "pi-durable has no verified per-conversation MCP attachment channel",
   disallowedTools: "pi-durable tool filtering has not been verified through this adapter",
   nativeMemoryDefault: "pi-durable has no built-in background auto-memory feature or below-user default layer",
+  sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
 };
 
 function conversationId(value: number): value is ConversationId {

@@ -4,4 +4,5 @@ export const codexRefusedSessionOptions: RefusedSessionOptions = {
   modelRequests: "This adapter has no verified capture of the root agent's provider request",
   userConfiguration: "codex isolated homes can persist temporary history paths in the shared index, breaking resume after cleanup; user-configuration exclusion is not supported",
   nativeMemoryDefault: "Codex has no verified settings layer below user config.toml for features.memories (which defaults to false)",
+  sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
 };

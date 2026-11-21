@@ -47,6 +47,7 @@ export const morphRefusedSessionOptions: RefusedSessionOptions = {
   mcpServers: "OAR does not attach MCP servers to morph: no per-session channel is known",
   launchArgs: "morph sessions run in its Console process, which a session neither starts nor owns",
   name: "OAR knows no morph session name setting",
+  sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
 };
 
 interface Held {

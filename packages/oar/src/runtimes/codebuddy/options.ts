@@ -14,6 +14,7 @@ export const codebuddyRefusedSessionOptions: RefusedSessionOptions = {
   serviceTier: "CodeBuddy ACP has no verified service-tier setting and readback",
   additionalDirectories: "CodeBuddy ACP does not advertise additionalDirectories",
   nativeMemoryDefault: "CodeBuddy has no verified settings layer below user configuration for autoMemoryEnabled",
+  sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
 };
 
 const CODEBUDDY_MANAGED_LAUNCH_ARGS = new Set([

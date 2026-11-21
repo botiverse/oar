@@ -84,6 +84,28 @@ export function apply(ctx, config) {
         // Cordis FiberState.ACTIVE is 2 in the native protocol we probe.
         if (fiber.state !== 2) { throw refusal("mcp_inactive", "Requested MCP plugin is not active (native state " + fiber.state + ")", "session MCP"); }
       }
+      if (config?.sessionLogPlugin !== undefined) {
+        const plugin = config.sessionLogPlugin;
+        requireMethod(loader, "entries", "sessionLogUpload");
+        const entry = [...loader.entries()].find((row) => row.options?.id === plugin.id);
+        if (entry === undefined) {
+          throw refusal("option_not_applied", "DSH does not mount the " + plugin.id + " plugin, so OAR cannot confirm session-log upload is off", "sessionLogUpload");
+        }
+        if (entry.options?.name !== plugin.name) {
+          throw refusal("option_not_applied", "DSH " + plugin.id + " entry does not match " + plugin.name, "sessionLogUpload");
+        }
+        if (entry.options?.disabled !== true) {
+          if (entry.options?.config?.enabled !== false) {
+            throw refusal("option_not_applied", "DSH did not apply enabled: false to " + plugin.id, "sessionLogUpload");
+          }
+          const fiber = entry.fiber;
+          requireMethod(fiber, "await", "sessionLogUpload");
+          await fiber.await();
+          if (fiber.state !== 2) {
+            throw refusal("option_not_applied", "DSH " + plugin.id + " plugin is not active (native state " + fiber.state + ")", "sessionLogUpload");
+          }
+        }
+      }
       boot(ctx, config);
     }
     catch (error) { const native = structured(error); write({ type: "startup-error", error: native, code: native.code, capability: native.capability }); }

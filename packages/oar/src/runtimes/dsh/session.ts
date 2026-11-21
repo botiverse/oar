@@ -24,7 +24,7 @@ import { dshEnvironment, launchDsh } from "./launch.js";
 import { isBackgroundShellJob } from "./jobs.js";
 import { dshGoalControl } from "./goal.js";
 import { dshMcpRows } from "./mcp.js";
-import { dshAgentOptions, dshDirectoryRefusal, dshRefusedSessionOptions, type DshAgentOptions } from "./options.js";
+import { dshAgentOptions, dshDirectoryRefusal, dshRefusedSessionOptions, dshSessionLogUploadRefusal, type DshAgentOptions } from "./options.js";
 import { dshOpenedFrame, foldDsh, initialDshProjection } from "./projection.js";
 
 const OPEN_TIMEOUT_MS = 60_000;
@@ -36,7 +36,7 @@ function openFailure(error: unknown, sessionId: string, resuming: boolean): unkn
   if (error.native.name === "SessionPersistenceNotFoundError") {
     return new SessionNotFoundError(sessionId, `DSH has no saved session ${sessionId}`, { method: "sessionPersistence.open", native: error.native });
   }
-  if ((error.code === "native_method_unavailable" || error.code === "option_not_applied") && (error.capability === "name" || error.capability === "disallowedTools" || error.capability === "additionalDirectories")) {
+  if ((error.code === "native_method_unavailable" || error.code === "option_not_applied") && (error.capability === "name" || error.capability === "disallowedTools" || error.capability === "additionalDirectories" || error.capability === "sessionLogUpload")) {
     return new UnsupportedOptionError(error.capability, error.message);
   }
   if (error.code === "prompt_not_applied" && (error.capability === "systemPrompt" || error.capability === "appendSystemPrompt")) {
@@ -102,7 +102,7 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
   const agentOptions = dshAgentOptions(options);
   const kernel = credentials.kernel(sessionId);
   let projection = initialDshProjection(sessionId);
-  const { child, directory } = await launchDsh(command, options.cwd, env, mcpRows);
+  const { child, directory } = await launchDsh(command, options.cwd, env, { mcpRows, disableSessionLogUpload: options.sessionLogUpload === "off" });
   const fallback = createAbortFallback(() => { child.kill(); });
   const control = dshControl(child, (message) => {
     const { state, frame } = foldDsh(projection, message);
@@ -224,6 +224,7 @@ export const dshSession: StartSession = withSessionCredentials(async (installati
   const env = dshEnvironment(options.env);
   // A floor refusal names the real version, before anything starts.
   const version = installation.version ?? await readExecutableVersion(installation.command, 15_000, undefined, env);
+  refuseSessionOptions(dshSessionLogUploadRefusal(version), options);
   const refusal = dshVersionRefusal(version);
   if (refusal !== null) { throw new RuntimeFailureError("invalid_request", refusal); }
   refuseSessionOptions(dshDirectoryRefusal(version), options);

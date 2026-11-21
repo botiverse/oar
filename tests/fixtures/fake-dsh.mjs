@@ -109,9 +109,26 @@ const attachments = process.env.FAKE_DSH_IMAGES === "1" ? {
   saveImages: async (imgs) => { await new Promise((resolve) => { setTimeout(resolve, 30); }); return imgs.map((_, index) => ({ id: `att-${index}` })); },
 } : undefined;
 const services = { agents, sessionPersistence: persistence, llm, skills, ...(attachments === undefined ? {} : { attachments }), ...(mode === "no-default" ? {} : { agentDefaultModel: { currentSelection: () => ({ provider: "local", model: "thinks" }) } }) };
+const sessionLogPatch = patch.find((row) => row.id === "session-log-deepseek");
+const sessionLogEntry = missing.has("session-log-deepseek") ? [] : [{
+  options: {
+    id: "session-log-deepseek",
+    name: process.env.FAKE_DSH_SESSION_LOG_NAME ?? "@deepseek-ai/dsh-session-log-deepseek",
+    ...(process.env.FAKE_DSH_SESSION_LOG_DISABLED === "1" ? { disabled: true } : {}),
+    ...(sessionLogPatch !== undefined && process.env.FAKE_DSH_SESSION_LOG_IGNORE_PATCH !== "1" && (sessionLogPatch.name === undefined || sessionLogPatch.name === (process.env.FAKE_DSH_SESSION_LOG_NAME ?? "@deepseek-ai/dsh-session-log-deepseek"))
+      ? { config: sessionLogPatch.config }
+      : {}),
+  },
+  fiber: { state: Number(process.env.FAKE_DSH_SESSION_LOG_STATE ?? "2"), await: async () => {} },
+}];
 const loader = {
   await: async () => { if (mode === "barrier-fails") { throw new Error("barrier failed"); } },
-  ...(mode === "mcp-inactive" ? { entries: () => patch[1].insert.map(options => ({ options, fiber: { state: 0, await: async () => {} } })) } : {}),
+  ...(mode === "no-mcp-method" || mode === "no-loader-entries" ? {} : {
+    entries: () => [
+      ...patch[1].insert.map(options => ({ options, fiber: { state: mode === "mcp-inactive" ? 0 : 2, await: async () => {} } })),
+      ...sessionLogEntry,
+    ],
+  }),
 };
 const ctx = {
   get: (name) => name === "loader" ? (mode === "no-loader" ? undefined : loader) : services[name],
