@@ -108,16 +108,16 @@ export function createAcpTurns(deps: {
     if (frame.dropped !== undefined) {
       events.push({ kind: "input_dropped", inputId: frame.dropped, reason: "runtime_refused" });
     }
+    if (frame.context !== null) {
+      events.push(frame.context);
+    }
     if (closes) {
       const terminal = profile.steerSupersedesPrompt === true
         ? state.outcomes.get(Math.max(...state.outcomes.keys()))
         : outcome;
       if (terminal !== null && terminal !== undefined) { events.push({ kind: "turn_ended", outcome: terminal }); }
+      events.push(...closeTurn(state));
     }
-    if (frame.context !== null) {
-      events.push(frame.context);
-    }
-    if (closes) { events.push(...closeTurn(state)); }
     kernel.frame({ type: frame.type, native: frame.native, events }, frame.receivedAt === undefined ? undefined : { receivedAt: frame.receivedAt });
   };
   const staleSteer = new Error("not_steerable: no active turn");

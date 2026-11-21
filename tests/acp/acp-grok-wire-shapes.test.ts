@@ -193,8 +193,8 @@ test("grok per-prompt ledgers accumulate into the session total, cache parts inc
   assert.deepEqual(session.contextUsage().value, { tokens: 1002, contextWindow: null, percent: null });
   const answers = session.records().flatMap((record) => (record.kind === "frame" && record.body.type === "session/prompt" ? [record.body.events] : []));
   assert.deepEqual(answers, [
-    [{ kind: "turn_ended", outcome: { kind: "completed" } }, { kind: "usage", usage: { context: { tokens: 1001, contextWindow: null, percent: null }, tokens: { input: 100, output: 7, cacheRead: 64, cacheWrite: 0 } } }],
-    [{ kind: "turn_ended", outcome: { kind: "completed" } }, { kind: "usage", usage: { context: { tokens: 1002, contextWindow: null, percent: null }, tokens: { input: 200, output: 14, cacheRead: 128, cacheWrite: 0 } } }],
+    [{ kind: "usage", usage: { context: { tokens: 1001, contextWindow: null, percent: null }, tokens: { input: 100, output: 7, cacheRead: 64, cacheWrite: 0 } } }, { kind: "turn_ended", outcome: { kind: "completed" } }],
+    [{ kind: "usage", usage: { context: { tokens: 1002, contextWindow: null, percent: null }, tokens: { input: 200, output: 14, cacheRead: 128, cacheWrite: 0 } } }, { kind: "turn_ended", outcome: { kind: "completed" } }],
   ]);
   await session.dispose();
 });
@@ -236,7 +236,7 @@ test("a send-now steer's two answers are two per-prompt ledgers: summed once, st
   const answers = session.records().flatMap((record) => (record.kind === "frame" && record.body.type === "session/prompt" ? [record.body.events] : []));
   assert.deepEqual(answers, [
     [{ kind: "usage", usage: { context: { tokens: 16_998, contextWindow: null, percent: null }, tokens: { input: 16_776, output: 222, cacheRead: 640 } } }],
-    [{ kind: "turn_ended", outcome: { kind: "completed" } }, { kind: "usage", usage: { context: { tokens: 17_405, contextWindow: null, percent: null }, tokens: { input: 51_196, output: 501, cacheRead: 20_608 } } }],
+    [{ kind: "usage", usage: { context: { tokens: 17_405, contextWindow: null, percent: null }, tokens: { input: 51_196, output: 501, cacheRead: 20_608 } } }, { kind: "turn_ended", outcome: { kind: "completed" } }],
   ]);
   assert.deepEqual(session.usage().value, { total: { input: 51_196, output: 501, cacheRead: 20_608 } });
   await session.dispose();

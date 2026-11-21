@@ -99,8 +99,8 @@ test("pi agent_settled carries the adapter-supplied context and classifies abort
   const context = { tokens: 42, contextWindow: 1000, percent: 4 };
   const completed = foldPiEvent(piPrompted(initialPiProjection), agentEnd, { context });
   expect(completed.commands[0]?.body.events).toEqual([
-    { kind: "turn_ended", outcome: { kind: "completed" } },
     { kind: "usage", usage: { context } },
+    { kind: "turn_ended", outcome: { kind: "completed" } },
   ]);
   const aborted = foldPiEvent(piPrompted(initialPiProjection), { type: "agent_settled", aborted: true });
   expect(aborted.commands[0]?.body.events).toEqual([{ kind: "turn_ended", outcome: { kind: "aborted" } }]);

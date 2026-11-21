@@ -770,7 +770,7 @@ new pi event type a compile error.
 | `compaction_end` | `compaction_ended`: `aborted` → aborted, an `errorMessage` → failed with that reason, else completed; `willRetry` stays in `native` and the retry announces itself |
 | `auto_retry_start`, `summarization_retry_scheduled` | `retry` with `attempt`, `maxAttempts`, `delayMs`, and the error message as `reason` [src 0.84.2 types] |
 | `thinking_level_changed` | `effort` |
-| `agent_settled` | `turn_ended` if native run evidence was observed, plus a context `usage` event |
+| `agent_settled` | context `usage` event (when available), then `turn_ended` if native run evidence was observed |
 
 Other agent and turn boundaries, assistant `message_start`, custom messages, queue, entry,
 session-info, bash execution and the other retry events are in the stream

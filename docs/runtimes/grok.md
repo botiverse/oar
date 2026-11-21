@@ -185,7 +185,7 @@ session has `steer`, and its native turns (Grok's own turns are turns).
 | Grok executable/process | One `grok agent --always-approve --no-leader stdio` subprocess per OAR Session; its exit is an `exited` response record (answering `dispose` when OAR caused it, `requestId ""` when Grok died on its own). |
 | Persistent native session | `Session.id` is the native ID; `SessionOptions.resume` attaches by that ID. OAR retains the frames Grok sends during attachment in the new stream described by the [record-stream spec](../spec/record-stream.md#placement-and-release). |
 | Handshake answers | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model`, `session/set_config_option` answers are frame records; the model and `reasoning_effort` level they report are `model` and `effort` events, so `Session.model()` and `effort()` are folds. |
-| Prompt delivery and native execution | Controls are `toRuntime` requests answered accepted or rejected; each `session/prompt` RPC answer is a frame, the one closing the turn carrying `turn_ended` and `usage`. Each prompt carries OAR's `_meta.promptId`; Grok's `_x.ai/queue/changed` gives `input_queued`/`turn_active` with its input id. A steer is `_x.ai/interject`, not another prompt. A turn Grok runs under any other prompt id is its own: `turn_active` and `turn_ended` from its queue and `turn_completed` reports. No `spanId`. |
+| Prompt delivery and native execution | Controls are `toRuntime` requests answered accepted or rejected; each `session/prompt` RPC answer is a frame, the one closing the turn carrying `usage` before `turn_ended`. Each prompt carries OAR's `_meta.promptId`; Grok's `_x.ai/queue/changed` gives `input_queued`/`turn_active` with its input id. A steer is `_x.ai/interject`, not another prompt. A turn Grok runs under any other prompt id is its own: `turn_active` and `turn_ended` from its queue and `turn_completed` reports. No `spanId`. |
 | `session/update` notifications | One frame per notification delivered by the ACP SDK, under its session id. Recognized updates can carry events. The SDK validates standard updates before delivery. |
 | `_x.ai/*` vendor notifications | Subscribed by name (`GROK_EXTENSION_NOTIFICATIONS`), each recorded under the session id its envelope names, with MCP credential values redacted; the first frame naming a parent/child pair in this stream carries `session_linked { parent, child, via: "tool_call" }`. Later frames do not repeat the edge event. Other vendor facts stay native-only. The live and replay graph are both `graphOf(records)`. |
 | Native child sessions | A frame for another session id is a derived child-session record (its own `sessionId` on the envelope, `agentPath []`, a graph node). Attribution tier `nested`. |
@@ -343,9 +343,9 @@ image delivery without an empty text block, using a local scripted model.
 with `busy` while a turn, queued input or manual compaction owns the session.
 After process exit it returns `runtime_exited`. The
 `session/prompt` RPC runs asynchronously and cancellation bounds its lifetime. The RPC answer is Grok's own turn end: a frame
-`session/prompt` with `native` = the answer, a `turn_ended` event
-(`stopReason: "cancelled"` → aborted, else completed) and a `usage` event
-from `_meta`. An RPC error answer is a frame `session/prompt/error` with a
+`session/prompt` with `native` = the answer, a `usage` event from `_meta`
+followed by `turn_ended` (`stopReason: "cancelled"` → aborted, else completed).
+An RPC error answer is a frame `session/prompt/error` with a
 failed `turn_ended`. Grok answers every HTTP 429 with -32003 and the
 provider's words in `data` (`API error (status 429 …): <error type>:
 <message>`): the outcome is `quota` or `billing` when Grok's
@@ -397,9 +397,9 @@ name is Grok's own. Grok's `_x.ai/queue/changed` lists held prompt ids
 (`entries`) and the running one (`runningPromptId`): an OAR prompt listed as
 held is `input_queued { inputId }`, its start `turn_active { inputId }`; a
 foreign running id is `turn_active` without an input id, and its root
-`turn_completed` is that turn's `turn_ended` (`stop_reason` `cancelled` is
-aborted, `error` failed with `agent_result` as reason, else completed) with
-its `usage` ledger billed once. A later wake of the same child reuses its
+`turn_completed` bills its `usage` ledger once before emitting that turn's
+`turn_ended` (`stop_reason` `cancelled` is aborted, `error` failed with
+`agent_result` as reason, else completed). A later wake of the same child reuses its
 prompt id; each run is its own turn, and repeated delivery of one end report
 is recognised by its native `_meta.eventId`. OAR's turn driver adopts Grok's
 turn as the active turn: `prompt()` is rejected `busy`, held input waits,
@@ -537,7 +537,7 @@ pushes, `session_summary_generated` + `session_info_update` (Grok titles the
 session), token-level `agent_thought_chunk` and `agent_message_chunk` (each
 with `_meta.eventId`, `promptId`, `totalTokens`, `chunkId`),
 `response_completed`, `turn_completed`, `sessions/changed` (idle),
-`prompt_complete`, and the `session/prompt` answer (`turn_ended` + `usage`).
+`prompt_complete`, and the `session/prompt` answer (`usage`, then `turn_ended`).
 `native` is present on every event and seqs are dense
 (`live-contract/basic`). Views preserve text, reasoning, tool wire IDs, tool
 boundaries, context snapshots, and model reports; detail strings truncate at

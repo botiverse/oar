@@ -44,7 +44,7 @@ export const qwenProjectionProfile: StreamJsonProjectionProfile<QwenProjection> 
     const before: RuntimeEventBody[] = usage === null ? [] : [{ kind: "usage", usage: { total: usage } }];
     const partials = new Map(state.partials);
     partials.delete(JSON.stringify(agentPath));
-    return { state: { ...state, partials, ...(usage === null ? {} : { usage }) }, outcome: outcome(state, message), before, after: [] };
+    return { state: { ...state, partials, ...(usage === null ? {} : { usage }) }, outcome: outcome(state, message), before };
   },
   init: () => [],
   compacted: (state) => state,
