@@ -358,6 +358,37 @@ A host that must know the command is gone ends a session whose process OAR
 owns, or waits for the command's own end in the record stream. It never
 infers that from the turn end.
 
+### What the next model request contains after an abort
+
+The host waited for a root `turn_ended: aborted`, then sent an unrelated
+plain prompt in the same session. Each column describes interruption
+information in the resulting provider request. **None** means the captured
+request carried neither an interruption cue nor partial assistant text.
+The original user prompt can still be present. **Partial** means the request
+included the text emitted before cancellation. These observations describe
+the input available to the model. Its answer to the new question still depends
+on the model. [Native controls and request excerpts](../../experiments/abort-aftermath/README.md)
+
+| Runtime and measured version | Stream open, no text yet | After one assistant text chunk | During a foreground tool |
+| --- | --- | --- | --- |
+| Antigravity CLI 1.5.13 | None | Partial, followed by an instruction to continue the old task. This asks the model to do the opposite of what the user requested by stopping it. | Tool response says execution was canceled. |
+| Claude Code 2.1.326 | User-interruption marker | Partial and user-interruption marker | Tool-use interruption marker and a tool result explaining that execution may already have had effects. |
+| CodeBuddy 2.179.3 | User-interruption marker | Partial and user-interruption marker | User-interruption marker and empty tool output. The marker is in the outgoing request with `skipRun: true`. |
+| Codex CLI 0.169.0 | `<turn_aborted>` | `<turn_aborted>` only | `<turn_aborted>` and tool output saying the user aborted it. |
+| DSH 0.2.2-rc.5 | None | Partial only | Tool result says the call was aborted. |
+| Factory droid 1.12.1 | User-interruption marker | Partial and user-interruption marker | Tool result says the user cancelled execution. |
+| Grok 1.0.70 | None | None | Tool result names `user_cancel`. It says the command was never executed, even though the command had already written its start marker. |
+| Kimi 2.6.3 | Reminder that the user interrupted the previous turn | Partial and the same reminder | Reminder and a tool result saying the user interrupted it. |
+| OpenCode 1.19.5, 2.2.7, 2.3.2 | None | Partial only | Shell result reports an interruption. The 1.19.5 and 2.3.2 results name the user. |
+| Pi 1.5.2, in-process SDK and subprocess RPC | None | None | Tool result says the command was aborted. |
+| Pi Durable 1.5.2, host-owned harness | None | None | Harness labels the tool result aborted. |
+| Qoder 1.1.81, native replay | User-interruption marker | User-interruption marker, partial text dropped | User-interruption marker and a tool rejection. |
+| Qwen Code 0.27.4 | None | Partial only | Missing-result notice lists several possible causes, including abort. It suggests retrying if needed. |
+| Cursor SDK 1.4.1, in-process and subprocess | Unknown | Unknown | Unknown. No capture of the subsequent request sent by the Cursor backend in either execution mode. |
+| Devin CLI, unmeasured | Unknown | Unknown | Unknown. The fixture observes ACP, with no capture at Cognition's model endpoint. |
+| Morph Console, unmeasured | Unknown | Unknown | Unknown. The Console task trace does not supply the subsequent provider request in these controls. |
+| Cybion, unmeasured | Unknown | Unknown | Unknown. The available Thread history lacks a capture of the deployment's next model request. |
+
 ### Ending a turn's processes on abort
 
 `SessionOptions.endTurnProcessesOnAbort: true` makes an accepted abort also end
