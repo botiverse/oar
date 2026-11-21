@@ -25,6 +25,14 @@ credential variables.
 
 ## OAR mapping
 
+Qwen applies a five-second default discovery deadline to HTTP MCP servers.
+On Linux with 0.27.4 and 0.28.3, a `serveMcpTools` list held for three seconds
+was reported connected in `system/init`, and the first model request offered
+the tool. Holding the same list for 6.5 seconds produced `disconnected` and
+a first request without the tool. A local served server normally responds
+immediately; the long hold exceeded Qwen's
+[native HTTP discovery budget](https://github.com/QwenLM/qwen-code/blob/f35dde84157f992bc324c0a3f59b1119344a683d/packages/core/src/tools/mcp-discovery-timeout.ts).
+
 `qwenRuntime` is in `defaultRuntimes` and available separately from
 `@botiverse/oar/runtimes/qwen`. Install the vendor executable with
 `npm install -g @qwen-code/qwen-code`; `OAR_QWEN_BIN` selects another copy.

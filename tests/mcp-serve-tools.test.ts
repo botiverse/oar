@@ -65,6 +65,13 @@ test("initialize, tools/list and tools/call speak MCP", async () => {
   expect(await statusOf(post(entry, { jsonrpc: "2.0", method: "notifications/initialized" }))).toBe(202);
 });
 
+test("an authenticated tools/list always returns a result, including after the last tool is removed", async () => {
+  const entry = await serve([echo]);
+  expect(await rpc(entry, "tools/list")).toMatchObject({ result: { tools: [{ name: "echo" }] } });
+  entry.setTools([]);
+  expect(await rpc(entry, "tools/list")).toEqual({ jsonrpc: "2.0", id: 1, result: { tools: [] } });
+});
+
 test("annotations reach tools/list unchanged, and are absent when not given", async () => {
   const annotations: NonNullable<HostTool["annotations"]> = {
     title: "Look up text", readOnlyHint: true, destructiveHint: false,

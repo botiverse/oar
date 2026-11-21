@@ -2,6 +2,7 @@ import type { SessionOptions } from "../../contracts/session.js";
 import type { AcpClientHooks } from "./client-app.js";
 import { createAcpConfigUpdates } from "./config-updates.js";
 import { createAcpNativeTurnTracker, type AcpNativeTurnTracker } from "./native-turns.js";
+import type { AcpOpenObservers } from "./open-readiness.js";
 import { createAcpOpening } from "./opening.js";
 import { createUsageUpdateGate, type AcpSessionProfile } from "./profile.js";
 import { createAcpRecorder } from "./records.js";
@@ -9,7 +10,7 @@ import { createAcpTerminalHost } from "./terminal.js";
 import { createAcpTokenUsage } from "./token-usage.js";
 
 /** Everything one ACP session records through, created before its process opens. */
-export interface AcpSessionState {
+export interface AcpSessionState extends AcpOpenObservers {
   readonly terminalHost: ReturnType<typeof createAcpTerminalHost>;
   readonly usageGate: ReturnType<typeof createUsageUpdateGate>;
   readonly tokenUsage: ReturnType<typeof createAcpTokenUsage>;
@@ -32,6 +33,7 @@ export function createAcpSessionState(profile: AcpSessionProfile, options: Sessi
   const tokenUsage = createAcpTokenUsage(profile, nativeTurns?.sentByOar);
   const opening = createAcpOpening();
   const configUpdates = createAcpConfigUpdates();
+  const readiness = profile.openReadiness?.(options);
   const recorder = createAcpRecorder(usageGate, profile.attributeUpdate, tokenUsage, associations, profile.projectUpdate, profile.projectExtension, nativeTurns, profile);
   const hooks: AcpClientHooks = {
     update: (notification, receivedAt) => {
@@ -39,6 +41,7 @@ export function createAcpSessionState(profile: AcpSessionProfile, options: Sessi
       configUpdates.observe(notification);
     },
     extension: (method, params, receivedAt, afterOpen) => {
+      readiness?.observe(method, params);
       recorder.extension(method, profile.redactExtensionNotification?.(method, params) ?? params, afterOpen ?? opening.afterOpen(params), receivedAt);
     },
     requested: (id, method, params, receivedAt) => {
@@ -49,5 +52,5 @@ export function createAcpSessionState(profile: AcpSessionProfile, options: Sessi
     },
     extensionNotifications: profile.extensionNotifications ?? [],
   };
-  return { terminalHost, usageGate, tokenUsage, opening, configUpdates, recorder, hooks, nativeTurns };
+  return { terminalHost, usageGate, tokenUsage, opening, configUpdates, readiness, recorder, hooks, nativeTurns };
 }

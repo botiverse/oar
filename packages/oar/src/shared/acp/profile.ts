@@ -11,7 +11,7 @@ import type { AcpDerivedSessionHooks } from "./derived-sessions.js";
 import type { AcpSteerRequestHooks } from "./steer-request.js";
 import { acpAdditionalDirectories } from "./additional-directories.js";
 import { configureAcpModel, type AcpModelConfiguration } from "./model-configuration.js";
-import type { AcpConfigUpdates } from "./config-updates.js";
+import { waitForOpenReadiness, type AcpOpenObservers, type AcpOpenReadiness } from "./open-readiness.js";
 import { acpResumeFailure, acpOpenStep, type AcpFailureReader, type AcpOpenFailureReader } from "./failure.js";
 import { acpMcpServersParam } from "./mcp-servers.js";
 import { type AcpProcess, withAcpDeadline } from "./process.js";
@@ -36,6 +36,7 @@ export interface AcpSessionProfile extends AcpDerivedSessionHooks, AcpSteerReque
   readonly capabilities: Omit<SessionCapabilities, "images"> & { readonly images?: boolean }; // images: what `initialize` advertised, unless set on evidence that it is wrong
   /** Bounded requests after initialization; default 15 seconds. */
   readonly requestTimeoutMs?: number;
+  readonly openReadiness?: (options: SessionOptions) => AcpOpenReadiness | undefined;
   /** Only initialize; default 60 seconds, independent of requestTimeoutMs. */
   readonly initializeTimeoutMs?: number;
   /** Isolated process startup only. Returns an idempotent release for initialize, exit or failed open. */
@@ -251,12 +252,12 @@ export async function openAcpSession(
   profile: AcpSessionProfile,
   options: SessionOptions,
   observe: AcpOpenObserver = () => {},
-  configUpdates?: AcpConfigUpdates,
+  observers?: AcpOpenObservers,
   initializeStartedAt?: number,
 ): Promise<OpenedAcpSession> {
   // A refused login or model rejects the open as a RuntimeFailureError (failure.ts).
   const initialized = await acpOpenStep(initializeAcpConnection(process, profile, options, observe, initializeStartedAt), "open", profile.openFailure);
-  return openInitializedAcpSession(process, profile, options, initialized, observe, undefined, configUpdates);
+  return openInitializedAcpSession(process, profile, options, initialized, observe, undefined, observers);
 }
 
 /** Open/configure one session on an already initialized connection. */
@@ -267,15 +268,17 @@ export async function openInitializedAcpSession(
   initialized: JsonRecord,
   observe: AcpOpenObserver = () => {},
   bind: (sessionId: string) => void = () => {},
-  configUpdates?: AcpConfigUpdates,
+  observers?: AcpOpenObservers,
 ): Promise<OpenedAcpSession> {
-  if (profile.confirmConfigOptionUpdates === true && configUpdates === undefined) {
+  if (profile.confirmConfigOptionUpdates === true && observers === undefined) {
     throw new Error("ACP configuration confirmation requires a session notification observer");
   }
-  const updates = profile.confirmConfigOptionUpdates === true ? configUpdates : undefined;
+  const updates = profile.confirmConfigOptionUpdates === true ? observers?.configUpdates : undefined;
+  const startedAt = performance.now();
   const opened = await acpOpenStep(createOrResume(process, profile, initialized, options, profile.sessionMeta?.(options, initialized)), "open", profile.openFailure);
   bind(opened.sessionId);
   observe({ method: opened.openMethod, response: opened.response });
+  await waitForOpenReadiness(process, observers?.readiness, opened.sessionId, profile.sessionStartTimeoutMs ?? profile.requestTimeoutMs ?? 15_000, startedAt);
   const setModelResponse = await configureAcpModel(process, profile, options, opened, observe, updates);
   const configure = profile.configureSession;
   if (configure !== undefined) {

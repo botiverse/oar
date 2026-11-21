@@ -194,7 +194,7 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
       if (initializationRefusal !== null) { throw new UnsupportedOptionError("placement", initializationRefusal); }
       const opened = await openInitializedAcpSession(runtime, profile, options, ready.response,
         (step) => { state.recorder.step(step.method, step.response); },
-        (id) => { owner.bind(id); nativeId = id; owner.opened(); }, state.configUpdates);
+        (id) => { owner.bind(id); nativeId = id; owner.opened(); }, state);
       return finishAcpSession(profile, options, credentials, runtime, opened, state, {
         lease, cleanup, stopRequests: () => { owner.stopRequests(); }, detach: () => { owner.dispose(); }, redact: routing.redactValue,
       });

@@ -225,6 +225,10 @@ reported.
 
 #### Session MCP servers
 
+Factory 1.12.1 on Linux kept session open pending while a local relay held a
+host-served HTTP list for 6.5 seconds. After release, the first prompt offered
+the tool. The delay was added by the control.
+
 droid takes stdio servers (`env` as a record) and streamable HTTP servers
 (`headers` as name/value pairs) on `initialize_session` and `load_session`.
 The model reaches a server's tools as `<server>___<tool>`; droid offers them
