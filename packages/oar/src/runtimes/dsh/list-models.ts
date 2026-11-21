@@ -6,6 +6,7 @@ import { listingCwd } from "../../shared/listing-cwd.js";
 import { DSH_READY_TIMEOUT_MS, DshCommandError, dshControl } from "./control.js";
 import { dshEnvironment, launchDsh } from "./launch.js";
 import { readExecutableVersion } from "../../shared/executable/index.js";
+import { profileWaitReason, type DshProfileWait } from "./profile-startup.js";
 import { dshVersionUnsupported } from "./version.js";
 
 /** The native catalog as `Session.model` selectors. A provider that could not list is not a model; the caller decides what no model means. */
@@ -61,24 +62,28 @@ export function dshCatalogResult(catalog: JsonRecord): ListModelsResult {
 export const dshListModels: ModelLister = async (installation, options = {}) => {
   if (installation.via !== "executable") { return { kind: "unsupported", reason: "DSH model listing requires its executable" }; }
   const timeoutMs = options.timeoutMs ?? DSH_READY_TIMEOUT_MS;
+  const profileWait: DshProfileWait = {};
   const result = await withQueryDeadline<ListModelsResult>("DSH model listing", timeoutMs, async (signal, own) => {
     const env = dshEnvironment(options.env);
     const version = installation.version ?? await readExecutableVersion(installation.command, options.timeoutMs ?? 15_000, undefined, env, signal);
     signal.throwIfAborted();
     const refusal = dshVersionUnsupported(version);
     if (refusal !== null) { return refusal; }
-    const launched = await launchDsh(installation.command, listingCwd(options), env, { signal });
+    const launched = await launchDsh(installation.command, listingCwd(options), env, { signal, profileWait });
     own(launched.child);
-    const control = dshControl(launched.child, () => {});
+    const control = dshControl(launched.child, () => {}, undefined, launched.profileLoaded);
     try {
       await control.ready;
-      launched.profileOpened();
       const catalog = await control.request("models", {}, options.timeoutMs);
       return dshCatalogResult(catalog);
     } catch (error) {
       if (error instanceof DshCommandError && error.code === "native_method_unavailable") { return { kind: "unsupported", reason: error.message }; }
       throw error;
     }
+  }).catch((error: unknown) => {
+    const reason = profileWaitReason(profileWait);
+    if (reason !== undefined && error instanceof Error && error.name === "TimeoutError") { throw new DOMException(reason, "TimeoutError"); }
+    throw error;
   });
   return result;
 };

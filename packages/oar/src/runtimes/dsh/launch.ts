@@ -7,11 +7,11 @@ import { spawnLineProcess, type LineProcess } from "../../shared/executable/inde
 import type { JsonRecord } from "../../shared/json.js";
 import { privateTempDir, type PrivateTempDir } from "../../shared/private-temp.js";
 import { dshBridgeSource } from "./bridge.js";
-import { acquireDshProfile } from "./profile-startup.js";
+import { acquireDshProfile, type DshProfileWait } from "./profile-startup.js";
 
 export interface LaunchedDsh {
   readonly child: LineProcess;
-  readonly profileOpened: () => void;
+  readonly profileLoaded: () => void;
   readonly directory: PrivateTempDir;
 }
 
@@ -32,6 +32,7 @@ export interface DshLaunchOptions {
   readonly mcpRows?: readonly JsonRecord[];
   readonly disableSessionLogUpload?: boolean;
   readonly signal?: AbortSignal;
+  readonly profileWait?: DshProfileWait;
 }
 
 /**
@@ -57,12 +58,12 @@ export async function launchDsh(command: string, cwd: string, env: NodeJS.Proces
       ...(disableSessionLogUpload ? [{ id: SESSION_LOG_PLUGIN_ID, name: SESSION_LOG_PLUGIN_NAME, config: { enabled: false } }] : []),
     ];
     await writeFile(patch, JSON.stringify(patchRows), { mode: 0o600, flag: "wx" });
-    const finish = await acquireDshProfile(env, cwd, signal);
+    const finish = await acquireDshProfile(env, cwd, signal, options.profileWait);
     release = finish;
     signal?.throwIfAborted();
     const child = spawnLineProcess(command, ["--profile", "acp", "--patch", patch], { cwd, env, killTree: true, shutdown: "stdin" });
     child.onExit(() => { finish(); directory.remove(); });
     await child.spawned;
-    return { child, profileOpened: finish, directory };
+    return { child, profileLoaded: finish, directory };
   } catch (error) { release?.(); directory.remove(); throw error; }
 }

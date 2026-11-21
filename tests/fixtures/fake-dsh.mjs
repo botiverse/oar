@@ -15,6 +15,12 @@ if (process.argv.includes("--version")) {
 const patch = JSON.parse(readFileSync(process.argv[process.argv.indexOf("--patch") + 1], "utf8"));
 if (process.argv[process.argv.indexOf("--profile") + 1] !== "acp" || patch[0].id !== "acp" || patch[0].disabled !== true) { process.exit(9); }
 const bridgeRow = patch[1].insert.find(row => row.id === "oar-dsh-bridge");
+if (process.env.FAKE_DSH_HOLD_BEFORE_PROFILE) {
+  writeFileSync(process.env.FAKE_DSH_HOLD_BEFORE_PROFILE, "waiting");
+  process.stdin.resume();
+  await new Promise(resolve => process.stdin.once("end", resolve));
+  process.exit(0);
+}
 const bridge = await import(bridgeRow.name);
 
 if (mode === "exit-before-ready") { process.stderr.write("native startup failed\n"); process.exit(3); }

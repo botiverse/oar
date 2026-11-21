@@ -1,10 +1,13 @@
 /* oxlint-disable eslint/max-statements -- Keep lock ownership, cancellation and process death in observable order. */
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { expect, onTestFinished, test } from "vitest";
+import { expect, onTestFinished, test, vi } from "vitest";
+import { dshRuntime } from "../../packages/oar/src/runtimes/dsh/index.js";
+import { DSH_READY_TIMEOUT_MS } from "../../packages/oar/src/runtimes/dsh/control.js";
+import { fakeAgentBinary } from "../fixtures/process-tree.js";
 import { acquireDshProfile } from "../../packages/oar/src/runtimes/dsh/profile-startup.js";
 
 async function fixture() {
@@ -33,7 +36,7 @@ test("cold and warm starts both exclude same-profile peers while independent pro
   (await acquire())();
 });
 
-test("the OS releases the startup lock when another OAR process dies before its open reply", async () => {
+test("the OS releases the startup lock when another OAR process dies before it loads the profile", async () => {
   const { cwd, acquire } = await fixture();
   const module = new URL("../../packages/oar/src/runtimes/dsh/profile-startup.ts", import.meta.url).href;
   const script = `
@@ -55,4 +58,44 @@ test("the OS releases the startup lock when another OAR process dies before its 
     if (holder.exitCode === null && holder.signalCode === null) { holder.kill("SIGKILL"); }
     await exited;
   }
+});
+
+test("a queued query names the profile lock and elapsed wait at its own deadline", async () => {
+  const { cwd, acquire } = await fixture();
+  const release = await acquire();
+  const installation = { kind: "available", via: "executable", command: "unused", version: "0.2.1-rc.5" } as const;
+  const options = { cwd, env: { DSH_HOME: "native" }, timeoutMs: 400 };
+  try {
+    const directory = path.join(cwd, "native", "profiles", "acp");
+    const [models, skills] = await Promise.all([
+      dshRuntime.listModels(installation, options).catch((error: unknown) => error),
+      dshRuntime.skills(installation, options),
+    ]);
+    expect(models).toMatchObject({ name: "TimeoutError" });
+    expect(String(models)).toContain(directory);
+    expect(skills).toMatchObject({ kind: "unavailable", code: "timeout" });
+    const detail = skills.kind === "unavailable" ? skills.reason : "";
+    expect(detail).toContain(directory);
+    expect(detail).toMatch(/Waited \d+ ms for another DSH start/u);
+  } finally { release(); }
+});
+
+test("a holder that never imports the bridge is stopped at its ready deadline and the next start opens", async () => {
+  const { cwd, acquire } = await fixture();
+  const marker = path.join(cwd, "started");
+  const command = fakeAgentBinary(cwd, [path.resolve(import.meta.dirname, "../fixtures/fake-dsh.mjs")]);
+  const installation = { kind: "available", via: "executable", command, version: "0.2.1-rc.5" } as const;
+  const env = { DSH_HOME: "native" };
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    const failure = expect(dshRuntime.session(installation, { cwd, env: { ...env, FAKE_DSH_HOLD_BEFORE_PROFILE: marker } })).rejects.toThrow("did not load the OAR bridge");
+    await vi.waitFor(async () => access(marker), { timeout: 5000 });
+    await expect(acquire("native", AbortSignal.timeout(100))).rejects.toMatchObject({ name: "TimeoutError" });
+    const next = dshRuntime.session(installation, { cwd, env });
+    vi.advanceTimersByTime(DSH_READY_TIMEOUT_MS);
+    vi.useRealTimers();
+    await failure;
+    const session = await next;
+    await session.dispose();
+  } finally { vi.useRealTimers(); }
 });

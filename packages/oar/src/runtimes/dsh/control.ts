@@ -43,7 +43,7 @@ export interface DshControl {
  * The bridge's JSON lines. Every line but a command answer goes to `receive` in
  * order, a line that is not an object included, so nothing the process said is lost.
  */
-export function dshControl(child: LineProcess, receive: (message: JsonRecord) => void, redact?: (text: string) => string): DshControl {
+export function dshControl(child: LineProcess, receive: (message: JsonRecord) => void, redact?: (text: string) => string, profileLoaded?: () => void): DshControl {
   const stderr = (): string => reportedStderr(child.diagnostics(), redact);
   let sequence = 0;
   let ended = false;
@@ -51,9 +51,13 @@ export function dshControl(child: LineProcess, receive: (message: JsonRecord) =>
   const { promise: ready, resolve: resolveReady, reject: rejectReady } = Promise.withResolvers<DshReady>();
   // A rejected startup may be observed only after the opening awaits it.
   void (async (): Promise<void> => { try { await ready; } catch { /* The opening reports it. */ } })();
-  const readyTimer = setTimeout(() => { rejectReady(new Error(`DSH did not load the OAR bridge within ${String(DSH_READY_TIMEOUT_MS)} ms: ${stderr()}`)); }, DSH_READY_TIMEOUT_MS);
+  const readyTimer = setTimeout(() => {
+    rejectReady(new Error(`DSH did not load the OAR bridge within ${String(DSH_READY_TIMEOUT_MS)} ms: ${stderr()}`));
+    child.kill();
+  }, DSH_READY_TIMEOUT_MS);
   child.onLine((line) => {
     const message = asRecord(parseJson(line));
+    if (message?.type === "profile-loaded") { profileLoaded?.(); return; }
     if (message?.type === "response" && typeof message.id === "string") {
       const waiter = pending.get(message.id);
       if (waiter === undefined) { return; }
@@ -65,6 +69,7 @@ export function dshControl(child: LineProcess, receive: (message: JsonRecord) =>
     }
     receive(message ?? { type: "stdout", line });
     if (message?.type === "ready") {
+      profileLoaded?.();
       clearTimeout(readyTimer);
       if (message.protocol === DSH_BRIDGE_PROTOCOL) { resolveReady({ protocol: DSH_BRIDGE_PROTOCOL, services: asRecord(message.services) ?? {} }); }
       else { rejectReady(new Error(`The OAR bridge spoke protocol ${String(message.protocol)}, not ${String(DSH_BRIDGE_PROTOCOL)}`)); }

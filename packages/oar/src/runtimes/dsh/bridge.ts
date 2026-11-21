@@ -13,7 +13,7 @@ export const DSH_BRIDGE_PROTOCOL = 1;
  * this text). Kept as source so a single-file host can write it to a private
  * directory without its own source tree. The vendor suite runs this exact text.
  *
- * Frames on stdout: `ready`, then `native` and `response` frames; `startup-error`
+ * Frames on stdout: private `profile-loaded`, then `ready`, followed by `native` and `response` frames; `startup-error`
  * when the loader barrier fails (never an empty inventory); `protocol-error` for
  * a line that is not a command. A `native` frame carries the runtime's payload
  * unchanged, with only routing fields beside it.
@@ -21,6 +21,7 @@ export const DSH_BRIDGE_PROTOCOL = 1;
 export const dshBridgeSource = String.raw`import { randomUUID } from "node:crypto";
 import { createInterface } from "node:readline";
 
+write({ type: "profile-loaded" }); // Cordis imports this module from the parsed profile.
 export const name = "oar-dsh-bridge";
 
 const PROTOCOL = ${String(DSH_BRIDGE_PROTOCOL)};

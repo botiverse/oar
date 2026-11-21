@@ -103,7 +103,7 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
   const agentOptions = dshAgentOptions(options);
   const kernel = credentials.kernel(sessionId);
   let projection = initialDshProjection(sessionId);
-  const { child, directory, profileOpened } = await launchDsh(command, options.cwd, env, { mcpRows, disableSessionLogUpload: options.sessionLogUpload === "off" });
+  const { child, directory, profileLoaded } = await launchDsh(command, options.cwd, env, { mcpRows, disableSessionLogUpload: options.sessionLogUpload === "off" });
   const fallback = createAbortFallback(() => { child.kill(); });
   let exited = false;
   let hasSessionFileStat = false;
@@ -128,7 +128,7 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
       }
     }
     kernel.frame(frame.body, frame.sessionId === undefined ? undefined : { sessionId: frame.sessionId });
-  }, credentials.redact);
+  }, credentials.redact, profileLoaded);
   child.onExit((code, reason) => {
     exited = true;
     fallback.clear();
@@ -149,7 +149,6 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
       const route = await savedRoute(control, sessionId, options.cwd);
       opened = await control.request("resume", { ...fields, ...(route === undefined ? {} : { route }) }, OPEN_TIMEOUT_MS);
     }
-    profileOpened();
     refuseUnappliedRoute(opened, agentOptions, options.model);
     if (opened.sessionId !== sessionId) { throw new Error(`DSH opened ${String(opened.sessionId)}, not ${sessionId}`); }
     if (options.name !== undefined) { await control.request("name", { sessionId, name: options.name, resuming: options.resume !== undefined }, OPEN_TIMEOUT_MS); }
