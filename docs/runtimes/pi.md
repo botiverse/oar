@@ -6,9 +6,16 @@ templates (SDK 1.1.0, 2026-10-11). Core MCP discovery is unsupported. See the
 [query contract](../spec/inventory.md) and
 [native probe evidence](inventory.md).
 
-Evidence baseline: OAR source as of 2026-09-11; bundled
+Evidence baseline: OAR source as of 2026-09-11; optional
 `@earendil-works/pi-coding-agent` SDK **1.5.2**, with `@earendil-works/pi-ai`;
-OAR depends on both at `^1.5.2`. Native source references are pinned to pi
+`@botiverse/oar` declares both in `optionalDependencies` at `^1.5.2` (installed
+by default; hosts that want a slim install without Pi can opt out with
+`npm install --omit=optional` or `pnpm install --no-optional`, noting that
+those flags omit every optional dependency in the tree, not only Pi's).
+`@botiverse/oar-cli` keeps both as direct `dependencies`. Without both packages
+installed in the host, every Pi mode (in-process SDK, default RPC, and
+explicit-command RPC) reports `unsupported` with `code: "dependency_missing"`.
+Native source references are pinned to pi
 **v0.84.2** (commit prefix `914cf1472`; former `badlogic/pi-mono` URLs
 redirect to `earendil-works/pi`). Live observations below are from SDK
 **0.84.2** unless they name a version or date (the bundled SDK moved to
@@ -142,11 +149,22 @@ checks these host requirements before returning `bundled`: without an explicit
 `command`, it returns `unsupported` with `code: "unsupported_host"` on a
 compiled single executable (Node SEA or Bun standalone) or an Electron host
 (Pi RPC launches `process.execPath` without `ELECTRON_RUN_AS_NODE`), and
-`code: "dependency_missing"` when `@earendil-works/pi-coding-agent/rpc-entry`
-cannot be resolved on disk. With an explicit `command`, `installation()`
-locates the command (`not_found` when absent) and checks its `--version`
-against `PI_RPC_MINIMUM_VERSION` (`1.4.0`), returning `version_unsupported`
-when below the floor or unreadable. OAR does not refuse Windows here because
+`code: "dependency_missing"` when `@earendil-works/pi-coding-agent/rpc-entry`,
+`@earendil-works/pi-coding-agent`, or `@earendil-works/pi-ai` cannot be
+resolved in the host. With an explicit `command`, `installation()` locates the
+command (`not_found` when absent), checks its `--version` against
+`PI_RPC_MINIMUM_VERSION` (`1.4.0`, returning `version_unsupported` when below
+the floor or unreadable), and still checks that both optional dependencies are
+available in the host (`dependency_missing` otherwise): OAR's host process uses
+them for session lookup, project-package checks, and context-overflow detection
+even when `pi` itself runs from `command`. Note that the RPC extension
+(`packages/oar/src/runtimes/pi/rpc/extension.ts`) itself does not need host
+copies: Pi's own extension loader serves Pi's bundled `@earendil-works/pi-coding-agent`
+and `@earendil-works/pi-ai` modules to loaded extensions
+(`@earendil-works/pi-coding-agent/dist/core/extensions/loader.js:66` and
+`dist/core/extensions/virtual-modules.js:32`, verified by running
+`pi --mode rpc --no-session -e` on a standalone temp file outside `node_modules`).
+OAR does not refuse Windows here because
 the gating `pi-rpc-windows` CI job runs both behavior and vendor suites on
 `windows-latest` (`verifiedPlatforms.pi` includes `win32`).
 

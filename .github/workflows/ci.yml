@@ -164,8 +164,9 @@ jobs:
           if-no-files-found: warn
 
   # The packed packages installed into an empty project the way a host
-  # installs them: OAR without its optional peer @cursor/sdk must load,
-  # type-check and probe every other runtime (tests/clean-install.ts).
+  # installs them: both slim (`--omit=optional`, no Pi) and default installs
+  # without optional peers (`@cursor/sdk`, Pi Durable) must load, type-check
+  # and probe every default runtime (tests/clean-install.ts).
   clean-install:
     runs-on: ubuntu-latest
     steps:

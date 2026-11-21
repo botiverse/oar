@@ -353,9 +353,15 @@ test("SDK candidate rewrites stay in the disposable checkout and preserve packag
     assert.equal(readFileSync(path.join(directory, cursorVersionPath), "utf8"), cursorBefore);
     const changed = JSON.parse(readFileSync(path.join(directory, "packages/oar/package.json")));
     assert.equal(changed.version, original.version);
-    assert.equal(changed.dependencies["@earendil-works/pi-ai"], "9.0.0");
+    assert.equal(changed.dependencies["@earendil-works/pi-ai"], undefined);
+    assert.equal(changed.dependencies["@earendil-works/pi-coding-agent"], undefined);
+    assert.equal(changed.optionalDependencies["@earendil-works/pi-ai"], "9.0.0");
+    assert.equal(changed.optionalDependencies["@earendil-works/pi-coding-agent"], "9.0.0");
     assert.equal(changed.dependencies.undici, "9.1.0");
     assert.equal(changed.peerDependencies["@cursor/sdk"], original.peerDependencies["@cursor/sdk"]);
+    const cli = JSON.parse(readFileSync(path.join(directory, "packages/cli/package.json")));
+    assert.equal(cli.dependencies["@earendil-works/pi-ai"], "9.0.0");
+    assert.equal(cli.dependencies["@earendil-works/pi-coding-agent"], "9.0.0");
     const root = JSON.parse(readFileSync(path.join(directory, "package.json")));
     assert.equal(root.devDependencies["@earendil-works/pi-ai-durable"], "npm:@earendil-works/pi-ai@9.0.0");
   } finally { rmSync(directory, { recursive: true, force: true }); }

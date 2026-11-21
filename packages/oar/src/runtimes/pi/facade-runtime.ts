@@ -1,15 +1,8 @@
 import { join } from "node:path";
 import { getAgentDir, ModelRuntime, SettingsManager } from "@earendil-works/pi-coding-agent";
+import type { PiModelRuntimePaths } from "./options.js";
 import { piAgentDir } from "./resolve.js";
 import { preparePi } from "./static-modules.js";
-
-/** Where a facade's `ModelRuntime` keeps credentials and custom providers; both default into the agent dir. */
-export interface PiModelRuntimePaths {
-  /** Path to Pi's `auth.json`; defaults to `auth.json` in the agent dir. */
-  readonly authPath?: string;
-  /** Path to Pi's `models.json`; defaults to `models.json` in the agent dir; `null` disables the static config. */
-  readonly modelsPath?: string | null;
-}
 
 type ModelRuntimeOptions = NonNullable<Parameters<typeof ModelRuntime.create>[0]>;
 
