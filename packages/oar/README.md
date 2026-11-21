@@ -175,7 +175,7 @@ Community runtimes are contributed and maintained outside the core team (each ma
 `SessionOptions.model`. When resuming an old Azure session, pass
 `model: "azure/<model>"` explicitly; without it, Pi can retain the
 conversation while selecting a different default model. The opening `model`
-event and `Session.model()` report the effective selection. OAR's `^1.5.2`
+event and `Session.model()` report the effective selection. OAR's `~1.5.2`
 dependency range includes this change
 ([migration evidence and limits](https://github.com/botiverse/oar/blob/main/experiments/runtime-version-checks/2026-10-05.md)).
 

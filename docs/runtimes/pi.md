@@ -8,7 +8,7 @@ templates (SDK 1.1.0, 2026-10-11). Core MCP discovery is unsupported. See the
 
 Evidence baseline: OAR source as of 2026-09-11; optional
 `@earendil-works/pi-coding-agent` SDK **1.5.2**, with `@earendil-works/pi-ai`;
-`@botiverse/oar` declares both in `optionalDependencies` at `^1.5.2` (installed
+`@botiverse/oar` declares both in `optionalDependencies` at `~1.5.2` (installed
 by default; hosts that want a slim install without Pi can opt out with
 `npm install --omit=optional` or `pnpm install --no-optional`, noting that
 those flags omit every optional dependency in the tree, not only Pi's).

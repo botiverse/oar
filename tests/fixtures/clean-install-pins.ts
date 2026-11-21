@@ -74,8 +74,50 @@ function checkWorkspacePins(dependencies: Record<string, unknown>, names: readon
   }
 }
 
+const PI_OAR_RANGES: readonly (readonly [string, string])[] = [
+  ["optionalDependencies", "@earendil-works/pi-ai"],
+  ["optionalDependencies", "@earendil-works/pi-coding-agent"],
+  ["peerDependencies", "@earendil-works/pi-durable"],
+  ["peerDependencies", "@earendil-works/chord"],
+];
+const PI_CLI_RANGES: readonly (readonly [string, string])[] = [
+  ["dependencies", "@earendil-works/pi-ai"],
+  ["dependencies", "@earendil-works/pi-coding-agent"],
+];
+
+function readDependencyRange(manifest: Record<string, unknown> | null, field: string, name: string): string {
+  const value = asRecord(manifest?.[field])?.[name];
+  assert.ok(typeof value === "string", `Missing ${field}.${name}`);
+  return value;
+}
+
+/** Verify published Pi-family ranges stay minor-locked together and undici matches Pi's exact pin. */
+export function checkPiManifestConsistency(
+  oar: Record<string, unknown> | null,
+  cli: Record<string, unknown> | null,
+  piCodingAgent: Record<string, unknown> | null,
+): void {
+  const ranges = [
+    ...PI_OAR_RANGES.map(([field, name]) => [`packages/oar ${field}.${name}`, readDependencyRange(oar, field, name)] as const),
+    ...PI_CLI_RANGES.map(([field, name]) => [`packages/cli ${field}.${name}`, readDependencyRange(cli, field, name)] as const),
+  ];
+  const expected = ranges[0]?.[1];
+  assert.ok(expected !== undefined && /^~?\d+\.\d+\.\d+$/u.test(expected), `Pi family range must be ~X.Y.Z or exact X.Y.Z, got ${String(expected)}`);
+  for (const [label, range] of ranges) {
+    assert.equal(range, expected, `Pi family range mismatch at ${label}: ${range} !== ${expected}`);
+  }
+  const piUndici = readDependencyRange(piCodingAgent, "dependencies", "undici");
+  assert.match(piUndici, /^\d+\.\d+\.\d+$/u, `Pi coding agent must pin an exact undici version, got ${piUndici}`);
+  const oarUndici = readDependencyRange(oar, "dependencies", "undici");
+  assert.equal(oarUndici, piUndici, `packages/oar dependencies.undici (${oarUndici}) must match @earendil-works/pi-coding-agent (${piUndici})`);
+}
+
 function checkPublishedRanges(root: string, versions: Record<string, string>): void {
   const published = readRecord(path.join(root, "packages/oar/package.json"));
+  const cli = readRecord(path.join(root, "packages/cli/package.json"));
+  const rootUrl = pathToFileURL(path.join(root, "package.json"));
+  const piManifest = readRecord(packageFile("@earendil-works/pi-coding-agent", rootUrl));
+  checkPiManifestConsistency(published, cli, piManifest);
   for (const field of ["dependencies", "optionalDependencies", "peerDependencies"]) {
     for (const [name, range] of Object.entries(asRecord(published?.[field]) ?? {})) {
       const version = versions[name];
