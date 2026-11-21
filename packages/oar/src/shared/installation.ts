@@ -109,8 +109,10 @@ function locateCandidate(entry: string, env: Readonly<NodeJS.ProcessEnv>): Locat
  * unchanged. Hosts call `installation()` often (Raft before every usage read
  * and inventory), and a Node or Python CLI start costs seconds (codebuddy
  * ~3.6 s, kimi ~1.7 s on 2026-11-18). An upgrade by npm, uv, Homebrew, the
- * native installer or a staged self-update replaces the resolved file, which
- * changes its identity here, so the next probe runs again. Version-manager
+ * native installer or a staged self-update normally changes the resolved
+ * path or its stat identity (device, inode, size, mtime, ctime). A same-size
+ * replacement that reuses the inode within one filesystem clock tick can
+ * retain the entire identity and return the cached version. Version-manager
  * shims are never cached (their file stays put across upgrades). OAR's own
  * install and upgrade clear the cache explicitly. Lookups follow the caller's
  * environment: the command is resolved first, the key covers the whole
