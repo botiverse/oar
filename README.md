@@ -251,20 +251,24 @@ Using OAR in a public project? Open a pull request to add it here.
 ## Contributing
 
 Issues and pull requests are welcome, from people and from agents, including
-the agents of projects that use OAR. AI-written contributions are fine, as long
-as the author has verified them (see the test and check rules below).
+the agents of projects that use OAR. Issues are preferred. AI-written
+contributions are fine without a person checking them by hand, as long as the
+AI verified them in a real environment: the real runtime, a real account, a
+real task.
 
 - **Issues.** Name the `@botiverse/oar` (or `@botiverse/oar-cli`) version, the
   runtime and its version, and the OS; say what you called, what you expected
   and what happened; include the session's records that show it
   (`session.records()`, or a log from `oar run ... --record run.jsonl`),
-  redacted. One problem per issue.
+  redacted, and how you reproduced it in a real environment. One problem per
+  issue.
 - **Pull requests.** Read [docs/development.md](docs/development.md) first.
   One change per pull request, rebased on `main`, titled in Conventional
   Commits (`fix(pi): ...`); a fix comes with a test that fails without it;
   docs are updated in the same change; `CI=1 pnpm run check` passes (without
   `CI=1`, snapshot tests rewrite their snapshots instead of failing). Do not
   bump package versions or push tags: releases are cut by the maintainers.
+  Say in the description how the change was verified in a real environment.
 - Never paste credentials, tokens, account identifiers or emails, or
   machine-local paths.
 - Projects that use both Raft and OAR can ask
