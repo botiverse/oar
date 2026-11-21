@@ -17,4 +17,5 @@ export const devinRefusedSessionOptions: RefusedSessionOptions = {
   systemPrompt: "Devin ACP exposes no verified system prompt replacement channel",
   userConfiguration: "Devin has no verified separation of user configuration from its native login",
   nativeMemoryDefault: "Devin exposes no verified below-user default layer for background auto-memory",
+  sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
 };

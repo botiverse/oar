@@ -111,6 +111,7 @@ export const piRefusedSessionOptions: RefusedSessionOptions = {
   launchArgs: "pi runs in this process through its SDK; there is no runtime command line to add arguments to",
   serviceTier: "pi exposes no verified per-session service-tier setting and readback",
   nativeMemoryDefault: "Pi has no built-in background auto-memory feature or below-user default layer",
+  sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
 };
 
 /** Pi 1.4.0's truthy customPrompt check replaces an empty string with its default. */

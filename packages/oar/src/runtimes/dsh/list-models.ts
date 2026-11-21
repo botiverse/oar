@@ -67,7 +67,7 @@ export const dshListModels: ModelLister = async (installation, options = {}) => 
     signal.throwIfAborted();
     const refusal = dshVersionUnsupported(version);
     if (refusal !== null) { return refusal; }
-    const launched = await launchDsh(installation.command, listingCwd(options), env, [], signal);
+    const launched = await launchDsh(installation.command, listingCwd(options), env, { signal });
     own(launched.child);
     const control = dshControl(launched.child, () => {});
     try {

@@ -113,6 +113,21 @@ extra open-time query), never `"off"`.
 | Claude | Refused at open: Claude's settings layers (`userSettings`, `projectSettings`, `localSettings`, `flagSettings`, `policySettings`) have no below-user default layer; `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1` and `--settings` hard-override user settings. Use `userConfiguration: { exclude: ["instructions"] }` for a hard disable ([details](../runtimes/claude.md#user-configuration)). | Omitted so open stays immediate without waiting for a control reply. |
 | All other built-in runtimes | Refused at open (`refusedSessionOptions.nativeMemoryDefault`): no native background auto-memory feature or no verified below-user default layer. | Omitted. |
 
+## Session log upload
+
+`SessionOptions.sessionLogUpload: "off"` stops the runtime from sending the
+session's transcript or log to its vendor outside the model requests
+themselves. Omission preserves the user's and runtime's own settings; there is
+no `"on"`. When given, `"off"` wins over a user opt-in (the protective
+direction). Separate telemetry metrics are out of scope. Supply it again on
+resume.
+
+| Runtime | `sessionLogUpload: "off"` |
+|---|---|
+| DSH (`>= 0.2.1-rc.5`) | Adds `{ id: "session-log-deepseek", name: "@deepseek-ai/dsh-session-log-deepseek", config: { enabled: false } }` to OAR's private invocation `--patch` (overriding home `enabled: true` without editing user files) and verifies the loaded plugin entry fail-closed before any agent or model request; covers root, native `subagent` children, and resumed sessions ([details](../runtimes/dsh.md#session-log-upload), [vendor test](../../sea-trial/vendor/dsh-session-log-upload.vendor.test.ts)). |
+| DSH (`< 0.2.1-rc.5` or unreadable) | Refused at open (`UnsupportedOptionError("sessionLogUpload", ...)`), declared in `sessionCapabilities`. |
+| All other runtimes | Refused at open (`refusedSessionOptions.sessionLogUpload`): no verified switch. |
+
 ## Session controls
 
 `prompt`, `queue` and `abort` are on every session. `steer`, `withdraw` and `stopTask`
@@ -917,7 +932,7 @@ reading the message.
 
 `Runtime.refusedSessionOptions` declares, before any session opens, the
 `SessionOptions` a runtime refuses when given (`env`, `mcpServers`, `disallowedTools`, `launchArgs`, `additionalDirectories`: a
-non-empty one; `userConfiguration`: any exclusion; `partialUserConfiguration`: a proper nonempty subset; `goals`, `endTurnProcessesOnAbort`: `true`; `fork`: any value; `nativeMemoryDefault`: `"off"`), each with that reason. The adapter checks the same map, so
+non-empty one; `userConfiguration`: any exclusion; `partialUserConfiguration`: a proper nonempty subset; `goals`, `endTurnProcessesOnAbort`: `true`; `fork`: any value; `nativeMemoryDefault`: `"off"`; `sessionLogUpload`: `"off"`), each with that reason. The adapter checks the same map, so
 the declaration and the refusal cannot drift
 (`tests/refused-session-options.test.ts`). A host leaves a declared option
 out instead of naming runtimes. `outputSchema` is considered given even
@@ -939,13 +954,16 @@ isolation is unverified declares `mcpServerCredentials`. Every
 `goals: true` is refused everywhere except Codex and DSH ([native goals](#native-goals)),
 `endTurnProcessesOnAbort: true` everywhere except Codex in an isolated
 app-server and Grok ([ending a turn's processes](#ending-a-turns-processes-on-abort)),
-and `nativeMemoryDefault: "off"` everywhere except Qwen `>= 0.26.0`
+`nativeMemoryDefault: "off"` everywhere except Qwen `>= 0.26.0`
 ([native memory default](#native-memory-default)),
+and `sessionLogUpload: "off"` everywhere except DSH `>= 0.2.1-rc.5`
+([session log upload](#session-log-upload)),
 for want of a verified way to end one aborted turn's processes while the
 session stays usable (in the host process, no process tree of its own to
-read) or a below-user default settings layer. Claude and Codex accept forks through a chosen turn. OpenCode v2
+read), a below-user default settings layer, or a verified vendor session-log
+upload switch. Claude and Codex accept forks through a chosen turn. OpenCode v2
 can copy a whole session. Other adapters refuse `fork`
-([forking a session](#forking-a-session)). The table omits all four, apart
+([forking a session](#forking-a-session)). The table omits all five, apart
 from Codex's shared-placement refusal.
 These refusals have one reason wherever the table lists them: `serviceTier`,
 no verified per-session tier setting and readback; `outputSchema`, no

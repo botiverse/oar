@@ -29,6 +29,7 @@ const given: Readonly<Record<RefusableSessionOption, Partial<SessionOptions>>> =
   name: { name: "probe" },
   fork: { fork: { through: "anchor" }, resume: "source" },
   nativeMemoryDefault: { nativeMemoryDefault: "off" },
+  sessionLogUpload: { sessionLogUpload: "off" },
   modelRequests: { modelRequests: "latest" },
 };
 
@@ -51,7 +52,7 @@ test("every declared refusal is what session() rejects with", async () => {
   const declaring = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions !== undefined);
   assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "claude", "codebuddy", "codex", "cursor", "devin", "dsh", "factory", "grok", "kimi", "opencode", "pi", "qoder", "qwen"]);
   for (const runtime of declaring) {
-    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "partialUserConfiguration", "goals", "endTurnProcessesOnAbort", "fork", "nativeMemoryDefault"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
+    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "partialUserConfiguration", "goals", "endTurnProcessesOnAbort", "fork", "nativeMemoryDefault", "sessionLogUpload"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
     for (const key of keys) {
       const option = refusalNames[key] ?? key;
       const opening = runtime.session(nowhere(runtime.id), { cwd: "/tmp", ...given[key] });
@@ -66,20 +67,20 @@ test("every declared refusal is what session() rejects with", async () => {
 test("the declarations say which options each runtime refuses", () => {
   const refused = Object.fromEntries(allRuntimes.list().map((runtime) => [runtime.id, Object.keys(runtime.refusedSessionOptions ?? {}).toSorted()]));
   assert.deepEqual(refused, {
-    antigravity: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
-    claude: ["endTurnProcessesOnAbort", "goals", ...(process.platform === "win32" ? ["mcpServerCredentials"] : []), "nativeMemoryDefault"],
-    codebuddy: ["additionalDirectories", "appendSystemPrompt", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
-    codex: ["modelRequests", "nativeMemoryDefault", "userConfiguration"],
-    cursor: ["appendSystemPrompt", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "partialUserConfiguration", "serviceTier", "systemPrompt"],
-    devin: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
+    antigravity: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "sessionLogUpload", "systemPrompt", "userConfiguration"],
+    claude: ["endTurnProcessesOnAbort", "goals", ...(process.platform === "win32" ? ["mcpServerCredentials"] : []), "nativeMemoryDefault", "sessionLogUpload"],
+    codebuddy: ["additionalDirectories", "appendSystemPrompt", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "sessionLogUpload", "userConfiguration"],
+    codex: ["modelRequests", "nativeMemoryDefault", "sessionLogUpload", "userConfiguration"],
+    cursor: ["appendSystemPrompt", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "partialUserConfiguration", "serviceTier", "sessionLogUpload", "systemPrompt"],
+    devin: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "sessionLogUpload", "systemPrompt", "userConfiguration"],
     dsh: ["endTurnProcessesOnAbort", "fork", "launchArgs", "mcpServerCredentials", "modelRequests", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
-    factory: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
-    grok: ["additionalDirectories", "disallowedTools", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "serviceTier", "userConfiguration"],
-    kimi: ["appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
-    opencode: ["disallowedTools", "endTurnProcessesOnAbort", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
-    pi: ["additionalDirectories", "endTurnProcessesOnAbort", "fork", "goals", "launchArgs", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
-    qoder: ["endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
-    qwen: ["endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "outputSchema", "serviceTier", "userConfiguration"],
+    factory: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "sessionLogUpload", "userConfiguration"],
+    grok: ["additionalDirectories", "disallowedTools", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "serviceTier", "sessionLogUpload", "userConfiguration"],
+    kimi: ["appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "sessionLogUpload", "systemPrompt", "userConfiguration"],
+    opencode: ["disallowedTools", "endTurnProcessesOnAbort", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "sessionLogUpload", "userConfiguration"],
+    pi: ["additionalDirectories", "endTurnProcessesOnAbort", "fork", "goals", "launchArgs", "nativeMemoryDefault", "outputSchema", "serviceTier", "sessionLogUpload", "userConfiguration"],
+    qoder: ["endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "sessionLogUpload", "userConfiguration"],
+    qwen: ["endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "outputSchema", "serviceTier", "sessionLogUpload", "userConfiguration"],
   });
 });
 

@@ -1,7 +1,8 @@
 import { UnsupportedOptionError } from "../../contracts/errors.js";
-import { compareSemver } from "../../shared/semver.js";
+import { compareSemver, semverAtLeast } from "../../shared/semver.js";
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type { SessionOptions } from "../../contracts/session.js";
+import { DSH_MINIMUM_VERSION } from "./version.js";
 
 /** Each stays refused until its own native probe. DSH may well have the concept; OAR has not verified its semantics. */
 export const dshRefusedSessionOptions: RefusedSessionOptions = {
@@ -25,6 +26,13 @@ export function dshDirectoryRefusal(version: string | undefined, platform: NodeJ
   return order !== null && order < 0
     ? { additionalDirectories: "DSH versions below 0.2.2-rc.3 have no session-scoped registerWritableRoot that preserves the existing sandbox policy" }
     : {};
+}
+
+/** DSH 0.2.1-rc.5 and later ship @deepseek-ai/dsh-session-log-deepseek (verified on 0.2.1-rc.5 and 0.2.2-rc.5); bridge startup still confirms the row after loader.await(). */
+export function dshSessionLogUploadRefusal(version: string | undefined): Pick<RefusedSessionOptions, "sessionLogUpload"> {
+  return semverAtLeast(version, DSH_MINIMUM_VERSION)
+    ? {}
+    : { sessionLogUpload: `DSH session-log upload control requires a verified version of ${DSH_MINIMUM_VERSION} or later` };
 }
 
 export interface DshAgentOptions {

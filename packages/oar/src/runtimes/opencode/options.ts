@@ -20,6 +20,7 @@ export const opencodeRefusedSessionOptions: RefusedSessionOptions = {
   serviceTier: "opencode exposes no verified per-session service-tier setting and readback",
   disallowedTools: "opencode ACP has no session tool denylist; global permission rules can be overridden by agent rules and do not use the tool-name vocabulary consistently",
   nativeMemoryDefault: "OpenCode exposes no verified below-user default layer for background auto-memory",
+  sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
 };
 
 export const opencodeV1RefusedSessionOptions: RefusedSessionOptions = {

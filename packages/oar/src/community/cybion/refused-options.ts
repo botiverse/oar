@@ -16,4 +16,5 @@ export const cybionRefusedSessionOptions: RefusedSessionOptions = {
   userConfiguration: "A Cybion Thread always runs with its owner's configuration, which cannot be excluded",
   goals: "Cybion's Agent API exposes no structured goal controls",
   endTurnProcessesOnAbort: "Cybion cancels a turn, but exposes no per-turn control over the processes it started",
+  sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
 };

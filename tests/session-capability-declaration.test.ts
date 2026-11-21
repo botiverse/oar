@@ -3,7 +3,7 @@ import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import { createModels } from "@earendil-works/pi-ai-durable/models";
 import { Harness, MemoryStorage, createRegistry } from "@earendil-works/pi-durable";
 import { createMorphRuntime } from "../packages/oar/src/community/morph/index.js";
-import { claudeRuntime, codebuddyRuntime, codexRuntime, createCursorRuntime, createPiRuntime, defineRuntime, grokRuntime, installedSessionCapabilities, kimiRuntime, opencodeRuntime, qwenRuntime, type AvailableInstallation } from "../packages/oar/src/index.js";
+import { claudeRuntime, codebuddyRuntime, codexRuntime, createCursorRuntime, createPiRuntime, defineRuntime, dshRuntime, grokRuntime, installedSessionCapabilities, kimiRuntime, opencodeRuntime, qwenRuntime, type AvailableInstallation } from "../packages/oar/src/index.js";
 import { createPiDurableRuntime } from "../packages/oar/src/pi-durable.js";
 import { scriptedRuntime } from "../packages/oar/src/testing/index.js";
 import { allRuntimes } from "../sea-trial/harness/runtimes.js";
@@ -204,6 +204,17 @@ it.each([
 ] as const)("gates Qwen nativeMemoryDefault refusal at 0.26.0 (%s)", (version, refused) => {
   const declaration = qwenRuntime.sessionCapabilities(executable(version)).refusedSessionOptions;
   expect(declaration?.nativeMemoryDefault === undefined).toBe(!refused);
+});
+
+it.each([
+  ["0.2.1-rc.4", true],
+  ["0.2.1-rc.5", false],
+  ["0.2.2-rc.5", false],
+  ["bad", true],
+  [undefined, true],
+] as const)("gates DSH sessionLogUpload refusal at 0.2.1-rc.5 (%s)", (version, refused) => {
+  const declaration = dshRuntime.sessionCapabilities(executable(version)).refusedSessionOptions;
+  expect(declaration?.sessionLogUpload === undefined).toBe(!refused);
 });
 
 describe("installedSessionCapabilities", () => {

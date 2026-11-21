@@ -166,6 +166,9 @@ many turns without repeating that event. OAR reads the saved session's
 report. A new `request/context` replaces that window, including when it omits
 the size. An explicit switch to another model waits for that model's own
 window. Resuming adds no historical tokens to the new handle's usage.
+Auxiliary search calls made by `@deepseek-ai/dsh-web-search-deepseek` record
+only the outbound `web/deepseek-search-llm-request` log-only event before
+dispatch and emit no usage event, so `Session.usage()` cannot count them.
 [Interrupted-turn controls](../../experiments/dsh-plugin/resumed-context.md).
 
 Turn ends: `completed`; `aborted`; `error` by native code (below);
@@ -261,7 +264,8 @@ refused at open: it has no route), `effort` as `reasoningEffort`, and stdio
 `mcpServers` with command/args ([MCP details](#session-mcp-servers)), `name`,
 `disallowedTools` ([native title and tool boundaries](#session-name-and-tool-denial)),
 `systemPrompt` and `appendSystemPrompt` ([prompt boundaries](#system-prompts)),
-and `goals: true` ([native goals](#native-goals)).
+`goals: true` ([native goals](#native-goals)), and `sessionLogUpload: "off"`
+([session-log upload](#session-log-upload)).
 
 `DSH_PERMISSION_MODE` is `danger-full-access` unless the host names its own for this
 session in `SessionOptions.env`: nobody sits at an approval prompt, and native reports
@@ -456,8 +460,10 @@ OAR writes nothing to user configuration: its overlay is an invocation `--patch`
 a private directory. DSH itself writes under `DSH_HOME` (default `~/.dsh`): cold
 start creates `profiles/acp/{package.json,pnpm-workspace.yaml,cordis.yml,cordis.patch.yml}`,
 and sessions write `sessions/<cwd key>/<id>/` logs and locks and
-`storages/session_projcache/`. Telemetry and session-log settings stay the user's; the
-test home turns them off with `DSH_TELEMETRY_DISABLED` and disabled plugin rows.
+`storages/session_projcache/`. Telemetry and session-log settings stay the user's by default; see
+[session-log upload](#session-log-upload) for the default upload path, user
+off switch, and OAR's `sessionLogUpload: "off"` host option. The test home
+turns them off with `DSH_TELEMETRY_DISABLED` and disabled plugin rows.
 DSH 0.2.1-rc.5 and 0.2.2-rc.5 write the first `profiles/acp/package.json`
 in place. On 0.2.2-rc.5, two native loaders starting together failed to parse
 the manifest in 3 of 100 fresh shared profiles. All 100 pairs with separate
@@ -467,6 +473,48 @@ Independent OAR processes sharing a fresh profile can still race.
 DSH also creates `dsh-spill-*` and `dsh-subprocess-*` directories in the system
 temporary directory and leaves them there empty; with one process per session they
 accumulate. They are DSH's own, so OAR does not remove them.
+
+### Session-log upload
+
+DSH ships `@deepseek-ai/dsh-session-log-deepseek` (`id: "session-log-deepseek"`,
+present in `0.2.1-rc.5` and `0.2.2-rc.5`) enabled by default (`enabled: true`,
+up to 8 MiB per request). On official DeepSeek routes (`dsh-llm-deepseek`, such
+as `deepseek-official` and `deepseek-account`), each request attaches pending
+canonical session events as the top-level `dsh_session_log` body field and
+appends a durable `session-log-deepseek/delivery-accepted` watermark after HTTP
+2xx. Verified on real DSH `0.2.2-rc.5` against a loopback DeepSeek Messages
+server:
+
+- Default launches on `deepseek-official` send `dsh_session_log` on root turns,
+  native `subagent` child turns, and resumed turns, and record
+  `session-log-deepseek/delivery-accepted`.
+- `DSH_TELEMETRY_DISABLED=1` does **not** stop `dsh_session_log`; it only
+  disables OTel feedback telemetry (`session-telemetry-otel`).
+- Non-DeepSeek (`llm-pi-ai`) routes do not send `dsh_session_log` even when
+  `session-log-deepseek` is enabled, because only `dsh-llm-deepseek` consumes
+  `deepseekLlmApiExtensions`.
+- **User off switch:** add `{"id": "session-log-deepseek", "config": {"enabled": false}}`
+  to `$DSH_HOME/cordis.patch.yml` (verified to remove `dsh_session_log` and
+  `session-log-deepseek/delivery-accepted`).
+- **Host off switch (`SessionOptions.sessionLogUpload: "off"`):** OAR keeps the
+  user's and DSH's settings untouched when omitted. When given on DSH
+  `>= 0.2.1-rc.5`, OAR appends `{"id": "session-log-deepseek", "name": "@deepseek-ai/dsh-session-log-deepseek", "config": {"enabled": false}}`
+  to its private invocation `--patch` (editing no user file, overriding a home
+  `enabled: true`, and coexisting with a home `disabled: true`). After
+  `loader.await()`, the bridge verifies fail-closed that `loader.entries()`
+  reports `session-log-deepseek` with `@deepseek-ai/dsh-session-log-deepseek`
+  either `disabled: true` or active (`FiberState.ACTIVE = 2`) with
+  `config.enabled === false`; otherwise open rejects with
+  `UnsupportedOptionError("sessionLogUpload", ...)` before any agent is created
+  or provider request is sent. Verified on `0.2.2-rc.5` to remove
+  `dsh_session_log` and `session-log-deepseek/delivery-accepted` across root
+  turns, native `subagent` child turns, and resumed sessions (supply
+  `sessionLogUpload: "off"` again on resume).
+- **Separate plugin inventory field:** official DeepSeek requests also carry a
+  separate top-level `dsh_plugin_packages` field from
+  `@deepseek-ai/dsh-plugin-package-inventory-deepseek`
+  (`id: "plugin-package-inventory-deepseek"`). `SessionOptions.sessionLogUpload: "off"`
+  does not disable `dsh_plugin_packages`.
 
 ### Credentials
 

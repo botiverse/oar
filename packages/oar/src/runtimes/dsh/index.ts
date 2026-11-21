@@ -4,13 +4,22 @@ import { defineRuntime } from "../../contracts/runtime.js";
 import { onFirstCall } from "../../shared/lazy.js";
 import { dshInstallation } from "./installation.js";
 import { dshInstall, dshInstallPlan } from "./install.js";
-import { dshDirectoryRefusal, dshRefusedSessionOptions } from "./options.js";
+import { dshDirectoryRefusal, dshRefusedSessionOptions, dshSessionLogUploadRefusal } from "./options.js";
 import { DSH_MINIMUM_VERSION } from "./version.js";
 
 export const dshRuntime = defineRuntime({
   id: "dsh",
   manualCompaction: { kind: "supported", activeTurn: "reject" },
-  sessionCapabilities: (installation) => ({ compactionEvents: { started: true, ended: true }, contextUsage: { tokens: true, contextWindow: true }, mcpTransports: ["stdio"], stopTask: true, refusedSessionOptions: dshDirectoryRefusal(installation.via === "executable" ? installation.version : undefined) }), brand: runtimeBrands.dsh, verifiedPlatforms: verifiedPlatforms.dsh,
+  sessionCapabilities: (installation) => {
+    const version = installation.via === "executable" ? installation.version : undefined;
+    return {
+      compactionEvents: { started: true, ended: true },
+      contextUsage: { tokens: true, contextWindow: true },
+      mcpTransports: ["stdio"],
+      stopTask: true,
+      refusedSessionOptions: { ...dshDirectoryRefusal(version), ...dshSessionLogUploadRefusal(version) },
+    };
+  }, brand: runtimeBrands.dsh, verifiedPlatforms: verifiedPlatforms.dsh,
   minVersion: DSH_MINIMUM_VERSION,
   // The default route reads DEEPSEEK_API_KEY; a key saved through DSH's own settings wins (docs/runtimes/dsh.md#credentials).
   credentials: {

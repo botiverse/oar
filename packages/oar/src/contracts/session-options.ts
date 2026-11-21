@@ -283,4 +283,13 @@ export interface SessionOptions {
   readonly launchArgs?: readonly string[];
   /** Lower native background auto-memory defaults to `"off"` at the runtime's lowest configuration layer so explicit user, workspace or system settings still override it; refused where no such layer exists (`refusedSessionOptions.nativeMemoryDefault`). */
   readonly nativeMemoryDefault?: "off";
+  /**
+   * Stop the runtime sending the session's transcript or log to its vendor
+   * outside the model requests themselves. Omitted preserves the user's and
+   * runtime's own settings; there is no `"on"`. When given, `"off"` wins over
+   * a user opt-in (the protective direction). Separate telemetry metrics are
+   * out of scope. Supply again on resume. Refused where no verified switch
+   * exists (`refusedSessionOptions.sessionLogUpload`).
+   */
+  readonly sessionLogUpload?: "off";
 }

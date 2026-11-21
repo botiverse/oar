@@ -30,7 +30,7 @@ export const dshSkills: InventoryReader<SkillEntry> = async (installation, optio
     const refusal = dshVersionUnsupported(version);
     if (refusal !== null) { return refusal; }
     const scope = workspaceScope(options);
-    const launched = await launchDsh(installation.command, scope.cwd, env, [], signal).catch(() => null);
+    const launched = await launchDsh(installation.command, scope.cwd, env, { signal }).catch(() => null);
     if (launched === null) { return unavailableInventory("query_failed", "Native inventory query failed"); }
     own(launched.child);
     const control = dshControl(launched.child, () => {});
