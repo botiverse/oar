@@ -44,7 +44,6 @@ test("push and PR selection keep only Linux plus audit-proven non-Linux jobs", (
   expect(nonLinux).toEqual([
     { os: "windows-latest", backend: "codex-aimock" },
     { os: "windows-latest", backend: "dsh-aimock" },
-    { os: "macos-latest", backend: "claude-aimock" },
   ]);
   expect(push.pi_rpc_windows).toBe("true");
   const pr = select("pull_request");

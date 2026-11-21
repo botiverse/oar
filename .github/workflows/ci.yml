@@ -254,8 +254,9 @@ jobs:
       - run: pnpm run durable-demo:smoke
 
   # OpenDAL-style behavior jobs: Linux runs every selected backend; main pushes
-  # add only the non-Linux jobs with proven platform-only catches in the 50-run
-  # audit (Windows dsh-aimock, Windows codex-aimock, macOS claude-aimock).
+  # add only the non-Linux jobs with proven platform-only product catches in
+  # the 50-run audit (Windows dsh-aimock and Windows codex-aimock). Zero macOS
+  # jobs run on push/release so releases never wait on the macOS runner queue.
   behavior:
     needs: changes
     if: needs.changes.outputs.behavior != '[]'

@@ -281,14 +281,15 @@ contracts, the behavior harness, CI or anything unrecognized reach all of them;
 docs, Markdown, tests other than `tests/fixtures/`, the CLI and apps reach
 none; `experiments/` code reaches all, because vendor tests and the behavior
 harness import its probes). A push to main and a dispatch run all Linux
-backends plus the non-Linux jobs that caught platform-only failures in the
-50-run audit (Windows `check-windows` including `opencode-cleanup/skills`,
-Windows `dsh-aimock`, Windows `codex-aimock`, Windows `pi-rpc-windows` vendor,
-and macOS `claude-aimock`). Windows `opencode-v2-aimock` stays on PRs that
+backends plus the Windows jobs that caught platform-only product failures in
+the 50-run audit (Windows `check-windows` including `opencode-cleanup/skills`,
+Windows `dsh-aimock`, Windows `codex-aimock`, and Windows `pi-rpc-windows`
+vendor). No macOS jobs run on push or release, so pushes and releases never
+wait on the macOS runner queue. Windows `opencode-v2-aimock` stays on PRs that
 reach OpenCode and runs daily in `platform-matrix.yml`, parked off main push
-and release until its known readiness flake (`#core:#360`) is fixed. The
-remaining macOS and Windows behavior, ACP and native helper matrices run daily
-and on demand in
+and release until its known readiness flake (`#core:#360`) is fixed. All macOS
+jobs and the remaining Windows behavior, ACP and native helper matrices run
+daily and on demand in
 [`.github/workflows/platform-matrix.yml`](../.github/workflows/platform-matrix.yml);
 the release gate waits only on `ci.yml` for the exact release commit and does
 not wait on `platform-matrix.yml`. A regression that only the daily matrix
@@ -319,10 +320,9 @@ newer push or dispatch on the same ref cancels any in-progress or queued
   all nine backends (`claude-aimock`, `codex-aimock`, `pi-aimock`,
   `pi-rpc-aimock`, `pi-durable-aimock`, `qwen-aimock`, `dsh-aimock` pinned to
   0.2.1-rc.5, `qoder-native` pinned to 1.1.81, and `factory-aimock` pinned to
-  1.12.1), plus on main pushes/dispatches Windows `dsh-aimock`, Windows
-  `codex-aimock` and macOS `claude-aimock`. `dsh-aimock` and `qoder-native` run
-  at shared-case concurrency 2; missing `dsh-aimock` or `factory-aimock`
-  installations fail.
+  1.12.1), plus on main pushes/dispatches Windows `dsh-aimock` and Windows
+  `codex-aimock`. `dsh-aimock` and `qoder-native` run at shared-case
+  concurrency 2; missing `dsh-aimock` or `factory-aimock` installations fail.
 - `pi-rpc-minimum`: Ubuntu behavior and vendor suites with a separately
   installed Pi CLI 1.4.0 selected through `OAR_PI_RPC_COMMAND`. This guards the
   explicit-command floor while OAR keeps its current bundled dependency.
@@ -659,10 +659,10 @@ it once the tag is confirmed at the release commit.
 
 Dispatch right after the release pull request merges: the workflow releases
 the head of main only after `ci.yml` succeeded on that exact commit (the
-Linux gate, sharded Windows unit check with `opencode-cleanup`, Windows
-`dsh-aimock`, `codex-aimock`, `pi-rpc-windows` vendor and macOS
-`claude-aimock`; it does not wait on daily `platform-matrix.yml`, and a
-docs-only head has no run and fails the gate). It refuses a version that
+Linux gate, sharded Windows unit check with `opencode-cleanup`, and Windows
+`dsh-aimock`, `codex-aimock`, `pi-rpc-windows` vendor; no macOS jobs, and it
+does not wait on daily `platform-matrix.yml`, and a docs-only head has no run
+and fails the gate). It refuses a version that
 already has a tag or differs from either package version, runs
 `pnpm run check` and `pnpm run build`, and publishes both packages with
 `pnpm -r publish`, which rewrites the CLI's `workspace:*` dependency to the

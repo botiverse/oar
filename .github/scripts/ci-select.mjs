@@ -19,11 +19,11 @@ const all = [...behavior, ...acp];
 // Non-Linux behavior jobs kept on main pushes/dispatches (50-run audit evidence):
 // - windows-latest dsh-aimock: 19/50 unique failures (e.g. run 44784700637 / job 136456409926)
 // - windows-latest codex-aimock: 9/50 unique failures (e.g. run 44731287320 / job 136271471468)
-// - macos-latest claude-aimock: 1/50 unique symlink-aliasing failure (run 44683469823 / job 136112174941)
+// All macOS jobs (including claude-aimock, whose sole unique failure was test bug #1067)
+// run daily in platform-matrix.yml so pushes and releases never wait on the macOS queue.
 const pushNonLinuxBehavior = [
   { os: "windows-latest", backend: "codex-aimock" },
   { os: "windows-latest", backend: "dsh-aimock" },
-  { os: "macos-latest", backend: "claude-aimock" },
 ];
 
 // Daily/on-demand sharded macOS and Windows matrices (platform-matrix.yml).
@@ -34,6 +34,7 @@ export const dailyShards = {
     entries: [
       { kind: "behavior", backend: "dsh-aimock", install: true },
       { kind: "behavior", backend: "qoder-native", install: true },
+      { kind: "behavior", backend: "claude-aimock", install: true },
       { kind: "behavior", backend: "pi-aimock", install: false },
       { kind: "behavior", backend: "pi-durable-aimock", install: false },
     ],
