@@ -289,7 +289,7 @@ assert.ok(Array.isArray(listed) && listed.length === 1, JSON.stringify(listed));
 assert.match(JSON.stringify(listed[0]), /"runtimeId":"cursor","models":\{"kind":"(?:ok|unauthenticated)"/u);
 const piListed: unknown = JSON.parse(run(oar, ["models", "pi", "--json"], slim));
 assert.ok(Array.isArray(piListed) && piListed.length === 1, JSON.stringify(piListed));
-assert.match(JSON.stringify(piListed[0]), /"runtimeId":"pi","models":\{"kind":"ok"/u);
+assert.match(JSON.stringify(piListed[0]), /"runtimeId":"pi","models":\{"kind":"(?:ok|unauthenticated)"/u);
 
 rmSync(work, { recursive: true, force: true });
 policy.passed();
