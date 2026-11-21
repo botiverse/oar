@@ -19,8 +19,8 @@
   "dependencies": {
     "@botiverse/oar": "workspace:*",
     "@cursor/sdk": "1.4.1",
-    "@earendil-works/pi-ai": "~1.5.2",
-    "@earendil-works/pi-coding-agent": "~1.5.2",
+    "@earendil-works/pi-ai": "~1.6.0",
+    "@earendil-works/pi-coding-agent": "~1.6.0",
     "commander": "^12.1.0"
   },
   "publishConfig": {

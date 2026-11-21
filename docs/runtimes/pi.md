@@ -7,8 +7,8 @@ templates (SDK 1.1.0, 2026-10-11). Core MCP discovery is unsupported. See the
 [native probe evidence](inventory.md).
 
 Evidence baseline: OAR source as of 2026-09-11; optional
-`@earendil-works/pi-coding-agent` SDK **1.5.2**, with `@earendil-works/pi-ai`;
-`@botiverse/oar` declares both in `optionalDependencies` at `~1.5.2` (installed
+`@earendil-works/pi-coding-agent` SDK **1.6.0**, with `@earendil-works/pi-ai`;
+`@botiverse/oar` declares both in `optionalDependencies` at `~1.6.0` (installed
 by default; hosts that want a slim install without Pi can opt out with
 `npm install --omit=optional` or `pnpm install --no-optional`, noting that
 those flags omit every optional dependency in the tree, not only Pi's).
@@ -21,7 +21,7 @@ redirect to `earendil-works/pi`). Live observations below are from SDK
 **0.84.2** unless they name a version or date (the bundled SDK moved to
 0.87.1 on 2026-09-29, then 0.99.1 on 09-30, 0.99.2 on 10-01, 1.0.0 on 10-02,
 1.0.2 on 10-04, 1.0.3 on 10-05, 1.0.4 on 10-06, 1.1.0 on 10-08, 1.2.0 on
-10-13, 1.3.0 on 10-16, 1.4.0 on 10-22, 1.5.0 on 11-02 and 1.5.2 on 11-16): in-process runs of [`experiments/live-contract.ts pi`](../../experiments/live-contract.ts)
+10-13, 1.3.0 on 10-16, 1.4.0 on 10-22, 1.5.0 on 11-02, 1.5.2 on 11-16 and 1.6.0 on 11-21): in-process runs of [`experiments/live-contract.ts pi`](../../experiments/live-contract.ts)
 and the [experiments index](../../experiments/README.md) probes against
 `openai-codex/gpt-5.3-codex-spark` (codex OAuth through pi; every assistant
 frame carries `provider: "openai-codex"`, `api: "openai-codex-responses"`) on
@@ -1096,7 +1096,7 @@ a session, model listing, login or catalog reaches a provider, it sets
 undici's global dispatcher itself to an `EnvHttpProxyAgent` built from the
 settings manager those entry points read (`OAR_PI_AGENT_DIR`, else `getAgentDir()`).
 `undici` is a direct dependency of `@botiverse/oar`, pinned to the version pi
-uses (8.12.3 in Pi 1.5.2, one instance shared by OAR and the coding SDK). An env proxy wins; pi's `httpProxy`
+uses (8.12.4 in Pi 1.6.0, one instance shared by OAR and the coding SDK). An env proxy wins; pi's `httpProxy`
 setting fills both http and https when the env names none (pi's own `??=`
 precedence, but the env is not written); pi's `httpIdleTimeoutMs` setting is
 the dispatcher's headers/body timeout (pi's default equals undici's). Nothing
@@ -1141,7 +1141,7 @@ the pi-ai its own import resolves to, and pi-coding-agent runs sessions on
 the pi-ai it resolves to. A package manager can resolve pi-ai twice at the
 same version when the optional peers of its `openai` dependency resolve
 differently in the two places, `undici` above all: pi-coding-agent pins
-`undici` (8.12.3 in Pi 1.5.2, and OAR pins the same), so a host
+`undici` (8.12.4 in Pi 1.6.0, and OAR pins the same), so a host
 that depends on another `undici` gets a second pi-ai copy for its own imports. The bundle
 then carries two copies, the hand-over lands on the one no session uses, and
 every OAuth turn fails with "Cannot find module" again
@@ -1157,7 +1157,7 @@ versions pi-coding-agent resolves, checks that the bundle names a single
 for a dummy OAuth credential through pi-coding-agent's own `ModelRuntime`
 inside the bundle: it fails with that "Cannot find module" whenever the
 copies split again. The current Durable catalog and bundled coding SDK both
-use Pi AI 1.5.2, including when the host imports the catalog through the
+use Pi AI 1.6.0, including when the host imports the catalog through the
 `pi-ai-durable` alias. The packed-host check verifies OAuth derivation and
 one normal Pi AI/undici instance before and after adding Durable peers.
 Registration is best effort: a missing registration module emits one
@@ -1352,21 +1352,17 @@ not retain an earlier open's exclusions. Native `excludeTools` and exposure
 rules still apply, extension startup callbacks may change the selection, and
 default-inactive tools are not enabled.
 
-Pi also keeps restored names pending until a tool of that name registers.
-OAR clears them before binding extensions, so a late registration cannot
-reactivate a tool merely because it was active in the transcript: with Pi's
-public setter it activates the registered tools, deactivates them (which
-clears pending names), then applies the current defaults. If no registered
-tool can be activated, OAR folds the transcript's tool additions and
-removals with Pi's public helper. Resume is rejected only if that leaves
-names neither registered nor explicitly listed in `disallowedTools`, since
-Pi exposes no public way to clear those possible pending names: OAR
-disposes the session and throws `UnsupportedOptionError`
-(`option: "resume"`). Pattern-only exclusions are treated conservatively, so
-they can still lead to this refusal; an empty `defaultTools` list alone does
-not, while the registry still contains an activatable tool. Tool-free
-conversations and histories containing only explicitly excluded or removed
-tools resume; opening a new session remains available.
+Pi also restores active tool names from the transcript (and keeps unregistered
+names pending until they register) when opened with default tool selection.
+On resume, OAR passes Pi's public `noTools: "builtin"` option so Pi skips
+transcript tool restoration while keeping every non-excluded builtin, extension
+and MCP tool registered and activating default-active load-time extensions. OAR
+then applies the current native defaults (`defaultTools`, or Pi's coding tools)
+alongside those active extensions before binding extensions, so `session_start`
+hooks can still adjust the loadout and late registrations (`defaultActive: false`,
+`deferred`, or `codemode`) are not reactivated merely because they were active
+in the saved transcript. Tool-free resumes and histories whose only saved tools
+register during `session_start` resume cleanly without error.
 
 An unmatched native name such as `NoSuchTool` is accepted silently and
 disables nothing. Neither Pi nor OAR reports that no tool matched; this
@@ -1376,8 +1372,8 @@ Evidence and verification limits: [tool-denial audit](../../experiments/disallow
 The [resume regression](../../sea-trial/vendor/pi-resume-tools.vendor.test.ts)
 compares native active and callable tool names after `session_start` and the
 first model request; it also checks that deliberate extension selections
-survive, tool-free sessions resume, and an impossible reset fails before
-extension binding.
+survive and that tool-free or empty-registry resumes keep late-registered tools
+inactive.
 
 ## Launch arguments
 

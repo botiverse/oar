@@ -175,13 +175,13 @@ Community runtimes are contributed and maintained outside the core team (each ma
 `SessionOptions.model`. When resuming an old Azure session, pass
 `model: "azure/<model>"` explicitly; without it, Pi can retain the
 conversation while selecting a different default model. The opening `model`
-event and `Session.model()` report the effective selection. OAR's `~1.5.2`
+event and `Session.model()` report the effective selection. OAR's `~1.6.0`
 dependency range includes this change
 ([migration evidence and limits](https://github.com/botiverse/oar/blob/main/experiments/runtime-version-checks/2026-10-05.md)).
 
 **Pi 1.5.0 default prompt:** the bundled native default system prompt has
 changed. Hosts that need stable wording should pass their own `systemPrompt`.
-The coding SDK and OAR share undici 8.12.3; see the
+The coding SDK and OAR share undici 8.12.4; see the
 [security update evidence](https://github.com/botiverse/oar/blob/main/experiments/pi-1.5.0-2026-11-02.md).
 
 Qwen Code is available as `qwenRuntime` and in `defaultRuntimes`. Install
@@ -549,10 +549,10 @@ TypeScript hosts: keep `skipLibCheck` on when Pi or Cursor is installed. With `n
 
 ## Host-owned durable sessions
 
-Install the optional native peers in the host: `npm install @earendil-works/pi-durable@~1.5.2 @earendil-works/chord@~1.5.2`.
+Install the optional native peers in the host: `npm install @earendil-works/pi-durable@~1.6.0 @earendil-works/chord@~1.6.0`.
 Resolve Durable and Chord to exactly the same version.
-For the host catalog, keep `@earendil-works/pi-ai@1.5.2` under its normal
-name and add `@earendil-works/pi-ai-durable` as an npm alias of Pi AI 1.5.2;
+For the host catalog, keep `@earendil-works/pi-ai@1.6.0` under its normal
+name and add `@earendil-works/pi-ai-durable` as an npm alias of Pi AI 1.6.0;
 import Durable models/providers from that alias. See the
 [copyable host configuration](https://github.com/botiverse/oar/blob/main/docs/runtimes/pi-durable.md#native-objects-and-calling-interface).
 Using a different Pi AI version under its normal name can split the coding
@@ -582,7 +582,7 @@ session.rawEvents(record => {
 await session.prompt("Hello", { inputId: crypto.randomUUID() });
 ```
 
-The host owns its Pi Durable 1.5.2 Harness, providers, credentials, extensions
+The host owns its Pi Durable 1.6.0 Harness, providers, credentials, extensions
 and storage. `resume: session.id` attaches to that storage's conversation and
 resumes unfinished work. Queue and input-id deduplication are native and
 durable. `dispose()` detaches the observer; it does not stop work or close the
