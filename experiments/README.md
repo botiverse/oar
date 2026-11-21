@@ -1,5 +1,7 @@
 # experiments
 
+- [The next request after an interrupted turn](abort-aftermath/README.md) compares model-visible history after stopping a stream or a running tool.
+
 - [Codex thread instructions](codex-instruction-retention/README.md) traces what reaches the model after compaction and collaboration-mode changes.
 
 - [Session MCP credential isolation](mcp-credential-admission/README.md) checks delivery, tool environments and storage at the CI pins.

@@ -1,0 +1,709 @@
+{
+  "antigravity": {
+    "version": "1.5.13",
+    "controls": {
+      "empty": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": []
+      },
+      "partial": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "partialTextInRequest": true,
+        "interruptionExcerpts": [
+          {
+            "role": "user",
+            "excerpts": [
+              "Error: The stream was interrupted. Please continue the task you were working on."
+            ]
+          }
+        ]
+      },
+      "tool": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": [
+          {
+            "role": "model",
+            "excerpts": [
+              "Tool execution was canceled"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "claude": {
+    "version": "2.1.326 (Claude Code)",
+    "controls": {
+      "empty": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": [
+          {
+            "role": "user",
+            "excerpts": [
+              "[Request interrupted by user]"
+            ]
+          }
+        ]
+      },
+      "partial": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "partialTextInRequest": true,
+        "interruptionExcerpts": [
+          {
+            "role": "user",
+            "excerpts": [
+              "[Request interrupted by user]"
+            ]
+          }
+        ]
+      },
+      "tool": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": [
+          {
+            "role": "user",
+            "excerpts": [
+              "[Request interrupted by user for tool use]",
+              "this call was stopped while running"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "codebuddy": {
+    "version": "2.179.3",
+    "controls": {
+      "empty": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": [
+          {
+            "role": "user",
+            "excerpts": [
+              "<turn_aborted>",
+              "The user interrupted the previous turn on purpose.",
+              "Interrupted by user"
+            ]
+          }
+        ]
+      },
+      "partial": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "partialTextInRequest": true,
+        "interruptionExcerpts": [
+          {
+            "role": "user",
+            "excerpts": [
+              "<turn_aborted>",
+              "The user interrupted the previous turn on purpose.",
+              "Interrupted by user"
+            ]
+          }
+        ]
+      },
+      "tool": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": [
+          {
+            "role": "user",
+            "excerpts": [
+              "<turn_aborted>",
+              "The user interrupted the previous turn on purpose.",
+              "Interrupted by user"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "codex": {
+    "version": "codex-cli 0.169.0",
+    "controls": {
+      "empty": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": [
+          {
+            "role": "user",
+            "excerpts": [
+              "<turn_aborted>",
+              "The user interrupted the previous turn on purpose."
+            ]
+          }
+        ]
+      },
+      "partial": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "partialTextInRequest": false,
+        "interruptionExcerpts": [
+          {
+            "role": "user",
+            "excerpts": [
+              "<turn_aborted>",
+              "The user interrupted the previous turn on purpose."
+            ]
+          }
+        ]
+      },
+      "tool": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": [
+          {
+            "role": "function_call_output",
+            "excerpts": [
+              "aborted by user"
+            ]
+          },
+          {
+            "role": "user",
+            "excerpts": [
+              "<turn_aborted>",
+              "The user interrupted the previous turn on purpose."
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "dsh": {
+    "version": "0.2.2-rc.5",
+    "controls": {
+      "empty": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": []
+      },
+      "partial": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "partialTextInRequest": true,
+        "interruptionExcerpts": []
+      },
+      "tool": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": [
+          {
+            "role": "tool",
+            "excerpts": [
+              "Error: tool call aborted"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "factory": {
+    "version": "1.12.1",
+    "controls": {
+      "empty": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": [
+          {
+            "role": "user",
+            "excerpts": [
+              "Request interrupted by user"
+            ]
+          }
+        ]
+      },
+      "partial": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "partialTextInRequest": true,
+        "interruptionExcerpts": [
+          {
+            "role": "user",
+            "excerpts": [
+              "Request interrupted by user"
+            ]
+          }
+        ]
+      },
+      "tool": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": [
+          {
+            "role": "tool",
+            "excerpts": [
+              "Tool execution cancelled by user"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "grok": {
+    "version": "grok 1.0.70 (f50904eaee6c) [stable]",
+    "controls": {
+      "empty": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": []
+      },
+      "partial": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "partialTextInRequest": false,
+        "interruptionExcerpts": []
+      },
+      "tool": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": [
+          {
+            "role": "tool",
+            "excerpts": [
+              "user_cancel",
+              "was not executed"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "kimi": {
+    "version": "2.6.3",
+    "controls": {
+      "empty": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": [
+          {
+            "role": "user",
+            "excerpts": [
+              "The previous turn was interrupted by the user before completion"
+            ]
+          }
+        ]
+      },
+      "partial": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "partialTextInRequest": true,
+        "interruptionExcerpts": [
+          {
+            "role": "user",
+            "excerpts": [
+              "The previous turn was interrupted by the user before completion"
+            ]
+          }
+        ]
+      },
+      "tool": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": [
+          {
+            "role": "tool",
+            "excerpts": [
+              "Interrupted by user"
+            ]
+          },
+          {
+            "role": "user",
+            "excerpts": [
+              "The previous turn was interrupted by the user before completion"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "opencode-2.3": {
+    "version": "opencode v2.3.2",
+    "controls": {
+      "empty": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": []
+      },
+      "partial": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "partialTextInRequest": true,
+        "interruptionExcerpts": []
+      },
+      "tool": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": [
+          {
+            "role": "user",
+            "excerpts": [
+              "Command interrupted by the user"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "opencode-v1": {
+    "version": "1.19.5",
+    "controls": {
+      "empty": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": []
+      },
+      "partial": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "partialTextInRequest": true,
+        "interruptionExcerpts": []
+      },
+      "tool": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": [
+          {
+            "role": "user",
+            "excerpts": [
+              "User aborted the command"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "opencode-v2": {
+    "version": "opencode v2.2.7",
+    "controls": {
+      "empty": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": []
+      },
+      "partial": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "partialTextInRequest": true,
+        "interruptionExcerpts": []
+      },
+      "tool": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": [
+          {
+            "role": "user",
+            "excerpts": [
+              "Tool execution interrupted"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "pi": {
+    "version": "1.5.2",
+    "controls": {
+      "empty": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": []
+      },
+      "partial": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "partialTextInRequest": false,
+        "interruptionExcerpts": []
+      },
+      "tool": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": [
+          {
+            "role": "user",
+            "excerpts": [
+              "Command aborted"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "pi-durable": {
+    "version": "1.5.2",
+    "controls": {
+      "empty": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": []
+      },
+      "partial": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "partialTextInRequest": false,
+        "interruptionExcerpts": []
+      },
+      "tool": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": [
+          {
+            "role": "user",
+            "excerpts": [
+              "Tool bash was aborted"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "pi-rpc": {
+    "version": "1.5.2",
+    "controls": {
+      "empty": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": []
+      },
+      "partial": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "partialTextInRequest": false,
+        "interruptionExcerpts": []
+      },
+      "tool": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": [
+          {
+            "role": "user",
+            "excerpts": [
+              "Command aborted"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "qoder": {
+    "version": "1.1.81",
+    "controls": {
+      "empty": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": [
+          {
+            "role": "user",
+            "excerpts": [
+              "[Request interrupted by user]"
+            ]
+          }
+        ]
+      },
+      "partial": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "partialTextInRequest": false,
+        "interruptionExcerpts": [
+          {
+            "role": "user",
+            "excerpts": [
+              "[Request interrupted by user]"
+            ]
+          }
+        ]
+      },
+      "tool": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": [
+          {
+            "role": "user",
+            "excerpts": [
+              "[Request interrupted by user for tool use]"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "qwen": {
+    "version": "0.27.4",
+    "controls": {
+      "empty": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": []
+      },
+      "partial": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "partialTextInRequest": true,
+        "interruptionExcerpts": []
+      },
+      "tool": {
+        "abort": "accepted",
+        "end": "aborted",
+        "next": "accepted",
+        "originalUserInput": true,
+        "newUserInput": true,
+        "interruptionExcerpts": [
+          {
+            "role": "tool",
+            "excerpts": [
+              "Tool execution result was not recorded",
+              "Treat as failure and retry if needed."
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
