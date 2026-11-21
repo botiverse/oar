@@ -233,6 +233,31 @@ test("pi RPC installation enforces non-SEA, non-Electron and resolvable rpc-entr
     .toEqual({ kind: "available", via: "bundled" });
 });
 
+function expectDependencyMissing(snapshot: Awaited<ReturnType<ReturnType<typeof piInstallationFor>>>, pattern: RegExp): string {
+  expect(snapshot).toMatchObject({ kind: "unsupported", code: "dependency_missing" });
+  const reason = snapshot.kind === "unsupported" ? snapshot.reason : "";
+  expect(reason).toMatch(pattern);
+  return reason;
+}
+
+test("pi SDK and explicit-command RPC report dependency_missing when optional peers are absent", async () => {
+  expectDependencyMissing(
+    await piInstallationFor({}, { ...healthyHost, resolveModule: () => null })(),
+    /@earendil-works\/pi-coding-agent.*@earendil-works\/pi-ai/u,
+  );
+  const missingAiReason = expectDependencyMissing(
+    await piInstallationFor({}, { ...healthyHost, resolveModule: (specifier) => specifier === "@earendil-works/pi-ai" ? null : `/resolved/${specifier}` })(),
+    /@earendil-works\/pi-ai/u,
+  );
+  expect(missingAiReason).not.toContain("@earendil-works/pi-coding-agent");
+
+  const okPi = makeCli("pi-ok-peers", { help: "pi", version: "1.5.2" });
+  expectDependencyMissing(
+    await piInstallationFor({ execution: "subprocess", command: okPi }, { ...healthyHost, resolveModule: () => null })(),
+    /session lookup.*project-package checks.*context-overflow detection/u,
+  );
+});
+
 test("pi RPC with an explicit command verifies existence, failing --version, args prefix and version >= 1.4.0", async () => {
   const missing = createPiRuntime({ execution: "subprocess", command: path.join(scratch, "missing-pi") });
   expect(await missing.installation()).toEqual({ kind: "not_found" });

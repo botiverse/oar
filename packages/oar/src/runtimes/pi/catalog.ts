@@ -6,7 +6,8 @@ import type {
   ModelCatalogFacade,
 } from "../../contracts/model-catalog.js";
 import { ModelRegistry, type ModelRuntime, resolveCliModel } from "@earendil-works/pi-coding-agent";
-import { piFacadeRuntime, type PiModelRuntimePaths } from "./facade-runtime.js";
+import { piFacadeRuntime } from "./facade-runtime.js";
+import type { PiModelRuntimePaths } from "./options.js";
 
 type PiModel = ReturnType<ModelRegistry["getAll"]>[number];
 

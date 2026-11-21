@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import CAPABILITIES_PROBE from "./fixtures/capabilities-entry-probe.js";
 import PI_AUTH_PROBE from "./fixtures/pi-auth-entry-probe.js";
-import { checkPiHost, DURABLE_PROBE, DURABLE_TYPES } from "./fixtures/pi-clean-install.js";
+import { assertPiMissingSnapshot, checkPiHost, DURABLE_PROBE, DURABLE_TYPES, HOST_PROBE } from "./fixtures/pi-clean-install.js";
 import { cleanInstallPolicy } from "./fixtures/clean-install-pins.js";
 
 /*
@@ -46,10 +46,10 @@ function pack(directory: string, tarball: RegExp): string {
   return packed;
 }
 
-function npmInstall(...specs: readonly string[]): void {
-  run("npm", ["install", "--no-audit", "--no-fund", ...policy.npmOptions, ...specs], host);
+function npmInstall(directory: string, extraFlags: readonly string[], ...specs: readonly string[]): void {
+  run("npm", ["install", "--no-audit", "--no-fund", ...extraFlags, ...policy.npmOptions, ...specs], directory);
   for (const name of ["oar", "oar-cli"]) {
-    assert.equal(existsSync(path.join(host, "node_modules/@botiverse", name, "dist/.tsbuildinfo")), false, `${name} publishes its build cache`);
+    assert.equal(existsSync(path.join(directory, "node_modules/@botiverse", name, "dist/.tsbuildinfo")), false, `${name} publishes its build cache`);
   }
 }
 
@@ -58,44 +58,15 @@ function readJson(file: string): unknown {
   return parsed;
 }
 
-function cursorPeerVersion(): string {
+function peerVersion(name: string): string {
   const manifest = readJson(path.join(root, "packages/oar/package.json"));
   assert.ok(typeof manifest === "object" && manifest !== null && "peerDependencies" in manifest);
   const peers = manifest.peerDependencies;
-  assert.ok(typeof peers === "object" && peers !== null && "@cursor/sdk" in peers && typeof peers["@cursor/sdk"] === "string");
-  return peers["@cursor/sdk"];
+  assert.ok(typeof peers === "object" && peers !== null && name in peers);
+  const version: unknown = Reflect.get(peers, name);
+  assert.ok(typeof version === "string");
+  return version;
 }
-
-/**
- * Every entry point, then each built-in runtime's installation probe; with
- * `cursor`, also cursor added the host's way, and whether its model listing
- * reached the SDK (`unauthenticated` without a key, as in CI). Prints
- * `{ kinds, models }`.
- */
-const PROBE = `
-import assert from "node:assert/strict";
-import { createCursorRuntime, createQwenProviderAuth, defaultRuntimes } from "@botiverse/oar";
-for (const entry of ["browser", "forms", "observe", "kernel", "brands", "testing", "agents", "agents/report"]) {
-  await import("@botiverse/oar/" + entry);
-}
-const qwenEntry = await import("@botiverse/oar/runtimes/qwen");
-assert.equal(qwenEntry.createQwenProviderAuth, createQwenProviderAuth);
-const qwenAuth = await createQwenProviderAuth({ kind: "available", via: "executable", command: "unused-qwen" });
-assert.equal(typeof qwenAuth.listProviders, "function");
-assert.equal(typeof qwenAuth.connect, "function");
-const kinds = {};
-for (const runtime of defaultRuntimes.list()) {
-  kinds[runtime.id] = runtime.installation === undefined ? null : (await runtime.installation()).kind;
-}
-let models = null;
-if (process.argv[2] === "cursor") {
-  const cursor = createCursorRuntime({ sdk: () => import("@cursor/sdk") });
-  const installation = await cursor.installation();
-  kinds.cursor = installation.kind;
-  models = (await cursor.listModels(installation)).kind;
-}
-console.log(JSON.stringify({ kinds, models }));
-`;
 
 /**
  * `@botiverse/oar/agents/report` alone, in a fresh process: a host that only
@@ -201,20 +172,20 @@ import { createCursorRuntime, createRuntimeRegistry, defaultRuntimes } from "@bo
 export const registry = createRuntimeRegistry([...defaultRuntimes.list(), createCursorRuntime({ sdk: () => import("@cursor/sdk") })]);
 `;
 
-function probe(...args: readonly string[]): { readonly kinds: Record<string, unknown>; readonly models: unknown } {
-  const parsed: unknown = JSON.parse(run(process.execPath, ["probe.mjs", ...args], host));
-  assert.ok(typeof parsed === "object" && parsed !== null && "kinds" in parsed && "models" in parsed);
-  const { kinds, models } = parsed;
+function probe(directory: string, ...args: readonly string[]): { readonly kinds: Record<string, unknown>; readonly pi: unknown; readonly piRpc: unknown; readonly models: unknown } {
+  const parsed: unknown = JSON.parse(run(process.execPath, ["probe.mjs", ...args], directory));
+  assert.ok(typeof parsed === "object" && parsed !== null && "kinds" in parsed && "pi" in parsed && "piRpc" in parsed && "models" in parsed);
+  const { kinds, pi, piRpc, models } = parsed;
   assert.ok(typeof kinds === "object" && kinds !== null);
-  return { kinds: { ...kinds }, models };
+  return { kinds: { ...kinds }, pi, piRpc, models };
 }
 
 /** Official TypeScript checks a host consuming the tsrs-built package. Keep the
  * typescript devDependency for this compatibility check, independently of OAR's
  * build compiler. Return errors in OAR's declarations or the host's check.ts. */
-function typecheck(source: string): string[] {
-  writeFileSync(path.join(host, "check.ts"), source);
-  writeFileSync(path.join(host, "tsconfig.json"), JSON.stringify({
+function typecheck(directory: string, source: string): string[] {
+  writeFileSync(path.join(directory, "check.ts"), source);
+  writeFileSync(path.join(directory, "tsconfig.json"), JSON.stringify({
     compilerOptions: {
       module: "nodenext",
       target: "es2024",
@@ -229,7 +200,7 @@ function typecheck(source: string): string[] {
     files: ["check.ts"],
   }));
   const tsc = spawnSync(process.execPath, [path.join(root, "node_modules/typescript/bin/tsc"), "-p", "tsconfig.json", "--pretty", "false"], {
-    cwd: host,
+    cwd: directory,
     encoding: "utf8",
   });
   // With skipLibCheck off tsc also reports other packages' own declaration
@@ -238,15 +209,38 @@ function typecheck(source: string): string[] {
   return tsc.stdout.split("\n").filter((line) => line.includes(" error TS") && (line.startsWith("node_modules/@botiverse/") || !line.startsWith("node_modules/")));
 }
 
+function initProject(directory: string): void {
+  mkdirSync(directory);
+  writeFileSync(path.join(directory, "package.json"), JSON.stringify({ name: path.basename(directory), private: true, type: "module", ...policy.hostFields }));
+  writeFileSync(path.join(directory, "probe.mjs"), HOST_PROBE);
+}
+
 const library = pack("packages/oar", /^botiverse-oar-\d.*\.tgz$/u);
 const cli = pack("packages/cli", /^botiverse-oar-cli-.*\.tgz$/u);
-mkdirSync(host);
-writeFileSync(path.join(host, "package.json"), JSON.stringify({ name: "host", private: true, type: "module",
-  ...policy.hostFields,
-}));
-writeFileSync(path.join(host, "probe.mjs"), PROBE);
 
-npmInstall(library);
+// 1. Slim host (`npm install --omit=optional`): no Pi packages installed; every
+// default runtime probes without throwing, Pi reports `dependency_missing`, and
+// pi-durable still loads once its peers are added.
+const slim = path.join(work, "slim");
+initProject(slim);
+npmInstall(slim, ["--omit=optional"], library);
+assert.equal(existsSync(path.join(slim, "node_modules/@cursor")), false, "@cursor/sdk was installed in slim host");
+assert.equal(existsSync(path.join(slim, "node_modules/@earendil-works")), false, "@earendil-works Pi packages were installed despite --omit=optional");
+const slimProbe = probe(slim);
+assert.equal(slimProbe.kinds.cursor, undefined);
+assertPiMissingSnapshot(slimProbe.pi, ["@earendil-works/pi-coding-agent", "@earendil-works/pi-ai"]);
+assertPiMissingSnapshot(slimProbe.piRpc, ["@earendil-works/pi-coding-agent/rpc-entry"]);
+assert.ok(Object.values(slimProbe.kinds).every((kind) => typeof kind === "string"), JSON.stringify(slimProbe.kinds));
+assert.deepEqual(typecheck(slim, ENTRIES), []);
+npmInstall(slim, ["--omit=optional"], `@earendil-works/pi-durable@${accepted["@earendil-works/pi-durable"]}`, `@earendil-works/chord@${accepted["@earendil-works/chord"]}`,
+  `@earendil-works/pi-ai@${accepted["@earendil-works/pi-ai"]}`, `@earendil-works/pi-ai-durable@npm:@earendil-works/pi-ai@${accepted["@earendil-works/pi-ai"]}`);
+assert.deepEqual(typecheck(slim, DURABLE_TYPES), []);
+run(process.execPath, ["--input-type=module", "-e", DURABLE_PROBE], slim);
+assertPiMissingSnapshot(probe(slim).pi, ["@earendil-works/pi-coding-agent"]);
+
+// 2. Default host (`npm install`): Pi optionalDependencies install by default.
+initProject(host);
+npmInstall(host, [], library);
 const piAiVersion = await checkPiHost(host);
 policy.record(host);
 const browser = await build({
@@ -259,42 +253,44 @@ run(process.execPath, ["--input-type=module", "-e", REPORT_PROBE], host);
 run(process.execPath, ["--input-type=module", "-e", FORMS_PROBE], host);
 run(process.execPath, ["--input-type=module", "-e", CAPABILITIES_PROBE], host);
 run(process.execPath, ["--input-type=module", "-e", PI_AUTH_PROBE], host);
-assert.equal(readdirSync(path.join(host, "node_modules")).includes("@cursor"), false, "@cursor/sdk was installed without being asked for");
-assert.equal(readdirSync(path.join(host, "node_modules/@earendil-works")).includes("pi-durable"), false, "pi-durable was installed without being asked for");
-const bare = probe();
+assert.equal(existsSync(path.join(host, "node_modules/@cursor")), false, "@cursor/sdk was installed without being asked for");
+assert.equal(existsSync(path.join(host, "node_modules/@earendil-works/pi-durable")), false, "pi-durable was installed without being asked for");
+const bare = probe(host);
 assert.equal(bare.kinds.cursor, undefined);
+assert.deepEqual(bare.pi, { kind: "available", via: "bundled" });
+assert.deepEqual(bare.piRpc, { kind: "available", via: "bundled" });
 assert.ok(Object.values(bare.kinds).every((kind) => typeof kind === "string"), JSON.stringify(bare.kinds));
-assert.deepEqual(typecheck(ENTRIES), []);
-const forgotten = typecheck(ADD_CURSOR);
+assert.deepEqual(typecheck(host, ENTRIES), []);
+const forgotten = typecheck(host, ADD_CURSOR);
 assert.equal(forgotten.length, 1, forgotten.join("\n"));
 assert.match(forgotten[0] ?? "", /^check\.ts\(\d+,\d+\): error TS2307: Cannot find module '@cursor\/sdk'/u);
 
-// The host supplies the native peers only when it opts into this subpath.
-npmInstall(`@earendil-works/pi-durable@${accepted["@earendil-works/pi-durable"]}`, `@earendil-works/chord@${accepted["@earendil-works/chord"]}`,
+npmInstall(host, [], `@earendil-works/pi-durable@${accepted["@earendil-works/pi-durable"]}`, `@earendil-works/chord@${accepted["@earendil-works/chord"]}`,
   `@earendil-works/pi-ai@${piAiVersion}`, `@earendil-works/pi-ai-durable@npm:@earendil-works/pi-ai@${accepted["@earendil-works/pi-ai"]}`);
 await checkPiHost(host);
-assert.deepEqual(typecheck(DURABLE_TYPES), []);
+assert.deepEqual(typecheck(host, DURABLE_TYPES), []);
 run(process.execPath, ["--input-type=module", "-e", DURABLE_PROBE], host);
 const durable = await build({ stdin: { contents: 'export * from "@botiverse/oar/pi-durable";', resolveDir: host }, bundle: true, platform: "browser", format: "esm", write: false, metafile: true });
 assert.deepEqual(Object.values(durable.metafile.outputs).flatMap((output) => output.imports), []);
 
-npmInstall(`@cursor/sdk@${cursorPeerVersion()}`);
-assert.deepEqual(typecheck(ENTRIES), []);
-assert.deepEqual(typecheck(ADD_CURSOR), []);
-const withSdk = probe("cursor");
+npmInstall(host, [], `@cursor/sdk@${peerVersion("@cursor/sdk")}`);
+assert.deepEqual(typecheck(host, ENTRIES), []);
+assert.deepEqual(typecheck(host, ADD_CURSOR), []);
+const withSdk = probe(host, "cursor");
 assert.equal(withSdk.kinds.cursor, "available");
 assert.ok(withSdk.models === "ok" || withSdk.models === "unauthenticated", String(withSdk.models));
 
-// The CLI brings the SDK itself: take the host's copy away first, then list
-// cursor's models through the CLI's own loader (`unauthenticated` without a key).
-run("npm", ["uninstall", "--no-audit", "--no-fund", "@cursor/sdk"], host);
-npmInstall(cli);
-const oar = path.join(host, "node_modules/.bin/oar");
-assert.match(run(oar, ["--help"], host), /Usage: oar/u);
-const listed: unknown = JSON.parse(run(oar, ["models", "cursor", "--json"], host));
+// 3. The CLI brings both @cursor/sdk and Pi as direct dependencies, even under --omit=optional.
+npmInstall(slim, ["--omit=optional"], cli);
+const oar = path.join(slim, "node_modules/.bin/oar");
+assert.match(run(oar, ["--help"], slim), /Usage: oar/u);
+const listed: unknown = JSON.parse(run(oar, ["models", "cursor", "--json"], slim));
 assert.ok(Array.isArray(listed) && listed.length === 1, JSON.stringify(listed));
 assert.match(JSON.stringify(listed[0]), /"runtimeId":"cursor","models":\{"kind":"(?:ok|unauthenticated)"/u);
+const piListed: unknown = JSON.parse(run(oar, ["models", "pi", "--json"], slim));
+assert.ok(Array.isArray(piListed) && piListed.length === 1, JSON.stringify(piListed));
+assert.match(JSON.stringify(piListed[0]), /"runtimeId":"pi","models":\{"kind":"ok"/u);
 
 rmSync(work, { recursive: true, force: true });
 policy.passed();
-process.stdout.write(`clean install ${policy.mode} ok: built in ${JSON.stringify(bare.kinds)}; forgetting @cursor/sdk fails the host's compile\n`);
+process.stdout.write(`clean install ${policy.mode} ok: slim ${JSON.stringify(slimProbe.kinds)}; default ${JSON.stringify(bare.kinds)}\n`);

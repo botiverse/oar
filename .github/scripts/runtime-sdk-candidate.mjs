@@ -24,7 +24,7 @@ export function rewriteSdkManifests(group, packages, directory) {
   for (const relative of ["package.json", "packages/oar/package.json", "packages/cli/package.json"]) {
     const file = path.join(directory, relative);
     const manifest = JSON.parse(readFileSync(file));
-    for (const field of ["dependencies", "devDependencies", "peerDependencies"]) {
+    for (const field of ["dependencies", "optionalDependencies", "devDependencies", "peerDependencies"]) {
       for (const name of Object.keys(manifest[field] ?? {})) {
         if (packages[name]) manifest[field][name] = packages[name].version;
         if (group === "pi" && name === "@earendil-works/pi-ai-durable") {

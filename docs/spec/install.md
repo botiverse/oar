@@ -96,7 +96,7 @@ refusal. Bundled and SDK probes check host-environment requirements through
 | `unsupported_platform` | Host OS/arch lacks a required native package (`@cursor/sdk` ships darwin/linux arm64/x64 and win32 x64) | No |
 | `unsupported_node_version` | Host Node version is below the runtime's minimum (`@cursor/sdk` 1.4.1 `engines.node`: `>=22.13`) | No |
 | `unsupported_host` | Host build cannot spawn the runtime's Node subprocess (Node SEA / Bun standalone for Cursor subprocess or default Pi RPC; Electron for default Pi RPC) | No |
-| `dependency_missing` | Required JS module or entry point is not resolvable on disk (`sdkModule` for Cursor subprocess; `@earendil-works/pi-coding-agent/rpc-entry` for default Pi RPC) | No |
+| `dependency_missing` | Required JS module or entry point is not resolvable on disk (`sdkModule` for Cursor subprocess; optional dependencies `@earendil-works/pi-coding-agent` and `@earendil-works/pi-ai` for Pi SDK and Pi RPC, plus `@earendil-works/pi-coding-agent/rpc-entry` for default Pi RPC) | No |
 
 None of these admit sessions or other readers: those still require
 `AvailableInstallation`. `Runtime.minVersion` exposes a single numeric floor

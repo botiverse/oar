@@ -65,6 +65,45 @@ assert.deepEqual(auth?.auth, { apiKey: "OAR_SYNTHETIC_AUTH" });
   return piAiVersion;
 }
 
+export const HOST_PROBE = `
+import assert from "node:assert/strict";
+import { createCursorRuntime, createPiRuntime, createQwenProviderAuth, defaultRuntimes } from "@botiverse/oar";
+for (const entry of ["browser", "forms", "observe", "kernel", "brands", "testing", "agents", "agents/report"]) {
+  await import("@botiverse/oar/" + entry);
+}
+const qwenEntry = await import("@botiverse/oar/runtimes/qwen");
+assert.equal(qwenEntry.createQwenProviderAuth, createQwenProviderAuth);
+const qwenAuth = await createQwenProviderAuth({ kind: "available", via: "executable", command: "unused-qwen" });
+assert.equal(typeof qwenAuth.listProviders, "function");
+assert.equal(typeof qwenAuth.connect, "function");
+const kinds = {};
+let pi = null;
+for (const runtime of defaultRuntimes.list()) {
+  const snapshot = runtime.installation === undefined ? null : await runtime.installation();
+  kinds[runtime.id] = snapshot === null ? null : snapshot.kind;
+  if (runtime.id === "pi") { pi = snapshot; }
+}
+const piRpc = await createPiRuntime({ execution: "subprocess" }).installation();
+let models = null;
+if (process.argv[2] === "cursor") {
+  const cursor = createCursorRuntime({ sdk: () => import("@cursor/sdk") });
+  const installation = await cursor.installation();
+  kinds.cursor = installation.kind;
+  models = (await cursor.listModels(installation)).kind;
+}
+console.log(JSON.stringify({ kinds, pi, piRpc, models }));
+`;
+
+export function assertPiMissingSnapshot(snapshot: unknown, requiredPackages: readonly string[]): void {
+  assert.ok(typeof snapshot === "object" && snapshot !== null);
+  assert.equal("kind" in snapshot ? snapshot.kind : undefined, "unsupported", JSON.stringify(snapshot));
+  assert.equal("code" in snapshot ? snapshot.code : undefined, "dependency_missing", JSON.stringify(snapshot));
+  const reason = "reason" in snapshot && typeof snapshot.reason === "string" ? snapshot.reason : "";
+  for (const pkg of requiredPackages) {
+    assert.ok(reason.includes(pkg), `Expected ${pkg} in refusal reason: ${reason}`);
+  }
+}
+
 export const DURABLE_TYPES = `
 import { createPiDurableRuntime } from "@botiverse/oar/pi-durable";
 import type { Harness } from "@earendil-works/pi-durable";

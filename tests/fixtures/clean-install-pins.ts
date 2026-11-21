@@ -76,7 +76,7 @@ function checkWorkspacePins(dependencies: Record<string, unknown>, names: readon
 
 function checkPublishedRanges(root: string, versions: Record<string, string>): void {
   const published = readRecord(path.join(root, "packages/oar/package.json"));
-  for (const field of ["dependencies", "peerDependencies"]) {
+  for (const field of ["dependencies", "optionalDependencies", "peerDependencies"]) {
     for (const [name, range] of Object.entries(asRecord(published?.[field]) ?? {})) {
       const version = versions[name];
       if (version !== undefined) {

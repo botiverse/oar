@@ -10,20 +10,37 @@ import type {
   ProviderLoginPrompt,
 } from "../../contracts/provider-auth.js";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
-import type { PiModelRuntimePaths } from "./facade-runtime.js";
+import type { PiModelRuntimePaths } from "./options.js";
 import { piLiteralConfigValue } from "./config-value.js";
 
 /*
- * Pi's `ModelRuntime.login` takes its own `AuthInteraction` / `AuthType`, whose
- * types live in the transitive `@earendil-works/pi-ai` package (not a declared
- * oar dependency, and not in its public export). We recover both from the
- * method signature so nothing internal has to be imported by name.
+ * Structural slices of Pi's `AuthInteraction` event and prompt unions keep the
+ * emitted `.d.ts` free of `@earendil-works/pi-coding-agent` imports so slim
+ * hosts without Pi still type-check cleanly. The unexported bidirectional check
+ * below fails `typecheck` if Pi adds, removes, or changes a variant (catching
+ * drift that bivariant method parameters on `PiInteraction` would hide).
  */
 type PiLoginParameters = Parameters<ModelRuntime["login"]>;
 type PiAuthType = PiLoginParameters[1];
 type PiInteraction = PiLoginParameters[2];
-type PiAuthEvent = Parameters<PiInteraction["notify"]>[0];
-type PiAuthPrompt = Parameters<PiInteraction["prompt"]>[0];
+type NativePiAuthEvent = Parameters<PiInteraction["notify"]>[0];
+type NativePiAuthPrompt = Parameters<PiInteraction["prompt"]>[0];
+type MutualAssignable<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+
+export type PiAuthEvent =
+  | { readonly type: "auth_url"; readonly url: string; readonly instructions?: string }
+  | { readonly type: "device_code"; readonly userCode: string; readonly verificationUri: string; readonly intervalSeconds?: number; readonly expiresInSeconds?: number }
+  | { readonly type: "info" | "progress"; readonly message: string };
+
+export type PiAuthPrompt =
+  | { readonly type: "select"; readonly message: string; readonly signal?: AbortSignal; readonly options: readonly { readonly id: string; readonly label: string; readonly description?: string }[] }
+  | { readonly type: "text" | "secret" | "manual_code"; readonly message: string; readonly placeholder?: string; readonly signal?: AbortSignal };
+
+const verifyPiAuthTypes: readonly [
+  MutualAssignable<NativePiAuthEvent, PiAuthEvent>,
+  MutualAssignable<NativePiAuthPrompt, PiAuthPrompt>,
+] = [true, true];
+void verifyPiAuthTypes;
 
 export function toLoginEvent(event: PiAuthEvent): ProviderLoginEvent {
   switch (event.type) {
