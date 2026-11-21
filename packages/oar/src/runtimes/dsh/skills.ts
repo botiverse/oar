@@ -35,6 +35,7 @@ export const dshSkills: InventoryReader<SkillEntry> = async (installation, optio
     own(launched.child);
     const control = dshControl(launched.child, () => {});
     await control.ready;
+    launched.profileOpened();
     let snapshot: JsonRecord = {};
     try { snapshot = await control.request("skills", { cwd: scope.cwd }, timeoutMs); }
     catch (error) {

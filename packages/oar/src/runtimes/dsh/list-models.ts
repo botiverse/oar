@@ -72,6 +72,7 @@ export const dshListModels: ModelLister = async (installation, options = {}) => 
     const control = dshControl(launched.child, () => {});
     try {
       await control.ready;
+      launched.profileOpened();
       const catalog = await control.request("models", {}, options.timeoutMs);
       return dshCatalogResult(catalog);
     } catch (error) {
