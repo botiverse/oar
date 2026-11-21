@@ -28,6 +28,15 @@ export function dshDirectoryRefusal(version: string | undefined, platform: NodeJ
     : {};
 }
 
+/** First DSH release whose `sessionPersistence.stat(id)` returns `location.path` (0.2.1-rc.5 omits `location`). */
+export const DSH_NATIVE_SESSION_FILE_VERSION = "0.2.2-alpha.2";
+
+/** Whether this DSH version reports `location.path` from `sessionPersistence.stat(id)`, or undefined when unreadable. */
+export function dshSupportsNativeSessionFile(version: string | undefined): boolean | undefined {
+  const order = version === undefined ? null : compareSemver(version, DSH_NATIVE_SESSION_FILE_VERSION);
+  return order === null ? undefined : order >= 0;
+}
+
 /** DSH 0.2.1-rc.5 and later ship @deepseek-ai/dsh-session-log-deepseek (verified on 0.2.1-rc.5 and 0.2.2-rc.5); bridge startup still confirms the row after loader.await(). */
 export function dshSessionLogUploadRefusal(version: string | undefined): Pick<RefusedSessionOptions, "sessionLogUpload"> {
   return semverAtLeast(version, DSH_MINIMUM_VERSION)

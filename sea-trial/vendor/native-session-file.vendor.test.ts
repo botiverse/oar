@@ -23,6 +23,7 @@ test.skipIf(!codex && !dsh && !isPiBackend)("locates the persisted root file on 
   const runtime = codex ? codexRuntime : (dsh ? dshRuntime : piTestRuntime);
   const installation = await runtime.installation();
   if (installation.kind !== "available") { throw new Error("fixture runtime unavailable"); }
+  if (runtime.sessionCapabilities?.(installation).nativeSessionFile !== true) { return; }
   const fixture = codex ? await startCodexAimock() : (dsh ? await startDshAimock() : await startPiAimock());
   try {
     const options = codex

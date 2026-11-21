@@ -11,7 +11,7 @@ export const dshControlSource = String.raw`
     if (typeof persistence?.stat !== "function") { return undefined; }
     const existing = await statSessionFile(sessionId);
     if (existing !== undefined || !flush) { return existing; }
-    const session = handles.get(sessionId)?.agent?.session;
+    const session = (typeof sessions?.get === "function" ? sessions.get(sessionId) : undefined) ?? handles.get(sessionId)?.agent?.session;
     if (typeof session?.seq !== "number" || session.seq <= 0) { return undefined; }
     if (typeof sessions?.flush === "function") { await sessions.flush(session); }
     else if (typeof persistence.flush === "function") { await persistence.flush(); }
@@ -80,7 +80,7 @@ export const dshControlSource = String.raw`
     },
     async sessionFile(request) {
       owned(request.sessionId);
-      const path = await sessionFileOf(request.sessionId, true);
+      const path = await sessionFileOf(request.sessionId, request.flush !== false);
       return { path: path ?? null };
     },
   };

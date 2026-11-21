@@ -182,7 +182,7 @@ and the opened session stays authoritative.
 | codex | true | true | true | `["stdio", "http"]` ([mcp-servers.vendor.test.ts](../../sea-trial/vendor/mcp-servers.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` on `>= 0.151.0`; absent on older or unreadable versions | true from 0.160.1, absent on older or unreadable versions | true from 0.169.0, absent on older or unreadable versions | absent |
 | cursor | true (an individual steer can still be rejected: `unsupported` with images, `runtime_refused` when the run cannot take it, as above) | true | false | `["stdio", "http"]` ([cursor-mcp.ts](../../experiments/cursor-mcp.ts)) | `{ tokens: true, contextWindow: false }` | absent | absent | absent |
 | devin | false | absent: advertised by `initialize` | false | absent: handshake-dependent and unverified in CI | absent: live turns unverified | absent | absent | absent |
-| dsh | absent: the bridge reports the agent's methods at open | absent: the selected model and native attachment store determine image support | true | `["stdio"]` ([dsh-mcp.vendor.test.ts](../../sea-trial/vendor/dsh-mcp.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | true | absent |
+| dsh | absent: the bridge reports the agent's methods at open | absent: the selected model and native attachment store determine image support | true | `["stdio"]` ([dsh-mcp.vendor.test.ts](../../sea-trial/vendor/dsh-mcp.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | true from 0.2.2-alpha.2, false below 0.2.2-alpha.2, absent on unreadable versions | absent |
 | factory | true | true | false | absent: HTTP MCP tool invocation unverified (only stdio is exercised in [factory.vendor.test.ts](../../sea-trial/vendor/factory.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | absent | absent |
 | grok | true | true | false | `["stdio", "http"]` on `>= 1.0.46` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: false }` | absent | absent | absent |
 | kimi | false | absent: advertised by `initialize` | false | `["stdio", "http"]` on `>= 2.1.1` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: true }` (except models whose catalog entry has no size) | absent | absent | absent |
@@ -214,7 +214,8 @@ available installation ([orientation](orientation.md#session-capabilities)).
 
 The optional `nativeSessionFile` declaration tells a host whether it can ask the
 opened session for its own persisted file. Codex declares it from 0.169.0 for
-`thread.path`. DSH declares it for `sessionPersistence.stat(id).location.path`.
+`thread.path`. DSH declares it from 0.2.2-alpha.2 for `sessionPersistence.stat(id).location.path`
+(`0.2.1-rc.5` omits `location`, so it declares `false` below `0.2.2-alpha.2`).
 Pi declares it for the SDK and supported RPC sessions, both of which report
 `sessionFile`. Other installations leave the declaration absent.
 

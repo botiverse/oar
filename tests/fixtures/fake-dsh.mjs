@@ -114,7 +114,10 @@ const persistence = {
   } }),
   flush: async () => { for (const id of [...bufferedFiles.keys()]) { materializeBuffered(id); } },
 };
-const sessionStore = { flush: async (session) => { materializeBuffered(session.id); } };
+const sessionStore = {
+  get: (id) => sessions.get(id)?.session,
+  flush: async (session) => { materializeBuffered(session.id); },
+};
 const llm = {
   listProviders: () => [{ id: "local", name: "Local" }, ...(mode === "listing-fails" ? [{ id: "broken", name: "Broken" }] : [])],
   listModels: async (provider) => {

@@ -25,7 +25,7 @@ import { dshEnvironment, launchDsh } from "./launch.js";
 import { isBackgroundShellJob } from "./jobs.js";
 import { dshGoalControl } from "./goal.js";
 import { dshMcpRows } from "./mcp.js";
-import { dshAgentOptions, dshDirectoryRefusal, dshRefusedSessionOptions, dshSessionLogUploadRefusal, type DshAgentOptions } from "./options.js";
+import { dshAgentOptions, dshDirectoryRefusal, dshRefusedSessionOptions, dshSessionLogUploadRefusal, dshSupportsNativeSessionFile, type DshAgentOptions } from "./options.js";
 import { dshOpenedFrame, foldDsh, initialDshProjection } from "./projection.js";
 
 const OPEN_TIMEOUT_MS = 60_000;
@@ -98,7 +98,7 @@ const inputFields = (text: string, inputId: string | undefined, images: readonly
   ...(images.length === 0 ? {} : { images: images.map(({ data, mediaType }) => ({ data, mediaType })) }),
 });
 
-async function open(command: string, options: SessionOptions, env: NodeJS.ProcessEnv, credentials: SessionCredentials, mcpRows: readonly JsonRecord[]): Promise<Session> {
+async function open(command: string, options: SessionOptions, env: NodeJS.ProcessEnv, credentials: SessionCredentials, mcpRows: readonly JsonRecord[], supportsSessionFile: boolean): Promise<Session> {
   const sessionId = options.resume ?? randomUUID();
   const agentOptions = dshAgentOptions(options);
   const kernel = credentials.kernel(sessionId);
@@ -119,7 +119,7 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
       if (hasSessionFileStat && !exited) {
         void (async (): Promise<void> => {
           try {
-            const answer = await control.request("sessionFile", { sessionId });
+            const answer = await control.request("sessionFile", { sessionId, flush: false });
             rememberSessionFile(answer.path);
           } catch {
             // Best-effort refresh before unexpected exit; explicit calls still query or report errors.
@@ -158,12 +158,12 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
     throw appendCleanupFailure(openFailure(error, sessionId, options.resume !== undefined), cleanupFailureReason(child.diagnostics().cleanup));
   }
   kernel.frame(dshOpenedFrame(opened));
-  hasSessionFileStat = opened.sessionFileStat === true;
+  hasSessionFileStat = supportsSessionFile && opened.sessionFileStat === true;
   rememberSessionFile(opened.sessionFile);
   const nativeSessionFile = hasSessionFileStat ? async (): Promise<string | null> => {
     if (!exited) {
       try {
-        const answer = await control.request("sessionFile", { sessionId });
+        const answer = await control.request("sessionFile", { sessionId, flush: true });
         rememberSessionFile(answer.path);
       } catch (error) {
         if (!isDshExitedError(error)) { throw error; }
@@ -266,5 +266,5 @@ export const dshSession: StartSession = withSessionCredentials(async (installati
   if (refusal !== null) { throw new RuntimeFailureError("invalid_request", refusal); }
   refuseSessionOptions(dshDirectoryRefusal(version), options);
   const directories = resolvedAdditionalDirectories(options);
-  return open(installation.command, directories.length === 0 ? options : { ...options, additionalDirectories: directories }, env, credentials, mcpRows);
+  return open(installation.command, directories.length === 0 ? options : { ...options, additionalDirectories: directories }, env, credentials, mcpRows, dshSupportsNativeSessionFile(version) === true);
 });

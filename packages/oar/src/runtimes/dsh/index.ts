@@ -4,7 +4,7 @@ import { defineRuntime } from "../../contracts/runtime.js";
 import { onFirstCall } from "../../shared/lazy.js";
 import { dshInstallation } from "./installation.js";
 import { dshInstall, dshInstallPlan } from "./install.js";
-import { dshDirectoryRefusal, dshRefusedSessionOptions, dshSessionLogUploadRefusal } from "./options.js";
+import { dshDirectoryRefusal, dshRefusedSessionOptions, dshSessionLogUploadRefusal, dshSupportsNativeSessionFile } from "./options.js";
 import { DSH_MINIMUM_VERSION } from "./version.js";
 
 export const dshRuntime = defineRuntime({
@@ -12,8 +12,9 @@ export const dshRuntime = defineRuntime({
   manualCompaction: { kind: "supported", activeTurn: "reject" },
   sessionCapabilities: (installation) => {
     const version = installation.via === "executable" ? installation.version : undefined;
+    const nativeSessionFile = dshSupportsNativeSessionFile(version);
     return {
-      nativeSessionFile: true,
+      ...(nativeSessionFile === undefined ? {} : { nativeSessionFile }),
       compactionEvents: { started: true, ended: true },
       contextUsage: { tokens: true, contextWindow: true },
       mcpTransports: ["stdio"],

@@ -49,13 +49,18 @@ test("nativeSessionFile returns null if the reported path does not exist", async
   await session.dispose();
 });
 
-test("nativeSessionFile is omitted when sessionPersistence.stat is missing", async () => {
+test("nativeSessionFile is omitted when sessionPersistence.stat is missing or below 0.2.2-alpha.2", async () => {
   const noStat = await dshRuntime.session(installation, {
     cwd: dir,
     env: { FAKE_DSH_MISSING: "stat", FAKE_DSH_SESSION_FILE: path.join(dir, "pre-{id}.v4.jsonl.zstd") },
   });
   expect(typeof noStat.nativeSessionFile).toBe("undefined");
   await noStat.dispose();
+  const older = { kind: "available", via: "executable", command, version: "0.2.1-rc.5" } as const;
+  expect(dshRuntime.sessionCapabilities(older).nativeSessionFile).toBe(false);
+  const olderSession = await dshRuntime.session(older, { cwd: dir, env: { FAKE_DSH_SESSION_FILE: path.join(dir, "old-{id}.v4.jsonl.zstd") } });
+  expect(typeof olderSession.nativeSessionFile).toBe("undefined");
+  await olderSession.dispose();
 });
 
 test("resumed DSH sessions report an existing session file before any new turn", async () => {
