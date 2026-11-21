@@ -7,10 +7,11 @@ import { spawnLineProcess, type LineProcess } from "../../shared/executable/inde
 import type { JsonRecord } from "../../shared/json.js";
 import { privateTempDir, type PrivateTempDir } from "../../shared/private-temp.js";
 import { dshBridgeSource } from "./bridge.js";
-import { acquireDshProfile } from "./profile-startup.js";
+import { acquireDshProfile, type DshProfileWait } from "./profile-startup.js";
 
 export interface LaunchedDsh {
-  readonly child: LineProcess & { profileReady(): void };
+  readonly child: LineProcess;
+  readonly profileLoaded: () => void;
   readonly directory: PrivateTempDir;
 }
 
@@ -31,6 +32,7 @@ export interface DshLaunchOptions {
   readonly mcpRows?: readonly JsonRecord[];
   readonly disableSessionLogUpload?: boolean;
   readonly signal?: AbortSignal;
+  readonly profileWait?: DshProfileWait;
 }
 
 /**
@@ -41,7 +43,7 @@ export interface DshLaunchOptions {
 export async function launchDsh(command: string, cwd: string, env: NodeJS.ProcessEnv, options: DshLaunchOptions = {}): Promise<LaunchedDsh> {
   const { mcpRows = [], disableSessionLogUpload = false, signal } = options;
   const directory = await privateTempDir("oar-dsh-");
-  let release: ((ready: boolean) => void) | undefined = undefined;
+  let release: (() => void) | undefined = undefined;
   try {
     const bridge = path.join(directory.path, "bridge.mjs");
     const patch = path.join(directory.path, "patch.json");
@@ -56,12 +58,12 @@ export async function launchDsh(command: string, cwd: string, env: NodeJS.Proces
       ...(disableSessionLogUpload ? [{ id: SESSION_LOG_PLUGIN_ID, name: SESSION_LOG_PLUGIN_NAME, config: { enabled: false } }] : []),
     ];
     await writeFile(patch, JSON.stringify(patchRows), { mode: 0o600, flag: "wx" });
-    const finish = await acquireDshProfile(env, cwd, signal);
+    const finish = await acquireDshProfile(env, cwd, signal, options.profileWait);
     release = finish;
     signal?.throwIfAborted();
     const child = spawnLineProcess(command, ["--profile", "acp", "--patch", patch], { cwd, env, killTree: true, shutdown: "stdin" });
-    child.onExit(() => { finish(false); directory.remove(); });
+    child.onExit(() => { finish(); directory.remove(); });
     await child.spawned;
-    return { child: { ...child, profileReady: () => { finish(true); } }, directory };
-  } catch (error) { release?.(false); directory.remove(); throw error; }
+    return { child, profileLoaded: finish, directory };
+  } catch (error) { release?.(); directory.remove(); throw error; }
 }
