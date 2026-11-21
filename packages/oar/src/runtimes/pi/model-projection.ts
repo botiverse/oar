@@ -20,6 +20,8 @@ export interface PiAvailabilitySource<Model extends PiListedModel = PiListedMode
     providerId?: string,
     options?: { readonly signal?: AbortSignal },
   ): Promise<readonly Model[]>;
+  /** Unfiltered native catalog on the same runtime; when non-empty while `getAvailable()` is empty, no provider has credentials. */
+  getModels?(): readonly Model[];
   /** Pi's provider record, for its display name (the one `ModelRegistry.getProviderDisplayName` reads). */
   getProvider?(providerId: string): { readonly name?: string } | undefined;
   /** The default saved in pi's settings (`defaultProvider` / `defaultModel`), when one is. */

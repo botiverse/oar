@@ -55,6 +55,8 @@ export const piRpcModelLister = (runtime: PiRuntimeOptions): ModelLister => asyn
   piRpcReadTimeout(options);
   try {
     return await readPiRpc(runtime, options, async (rpc) => {
+      // Pi's RPC protocol exposes only `get_available_models`, not the unfiltered
+      // catalog, so an empty reply cannot distinguish missing credentials from no models.
       const response = await rpc.control.request({ type: "get_available_models" });
       if (!response.success || response.command !== "get_available_models") { throw new Error("Pi did not return its available models"); }
       const { getSupportedThinkingLevels } = await import("@earendil-works/pi-ai");

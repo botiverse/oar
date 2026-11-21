@@ -87,6 +87,7 @@ const llm = {
   listProviders: () => [{ id: "local", name: "Local" }, ...(mode === "listing-fails" ? [{ id: "broken", name: "Broken" }] : [])],
   listModels: async (provider) => {
     if (provider === "broken" || mode === "listing-fails") { throw new Error("no credential"); }
+    if (mode === "empty-models") { return []; }
     return [{ provider, id: "plain", name: "Plain" }, { provider, id: "thinks", name: "Thinks" }];
   },
   resolveModelInfo: async (provider, id) => ({ provider, id, ...(id === "thinks" ? { reasoning: { efforts: [{ id: "low", name: "Low" }, { id: "high", name: "High" }], defaultEffort: "low" } } : {}), ...(process.env.FAKE_DSH_IMAGES === "1" ? { inputModalities: ["text", "image"] } : {}) }),

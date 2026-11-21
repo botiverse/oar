@@ -64,3 +64,17 @@ export async function startDshAimock(options: DshAimockOptions = {}): Promise<Ds
     stop: async () => { await capture.stop(); await mock.stop(); await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); },
   };
 }
+
+/** A fresh isolated HOME and DSH_HOME with no cordis.patch.yml and no DeepSeek key, for native default-route checks. */
+export async function withKeylessDshHome<T>(body: (fixture: { readonly cwd: string; readonly env: Readonly<Record<string, string | null>> }) => Promise<T>): Promise<T> {
+  const root = await mkdtemp(path.join(tmpdir(), "oar-dsh-keyless-"));
+  const home = path.join(root, "home");
+  const dshHome = path.join(root, "dsh");
+  const cwd = path.join(root, "project");
+  await Promise.all([home, dshHome, cwd].map(async (directory) => { await mkdir(directory); }));
+  try {
+    return await body({ cwd, env: { HOME: home, USERPROFILE: home, DSH_HOME: dshHome, DSH_TELEMETRY_DISABLED: "1", NO_PROXY: "*", DEEPSEEK_API_KEY: null } });
+  } finally {
+    await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+  }
+}

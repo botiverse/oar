@@ -842,8 +842,15 @@ no session, no tokens (`bad-model` scenario;
 [`tests/pi/pi-session-model.test.ts`](../../tests/pi/pi-session-model.test.ts),
 [resolver](../../packages/oar/src/runtimes/pi/resolve.ts)). Catalog discovery
 (`oar models pi`) builds services the way `pi --list-models` does and awaits
-`getAvailable()` instead of reading an uninitialized snapshot; "nothing
-configured" is an `ok` empty list. It builds them for `ListModelsOptions.cwd`
+`getAvailable()` instead of reading an uninitialized snapshot. When
+`getAvailable()` is empty while `modelRuntime.getModels()` is non-empty (models
+exist in Pi's catalog and no provider has usable credentials), SDK `listModels`
+answers `unauthenticated` naming the missing provider credentials and
+`loginProviders`. When the unfiltered catalog itself is empty, it returns `ok`
+with an empty list. In subprocess mode with a changed `env`, Pi's RPC protocol
+exposes only `get_available_models` and not the unfiltered catalog, so RPC
+cannot distinguish "no credentials" from "nothing exists" and keeps `ok []`. It
+builds services for `ListModelsOptions.cwd`
 as a session there would: that project's settings can save another default,
 and its extensions under `.pi/extensions` load and run. Live model setters and detailed model
 metadata are **not exposed** on the session. Hosts use `piRuntime.listModels`
@@ -1198,8 +1205,10 @@ after a `refresh()`, which is when pi resolves ambient credentials
 empty key, a wrong `type` or a reference to an unset variable counts too.
 OAR has **no accountUsage reader** for Pi: it
 runs on provider credentials and has no subscription usage surface to
-observe. An empty usable-model catalog does not establish a universal
-unauthenticated state.
+observe. When `listModels` runs through the SDK and `getAvailable()` is empty
+while `modelRuntime.getModels()` is non-empty, it returns `unauthenticated`;
+Pi RPC exposes only `get_available_models`, so it cannot distinguish missing
+credentials from an empty catalog and returns `ok []`.
 [Native providers][native-providers],
 [installation](../../packages/oar/src/runtimes/pi/installation.ts),
 [provider auth](../../packages/oar/src/runtimes/pi/auth.ts),

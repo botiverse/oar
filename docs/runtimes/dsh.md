@@ -433,9 +433,15 @@ and `defaultEffort` from `resolveModelInfo`, and `default` from
 `agentDefaultModel`. A provider that fails to list is left out; if none listed
 anything and one failed, the answer is `unsupported` with the native reasons. A
 missing method answers `unsupported`, and an executable below the floor does too, read
-from the executable when the installation names no version. Whether
-`deepseek-official` lists without credentials has not been run; `unauthenticated` is
-never answered because no native evidence for it exists yet.
+from the executable when the installation names no version. Measured on DSH
+`0.2.1-rc.5` and `0.2.2-rc.5` in an isolated home with no DeepSeek credentials,
+native `models` lists both `deepseek-official` and `deepseek-account` with zero
+models and no failure while still naming `default: deepseek-official/deepseek-flash`;
+with `DEEPSEEK_API_KEY` set (no network call), `deepseek-official` lists its
+models (`deepseek-flash` default, `deepseek-v4-pro` on `0.2.2-rc.5`) with their
+reasoning efforts. When no provider lists any model and the provider DSH names as
+its `default` is present with zero models and no failure, OAR answers
+`unauthenticated` naming that default provider rather than `ok` with an empty list.
 
 ## Installation and configuration
 
