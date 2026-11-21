@@ -678,7 +678,13 @@ Kimi 2.6.0 through 2.6.3 have a separate startup limitation: tools from an MCP
 server that answers its initial `tools/list` slowly can be missing from the
 model-facing catalog for that session, even though native discovery succeeds.
 OAR cannot repair the native snapshot by waiting before the first prompt.
-The same fixed-delay controls pass on 2.4.1, 2.5.2 and 2.5.3. This is tracked
+
+A 2.6.3 Linux served-tool control held the initial list for 6.5 seconds.
+The first request omitted the tool even when the prompt followed release.
+The in-process server normally answers promptly. The omission has also
+occurred in CI with no added delay.
+
+Earlier fixed-delay controls pass on 2.4.1, 2.5.2 and 2.5.3. This is tracked
 in [upstream #4904](https://github.com/MoonshotAI/kimi-code/issues/4904), with
 [direct ACP evidence and reproduction](../../experiments/kimi-mcp-startup/README.md).
 CI separates an explicitly prepared native notification control from a cold

@@ -1139,6 +1139,11 @@ script install as the `curl` method and stays on the line
 
 ### Session MCP servers
 
+On Linux, native OpenCode 1.19.5 and 2.3.2 kept session open pending while a
+relay delayed a host-served HTTP list for 6.5 seconds. Both sent the tool to
+the provider on the first prompt after open. The delay was added by the
+control.
+
 This section's measurements are v1 unless they name 2.x. v2's Code Mode
 `execute` and its open cold-resume race are in the [v2 MCP notes](#v2-session-behavior).
 

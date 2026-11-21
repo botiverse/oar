@@ -880,6 +880,24 @@ filesystem methods does not disable every vendor-configured tool.
 
 ### Session MCP servers
 
+When a host attaches a `serveMcpTools` entry, OAR waits during open for
+`_x.ai/mcp_initialized` on that session. The existing session-open deadline
+also bounds discovery. A named `unavailable` report for a served server
+rejects the open with Grok's reason (for example, `handshake_failed`).
+An unavailable optional server can coexist with a working served server.
+
+Grok 1.0.70 and 1.0.92 reported a server `ready` when its HTTP handshake
+finished, before its catalog arrived. In a local provider control that held
+`tools/list` for 6.5 seconds, an immediate first-turn `use_tool` on 1.0.70
+missed the host handler. After the session-wide completion the handler ran
+and its result reached the provider. A working in-process server normally
+answers immediately. The session-wide signal covers every server together
+and cannot certify an individual catalog: when a test server injected a
+list error after its handshake, the aggregate still counted a second server's
+tool. OAR's [served server](../../packages/oar/src/mcp/serve-tools.ts)
+always answers an authenticated `tools/list` from its current in-memory
+catalog, including the empty catalog.
+
 `SessionOptions.mcpServers` is ACP's `mcpServers` on `session/new`,
 `session/resume` and fallback `session/load`, in ACP's `McpServer` shape (stdio `{name, command, args,
 env}`, http `{type: "http", name, url, headers}`, `env` and `headers` as

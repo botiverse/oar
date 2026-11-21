@@ -1011,6 +1011,11 @@ path. [Agent dir](../../packages/oar/src/runtimes/pi/resolve.ts),
 
 ### Session MCP servers
 
+With Pi SDK 1.6.0 on Linux, session open returned while a host-served HTTP
+list was held for 6.5 seconds. An immediate first prompt waited for discovery
+and its first provider request included the tool. The hold was artificial; the
+in-process server had already answered.
+
 The bundled in-process SDK accepts stdio environment values and HTTP headers.
 Pi RPC accepts credential-free entries. It refuses entries with nonempty
 `env` or `headers` because its configuration remains on disk until disposal.

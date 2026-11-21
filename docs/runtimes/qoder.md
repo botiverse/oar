@@ -185,6 +185,13 @@ controlled processes with the runtime's actual projection dialect).
 
 ## OAR mapping
 
+On Qoder 1.1.81, native open waits for discovery of a working host-served
+catalog. In a Linux native replay, OAR's in-process server answered
+`tools/list` immediately while a relay held its response for 6.5 seconds.
+Open stayed pending until release, `system/init` named the server connected,
+and the first turn called the host handler. A host can prompt as soon as
+open returns.
+
 | Surface | Mapping and boundary |
 | --- | --- |
 | Session | Native session UUID; `--resume` opens its saved conversation. A missing id is refused, without creating a replacement. |

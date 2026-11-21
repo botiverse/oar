@@ -73,7 +73,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       const opened = await openAcpSession(runtime, profile, options, (step) => {
         if (step.method === "initialize") { releaseStartup?.(); }
         recorder.step(step.method, step.response);
-      }, state.configUpdates, initializeStartedAt).catch(async (error: unknown) => {
+      }, state, initializeStartedAt).catch(async (error: unknown) => {
         releaseStartup?.();
         runtime.kill();
         await runtime.exited;

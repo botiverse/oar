@@ -1217,12 +1217,13 @@ so a vendor behavior change fails the declared contract.
 Tools the host implements itself reach the agent through `mcpServers` too,
 not through a channel of their own. `serveMcpTools({ name, tools })` serves
 them from a streamable HTTP MCP server inside the host process, on
-`127.0.0.1` behind a random bearer token, and returns the `mcpServers` entry
-(`{ name, type: "http", url, headers: { Authorization } }`) and `close()`.
-Each runtime then attaches it through its own MCP channel above, so it
-behaves as any http entry does there: claude, codex, cursor, pi, grok, kimi,
-opencode, codebuddy, devin, factory, qwen and qoder take it; pi-durable refuses `mcpServers`,
-antigravity refuses an entry with `headers`, and dsh accepts only stdio command/args.
+`127.0.0.1` behind a random bearer token, and returns `close()` and an `mcpServers`
+entry containing the HTTP URL, authorization header, name and
+`origin: "serveMcpTools"`. Codex and Grok use the origin to wait for native
+startup during open. Claude on POSIX, Codex, Pi SDK, Grok, Kimi, OpenCode,
+CodeBuddy, Factory, Qwen and Qoder accept the entry. Cursor, Devin, Claude on Windows and Antigravity
+refuse an entry with `headers`. Pi RPC and Pi Durable refuse `mcpServers`,
+and DSH accepts only stdio command/args.
 A host tells before opening:
 served tools attach unless `refusedSessionOptions` declares `mcpServers` or
 `mcpServerCredentials`. The runtime must reach the host's loopback address,

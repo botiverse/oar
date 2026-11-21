@@ -1,3 +1,4 @@
+import { grokMcpStartup } from "./mcp-startup.js";
 import { grokTaskViews } from "./tasks.js";
 /* oxlint-disable import/max-dependencies -- Session profiles and assembly wire the native control, projection and lifecycle helpers. */
 import { refuseSessionOptions } from "../../shared/session-options.js";
@@ -162,6 +163,7 @@ export const grokAcpProfile: AcpSessionProfile = {
   // hands an ACP image block to the model (live, docs/runtimes/grok.md).
   capabilities: { queue: { durable: false }, attribution: "nested", images: true },
   extensionNotifications: GROK_EXTENSION_NOTIFICATIONS,
+  openReadiness: grokMcpStartup,
   redactExtensionNotification: redactGrokNotification,
   failureOutcome: grokFailureOutcome,
   terminalShellCommand: true,

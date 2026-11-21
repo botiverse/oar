@@ -40,6 +40,16 @@ record these boundaries; other platforms and plugin parity are unverified.
 
 ## OAR mapping
 
+Served tools are not guaranteed on the first prompt. On Linux with CodeBuddy
+2.179.3, an immediate `serveMcpTools` response offered the tool on turn one.
+When a relay received the complete list from OAR but held it for 6.5 seconds
+before forwarding it, the first provider request omitted the tool. Prompting
+as soon as the relay finished writing the response offered it in three of
+three controls. OAR's serving process can observe its own write; CodeBuddy's
+ACP session exposed no matching notification confirming that it had
+registered the tool. The hold was artificial; no zero-delay omission was
+observed in this check.
+
 `codebuddyRuntime` is in `defaultRuntimes` and has the dedicated
 `@botiverse/oar/runtimes/codebuddy` entry. `installPlan()` describes the official
 `npm install -g @tencent-ai/codebuddy-code` command on Linux, macOS and Windows;

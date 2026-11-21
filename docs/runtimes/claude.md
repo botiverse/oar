@@ -1066,6 +1066,12 @@ result is `partial` when the context list reports fewer `includedSkills` than
 
 ### Session MCP servers
 
+Claude Code 2.1.326 on Linux opened while a served HTTP catalog was still
+loading. A first prompt submitted immediately after open caused no generation
+request until a 6.5-second list hold was released. Its first request included
+the host tool. The hold simulated slow discovery on an otherwise in-process
+server.
+
 `SessionOptions.mcpServers` is claude's `--mcp-config <path>`
 ([handoff](../../packages/oar/src/runtimes/claude/mcp-config.ts)). Each entry
 becomes one `mcpServers` member of that JSON document: stdio
