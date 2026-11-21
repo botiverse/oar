@@ -254,8 +254,9 @@ runtime's page and the experiments README.
 
 ### The commit gate
 
-`pnpm run check` must be green before every commit: typecheck, lint,
-`pnpm test` and the mock behavior suite. Vendor tests (`*.vendor.test.ts`)
+`CI=1 pnpm run check` must be green before every commit: typecheck, lint,
+`pnpm test` and the mock behavior suite. Without `CI=1`, snapshot tests
+rewrite their inline snapshots instead of failing (`vitest.config.ts`). Vendor tests (`*.vendor.test.ts`)
 are excluded by `vitest.config.ts` when `OAR_TEST` is unset, so default
 `pnpm test` skips them without importing them; run
 `OAR_TEST=<backend> pnpm vitest run sea-trial/vendor` for the backend you
