@@ -1451,7 +1451,15 @@ exit 0. A failure exits 1 with `Login failed: <message>` on stderr, or with a
 message of its own (a suspended account, an organization or provider that
 disallows the login, a managed gateway login).
 
-OAR strips terminal escapes from both streams, relays the URL as `auth_url`,
+Claude Code 2.1.326 printed the manual URL on the same stdout line as its
+introduction. On 2.1.330 the URL was on the following line. The default
+Claude.ai flow used a compact authorize link, while a managed Console login
+used an expanded OAuth link. OAR recognizes the first matching HTTPS
+authorize URL anywhere in stdout and relays it unchanged as `auth_url`.
+If the paste prompt arrives first, OAR stops the login with
+`failed/process_failed` and a detail beginning with `login_url_missing`.
+
+OAR strips terminal escapes,
 asks a `manual_code` prompt when the paste prompt appears and again after a
 stderr line that starts with `Invalid code` (not after
 `Login failed: Invalid code verifier`, which is a failure), and writes the
@@ -1508,9 +1516,12 @@ uses a local OAuth stand-in and synthetic credentials. It verified browser
 suppression on Linux, Windows and macOS with 2.1.126 and 2.1.304. Linux and
 Windows also completed the login and status query; macOS login completion
 remains unverified in the CI keychain environment, as recorded in the probe.
-The Linux controls, including login completion and the failing-browser
-control, last passed on 2.1.316 (2026-10-31,
-[report](../../experiments/runtime-version-checks/2026-10-31.md#claude-21316)).
+On Linux all three browser controls passed on 2.1.126, 2.1.326 and 2.1.330
+on November 21. The 2.1.330 control also verified that OAR handed the
+unmodified compact link to the host before asking for a code. Claude's
+stream-json `claude_authenticate` control produced structured URLs, but
+refused a managed Console login that `auth login` selected automatically.
+[Sign-in controls](../../experiments/claude-login-browser/README.md#observed-2026-11-21).
 
 **Many claude processes on one machine share one login, and can lose it
 ([#402](https://github.com/botiverse/oar/issues/402)).** Every claude process
