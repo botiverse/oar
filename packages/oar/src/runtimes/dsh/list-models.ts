@@ -30,6 +30,33 @@ export function projectDshModels(catalog: JsonRecord): readonly ModelEntry[] {
   });
 }
 
+/** Classify DSH's native `models` catalog without inspecting environment variables. */
+export function dshCatalogResult(catalog: JsonRecord): ListModelsResult {
+  const models = projectDshModels(catalog);
+  if (models.length > 0) {
+    return { kind: "ok", models };
+  }
+  const providers = asRecordList(catalog.providers);
+  const selected = asRecord(catalog.default);
+  const defaultProvider = typeof selected?.provider === "string" && selected.provider.length > 0 ? selected.provider : undefined;
+  if (defaultProvider !== undefined) {
+    const entry = providers.find((provider) => provider.id === defaultProvider);
+    if (entry !== undefined && typeof entry.failure !== "string" && asRecordList(entry.models).length === 0) {
+      const defaultModel = typeof selected?.model === "string" && selected.model.length > 0 ? selected.model : undefined;
+      const target = defaultModel === undefined ? `"${defaultProvider}"` : `"${defaultProvider}" (${defaultProvider}/${defaultModel})`;
+      return {
+        kind: "unauthenticated",
+        detail: `DSH default provider ${target} listed no models; configure credentials for ${defaultProvider}.`,
+      };
+    }
+  }
+  const failures = providers.flatMap((provider) => typeof provider.failure === "string" ? [`${String(provider.id)}: ${provider.failure}`] : []);
+  if (failures.length > 0) {
+    return { kind: "unsupported", reason: `DSH could not list any provider's models: ${failures.join("; ")}` };
+  }
+  return { kind: "ok", models };
+}
+
 /** Native `llm.listProviders`, `listModels` and `resolveModelInfo`, in a short-lived process started the way a session is. */
 export const dshListModels: ModelLister = async (installation, options = {}) => {
   if (installation.via !== "executable") { return { kind: "unsupported", reason: "DSH model listing requires its executable" }; }
@@ -46,12 +73,7 @@ export const dshListModels: ModelLister = async (installation, options = {}) => 
     try {
       await control.ready;
       const catalog = await control.request("models", {}, options.timeoutMs);
-      const models = projectDshModels(catalog);
-      if (models.length === 0) {
-        const failures = asRecordList(catalog.providers).flatMap((provider) => typeof provider.failure === "string" ? [`${String(provider.id)}: ${provider.failure}`] : []);
-        if (failures.length > 0) { return { kind: "unsupported", reason: `DSH could not list any provider's models: ${failures.join("; ")}` }; }
-      }
-      return { kind: "ok", models };
+      return dshCatalogResult(catalog);
     } catch (error) {
       if (error instanceof DshCommandError && error.code === "native_method_unavailable") { return { kind: "unsupported", reason: error.message }; }
       throw error;

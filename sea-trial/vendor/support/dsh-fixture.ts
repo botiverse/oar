@@ -7,6 +7,8 @@ import { asRecord } from "../../../packages/oar/src/shared/json.js";
 import { startDshAimock, type DshAimock, type DshAimockOptions } from "../../harness/dsh-aimock.js";
 import { startDshProvider, type DshProvider, type ProviderRequest, type Reply } from "./dsh-provider.js";
 
+export { withKeylessDshHome } from "../../harness/dsh-aimock.js";
+
 const dshInstallation = dshRuntime.installation;
 
 export const dshEnabled = process.env.OAR_TEST === "dsh-aimock";

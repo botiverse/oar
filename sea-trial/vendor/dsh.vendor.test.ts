@@ -6,7 +6,7 @@ import { awaitTurnEnd, promptAndWait } from "../../packages/oar/src/observe/turn
 import { dshRuntime, SessionNotFoundError, UnsupportedOptionError } from "../../packages/oar/src/index.js";
 
 import { DSH_MINIMUM_VERSION, compareSemver } from "../../packages/oar/src/runtimes/dsh/version.js";
-import { dshEnabled, eventsOf, expectedDirectory, nativeOf, nativeShell, reportsSelection, say, shellDirectory, untilCount, untilEvent, withDshFixture } from "./support/dsh-fixture.js";
+import { dshEnabled, eventsOf, expectedDirectory, nativeOf, nativeShell, reportsSelection, say, shellDirectory, untilCount, untilEvent, withDshFixture, withKeylessDshHome } from "./support/dsh-fixture.js";
 import { resolveRunDir } from "../harness/trace.js";
 import { durableEvents, lastInput, toolResults } from "./support/dsh-provider.js";
 
@@ -25,6 +25,19 @@ describe.skipIf(!dshEnabled)("DSH native sessions", () => {
       assert.ok(listed.kind === "ok", JSON.stringify(listed));
       expect(listed.models.find((model) => model.id === "aimock/aimock-model")).toMatchObject({ provider: { id: "aimock" }, effortLevels: ["low", "high"], default: true });
       expect(provider.requests).toEqual([]);
+    });
+  }, 60_000);
+
+  test("listModels answers unauthenticated in an isolated keyless home where deepseek-official lists no models", async () => {
+    const installation = await dshInstallation();
+    assert.ok(installation.kind === "available", JSON.stringify(installation));
+    await withKeylessDshHome(async ({ cwd, env }) => {
+      const keyless = await dshRuntime.listModels(installation, { cwd, env });
+      assert.ok(keyless.kind === "unauthenticated", JSON.stringify(keyless));
+      expect(keyless.detail).toMatch(/deepseek-official/u);
+      const keyed = await dshRuntime.listModels(installation, { cwd, env: { ...env, DEEPSEEK_API_KEY: "dsh-synthetic-key" } });
+      assert.ok(keyed.kind === "ok", JSON.stringify(keyed));
+      expect(keyed.models.some((model) => model.provider?.id === "deepseek-official" && model.default === true)).toBe(true);
     });
   }, 60_000);
 
