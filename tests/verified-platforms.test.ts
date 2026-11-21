@@ -64,17 +64,18 @@ function manifestPlatforms(): Map<string, RuntimePlatform[]> {
 /** Runtimes whose behavior suite runs from the SDK dependency, so the manifest has no row for them (ci-select.mjs `behavior`). */
 const sdkRuntimes: Readonly<Record<string, readonly RuntimePlatform[]>> = { pi: ["linux", "darwin", "win32"], "pi-durable": ["linux", "darwin", "win32"] };
 
-test.each(["push", "pull_request"] as const)("the %s ACP gate runs all ACP pins on Linux and OpenCode v2 on Windows", event => {
+test.each(["push", "pull_request"] as const)("the %s ACP gate runs all ACP pins on Linux and keeps Windows OpenCode v2 PR-only", event => {
   const jobs = acpJobs(event);
-  expect(new Set(jobs.map(job => job.os))).toEqual(new Set(["ubuntu-latest", "windows-latest"]));
+  const runners = event === "pull_request" ? ["ubuntu-latest", "windows-latest"] : ["ubuntu-latest"];
+  expect(new Set(jobs.map(job => job.os))).toEqual(new Set(runners));
   const linuxOpenCode = jobs.filter(job => job.os === "ubuntu-latest" && (job.suite ?? job.backend) === "opencode-aimock");
   expect(linuxOpenCode.map(job => [job.backend, job.pin ?? job.backend])).toEqual([
     ["opencode-aimock", "opencode-aimock"], ["opencode-v2-aimock", "opencode-cleanup"],
   ]);
   const windowsJobs = jobs.filter(job => job.os === "windows-latest");
-  expect(windowsJobs.map(job => [job.backend, job.pin ?? job.backend])).toEqual([
-    ["opencode-v2-aimock", "opencode-cleanup"],
-  ]);
+  expect(windowsJobs.map(job => [job.backend, job.pin ?? job.backend])).toEqual(
+    event === "pull_request" ? [["opencode-v2-aimock", "opencode-cleanup"]] : [],
+  );
 });
 
 test("every built-in runtime declares exactly the platforms CI (ci.yml + platform-matrix.yml) verifies, and nothing else declares any", () => {

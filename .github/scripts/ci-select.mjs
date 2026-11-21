@@ -61,17 +61,18 @@ export const dailyShards = {
     os: "windows-latest",
     entries: [
       { kind: "behavior", backend: "qoder-native", install: true },
-      { kind: "behavior", backend: "claude-aimock", install: true },
-      { kind: "pi-rpc-windows-behavior", backend: "pi-rpc-aimock", install: false },
+      { kind: "acp", backend: "opencode-v2-aimock", suite: "opencode-aimock", pin: "opencode-cleanup", install: true },
+      { kind: "behavior", backend: "pi-aimock", install: false },
+      { kind: "behavior", backend: "pi-durable-aimock", install: false },
     ],
   },
   "windows-behavior-2": {
     os: "windows-latest",
     entries: [
+      { kind: "behavior", backend: "claude-aimock", install: true },
       { kind: "behavior", backend: "qwen-aimock", install: true },
       { kind: "acp", backend: "opencode-aimock", install: true },
-      { kind: "behavior", backend: "pi-aimock", install: false },
-      { kind: "behavior", backend: "pi-durable-aimock", install: false },
+      { kind: "pi-rpc-windows-behavior", backend: "pi-rpc-aimock", install: false },
     ],
   },
 };
@@ -129,14 +130,16 @@ export function selectCiJobs({ pullRequest, files }) {
     ...selectedBehavior.map((backend) => ({ os: "ubuntu-latest", backend })),
     ...(pullRequest ? [] : pushNonLinuxBehavior.filter((job) => selectedBehavior.includes(job.backend))),
   ];
-  // Linux runs every selected ACP pin; Windows runs OpenCode v2 (5/33 unique failures + 2/50 cleanup failures).
+  // Linux runs every selected ACP pin. Windows OpenCode v2 runs on PRs touching
+  // OpenCode and in daily platform-matrix.yml; it is parked off main push and
+  // release until the known readiness flake (#core:#360) is fixed.
   const acpJobs = [
     ...acpInstallations
       .filter((installation) => selected.includes(installation.suite ?? installation.backend))
       .map((installation) => ({ os: "ubuntu-latest", ...installation })),
-    ...acpInstallations
+    ...(pullRequest ? acpInstallations
       .filter((installation) => installation.backend === "opencode-v2-aimock" && selected.includes(installation.suite ?? installation.backend))
-      .map((installation) => ({ os: "windows-latest", ...installation })),
+      .map((installation) => ({ os: "windows-latest", ...installation })) : []),
   ];
   return {
     behavior: behaviorJobs,

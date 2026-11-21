@@ -255,10 +255,11 @@ runtime's page and the experiments README.
 ### The commit gate
 
 `pnpm run check` must be green before every commit: typecheck, lint,
-`pnpm test` and the mock behavior suite. Vendor tests are included by Vitest
-only when `OAR_TEST` is set (`vitest.config.ts`), so default `pnpm test` runs
-only `tests/**/*.test.ts`; run `OAR_TEST=<backend> pnpm vitest run sea-trial/vendor`
-for the backend you touched. Rebase on origin/main before pushing.
+`pnpm test` and the mock behavior suite. Vendor tests (`*.vendor.test.ts`)
+are excluded by `vitest.config.ts` when `OAR_TEST` is unset, so default
+`pnpm test` skips them without importing them; run
+`OAR_TEST=<backend> pnpm vitest run sea-trial/vendor` for the backend you
+touched. Rebase on origin/main before pushing.
 
 The runtime candidate installer controls use two committed, real npm package
 archives with readable sources. They retain four independent installations,
@@ -281,14 +282,19 @@ docs, Markdown, tests other than `tests/fixtures/`, the CLI and apps reach
 none; `experiments/` code reaches all, because vendor tests and the behavior
 harness import its probes). A push to main and a dispatch run all Linux
 backends plus the non-Linux jobs that caught platform-only failures in the
-50-run audit (Windows `check-windows`, Windows `dsh-aimock`, Windows
-`codex-aimock`, Windows `opencode-v2-aimock` with `opencode-cleanup`, Windows
-`pi-rpc-windows` vendor, and macOS `claude-aimock`). The remaining macOS and
-Windows behavior, ACP and native helper matrices run daily and on demand in
+50-run audit (Windows `check-windows` including `opencode-cleanup/skills`,
+Windows `dsh-aimock`, Windows `codex-aimock`, Windows `pi-rpc-windows` vendor,
+and macOS `claude-aimock`). Windows `opencode-v2-aimock` stays on PRs that
+reach OpenCode and runs daily in `platform-matrix.yml`, parked off main push
+and release until its known readiness flake (`#core:#360`) is fixed. The
+remaining macOS and Windows behavior, ACP and native helper matrices run daily
+and on demand in
 [`.github/workflows/platform-matrix.yml`](../.github/workflows/platform-matrix.yml);
 the release gate waits only on `ci.yml` for the exact release commit and does
-not wait on `platform-matrix.yml`. A newer push or dispatch on the same ref
-cancels any in-progress or queued `ci.yml` run it supersedes.
+not wait on `platform-matrix.yml`. A regression that only the daily matrix
+finds can therefore already have shipped, and is handled like a bug report. A
+newer push or dispatch on the same ref cancels any in-progress or queued
+`ci.yml` run it supersedes.
 
 - `check`: `pnpm run check` and `pnpm run build` on Linux.
   The browser-entry unit test bundles the complete portable entry for a
@@ -304,10 +310,11 @@ cancels any in-progress or queued `ci.yml` run it supersedes.
   CodeBuddy's fake-npm installer unit tests remain in `check`; its real public
   installer runs daily in `runtime-latest.yml`.
 - `check-windows` (shards 1/2 and 2/2): sharded `pnpm vitest run --shard=N/2`
-  with `OAR_COMMUNITY_TESTS=1` on `windows-latest`, plus the mock behavior suite
-  on shard 1. Kept on every push/PR because Windows unit tests caught
-  Windows-only failures; macOS unit/native checks and Windows non-OpenCode
-  native checks run daily in `platform-matrix.yml`.
+  with `OAR_COMMUNITY_TESTS=1` on `windows-latest`, plus the mock behavior
+  suite and OpenCode 2.2.7 isolated native tool cleanup/skills on shard 1.
+  Kept on every push/PR because Windows unit tests and `opencode-skills`
+  caught Windows-only failures; macOS unit/native checks and Windows
+  non-OpenCode native checks run daily in `platform-matrix.yml`.
 - `behavior`: `pnpm run sea-trial` plus the backend's vendor tests on Linux for
   all nine backends (`claude-aimock`, `codex-aimock`, `pi-aimock`,
   `pi-rpc-aimock`, `pi-durable-aimock`, `qwen-aimock`, `dsh-aimock` pinned to
@@ -329,10 +336,11 @@ cancels any in-progress or queued `ci.yml` run it supersedes.
   with a five-minute command ceiling inside a six-minute step ceiling, and an
   ordinary failure does not skip later groups. Windows Pi RPC behavior (zero
   unique failures in the 50-run audit) runs daily in `platform-matrix.yml`.
-- `acp-behavior`: runs Kimi, Grok, CodeBuddy and both OpenCode majors on Linux,
-  plus OpenCode v2 (`opencode-v2-aimock`, using the `opencode-cleanup` 2.2.7 pin)
-  on Windows. The Windows OpenCode v2 job also runs `opencode-cleanup` and
-  `opencode-skills` vendor tests reusing that same installed binary.
+- `acp-behavior`: runs Kimi, Grok, CodeBuddy and both OpenCode majors on Linux
+  on PRs and pushes, plus OpenCode v2 (`opencode-v2-aimock`, using the
+  `opencode-cleanup` 2.2.7 pin) on Windows for PRs that reach OpenCode. Windows
+  OpenCode v2 (parked off push/release until `#core:#360` is fixed), Windows
+  OpenCode v1 and macOS ACP jobs run daily in `platform-matrix.yml`.
   The [runtime manifest](../.github/runtime-versions.json) supplies the pins.
   Each job runs shared behavior and vendor tests against the installed
   program using a local scripted provider, isolated configuration, synthetic
@@ -405,7 +413,8 @@ Outside ci.yml and its pull-request and release gates:
   checkout, Node and `pnpm install` run once per shard and macOS stays within
   runner concurrency limits (`macos-check`, `macos-behavior-1`,
   `macos-behavior-2`, `macos-acp`, `windows-native`, `windows-behavior-1`,
-  `windows-behavior-2`). `release.yml` does not wait on this workflow.
+  `windows-behavior-2`). `release.yml` does not wait on this workflow, so a
+  regression it finds can already have shipped and is handled like a bug report.
 - [`runtime-latest.yml`](../.github/workflows/runtime-latest.yml) runs daily
   at 06:17 UTC and by manual dispatch. One discovery job freezes candidate
   versions, URLs, digests, timestamp and accepted-manifest hash. Manifest
@@ -650,8 +659,8 @@ it once the tag is confirmed at the release commit.
 
 Dispatch right after the release pull request merges: the workflow releases
 the head of main only after `ci.yml` succeeded on that exact commit (the
-Linux gate, sharded Windows unit check, Windows `dsh-aimock`, `codex-aimock`,
-`opencode-v2-aimock` with `opencode-cleanup`, `pi-rpc-windows` vendor and macOS
+Linux gate, sharded Windows unit check with `opencode-cleanup`, Windows
+`dsh-aimock`, `codex-aimock`, `pi-rpc-windows` vendor and macOS
 `claude-aimock`; it does not wait on daily `platform-matrix.yml`, and a
 docs-only head has no run and fails the gate). It refuses a version that
 already has a tag or differs from either package version, runs

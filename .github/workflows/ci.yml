@@ -53,8 +53,8 @@ jobs:
 
   # Native helper and Antigravity suites run in parallel with `check` on Linux.
   # macOS and Windows runs of these suites moved to daily platform-matrix.yml
-  # (0/50 unique failures except Windows opencode-cleanup/skills, which runs in
-  # the Windows opencode-v2-aimock ACP job reusing the same installed pin).
+  # (0/50 unique failures except Windows opencode-cleanup/skills, which stays
+  # on push inside `check-windows` shard 1).
   check-native:
     runs-on: ubuntu-latest
     steps:
@@ -186,6 +186,23 @@ jobs:
       - name: Mock behavior suite (Windows)
         if: matrix.shard == 1
         run: pnpm run sea-trial
+      # Caught 2/50 unique Windows failures (runs 44567380785 and 44562374930).
+      - name: Install pinned OpenCode for native isolated cleanup (Windows)
+        if: matrix.shard == 1
+        run: node .github/scripts/runtime-install.mjs opencode-cleanup
+      - name: Native isolated OpenCode tool cleanup (Windows)
+        if: matrix.shard == 1
+        run: pnpm vitest run sea-trial/vendor/opencode-cleanup.vendor.test.ts sea-trial/vendor/opencode-skills.vendor.test.ts
+        timeout-minutes: 5
+        env:
+          OAR_TEST: opencode-cleanup
+          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
+      - uses: actions/upload-artifact@v4
+        if: always() && matrix.shard == 1
+        with:
+          name: opencode-cleanup-windows-latest
+          path: ${{ github.workspace }}/oar-trial-run/opencode-cleanup
+          if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -373,9 +390,10 @@ jobs:
           if-no-files-found: warn
 
   # Native ACP agents with a local scripted provider; no account credentials.
-  # Linux runs all pins; Windows runs OpenCode v2 (and reuses that installed
-  # 2.2.7 pin for opencode-cleanup/skills, which caught 2/50 unique Windows
-  # failures). macOS ACP jobs and Windows OpenCode v1 run daily in platform-matrix.yml.
+  # Linux runs all pins on PRs and pushes; PRs touching OpenCode also run
+  # Windows OpenCode v2. Windows OpenCode v2 is parked off main push/release
+  # (daily in platform-matrix.yml) until the readiness flake (#core:#360) is
+  # fixed; macOS ACP jobs and Windows OpenCode v1 also run daily.
   acp-behavior:
     needs: changes
     if: needs.changes.outputs.acp != '[]'
@@ -424,14 +442,6 @@ jobs:
       - run: pnpm vitest run sea-trial/vendor --maxWorkers 2
         if: ${{ !cancelled() && steps.native_install.outcome == 'success' && (success() || matrix.backend == 'opencode-v2-aimock') }}
         timeout-minutes: 12
-      # Caught 2/50 unique Windows failures (runs 44567380785 and 44562374930); reuses the installed opencode-cleanup pin.
-      - name: Native isolated OpenCode tool cleanup (Windows)
-        if: ${{ !cancelled() && steps.native_install.outcome == 'success' && runner.os == 'Windows' && matrix.backend == 'opencode-v2-aimock' }}
-        run: pnpm vitest run sea-trial/vendor/opencode-cleanup.vendor.test.ts sea-trial/vendor/opencode-skills.vendor.test.ts
-        timeout-minutes: 5
-        env:
-          OAR_TEST: opencode-cleanup
-          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
       - uses: actions/upload-artifact@v4
         if: always()
         with:

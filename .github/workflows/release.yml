@@ -65,8 +65,8 @@ jobs:
           persist-credentials: false
       # A dispatched release is only ever the current head of main, once
       # ci.yml succeeded on that exact commit (Linux check/native/clean-install/
-      # browser-demo/behavior/ACP/pi-rpc-minimum, sharded Windows unit check,
-      # Windows dsh/codex/opencode-v2+cleanup/pi-rpc-vendor, and macOS claude).
+      # browser-demo/behavior/ACP/pi-rpc-minimum, sharded Windows unit check +
+      # opencode-cleanup, Windows dsh/codex/pi-rpc-vendor, and macOS claude).
       # It does not wait on the daily platform-matrix.yml workflow, and never
       # reuses an existing tag.
       - name: gate a dispatched release on main's CI

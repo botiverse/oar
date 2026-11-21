@@ -17,10 +17,12 @@ change travels.
   after verifying them herself and getting a second look.
 - **Merge.** Squash only. All CI checks report SUCCESS on the exact head
   for the jobs selected by `ci.yml`. A pull request that reaches OpenCode
-  runs both pins on Linux and v2 on Windows. Main adds the audit-proven
-  non-Linux catchers (Windows Codex/DSH/Pi RPC vendor and macOS Claude);
-  the remaining macOS and Windows matrices run daily in `platform-matrix.yml`.
-  A separate workflow observes Kimi and Grok on Windows and retains failures.
+  runs both pins on Linux and v2 on Windows. Main runs Linux plus the
+  audit-proven non-Linux catchers (Windows check + `opencode-cleanup`, Windows
+  Codex/DSH/Pi RPC vendor and macOS Claude); the remaining macOS and Windows
+  matrices (including Windows OpenCode v2 until `#core:#360` is fixed) run
+  daily in `platform-matrix.yml`. A separate workflow observes Kimi and Grok on
+  Windows and retains failures.
   A pull request that changes only `**/*.md`, `docs/**` or `assets/**`
   runs no CI by design and merges on the author's local check plus the
   review. The author merges once approved:
