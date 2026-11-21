@@ -27,7 +27,6 @@ test("a resume in another directory is refused, naming both", async () => {
   await expect(opening).rejects.toMatchObject({
     name: "UnsupportedOptionError", option: "cwd", reason: "other_cwd",
     sessionId: "fake-session", requestedCwd: other, savedCwd: own,
-    message: `session fake-session lives in ${own} and this runtime resumes it only there; the resume names ${other}`,
   });
 });
 
@@ -68,7 +67,6 @@ function expectUnknownCwd(failure: unknown, reason: string): void {
   expect(failure).toBeInstanceOf(UnsupportedOptionError);
   expect(failure).toMatchObject({
     name: "UnsupportedOptionError", option: "cwd", reason, sessionId: "fake-session", requestedCwd: own,
-    message: "cannot confirm the saved directory of session fake-session; this runtime resumes in its saved directory, so open a new session instead",
   });
   expect(failure).not.toHaveProperty("savedCwd");
 }

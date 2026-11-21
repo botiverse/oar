@@ -105,17 +105,9 @@ CIM, so it exercises product preparation and the cold cleanup path under the
 budget: [record contract](spec/record-stream.md#the-rules); cold first-use
 timing: [Windows CIM experiment](../experiments/windows-cim/README.md).
 
-The Windows watchdog regression keeps launcher, sampler/CIM, nested test
-and process-result diagnostics under `oar-trial-run/pi-rpc-diagnostics`,
-outside its disposable fixture directory. The Windows `check` job uploads
-them even when the unit suite fails. Startup records distinguish an entered
-sampler, returned initial resource queries, a launched child and an entered
-test; a missing checkpoint is an evidence gap, not a cause. The diagnostics
-change no time limit or termination assertion.
-
-Windows cancellation cleanup cases also retain bounded, process-local timing
+Windows cancellation cleanup cases retain bounded, process-local timing
 under `oar-trial-run/cancellation-timing`, uploaded as
-`windows-cancellation-timing` even on failure. Caller deadlines, query entry
+`windows-cancellation-timing-<shard>` from `check-windows` even on failure. Caller deadlines, query entry
 and return, cancellation and post-exit cleanup share one monotonic clock;
 local correlation IDs contain no PIDs or process tables. The same capture
 covers immediate root exit and kill fallback. Missing or dropped events are
@@ -126,7 +118,7 @@ unverified Windows exit is accepted only with that operation's recorded
 snapshot timeout and matching warning; actual roots must still exit.
 [Assertion audit](../experiments/windows-cancellation-timing/assertion-audit.md).
 
-The shell-hook, Pi bash environment and Pi key-command controls also retain
+The Pi bash environment and Pi key-command controls also retain
 bounded child-process observations in that directory. The test-owned observer
 records stage markers, process start/result, elapsed time and allowlisted error
 reasons before the native Pi resolver discards a failure. It never records
@@ -263,9 +255,10 @@ runtime's page and the experiments README.
 ### The commit gate
 
 `pnpm run check` must be green before every commit: typecheck, lint,
-`pnpm test` and the mock behavior suite. Vendor tests are collected by
-`pnpm test` but skip unless `OAR_TEST` names their backend, so run them for
-the backend you touched. Rebase on origin/main before pushing.
+`pnpm test` and the mock behavior suite. Vendor tests are included by Vitest
+only when `OAR_TEST` is set (`vitest.config.ts`), so default `pnpm test` runs
+only `tests/**/*.test.ts`; run `OAR_TEST=<backend> pnpm vitest run sea-trial/vendor`
+for the backend you touched. Rebase on origin/main before pushing.
 
 The runtime candidate installer controls use two committed, real npm package
 archives with readable sources. They retain four independent installations,
@@ -276,87 +269,71 @@ keeps npm-pack timing and failure diagnostics outside the installer deadline.
 
 CI ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) skips a push
 or pull request whose changes are all Markdown files or under `docs/` or
-`assets/`. Otherwise it runs these jobs (a native version named below is
+`assets/`. Otherwise it runs the jobs below (a native version named below is
 the pin when it was written; [`.github/runtime-versions.json`](../.github/runtime-versions.json)
 is authoritative). The `behavior`, `acp-behavior` and
 Pi RPC jobs are chosen by [`.github/scripts/ci-select.mjs`](../.github/scripts/ci-select.mjs):
-a pull request runs the backends its changed files can reach on Linux.
-Changes that reach OpenCode run both pins on Linux and Windows
+a pull request runs the backends its changed files can reach on Linux, plus
+Windows OpenCode v2 (`opencode-v2-aimock`) when OpenCode is reached
 (a runtime's own directory or its vendor tests reach that runtime; shared code,
 contracts, the behavior harness, CI or anything unrecognized reach all of them;
 docs, Markdown, tests other than `tests/fixtures/`, the CLI and apps reach
 none; `experiments/` code reaches all, because vendor tests and the behavior
-harness import its probes). The Windows-only Pi RPC job also waits for main. A push to main and a
-dispatch run every backend on every platform, and the release gate waits for
-that run on the released commit, so a platform regression found after merge
-still cannot ship. A newer push or dispatch on the same ref cancels any
-in-progress or queued `ci.yml` run it supersedes.
+harness import its probes). A push to main and a dispatch run all Linux
+backends plus the non-Linux jobs that caught platform-only failures in the
+50-run audit (Windows `check-windows`, Windows `dsh-aimock`, Windows
+`codex-aimock`, Windows `opencode-v2-aimock` with `opencode-cleanup`, Windows
+`pi-rpc-windows` vendor, and macOS `claude-aimock`). The remaining macOS and
+Windows behavior, ACP and native helper matrices run daily and on demand in
+[`.github/workflows/platform-matrix.yml`](../.github/workflows/platform-matrix.yml);
+the release gate waits only on `ci.yml` for the exact release commit and does
+not wait on `platform-matrix.yml`. A newer push or dispatch on the same ref
+cancels any in-progress or queued `ci.yml` run it supersedes.
 
-- `check`: `pnpm run check` and `pnpm run build` on Linux, macOS and Windows,
-  plus offline Cursor SDK skill-loader parity against the same local fixtures,
-  then native checks: OpenCode 2.2.7 isolated native
-  tool cleanup (readiness, surviving-peer and final residual-process
-  assertions); and Kimi's native login tests against a local
-  OAuth/model server, including browser suppression and credential writes,
-  plus native workspace skill discovery cleanup on success, error and timeout.
-  The agy CLI 1.5.11 (Antigravity) is installed from official platform
-  downloads with pinned SHA-512 digests
-  ([`install-antigravity.mjs`](../.github/scripts/install-antigravity.mjs))
-  and runs the `antigravity-aimock` behavior and vendor suites against a
-  local Gemini provider in an isolated home (concurrency 2, a missing
-  installation fails). Each suite requires a successful
-  install; an earlier unrelated check failure does not skip installation.
-  OpenCode, Kimi and Antigravity upload diagnostic artifacts, failures included.
-  CodeBuddy's fake-npm installer unit tests remain here; its real public
-  installer runs daily, below.
+- `check`: `pnpm run check` and `pnpm run build` on Linux.
   The browser-entry unit test bundles the complete portable entry for a
   browser and refuses Node imports or unresolved externals. Synthetic
-  sharing routing and public placement-refusal regressions stay in these
-  required jobs.
-- `behavior`: `pnpm run sea-trial` plus the backend's vendor tests on the
-  same three systems for `claude-aimock`, `codex-aimock`, `pi-aimock`,
-  `pi-rpc-aimock` (not on Windows, below), `pi-durable-aimock`, `qwen-aimock`,
-  `dsh-aimock` (DSH pinned to the runtime minimum, 0.2.1-rc.5, a missing
-  installation fails), `qoder-native` (Qoder pinned to 1.1.81 because
-  native replay stops driving inference from 1.1.82), these two at
-  shared-case concurrency 2, and `factory-aimock` (droid pinned to 1.12.1
-  from npm, a missing installation fails; not on Windows, where OAR has not
-  verified droid's build).
+  sharing routing and public placement-refusal regressions stay in this job.
+- `check-native`: runs in parallel with `check` on Linux: `pnpm run build`,
+  offline Cursor SDK skill-loader parity against local fixtures, OpenCode 2.2.7
+  isolated native tool cleanup and skills, Kimi native login and workspace skill
+  discovery cleanup (both `kimi-login` and `kimi-skills` pins), and the pinned
+  agy CLI 1.5.11 (`antigravity-aimock` behavior, vendor and file-skills suites
+  against a local Gemini provider in an isolated home, concurrency 2). OpenCode,
+  Kimi and Antigravity upload diagnostic artifacts, failures included.
+  CodeBuddy's fake-npm installer unit tests remain in `check`; its real public
+  installer runs daily in `runtime-latest.yml`.
+- `check-windows` (shards 1/2 and 2/2): sharded `pnpm vitest run --shard=N/2`
+  with `OAR_COMMUNITY_TESTS=1` on `windows-latest`, plus the mock behavior suite
+  on shard 1. Kept on every push/PR because Windows unit tests caught
+  Windows-only failures; macOS unit/native checks and Windows non-OpenCode
+  native checks run daily in `platform-matrix.yml`.
+- `behavior`: `pnpm run sea-trial` plus the backend's vendor tests on Linux for
+  all nine backends (`claude-aimock`, `codex-aimock`, `pi-aimock`,
+  `pi-rpc-aimock`, `pi-durable-aimock`, `qwen-aimock`, `dsh-aimock` pinned to
+  0.2.1-rc.5, `qoder-native` pinned to 1.1.81, and `factory-aimock` pinned to
+  1.12.1), plus on main pushes/dispatches Windows `dsh-aimock`, Windows
+  `codex-aimock` and macOS `claude-aimock`. `dsh-aimock` and `qoder-native` run
+  at shared-case concurrency 2; missing `dsh-aimock` or `factory-aimock`
+  installations fail.
 - `pi-rpc-minimum`: Ubuntu behavior and vendor suites with a separately
   installed Pi CLI 1.4.0 selected through `OAR_PI_RPC_COMMAND`. This guards the
   explicit-command floor while OAR keeps its current bundled dependency.
   Any floor increase must update this CI pin and `PI_RPC_MINIMUM_VERSION`
   together in the same pull request.
-- `pi-rpc-windows (behavior)` and `pi-rpc-windows (vendor)`: Windows Pi RPC
-  on separate VMs, so each phase keeps its outcome if the other loses its
-  runner (job ceiling 20 minutes). Both run under the resource sampler, with
-  phase-suffixed artifacts and separate vendor group directories and
-  resource files. The vendor job runs four named steps in sequence
+- `pi-rpc-windows`: Windows Pi RPC vendor phase on main pushes/dispatches (job
+  ceiling 20 minutes). It runs four named steps in sequence
   (RPC-specific, native Pi, MCP and remaining shared files) that together
   cover every vendor file exactly once, new files included; each starts
-  Vitest separately with the usual worker settings, and an ordinary failure
-  does not skip later groups. Step names and start/end times stay readable
-  through the GitHub jobs API when logs are not; they identify a group, not a
-  test or why it stopped.
-  Vendor cases keep their 30 to 120 second Vitest limits. An external
-  monitor also stops the test process tree when a case (hooks included)
-  stays active for three minutes, naming it in the resource log; each vendor
-  group has a five-minute command ceiling inside a six-minute step ceiling.
-  Its exit 124 means the diagnostic monitor reached its deadline, not a
-  native test result, and does not prove descendant cleanup (residual
-  processes remain the runner's responsibility). Tree termination runs in
-  the background within a ten-second budget: an unreturned call records
-  `termination_unreturned`, a thrown one `termination_error`, and either
-  records `stage_exit` and exits 124 without joining the worker or taking
-  another resource sample; a returned call waits up to five seconds of that
-  budget for root exit. Output handles stay inherited, so native test output
-  reaches the job log. The always-uploaded artifact holds incremental case
-  events, the last active cases, combined Vitest output and redacted Pi RPC
-  stderr tails. None of this changes an assertion, concurrency or native
-  deadline, or establishes the cause of the intermittent Windows hangs.
-- `acp-behavior` runs both OpenCode majors on Linux, Windows and macOS.
-  Kimi, Grok and CodeBuddy run on Linux and macOS. The
-  [runtime manifest](../.github/runtime-versions.json) supplies the pins.
+  Vitest separately under `windows-pi-vendor.ps1` and `windows-resources.ps1`
+  with a five-minute command ceiling inside a six-minute step ceiling, and an
+  ordinary failure does not skip later groups. Windows Pi RPC behavior (zero
+  unique failures in the 50-run audit) runs daily in `platform-matrix.yml`.
+- `acp-behavior`: runs Kimi, Grok, CodeBuddy and both OpenCode majors on Linux,
+  plus OpenCode v2 (`opencode-v2-aimock`, using the `opencode-cleanup` 2.2.7 pin)
+  on Windows. The Windows OpenCode v2 job also runs `opencode-cleanup` and
+  `opencode-skills` vendor tests reusing that same installed binary.
+  The [runtime manifest](../.github/runtime-versions.json) supplies the pins.
   Each job runs shared behavior and vendor tests against the installed
   program using a local scripted provider, isolated configuration, synthetic
   keys and npm download caches. Shared-case concurrency and Vitest worker
@@ -421,6 +398,14 @@ images or OS packages.
 
 Outside ci.yml and its pull-request and release gates:
 
+- [`platform-matrix.yml`](../.github/workflows/platform-matrix.yml) runs daily
+  at 03:17 UTC and by manual `workflow_dispatch`. It runs the macOS and Windows
+  jobs moved off every-push `ci.yml`, sharded through
+  [`.github/scripts/run-ci-shard.mjs`](../.github/scripts/run-ci-shard.mjs) so
+  checkout, Node and `pnpm install` run once per shard and macOS stays within
+  runner concurrency limits (`macos-check`, `macos-behavior-1`,
+  `macos-behavior-2`, `macos-acp`, `windows-native`, `windows-behavior-1`,
+  `windows-behavior-2`). `release.yml` does not wait on this workflow.
 - [`runtime-latest.yml`](../.github/workflows/runtime-latest.yml) runs daily
   at 06:17 UTC and by manual dispatch. One discovery job freezes candidate
   versions, URLs, digests, timestamp and accepted-manifest hash. Manifest
@@ -664,7 +649,10 @@ the release job's token cannot authorize. Cindy owns this hold and lifts
 it once the tag is confirmed at the release commit.
 
 Dispatch right after the release pull request merges: the workflow releases
-the head of main only after `ci.yml` succeeded on that exact commit (a
+the head of main only after `ci.yml` succeeded on that exact commit (the
+Linux gate, sharded Windows unit check, Windows `dsh-aimock`, `codex-aimock`,
+`opencode-v2-aimock` with `opencode-cleanup`, `pi-rpc-windows` vendor and macOS
+`claude-aimock`; it does not wait on daily `platform-matrix.yml`, and a
 docs-only head has no run and fails the gate). It refuses a version that
 already has a tag or differs from either package version, runs
 `pnpm run check` and `pnpm run build`, and publishes both packages with

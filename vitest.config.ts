@@ -3,10 +3,9 @@ import { configDefaults, defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     globalSetup: ["./sea-trial/global-setup.ts"],
-    include: [
-      "tests/**/*.test.ts",
-      "sea-trial/vendor/*.test.ts",
-    ],
+    include: process.env.OAR_TEST === undefined
+      ? ["tests/**/*.test.ts"]
+      : ["tests/**/*.test.ts", "sea-trial/vendor/*.test.ts"],
     // The CI check enables the scripted community unit tests on every platform.
     exclude: process.env.OAR_COMMUNITY_TESTS === undefined ? [...configDefaults.exclude, "tests/community/**"] : configDefaults.exclude,
     // Cold Windows runners: one powershell resolution is allowed up to 15s,
