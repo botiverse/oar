@@ -15,6 +15,7 @@ import {
 } from "../../shared/login.js";
 import { readClaudeAuthStatus } from "./auth-status.js";
 import { claudeEnv } from "./environment.js";
+import { claudeSignInUrl } from "./login-url.js";
 
 export { claudeAuthStatus } from "./auth-status.js";
 
@@ -38,7 +39,6 @@ export { claudeAuthStatus } from "./auth-status.js";
 const PASTE_FLOOR = "2.1.126";
 const LOGIN_TIMEOUT_MS = 15 * 60_000;
 
-const URL_LINE = /If the browser didn't open, visit:\s*(\S+)/u;
 const PASTE_PROMPT = /Paste code here if prompted\s*>/u;
 /** At the start of a stderr line only: `Login failed: Invalid code verifier` is a failure, not a retry. */
 const INVALID_CODE = /^Invalid code\b/u;
@@ -48,6 +48,7 @@ const FAILURE = /Login failed:\s*(.*)$/u;
 type Ending =
   | { readonly kind: "exit"; readonly exit: LoginProcessExit }
   | { readonly kind: "stop"; readonly stop: LoginStop }
+  | { readonly kind: "login_url_missing" }
   /** The caller's `prompt` or `onEvent` threw. */
   | { readonly kind: "interaction_failed"; readonly message: string };
 
@@ -117,7 +118,7 @@ async function runClaudeLogin(
   overlay: LoginOptions["env"],
 ): Promise<LoginResult> {
   const secrets = new LoginSecrets();
-  const interactionFailure = Promise.withResolvers<Ending>();
+  const handoffFailure = Promise.withResolvers<Ending>();
   const flow: FlowState = {
     urlSent: false, pasteOffered: false, promptOpen: false, settled: false, reportedSuccess: false, failure: undefined, lastStderr: undefined,
   };
@@ -127,7 +128,7 @@ async function runClaudeLogin(
   /** The caller failed: settled at once, so no answer still in flight reaches claude. */
   const interactionFailed = (error: unknown): void => {
     flow.settled = true;
-    interactionFailure.resolve({ kind: "interaction_failed", message: errorMessage(error) });
+    handoffFailure.resolve({ kind: "interaction_failed", message: errorMessage(error) });
   };
   const ask = async (message: string): Promise<void> => {
     if (flow.promptOpen || flow.settled) {
@@ -163,7 +164,12 @@ async function runClaudeLogin(
     child?.write(`${code}\n`);
   };
   const offerPaste = (): void => {
-    if (!flow.pasteOffered) {
+    if (!flow.urlSent && !flow.settled) {
+      flow.settled = true;
+      handoffFailure.resolve({ kind: "login_url_missing" });
+      return;
+    }
+    if (!flow.pasteOffered && !flow.settled) {
       flow.pasteOffered = true;
       void ask("Paste the code shown after signing in");
     }
@@ -182,8 +188,8 @@ async function runClaudeLogin(
   try {
     child = spawnLoginProcess(command, ["auth", "login"], env, {
       onLine(line, stream) {
-        const url = URL_LINE.exec(line)?.[1];
-        if (url !== undefined && !flow.urlSent) {
+        const url = stream === "stdout" && !flow.urlSent && !flow.settled ? claudeSignInUrl(line) : undefined;
+        if (url !== undefined) {
           flow.urlSent = true;
           try {
             interaction.onEvent({ kind: "auth_url", url, instructions: "Open this URL and sign in; if the page then shows a code, paste it back." });
@@ -192,7 +198,7 @@ async function runClaudeLogin(
             interactionFailed(error);
           }
         }
-        if (PASTE_PROMPT.test(line)) {
+        if (stream === "stdout" && PASTE_PROMPT.test(line)) {
           offerPaste();
         }
         if (stream === "stderr") {
@@ -210,8 +216,8 @@ async function runClaudeLogin(
           flow.failure = failed;
         }
       },
-      onPartial(partial) {
-        if (PASTE_PROMPT.test(partial)) {
+      onPartial(partial, stream) {
+        if (stream === "stdout" && PASTE_PROMPT.test(partial)) {
           offerPaste();
         }
       },
@@ -227,7 +233,7 @@ async function runClaudeLogin(
       child.exited.then((exit): Ending => ({ kind: "exit", exit })),
       // oxlint-disable-next-line promise/prefer-await-to-then -- racing three endings
       bounds.stopped.then((stop): Ending => ({ kind: "stop", stop })),
-      interactionFailure.promise,
+      handoffFailure.promise,
     ]);
     flow.settled = true;
     if (ending.kind !== "exit") {
@@ -241,6 +247,8 @@ async function runClaudeLogin(
     switch (ending.kind) {
       case "stop":
         return stoppedResult(ending.stop, timeoutMs);
+      case "login_url_missing":
+        return { kind: "failed", reason: "process_failed", detail: "login_url_missing: Claude requested a code before providing a recognized sign-in URL" };
       case "interaction_failed":
         return { kind: "failed", reason: "interaction_failed", detail: secrets.line(ending.message) };
       case "exit":

@@ -12,6 +12,31 @@ let state = "";
 let urls = 0;
 let prompts = 0;
 const before = process.env.BROWSER;
+// Check the unmodified remote handoff too. The synthetic exchange below needs
+// the expanded URL to verify the challenge and state independently.
+const nativeHandoff: string[] = [];
+if (mode === "suppressed") {
+  const abort = new AbortController();
+  const handoff = await claudeLogin(installation, {
+    signal: abort.signal,
+    onEvent(event) {
+      if (event.kind === "auth_url") {
+        const link = new URL(event.url);
+        nativeHandoff.push(link.searchParams.has("state") ? "expanded" : "compact");
+      }
+    },
+    async prompt(request) {
+      assert.equal(request.kind, "manual_code");
+      assert.equal(nativeHandoff.length, 1);
+      abort.abort();
+      // As on the web, cancellation ends the login while the user has yet to answer.
+      await Promise.withResolvers<void>().promise;
+      return "";
+    },
+  }, { openBrowser: false, timeoutMs: 30_000 });
+  assert.equal(handoff.kind, "cancelled");
+}
+
 const result = await claudeLogin(installation, {
   onEvent(event) {
     if (event.kind === "auth_url") {
@@ -32,9 +57,9 @@ const result = await claudeLogin(installation, {
     await sleep(750);
     return `${CODE}#${state}`;
   },
-}, { timeoutMs: 30_000, ...(mode === "suppressed" ? { openBrowser: false } : {}) });
+}, { env: { CLAUDE_CODE_FULL_SIGN_IN_LINK: "1" }, timeoutMs: 30_000, ...(mode === "suppressed" ? { openBrowser: false } : {}) });
 const status = await claudeAuthStatus(installation);
 assert.equal(process.env.BROWSER, before);
-process.send?.({ kind: "result", login: result.kind, status: status.kind, urls, prompts,
+process.send?.({ kind: "result", login: result.kind, status: status.kind, urls, prompts, nativeHandoff: nativeHandoff[0],
   ...(result.kind === "failed" ? { failure: result.reason, detail: result.detail } : {}) });
 process.disconnect?.();

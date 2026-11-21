@@ -55,7 +55,7 @@ test("the URL is relayed without its escapes, the pasted code goes to stdin only
         {
           "instructions": "Open this URL and sign in; if the page then shows a code, paste it back.",
           "kind": "auth_url",
-          "url": "https://claude.com/cai/oauth/authorize?code=true&client_id=fixture&state=fixture-state",
+          "url": "https://claude.com/cai/oauth/authorize?code=true&client_id=fixture&state=fixture-state&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&code_challenge_method=S256&code_challenge=fixture-challenge",
         },
       ],
       "prompts": [
