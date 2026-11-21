@@ -30,22 +30,33 @@ function acpJobs(event: "push" | "pull_request"): Readonly<Record<string, unknow
   });
 }
 
-/** The manifest's native backends, intersected with the actual ACP gate. Antigravity runs in the check job. */
+function verifiedAcpJobs(): Readonly<Record<string, unknown>>[] {
+  const output = execFileSync(process.execPath, [".github/scripts/ci-select.mjs", "verified-acp"], { encoding: "utf8" });
+  const jobs: unknown = JSON.parse(output);
+  assert.ok(Array.isArray(jobs));
+  return jobs.map((value: unknown) => {
+    const job = asRecord(value);
+    assert.ok(job);
+    return job;
+  });
+}
+
+/** The manifest's native backends, intersected with CI's push + daily ACP coverage. Antigravity runs in check-native/platform-matrix. */
 function manifestPlatforms(): Map<string, RuntimePlatform[]> {
   const text = readFileSync(new URL("../.github/runtime-versions.json", import.meta.url), "utf8");
   const manifest = asRecord(JSON.parse(text));
   const entries = asRecord(manifest?.runtimes) ?? manifest ?? {};
-  const jobs = acpJobs("push");
+  const jobs = verifiedAcpJobs();
   const backends = Object.entries(entries).flatMap(([key, value]) => {
     const entry = asRecord(value);
     const runners: unknown = entry?.platforms;
     const verified = (entry?.suite === "behavior" || entry?.suite === "acp") && Array.isArray(runners);
     if (!verified) { return []; }
     const id = key.replace(/-(?:aimock|native)$/u, "");
-    const gating = entry.suite === "acp" && id !== "antigravity"
+    const covered = entry.suite === "acp" && id !== "antigravity"
       ? runners.filter(runner => jobs.some(job => job.os === runner && (job.suite ?? job.backend) === key))
       : runners;
-    return [[id, platformsOf(gating)] as const];
+    return [[id, platformsOf(covered)] as const];
   });
   return new Map(backends);
 }
@@ -53,21 +64,21 @@ function manifestPlatforms(): Map<string, RuntimePlatform[]> {
 /** Runtimes whose behavior suite runs from the SDK dependency, so the manifest has no row for them (ci-select.mjs `behavior`). */
 const sdkRuntimes: Readonly<Record<string, readonly RuntimePlatform[]>> = { pi: ["linux", "darwin", "win32"], "pi-durable": ["linux", "darwin", "win32"] };
 
-test.each(["push", "pull_request"] as const)("the %s ACP gate runs both OpenCode pins on every selected runner", event => {
+test.each(["push", "pull_request"] as const)("the %s ACP gate runs all ACP pins on Linux and keeps Windows OpenCode v2 PR-only", event => {
   const jobs = acpJobs(event);
-  const runners = event === "push" ? ["ubuntu-latest", "windows-latest", "macos-latest"] : ["ubuntu-latest", "windows-latest"];
+  const runners = event === "pull_request" ? ["ubuntu-latest", "windows-latest"] : ["ubuntu-latest"];
   expect(new Set(jobs.map(job => job.os))).toEqual(new Set(runners));
-  for (const os of runners) {
-    const onRunner = jobs.filter(job => job.os === os);
-    const openCode = onRunner.filter(job => (job.suite ?? job.backend) === "opencode-aimock");
-    expect(openCode.map(job => [job.backend, job.pin ?? job.backend]), os).toEqual([
-      ["opencode-aimock", "opencode-aimock"], ["opencode-v2-aimock", "opencode-cleanup"],
-    ]);
-    if (os === "windows-latest") { expect(onRunner).toEqual(openCode); }
-  }
+  const linuxOpenCode = jobs.filter(job => job.os === "ubuntu-latest" && (job.suite ?? job.backend) === "opencode-aimock");
+  expect(linuxOpenCode.map(job => [job.backend, job.pin ?? job.backend])).toEqual([
+    ["opencode-aimock", "opencode-aimock"], ["opencode-v2-aimock", "opencode-cleanup"],
+  ]);
+  const windowsJobs = jobs.filter(job => job.os === "windows-latest");
+  expect(windowsJobs.map(job => [job.backend, job.pin ?? job.backend])).toEqual(
+    event === "pull_request" ? [["opencode-v2-aimock", "opencode-cleanup"]] : [],
+  );
 });
 
-test("every built-in runtime declares exactly the platforms a gating CI job runs it on, and nothing else declares any", () => {
+test("every built-in runtime declares exactly the platforms CI (ci.yml + platform-matrix.yml) verifies, and nothing else declares any", () => {
   const evidence = new Map([...manifestPlatforms(), ...Object.entries(sdkRuntimes).map(([id, platforms]) => [id, [...platforms]] as const)]);
   expect(evidence.size).toBeGreaterThan(5);
   for (const runtime of defaultRuntimes.list()) {

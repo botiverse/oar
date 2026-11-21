@@ -1,10 +1,12 @@
 // Picks which behavior backends and platforms a CI run needs, from the files it
-// changes. Pushes to main, dispatches and anything this script cannot place run
-// everything; a pull request runs only the backends its change can reach, on
-// Linux and, for OpenCode, on Windows too. Both OpenCode majors run together.
-// The release gate waits for main's run on the exact commit.
+// changes. Pull requests run affected backends on Linux plus Windows OpenCode v2.
+// Main pushes and dispatches run all Linux backends plus the non-Linux jobs
+// proven to catch platform-only failures in the 50-run audit; the remaining
+// macOS and Windows behavior/ACP matrices run daily in platform-matrix.yml.
+// The release gate waits only for ci.yml on the exact release commit.
 import { execFileSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
 const behavior = ["claude-aimock", "codex-aimock", "pi-aimock", "pi-rpc-aimock", "pi-durable-aimock", "qwen-aimock", "qoder-native", "dsh-aimock", "factory-aimock"];
 const acp = ["kimi-aimock", "grok-aimock", "opencode-aimock", "codebuddy-aimock"];
@@ -13,6 +15,68 @@ const acpInstallations = [
   { backend: "opencode-v2-aimock", suite: "opencode-aimock", pin: "opencode-cleanup" },
 ];
 const all = [...behavior, ...acp];
+
+// Non-Linux behavior jobs kept on main pushes/dispatches (50-run audit evidence):
+// - windows-latest dsh-aimock: 19/50 unique failures (e.g. run 44784700637 / job 136456409926)
+// - windows-latest codex-aimock: 9/50 unique failures (e.g. run 44731287320 / job 136271471468)
+// All macOS jobs (including claude-aimock, whose sole unique failure was test bug #1067)
+// run daily in platform-matrix.yml so pushes and releases never wait on the macOS queue.
+const pushNonLinuxBehavior = [
+  { os: "windows-latest", backend: "codex-aimock" },
+  { os: "windows-latest", backend: "dsh-aimock" },
+];
+
+// Daily/on-demand sharded macOS and Windows matrices (platform-matrix.yml).
+// Kept here alongside ci.yml selection so every verified platform has one source of truth.
+export const dailyShards = {
+  "macos-behavior-1": {
+    os: "macos-latest",
+    entries: [
+      { kind: "behavior", backend: "dsh-aimock", install: true },
+      { kind: "behavior", backend: "qoder-native", install: true },
+      { kind: "behavior", backend: "claude-aimock", install: true },
+      { kind: "behavior", backend: "pi-aimock", install: false },
+      { kind: "behavior", backend: "pi-durable-aimock", install: false },
+    ],
+  },
+  "macos-behavior-2": {
+    os: "macos-latest",
+    entries: [
+      { kind: "behavior", backend: "codex-aimock", install: true },
+      { kind: "behavior", backend: "pi-rpc-aimock", install: false },
+      { kind: "behavior", backend: "qwen-aimock", install: true },
+      { kind: "behavior", backend: "factory-aimock", install: true },
+    ],
+  },
+  "macos-acp": {
+    os: "macos-latest",
+    entries: [
+      { kind: "acp", backend: "kimi-aimock", install: true },
+      { kind: "acp", backend: "grok-aimock", install: true },
+      { kind: "acp", backend: "opencode-aimock", install: true },
+      { kind: "acp", backend: "opencode-v2-aimock", suite: "opencode-aimock", pin: "opencode-cleanup", install: true },
+      { kind: "acp", backend: "codebuddy-aimock", install: true },
+    ],
+  },
+  "windows-behavior-1": {
+    os: "windows-latest",
+    entries: [
+      { kind: "behavior", backend: "qoder-native", install: true },
+      { kind: "acp", backend: "opencode-v2-aimock", suite: "opencode-aimock", pin: "opencode-cleanup", install: true },
+      { kind: "behavior", backend: "pi-aimock", install: false },
+      { kind: "behavior", backend: "pi-durable-aimock", install: false },
+    ],
+  },
+  "windows-behavior-2": {
+    os: "windows-latest",
+    entries: [
+      { kind: "behavior", backend: "claude-aimock", install: true },
+      { kind: "behavior", backend: "qwen-aimock", install: true },
+      { kind: "acp", backend: "opencode-aimock", install: true },
+      { kind: "pi-rpc-windows-behavior", backend: "pi-rpc-aimock", install: false },
+    ],
+  },
+};
 
 /** A runtime's own code reaches only its own backends. Runtimes without a behavior backend reach none. */
 const backendsOf = {
@@ -42,20 +106,16 @@ export function reach(file) {
   return null;
 }
 
-import { pathToFileURL } from "node:url";
-
-function changedFiles() {
-  const base = process.env.BASE_SHA;
-  if (base === undefined || base === "") { return null; }
-  return execFileSync("git", ["diff", "--name-only", "--no-renames", `${base}...HEAD`], { encoding: "utf8" }).split("\n").filter((line) => line !== "");
+/** Union of all push (ci.yml) and daily (platform-matrix.yml) ACP jobs for platform verification checks. */
+export function verifiedAcpJobs() {
+  const pushAcp = selectCiJobs({ pullRequest: false, files: null }).acp;
+  const dailyAcp = Object.values(dailyShards).flatMap(shard => shard.entries
+    .filter(entry => entry.kind === "acp")
+    .map(entry => ({ os: shard.os, backend: entry.backend, ...(entry.suite ? { suite: entry.suite } : {}), ...(entry.pin ? { pin: entry.pin } : {}) })));
+  return [...pushAcp, ...dailyAcp];
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href && process.argv[2] === "reach") {
-  // Test entry point: print the backends one path reaches (null = every backend).
-  process.stdout.write(`${JSON.stringify(reach(process.argv[3] ?? ""))}\n`);
-} else if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
-  const pullRequest = process.env.GITHUB_EVENT_NAME === "pull_request";
-  const files = pullRequest ? changedFiles() : null;
+export function selectCiJobs({ pullRequest, files }) {
   let selected = all;
   if (files !== null) {
     const picked = new Set();
@@ -66,21 +126,53 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href && process.arg
       selected = all.filter((backend) => picked.has(backend));
     }
   }
-  const os = pullRequest ? ["ubuntu-latest"] : ["ubuntu-latest", "windows-latest", "macos-latest"];
-  const acpRunners = pullRequest ? ["ubuntu-latest", "windows-latest"] : os;
-  const acpJobs = acpRunners.flatMap(runner => acpInstallations
-    .filter(installation => {
-      const suite = installation.suite ?? installation.backend;
-      return selected.includes(suite) && (runner !== "windows-latest" || suite === "opencode-aimock");
-    })
-    .map(installation => ({ os: runner, ...installation })));
+  const selectedBehavior = behavior.filter((backend) => selected.includes(backend));
+  const behaviorJobs = [
+    ...selectedBehavior.map((backend) => ({ os: "ubuntu-latest", backend })),
+    ...(pullRequest ? [] : pushNonLinuxBehavior.filter((job) => selectedBehavior.includes(job.backend))),
+  ];
+  // Linux runs every selected ACP pin. Windows OpenCode v2 runs on PRs touching
+  // OpenCode and in daily platform-matrix.yml; it is parked off main push and
+  // release until the known readiness flake (#core:#360) is fixed.
+  const acpJobs = [
+    ...acpInstallations
+      .filter((installation) => selected.includes(installation.suite ?? installation.backend))
+      .map((installation) => ({ os: "ubuntu-latest", ...installation })),
+    ...(pullRequest ? acpInstallations
+      .filter((installation) => installation.backend === "opencode-v2-aimock" && selected.includes(installation.suite ?? installation.backend))
+      .map((installation) => ({ os: "windows-latest", ...installation })) : []),
+  ];
+  return {
+    behavior: behaviorJobs,
+    acp: acpJobs,
+    pi_rpc: selected.includes("pi-rpc-aimock"),
+    // Windows Pi RPC vendor phase runs on main pushes/dispatches (1/50 unique failure: 44728473944/136261891688).
+    pi_rpc_windows: !pullRequest && selected.includes("pi-rpc-aimock"),
+  };
+}
+
+function changedFiles() {
+  const base = process.env.BASE_SHA;
+  if (base === undefined || base === "") { return null; }
+  return execFileSync("git", ["diff", "--name-only", "--no-renames", `${base}...HEAD`], { encoding: "utf8" }).split("\n").filter((line) => line !== "");
+}
+
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href && process.argv[2] === "reach") {
+  // Test entry point: print the backends one path reaches (null = every backend).
+  process.stdout.write(`${JSON.stringify(reach(process.argv[3] ?? ""))}\n`);
+} else if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href && process.argv[2] === "verified-acp") {
+  process.stdout.write(`${JSON.stringify(verifiedAcpJobs())}\n`);
+} else if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href && process.argv[2] === "shards") {
+  process.stdout.write(`${JSON.stringify(dailyShards)}\n`);
+} else if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  const pullRequest = process.env.GITHUB_EVENT_NAME === "pull_request";
+  const files = pullRequest ? changedFiles() : null;
+  const picked = selectCiJobs({ pullRequest, files });
   const out = {
-    behavior: JSON.stringify(behavior.filter((backend) => selected.includes(backend))),
-    acp: JSON.stringify(acpJobs),
-    os: JSON.stringify(os),
-    pi_rpc: String(selected.includes("pi-rpc-aimock")),
-    // The Windows-only Pi RPC job runs after merge, like the other non-Linux jobs.
-    pi_rpc_windows: String(!pullRequest && selected.includes("pi-rpc-aimock")),
+    behavior: JSON.stringify(picked.behavior),
+    acp: JSON.stringify(picked.acp),
+    pi_rpc: String(picked.pi_rpc),
+    pi_rpc_windows: String(picked.pi_rpc_windows),
   };
   for (const [key, value] of Object.entries(out)) {
     process.stdout.write(`${key}=${value}\n`);

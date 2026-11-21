@@ -41,30 +41,30 @@ test.each(["resume", "load"])("antigravity keeps a generic native %s failure whe
   await expect(opening).rejects.toMatchObject({ cause: { method, native: errors.antigravity } });
 });
 
-test.each(Object.entries(profiles))("%s never classifies an initialize or new-session error as a missing resume", async (runtime, profile) => {
+// Shared acpSession behavior is exercised once on a representative profile instead of repeating per profile.
+test("acpSession never classifies an initialize or new-session error as a missing resume", async () => {
   for (const errorMethod of ["initialize", "session/new"]) {
     // oxlint-disable-next-line no-await-in-loop -- Each independent open is fully cleaned up before the next.
-    const failure: unknown = await open(profile, { error: nativeErrors[runtime], errorMethod }, null).catch((error: unknown) => error);
+    const failure: unknown = await open(profiles.grok, { error: nativeErrors.grok, errorMethod }, null).catch((error: unknown) => error);
     expect(failure).toBeInstanceOf(Error);
     expect(failure).not.toBeInstanceOf(SessionNotFoundError);
   }
 });
 
-const listProfiles = [profiles.antigravity, profiles.devin, profiles.kimi, profiles.opencode, profiles.opencodeV2];
-test.each(listProfiles)("a listed id keeps a generic native resume failure, even on a later page", async (profile) => {
-  const failure: unknown = await open(profile, { error: errors.opencode, pages: [{ result: { sessions: [], nextCursor: "next" } }, listed] }).catch((error: unknown) => error);
+test("a listed id keeps a generic native resume failure, even on a later page", async () => {
+  const failure: unknown = await open(profiles.opencode, { error: errors.opencode, pages: [{ result: { sessions: [], nextCursor: "next" } }, listed] }).catch((error: unknown) => error);
   expect(failure).not.toBeInstanceOf(SessionNotFoundError);
   expect(failure).toMatchObject({ cause: { method: "session/resume", native: errors.opencode } });
 });
 
-test.each(listProfiles)("an unlisted session refuses cwd even if native resume would succeed", async (profile) => {
+test("an unlisted session refuses cwd even if native resume would succeed", async () => {
   const scenario = { error: errors.opencode, pages: [{ result: { sessions: [], nextCursor: "next" } }, unlisted] };
-  await expect(open(profile, scenario)).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "cwd", reason: "not_listed", sessionId: "missing-session", requestedCwd: process.cwd() });
-  await expect(open(profile, { ...scenario, succeed: true })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "cwd", reason: "not_listed", sessionId: "missing-session", requestedCwd: process.cwd() });
+  await expect(open(profiles.opencode, scenario)).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "cwd", reason: "not_listed", sessionId: "missing-session", requestedCwd: process.cwd() });
+  await expect(open(profiles.opencode, { ...scenario, succeed: true })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "cwd", reason: "not_listed", sessionId: "missing-session", requestedCwd: process.cwd() });
 });
 
-test.each(listProfiles)("a real id in another cwd is still an UnsupportedOptionError", async (profile) => {
-  const opening = open(profile, { error: errors.opencode, pages: [{ result: { sessions: [{ sessionId: "missing-session", cwd: `${process.cwd()}/other` }] } }] });
+test("a real id in another cwd is still an UnsupportedOptionError", async () => {
+  const opening = open(profiles.opencode, { error: errors.opencode, pages: [{ result: { sessions: [{ sessionId: "missing-session", cwd: `${process.cwd()}/other` }] } }] });
   await expect(opening).rejects.toBeInstanceOf(UnsupportedOptionError);
   await expect(opening).rejects.toMatchObject({ option: "cwd" });
 });
@@ -78,16 +78,13 @@ test.each([
   { pages: [{ result: { sessions: [], nextCursor: "repeated" } }] },
   { pages: [{ result: { sessions: [], nextCursor: "next" } }, { error: { code: -32_603, message: "list failed" } }] },
 ])("an unavailable, incomplete or malformed list never proves absence: %j", async (scenario) => {
-  for (const profile of [profiles.opencode, profiles.antigravity]) {
-    // oxlint-disable-next-line eslint/no-await-in-loop -- Independent native list failures, cleaned up before the next open.
-    const failure: unknown = await open(profile, { ...scenario, error: errors.opencode }).catch((error: unknown) => error);
-    expect(failure).toBeInstanceOf(Error);
-    expect(failure).not.toBeInstanceOf(SessionNotFoundError);
-  }
+  const failure: unknown = await open(profiles.opencode, { ...scenario, error: errors.opencode }).catch((error: unknown) => error);
+  expect(failure).toBeInstanceOf(Error);
+  expect(failure).not.toBeInstanceOf(SessionNotFoundError);
 });
 
-test.each(listProfiles)("a native authentication failure keeps its classification after cwd confirmation", async (profile) => {
-  const opening = open(profile, { pages: [listed], error: { code: -32_000, message: "Authentication required" } });
+test("a native authentication failure keeps its classification after cwd confirmation", async () => {
+  const opening = open(profiles.opencode, { pages: [listed], error: { code: -32_000, message: "Authentication required" } });
   await expect(opening).rejects.toBeInstanceOf(RuntimeFailureError);
   await expect(opening).rejects.toMatchObject({ failure: "auth" });
 });

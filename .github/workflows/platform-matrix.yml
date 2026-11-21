@@ -1,0 +1,224 @@
+name: Platform matrix
+
+# Daily and on-demand coverage for macOS and Windows jobs moved off every-push
+# ci.yml because they had no unique platform-only catches in the 50-run audit.
+# Jobs are sharded so checkout, Node and pnpm install run once per shard and
+# macOS stays within runner concurrency limits. release.yml does not wait on
+# this workflow.
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: platform-matrix-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  macos-check:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run check
+        env:
+          OAR_COMMUNITY_TESTS: '1'
+      - run: pnpm run build
+      - name: Cursor SDK skill loader parity (offline)
+        run: pnpm vitest run sea-trial/vendor/cursor-skills.vendor.test.ts
+        timeout-minutes: 3
+        env:
+          OAR_TEST: cursor-skills
+      - name: Install pinned OpenCode for native isolated cleanup
+        run: node .github/scripts/runtime-install.mjs opencode-cleanup
+      - name: Native isolated OpenCode tool cleanup
+        run: pnpm vitest run sea-trial/vendor/opencode-cleanup.vendor.test.ts sea-trial/vendor/opencode-skills.vendor.test.ts
+        timeout-minutes: 5
+        env:
+          OAR_TEST: opencode-cleanup
+          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
+      - run: node .github/scripts/runtime-install.mjs kimi-login
+        id: kimi-login-install
+        if: always() && !cancelled()
+      - run: pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts sea-trial/vendor/kimi-skills.vendor.test.ts sea-trial/vendor/kimi-expired-usage.vendor.test.ts
+        if: always() && !cancelled() && steps.kimi-login-install.outcome == 'success'
+        env:
+          OAR_TEST: kimi-login
+          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
+      - name: Install current Kimi for fresh workspace cleanup
+        id: kimi-skills-install
+        if: always() && !cancelled()
+        run: node .github/scripts/runtime-install.mjs kimi-skills
+      - name: Native Kimi skills with fresh workspace IDs
+        if: always() && !cancelled() && steps.kimi-skills-install.outcome == 'success'
+        run: pnpm vitest run sea-trial/vendor/kimi-skills.vendor.test.ts
+        env:
+          OAR_TEST: kimi-skills
+      - name: Install pinned agy CLI for native ACP regressions
+        id: agy-install
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        run: node .github/scripts/install-antigravity.mjs
+      - name: Native agy ACP behavior
+        if: ${{ !cancelled() && steps.agy-install.outcome == 'success' }}
+        run: pnpm run sea-trial
+        timeout-minutes: 12
+        env:
+          OAR_TEST: antigravity-aimock
+          OAR_TEST_REQUIRE_AVAILABLE: '1'
+          OAR_TEST_CONCURRENCY: '2'
+          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run/agy
+      - name: Native agy ACP vendor regressions
+        if: ${{ !cancelled() && steps.agy-install.outcome == 'success' }}
+        run: pnpm vitest run sea-trial/vendor --maxWorkers 2
+        timeout-minutes: 12
+        env:
+          OAR_TEST: antigravity-aimock
+          OAR_TEST_REQUIRE_AVAILABLE: '1'
+          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run/agy
+      - name: Install agy 1.5.11 for skill reader verification
+        id: agy-file-skills-install
+        if: ${{ !cancelled() }}
+        run: node .github/scripts/runtime-install.mjs antigravity-file-skills .github/antigravity-file-skills.json
+      - name: Native agy skill reader verification
+        if: ${{ !cancelled() && steps.agy-file-skills-install.outcome == 'success' }}
+        run: pnpm vitest run sea-trial/vendor/antigravity-file-skills.vendor.test.ts sea-trial/vendor/antigravity-windows-skills.vendor.test.ts
+        env:
+          OAR_TEST: antigravity-file-skills
+          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run/agy
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: platform-matrix-macos-check
+          path: ${{ github.workspace }}/oar-trial-run
+          if-no-files-found: warn
+
+  windows-native:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - name: Cursor SDK skill loader parity (offline)
+        run: pnpm vitest run sea-trial/vendor/cursor-skills.vendor.test.ts
+        timeout-minutes: 3
+        env:
+          OAR_TEST: cursor-skills
+      - run: node .github/scripts/runtime-install.mjs kimi-login
+        id: kimi-login-install
+        if: always() && !cancelled()
+      - run: pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts sea-trial/vendor/kimi-skills.vendor.test.ts sea-trial/vendor/kimi-expired-usage.vendor.test.ts
+        if: always() && !cancelled() && steps.kimi-login-install.outcome == 'success'
+        env:
+          OAR_TEST: kimi-login
+          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
+      - name: Install current Kimi for fresh workspace cleanup
+        id: kimi-skills-install
+        if: always() && !cancelled()
+        run: node .github/scripts/runtime-install.mjs kimi-skills
+      - name: Native Kimi skills with fresh workspace IDs
+        if: always() && !cancelled() && steps.kimi-skills-install.outcome == 'success'
+        run: pnpm vitest run sea-trial/vendor/kimi-skills.vendor.test.ts
+        env:
+          OAR_TEST: kimi-skills
+      - name: Install pinned agy CLI for native ACP regressions
+        id: agy-install
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        run: node .github/scripts/install-antigravity.mjs
+      - name: Native agy ACP behavior
+        if: ${{ !cancelled() && steps.agy-install.outcome == 'success' }}
+        run: pnpm run sea-trial
+        timeout-minutes: 12
+        env:
+          OAR_TEST: antigravity-aimock
+          OAR_TEST_REQUIRE_AVAILABLE: '1'
+          OAR_TEST_CONCURRENCY: '2'
+          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run/agy
+      - name: Native agy ACP vendor regressions
+        if: ${{ !cancelled() && steps.agy-install.outcome == 'success' }}
+        run: pnpm vitest run sea-trial/vendor --maxWorkers 2
+        timeout-minutes: 12
+        env:
+          OAR_TEST: antigravity-aimock
+          OAR_TEST_REQUIRE_AVAILABLE: '1'
+          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run/agy
+      - name: Install agy 1.5.11 for skill reader verification
+        id: agy-file-skills-install
+        if: ${{ !cancelled() }}
+        run: node .github/scripts/runtime-install.mjs antigravity-file-skills .github/antigravity-file-skills.json
+      - name: Native agy skill reader verification
+        if: ${{ !cancelled() && steps.agy-file-skills-install.outcome == 'success' }}
+        run: pnpm vitest run sea-trial/vendor/antigravity-file-skills.vendor.test.ts sea-trial/vendor/antigravity-windows-skills.vendor.test.ts
+        env:
+          OAR_TEST: antigravity-file-skills
+          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run/agy
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: platform-matrix-windows-native
+          path: ${{ github.workspace }}/oar-trial-run
+          if-no-files-found: warn
+
+  shards:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: macos-behavior-1
+            os: macos-latest
+          - shard: macos-behavior-2
+            os: macos-latest
+          - shard: macos-acp
+            os: macos-latest
+          - shard: windows-behavior-1
+            os: windows-latest
+          - shard: windows-behavior-2
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Locate npm's download cache
+        id: npm-cache
+        shell: pwsh
+        run: |
+          $npmCachePath = (npm config get cache).Trim()
+          if ($LASTEXITCODE -ne 0 -or !$npmCachePath) {
+            throw 'Could not locate the npm download cache.'
+          }
+          "path=$npmCachePath" >> $env:GITHUB_OUTPUT
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.npm-cache.outputs.path }}
+          key: npm-shard-${{ runner.os }}-${{ matrix.shard }}-${{ hashFiles('.github/runtime-versions.json') }}
+          restore-keys: npm-shard-${{ runner.os }}-${{ matrix.shard }}-
+      - name: Run shard ${{ matrix.shard }}
+        run: node .github/scripts/run-ci-shard.mjs '${{ matrix.shard }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: platform-matrix-${{ matrix.shard }}
+          path: ${{ github.workspace }}/oar-trial-run
+          if-no-files-found: warn

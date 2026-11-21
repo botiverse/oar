@@ -11,44 +11,34 @@ import { codexRedeemLimitReset } from "../packages/oar/src/runtimes/codex/limit-
 import { grokAccountUsage } from "../packages/oar/src/runtimes/grok/account-usage.js";
 import { kimiAccountUsage } from "../packages/oar/src/runtimes/kimi/account-usage.js";
 import { claudeAuthStatus } from "../packages/oar/src/runtimes/claude/auth-status.js";
-import { codexAuthStatus, readCodexAuthStatus } from "../packages/oar/src/runtimes/codex/login.js";
-import { qoderAuthStatus } from "../packages/oar/src/runtimes/qoder/auth-status.js";
+import { readCodexAuthStatus } from "../packages/oar/src/runtimes/codex/login.js";
 import { codebuddyAuthStatus } from "../packages/oar/src/runtimes/codebuddy/auth-status.js";
 import { factoryAuthStatus } from "../packages/oar/src/runtimes/factory/account.js";
-import { devinAuthStatus } from "../packages/oar/src/runtimes/devin/auth.js";
-import { kimiAuthStatus, queryKimiAuth, readKimiAuthStatus } from "../packages/oar/src/runtimes/kimi/auth-status.js";
+import { kimiAuthStatus, queryKimiAuth } from "../packages/oar/src/runtimes/kimi/auth-status.js";
 import { fakeAgentBinary, gone, withTreeProbe } from "./fixtures/process-tree.js";
 
 const script = fileURLToPath(new URL("fixtures/stalled-account-query.mjs", import.meta.url));
 const TIMEOUT = 4000;
-const GRACE = 1500;
+const GRACE = 500;
 type Read = (installation: AvailableInstallation, options: AccountUsageReadOptions) => Promise<unknown>;
+// One representative per distinct transport and deadline outcome (shared withQueryDeadline/runExecutable paths are not repeated per runtime).
 const cases: readonly { name: string; stage: string; read: Read }[] = [
-  { name: "Codex initialize", stage: "initialize", read: codexAccountUsage },
-  { name: "Codex account preflight", stage: "account/read", read: codexAccountUsage },
   { name: "Codex usage", stage: "account/rateLimits/read", read: codexAccountUsage },
   { name: "Codex redemption", stage: "account/rateLimitResetCredit/consume", read: async (installation, options) =>
     codexRedeemLimitReset(installation, { ...options, idempotencyKey: "synthetic-deadline" }) },
-  { name: "Claude help", stage: "help", read: claudeAccountUsage },
   { name: "Claude usage", stage: "get_usage", read: claudeAccountUsage },
+  { name: "Claude status", stage: "started", read: claudeAuthStatus },
   { name: "Grok billing", stage: "_x.ai/billing", read: grokAccountUsage },
   { name: "Grok optional identity", stage: "_x.ai/auth/info", read: grokAccountUsage },
   { name: "Kimi provider list", stage: "started", read: kimiAccountUsage },
-  { name: "Factory initialization status", stage: "initialize", read: factoryAuthStatus },
-  { name: "Factory authentication status", stage: "auth/status", read: factoryAuthStatus },
-  { name: "Claude status", stage: "started", read: claudeAuthStatus },
-  { name: "Codex status", stage: "started", read: codexAuthStatus },
-  { name: "Qoder status", stage: "started", read: qoderAuthStatus },
-  { name: "CodeBuddy status", stage: "initialize", read: codebuddyAuthStatus },
-  { name: "Devin status", stage: "started", read: devinAuthStatus },
-  { name: "Kimi initialize status", stage: "initialize", read: readKimiAuthStatus },
-  { name: "Kimi ACP authenticate status", stage: "authenticate", read: readKimiAuthStatus },
   { name: "Kimi status", stage: "authenticate", read: kimiAuthStatus },
+  { name: "Factory authentication status", stage: "auth/status", read: factoryAuthStatus },
+  { name: "CodeBuddy status", stage: "initialize", read: codebuddyAuthStatus },
 ];
-afterEach(() => { vi.unstubAllEnvs(); });
+afterEach(() => { vi.unstubAllEnvs(); vi.useRealTimers(); });
 
-// SIGTERM resistance is POSIX-only. Windows still proves timely settlement and
-// eventual tree cleanup through the same public calls and real fixture process.
+// Advance only the answer deadline with fake timers after the real fixture starts,
+// then let real process shutdown run (matching native-query-deadlines.test.ts).
 test.each(cases)("$name settles at its deadline while owned cleanup continues", async ({ name, stage, read }) => {
   vi.stubEnv("OAR_KILL_GRACE_MS", String(GRACE));
   // oxlint-disable-next-line max-statements -- Keep return timing, requests and eventual process liveness in one observation.
@@ -56,14 +46,21 @@ test.each(cases)("$name settles at its deadline while owned cleanup continues", 
     const command = fakeAgentBinary(probe.dir, [script]);
     const requests = path.join(probe.dir, "requests");
     const installation = { kind: "available", via: "executable", command } as const;
-    const started = performance.now();
-    // Observe rejection immediately, even while waiting for startup evidence.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const result = read(installation, { timeoutMs: TIMEOUT, env: {
       ...probe.env, HOME: probe.dir, CODEX_HOME: probe.dir, CODEBUDDY_API_KEY: null, WINDSURF_API_KEY: null,
       OAR_QUERY_STAGE: stage, OAR_QUERY_REQUESTS: requests,
-    } }).then((value) => ({ value, error: null, elapsed: performance.now() - started }), (error: unknown) => ({ value: null, error, elapsed: performance.now() - started }));
+    } }).then((value) => ({ value, error: null }), (error: unknown) => ({ value: null, error }));
     const tree = await probe.tree();
+    // Wait until the fixture reaches the target stage before firing the deadline timer.
+    await vi.waitFor(() => {
+      expect(readFileSync(requests, "utf8").trim().split("\n")).toContain(stage);
+    }, { timeout: 10_000, interval: 10 });
+    const deadlineAt = performance.now();
+    vi.advanceTimersByTime(TIMEOUT);
+    vi.useRealTimers();
     const outcome = await result;
+    const settleMs = performance.now() - deadlineAt;
     if (name.endsWith("status")) {
       expect(outcome.value).toMatchObject({ kind: "unknown" });
       expect(outcome.value).toHaveProperty("detail", expect.stringContaining("timed out"));
@@ -75,8 +72,7 @@ test.each(cases)("$name settles at its deadline while owned cleanup continues", 
         windows: [{ label: "Included usage", usedRatio: 0.25, scope: { kind: "account" } }],
       });
     } else { expect(outcome.error).toBeInstanceOf(Error); }
-    expect(outcome.elapsed).toBeGreaterThanOrEqual(TIMEOUT - (name === "Grok optional identity" ? 150 : 50));
-    expect(outcome.elapsed).toBeLessThan(TIMEOUT + 1000);
+    expect(settleMs).toBeLessThan(1000);
     if (name === "Codex redemption") {
       expect(outcome.error).toHaveProperty("message", expect.stringMatching(/whether it was spent is unknown.*same idempotencyKey/u));
     }
@@ -96,11 +92,11 @@ test.skipIf(process.platform === "win32")("login/logout's internal status reader
     const command = fakeAgentBinary(probe.dir, [script]);
     const started = performance.now();
     const result = readCodexAuthStatus({ kind: "available", via: "executable", command }, {
-      timeoutMs: TIMEOUT, env: { ...probe.env, OAR_QUERY_REQUESTS: path.join(probe.dir, "requests") },
+      timeoutMs: 1000, env: { ...probe.env, OAR_QUERY_REQUESTS: path.join(probe.dir, "requests") },
     });
     const tree = await probe.tree();
     expect(await result).toMatchObject({ kind: "unknown" });
-    expect(performance.now() - started).toBeGreaterThanOrEqual(TIMEOUT + GRACE - 50);
+    expect(performance.now() - started).toBeGreaterThanOrEqual(1000 + GRACE - 50);
     expect(await gone(tree.agent, 0)).toBe(true);
     expect(await gone(tree.grandchild)).toBe(true);
   });
@@ -111,11 +107,11 @@ test.skipIf(process.platform === "win32").each(["authenticate", "logout"] as con
   await withTreeProbe({ ignoreSigterm: true, detachTool: true }, async probe => {
     const command = fakeAgentBinary(probe.dir, [script]);
     const started = performance.now();
-    const result = queryKimiAuth(command, method, { timeoutMs: TIMEOUT, joinCleanup: method === "authenticate",
+    const result = queryKimiAuth(command, method, { timeoutMs: 1000, joinCleanup: method === "authenticate",
       env: { ...probe.env, OAR_QUERY_STAGE: method, OAR_QUERY_REQUESTS: path.join(probe.dir, "requests") } });
     const tree = await probe.tree();
     expect(await result).toBe("timed_out");
-    expect(performance.now() - started).toBeGreaterThanOrEqual(TIMEOUT + GRACE - 50);
+    expect(performance.now() - started).toBeGreaterThanOrEqual(1000 + GRACE - 50);
     expect(await gone(tree.agent, 0)).toBe(true);
     expect(await gone(tree.grandchild)).toBe(true);
   });

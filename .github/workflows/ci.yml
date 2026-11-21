@@ -15,14 +15,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # The selector runs affected backends on Linux for pull requests. OpenCode's
-  # two pins also run on Windows. Main pushes and dispatches run the full matrix.
+  # Pull requests run affected backends on Linux plus Windows OpenCode v2.
+  # Main pushes and dispatches run all Linux backends plus the non-Linux jobs
+  # proven to catch platform-only failures in the 50-run audit (remaining macOS
+  # and Windows matrices run daily in platform-matrix.yml; release.yml waits only
+  # on ci.yml).
   changes:
     runs-on: ubuntu-latest
     outputs:
       behavior: ${{ steps.pick.outputs.behavior }}
       acp: ${{ steps.pick.outputs.acp }}
-      os: ${{ steps.pick.outputs.os }}
       pi_rpc: ${{ steps.pick.outputs.pi_rpc }}
       pi_rpc_windows: ${{ steps.pick.outputs.pi_rpc_windows }}
     steps:
@@ -35,11 +37,7 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
 
   check:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -51,18 +49,22 @@ jobs:
       - run: pnpm run check
         env:
           OAR_COMMUNITY_TESTS: '1'
-      - uses: actions/upload-artifact@v4
-        if: always() && runner.os == 'Windows'
+      - run: pnpm run build
+
+  # Native helper and Antigravity suites run in parallel with `check` on Linux.
+  # macOS and Windows runs of these suites moved to daily platform-matrix.yml
+  # (0/50 unique failures except Windows opencode-cleanup/skills, which stays
+  # on push inside `check-windows` shard 1).
+  check-native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
-          name: windows-cancellation-timing
-          path: ${{ github.workspace }}/oar-trial-run/cancellation-timing
-          if-no-files-found: warn
-      - uses: actions/upload-artifact@v4
-        if: always() && runner.os == 'Windows'
-        with:
-          name: windows-watchdog-diagnostics
-          path: ${{ github.workspace }}/oar-trial-run/pi-rpc-diagnostics
-          if-no-files-found: warn
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - run: pnpm run build
       - name: Cursor SDK skill loader parity (offline)
         run: pnpm vitest run sea-trial/vendor/cursor-skills.vendor.test.ts
@@ -72,7 +74,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: cursor-skills-${{ matrix.os }}
+          name: cursor-skills-ubuntu-latest
           path: ${{ github.workspace }}/oar-trial-run/cursor-skills
           if-no-files-found: warn
       - name: Install pinned OpenCode for native isolated cleanup
@@ -86,7 +88,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: opencode-cleanup-${{ matrix.os }}
+          name: opencode-cleanup-ubuntu-latest
           path: ${{ github.workspace }}/oar-trial-run/opencode-cleanup
           if-no-files-found: warn
       # Real Kimi login and workspace skill discovery, no account or browser.
@@ -101,12 +103,11 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: kimi-login-${{ matrix.os }}
+          name: kimi-login-ubuntu-latest
           path: |
             ${{ github.workspace }}/oar-trial-run/kimi-login
             ${{ github.workspace }}/oar-trial-run/kimi-expired-usage
           if-no-files-found: warn
-
       - name: Install current Kimi for fresh workspace cleanup
         id: kimi-skills-install
         if: always() && !cancelled()
@@ -116,7 +117,6 @@ jobs:
         run: pnpm vitest run sea-trial/vendor/kimi-skills.vendor.test.ts
         env:
           OAR_TEST: kimi-skills
-
       - name: Install pinned agy CLI for native ACP regressions
         id: agy-install
         if: ${{ !cancelled() }}
@@ -152,15 +152,64 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: agy-acp-${{ matrix.os }}
+          name: agy-acp-ubuntu-latest
           path: ${{ github.workspace }}/oar-trial-run/agy
           if-no-files-found: warn
-
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: runtime-install-check-${{ matrix.os }}
+          name: runtime-install-check-ubuntu-latest
           path: ${{ github.workspace }}/oar-trial-run/runtime-install
+          if-no-files-found: warn
+
+  # Kept on pushes/PRs because Windows unit tests caught Windows-only failures
+  # in the 50-run audit (e.g. run 44557134041 / job 135676127578). Sharded into
+  # two runners so Windows unit wall time stays well under 10 minutes.
+  check-windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # CLI tests import @botiverse/oar through its built exports.
+      - run: pnpm --filter @botiverse/oar build
+      - name: Windows unit tests (shard ${{ matrix.shard }}/2)
+        run: pnpm vitest run --shard=${{ matrix.shard }}/2
+        env:
+          OAR_COMMUNITY_TESTS: '1'
+      - name: Mock behavior suite (Windows)
+        if: matrix.shard == 1
+        run: pnpm run sea-trial
+      # Caught 2/50 unique Windows failures (runs 44567380785 and 44562374930).
+      - name: Install pinned OpenCode for native isolated cleanup (Windows)
+        if: matrix.shard == 1
+        run: node .github/scripts/runtime-install.mjs opencode-cleanup
+      - name: Native isolated OpenCode tool cleanup (Windows)
+        if: matrix.shard == 1
+        run: pnpm vitest run sea-trial/vendor/opencode-cleanup.vendor.test.ts sea-trial/vendor/opencode-skills.vendor.test.ts
+        timeout-minutes: 5
+        env:
+          OAR_TEST: opencode-cleanup
+          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
+      - uses: actions/upload-artifact@v4
+        if: always() && matrix.shard == 1
+        with:
+          name: opencode-cleanup-windows-latest
+          path: ${{ github.workspace }}/oar-trial-run/opencode-cleanup
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-cancellation-timing-${{ matrix.shard }}
+          path: ${{ github.workspace }}/oar-trial-run/cancellation-timing
           if-no-files-found: warn
 
   # The packed packages installed into an empty project the way a host
@@ -204,24 +253,17 @@ jobs:
         continue-on-error: true
       - run: pnpm run durable-demo:smoke
 
-  # OpenDAL-style behavior jobs: the shared behavior suite instantiated per
-  # backend. aimock backends run the REAL claude/codex binaries against a
-  # scripted local provider (no login, no tokens), so they can run on every
-  # OS in CI. OAR_TEST selects the backend; an unavailable one skips.
+  # OpenDAL-style behavior jobs: Linux runs every selected backend; main pushes
+  # add only the non-Linux jobs with proven platform-only product catches in
+  # the 50-run audit (Windows dsh-aimock and Windows codex-aimock). Zero macOS
+  # jobs run on push/release so releases never wait on the macOS runner queue.
   behavior:
     needs: changes
     if: needs.changes.outputs.behavior != '[]'
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJSON(needs.changes.outputs.os) }}
-        backend: ${{ fromJSON(needs.changes.outputs.behavior) }}
-        exclude:
-          - os: windows-latest
-            backend: pi-rpc-aimock
-          # droid's Windows build is not yet verified by OAR (docs/runtimes/factory.md).
-          - os: windows-latest
-            backend: factory-aimock
+        include: ${{ fromJSON(needs.changes.outputs.behavior) }}
     runs-on: ${{ matrix.os }}
     env:
       OAR_TEST: ${{ matrix.backend }}
@@ -304,16 +346,12 @@ jobs:
           path: ${{ github.workspace }}/oar-trial-run
           if-no-files-found: warn
 
-  # Separate VMs retain each phase's outcome if the other loses its runner.
-  # Vendor groups expose progress through jobs API step names and timestamps.
-  # CI ceilings may preserve a hung step's logs while its runner is alive.
+  # Kept on pushes for the vendor phase (caught Windows-only failure in run
+  # 44728473944 / job 136261891688). Windows Pi RPC behavior (0/50 unique
+  # failures) runs daily in platform-matrix.yml.
   pi-rpc-windows:
     needs: changes
     if: needs.changes.outputs.pi_rpc_windows == 'true'
-    strategy:
-      fail-fast: false
-      matrix:
-        phase: [behavior, vendor]
     runs-on: windows-latest
     timeout-minutes: 20
     env:
@@ -327,39 +365,38 @@ jobs:
           node-version: "24"
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Pi RPC behavior with Windows resource samples
-        if: matrix.phase == 'behavior'
-        shell: pwsh
-        run: ./sea-trial/windows-resources.ps1 -Stage behavior -Command 'pnpm run sea-trial'
       - name: Pi RPC vendor - RPC protocol, files, readers and bundled host
-        if: ${{ !cancelled() && matrix.phase == 'vendor' }}
+        if: ${{ !cancelled() }}
         timeout-minutes: 6
         shell: pwsh
         run: ./sea-trial/windows-pi-vendor.ps1 -Group rpc
       - name: Pi RPC vendor - native Pi extensions, projects and errors
-        if: ${{ !cancelled() && matrix.phase == 'vendor' }}
+        if: ${{ !cancelled() }}
         timeout-minutes: 6
         shell: pwsh
         run: ./sea-trial/windows-pi-vendor.ps1 -Group pi
       - name: Pi RPC vendor - MCP tools and servers
-        if: ${{ !cancelled() && matrix.phase == 'vendor' }}
+        if: ${{ !cancelled() }}
         timeout-minutes: 6
         shell: pwsh
         run: ./sea-trial/windows-pi-vendor.ps1 -Group mcp
       - name: Pi RPC vendor - shared runtime contracts
-        if: ${{ !cancelled() && matrix.phase == 'vendor' }}
+        if: ${{ !cancelled() }}
         timeout-minutes: 6
         shell: pwsh
         run: ./sea-trial/windows-pi-vendor.ps1 -Group shared
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: sea-trial-pi-rpc-aimock-windows-latest-${{ matrix.phase }}
+          name: sea-trial-pi-rpc-aimock-windows-latest-vendor
           path: ${{ github.workspace }}/oar-trial-run
           if-no-files-found: warn
 
   # Native ACP agents with a local scripted provider; no account credentials.
-  # Both OpenCode majors share a suite and select separate native package pins.
+  # Linux runs all pins on PRs and pushes; PRs touching OpenCode also run
+  # Windows OpenCode v2. Windows OpenCode v2 is parked off main push/release
+  # (daily in platform-matrix.yml) until the readiness flake (#core:#360) is
+  # fixed; macOS ACP jobs and Windows OpenCode v1 also run daily.
   acp-behavior:
     needs: changes
     if: needs.changes.outputs.acp != '[]'

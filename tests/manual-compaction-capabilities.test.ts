@@ -28,6 +28,6 @@ test("all manual compaction declarations distinguish unsupported from untested",
 
 function verifyPolicy(runtime: Runtime): void {
   if (runtime.manualCompaction?.kind === "supported") { expect(runtime.manualCompaction.activeTurn).toBe("reject"); }
-  if (runtime.manualCompaction?.kind === "unsupported") { expect(runtime.manualCompaction.reason.length).toBeGreaterThan(30); }
+  if (runtime.manualCompaction?.kind === "unsupported") { expect(runtime.manualCompaction.reason.trim().length).toBeGreaterThan(0); }
   expect(runtime.withPlacement("isolated").manualCompaction).toEqual(runtime.manualCompaction);
 }

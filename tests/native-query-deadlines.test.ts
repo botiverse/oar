@@ -5,14 +5,11 @@ import { fakeAgentBinary, gone, withTreeProbe } from "./fixtures/process-tree.js
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const script = fileURLToPath(new URL("fixtures/stalled-native-reader.mjs", import.meta.url));
+// One representative per distinct transport and return shape (shared withQueryDeadline paths are not repeated per runtime).
 const cases = [
-  ["antigravity", "listModels"], ["claude", "listModels"], ["codebuddy", "listModels"],
-  ["codex", "listModels"], ["devin", "listModels"], ["dsh", "listModels"],
-  ["factory", "listModels"], ["grok", "listModels"], ["kimi", "listModels"],
-  ["opencode", "listModels"], ["qoder", "listModels"], ["qwen", "listModels"],
-  ["claude", "skills"], ["codex", "skills"], ["devin", "skills"], ["dsh", "skills"],
-  ["pi", "listModels"], ["pi", "skills"], ["cursor", "listModels"], ["cursor", "authStatus"],
-  ["antigravity", "skills"], ["kimi", "skills"], ["factory", "skills"], ["grok", "skills"], ["opencode", "skills"], ["qwen", "skills"],
+  ["antigravity", "listModels"], ["codex", "listModels"], ["factory", "listModels"], ["qoder", "listModels"],
+  ["claude", "skills"], ["dsh", "skills"], ["kimi", "skills"],
+  ["pi", "listModels"], ["cursor", "listModels"], ["cursor", "authStatus"],
 ] as const;
 
 function queryRuntime(runtime: string, command: string) {

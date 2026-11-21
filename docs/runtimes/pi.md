@@ -165,8 +165,9 @@ and `@earendil-works/pi-ai` modules to loaded extensions
 `dist/core/extensions/virtual-modules.js:32`, verified by running
 `pi --mode rpc --no-session -e` on a standalone temp file outside `node_modules`).
 OAR does not refuse Windows here because
-the gating `pi-rpc-windows` CI job runs both behavior and vendor suites on
-`windows-latest` (`verifiedPlatforms.pi` includes `win32`).
+CI runs the Windows Pi RPC vendor suite in `ci.yml` (`pi-rpc-windows`) and the
+Windows Pi RPC behavior suite daily in `platform-matrix.yml`
+(`verifiedPlatforms.pi` includes `win32`).
 
 Pi has native `pi update --self --no-approve`: an isolated npm installation
 successfully moved from 1.3.0 to 1.5.2 without stdin

@@ -34,42 +34,56 @@ function expectTypedRefusal(failure: unknown, reason: string, dir: string): void
   if (reason === "other_cwd") { expect(failure).toHaveProperty("savedCwd", path.join(dir, "elsewhere")); }
   else { expect(failure).not.toHaveProperty("savedCwd"); }
 }
-for (const [name, native] of [["antigravity", antigravityAcpProfile], ["devin", devinAcpProfile], ["kimi", kimiAcpProfile], ["opencode v1", opencodeAcpProfile], ["opencode v2", opencodeV2AcpProfile], ["opencode background", opencodeBackgroundChildProfile]] as const) {
-  test.each(["not_listed", "other_cwd", "cwd_unreported", "listing_unavailable"] as const)(`${name} exposes the typed %s refusal before resume/load`, async (reason) => {
-    const dir = scratch("oar-acp-cwd-reason-");
-    const log = path.join(dir, "calls.txt");
-    const rows = reason === "not_listed" ? [] : [{ sessionId: "missing-session", ...(reason === "other_cwd" ? { cwd: path.join(dir, "elsewhere") } : {}) }];
-    try {
-      expect(native.resumeKeepsSessionCwd).toBe(true);
-      const opening = acpSession({ ...native, args: [fixture] })(installation, { cwd: dir, resume: "missing-session", env: {
-        FAKE_RESUME_CASE: JSON.stringify({ succeed: true, list: reason !== "listing_unavailable", pages: [{ result: { sessions: rows } }] }), FAKE_ACP_CALL_LOG: log,
-      } });
-      const failure: unknown = await opening.then(async (session) => { await session.dispose(); return null; }, (error: unknown) => error);
-      expectTypedRefusal(failure, reason, dir);
-      expect(readFileSync(log, "utf8").trim().split("\n")).toEqual(reason === "listing_unavailable" ? ["initialize"] : ["initialize", "session/list"]);
-    } finally { rmSync(dir, { recursive: true, force: true }); }
-  });
-  // oxlint-disable-next-line eslint/max-statements -- Keep native error and the same operation's cleanup evidence together.
-  test.each(listingFailures)(`${name} preserves listing $name and never resumes`, async ({ scenario, expected }) => {
-    const cleanupEvidence = captureCleanupEvidence();
-    const temporary = mkdtempSync(path.join(tmpdir(), "oar-acp-cwd-list-error-"));
-    const dir = realpathSync(temporary);
-    const log = path.join(dir, "calls.txt");
-    try {
-      const opening = acpSession({ ...native, args: [fixture] })(installation, { cwd: dir, resume: "missing-session", env: {
-        FAKE_RESUME_CASE: JSON.stringify({ succeed: true, ...scenario }), FAKE_ACP_CALL_LOG: log,
-      } });
-      const failure: unknown = await opening.then(async (session) => { await session.dispose(); return null; }, (error: unknown) => error);
-      const cleanup = "exitOnList" in scenario ? undefined : cleanupEvidence();
-      const reason = cleanupFailureReason(cleanup);
-      if (cleanup !== undefined) { expectCleanupEvidence(cleanup, reason); }
-      const diagnostic = inspect(failure, { depth: 8, breakLength: Infinity });
-      expect(failure, diagnostic).not.toBeInstanceOf(UnsupportedOptionError);
-      expect(failure, diagnostic).toMatchObject({ ...expected,
-        ...("message" in expected ? { message: `${expected.message}${reason === undefined ? "" : `; ${reason}`}` } : {}),
-      });
-      expect(readFileSync(log, "utf8").trim().split("\n")).toEqual(["initialize", "session/list"]);
-    } finally { rmSync(dir, { recursive: true, force: true }); }
-  });
-}
+const guardedProfiles = [
+  ["antigravity", antigravityAcpProfile],
+  ["devin", devinAcpProfile],
+  ["kimi", kimiAcpProfile],
+  ["opencode v1", opencodeAcpProfile],
+  ["opencode v2", opencodeV2AcpProfile],
+  ["opencode background", opencodeBackgroundChildProfile],
+] as const;
+
+test("all ACP profiles that keep saved cwd enable the shared resume-cwd guard", () => {
+  for (const [name, native] of guardedProfiles) {
+    expect(native.resumeKeepsSessionCwd, name).toBe(true);
+  }
+});
+
+// All guarded profiles share acpSession's resumeKeepsSessionCwd path; one profile covers the process checks.
+const representative = opencodeV2AcpProfile;
+test.each(["not_listed", "other_cwd", "cwd_unreported", "listing_unavailable"] as const)("ACP resume guard exposes the typed %s refusal before resume/load", async (reason) => {
+  const dir = scratch("oar-acp-cwd-reason-");
+  const log = path.join(dir, "calls.txt");
+  const rows = reason === "not_listed" ? [] : [{ sessionId: "missing-session", ...(reason === "other_cwd" ? { cwd: path.join(dir, "elsewhere") } : {}) }];
+  try {
+    const opening = acpSession({ ...representative, args: [fixture] })(installation, { cwd: dir, resume: "missing-session", env: {
+      FAKE_RESUME_CASE: JSON.stringify({ succeed: true, list: reason !== "listing_unavailable", pages: [{ result: { sessions: rows } }] }), FAKE_ACP_CALL_LOG: log,
+    } });
+    const failure: unknown = await opening.then(async (session) => { await session.dispose(); return null; }, (error: unknown) => error);
+    expectTypedRefusal(failure, reason, dir);
+    expect(readFileSync(log, "utf8").trim().split("\n")).toEqual(reason === "listing_unavailable" ? ["initialize"] : ["initialize", "session/list"]);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+// oxlint-disable-next-line eslint/max-statements -- Keep native error and the same operation's cleanup evidence together.
+test.each(listingFailures)("ACP resume guard preserves listing $name and never resumes", async ({ scenario, expected }) => {
+  const cleanupEvidence = captureCleanupEvidence();
+  const temporary = mkdtempSync(path.join(tmpdir(), "oar-acp-cwd-list-error-"));
+  const dir = realpathSync(temporary);
+  const log = path.join(dir, "calls.txt");
+  try {
+    const opening = acpSession({ ...representative, args: [fixture] })(installation, { cwd: dir, resume: "missing-session", env: {
+      FAKE_RESUME_CASE: JSON.stringify({ succeed: true, ...scenario }), FAKE_ACP_CALL_LOG: log,
+    } });
+    const failure: unknown = await opening.then(async (session) => { await session.dispose(); return null; }, (error: unknown) => error);
+    const cleanup = "exitOnList" in scenario ? undefined : cleanupEvidence();
+    const reason = cleanupFailureReason(cleanup);
+    if (cleanup !== undefined) { expectCleanupEvidence(cleanup, reason); }
+    const diagnostic = inspect(failure, { depth: 8, breakLength: Infinity });
+    expect(failure, diagnostic).not.toBeInstanceOf(UnsupportedOptionError);
+    expect(failure, diagnostic).toMatchObject({ ...expected,
+      ...("message" in expected ? { message: `${expected.message}${reason === undefined ? "" : `; ${reason}`}` } : {}),
+    });
+    expect(readFileSync(log, "utf8").trim().split("\n")).toEqual(["initialize", "session/list"]);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
 
