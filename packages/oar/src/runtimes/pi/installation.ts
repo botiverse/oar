@@ -95,7 +95,7 @@ export function piInstallationFor(
         },
         requiredModule: {
           specifier: RPC_ENTRY,
-          reason: `Pi RPC could not resolve ${RPC_ENTRY}. Install @earendil-works/pi-coding-agent and @earendil-works/pi-ai in your project, or in a single-file host pass createPiRuntime({ execution: "subprocess", command, args }).`,
+          reason: `A single-file host must provide command for Pi subprocess execution: createPiRuntime({ execution: "subprocess", command, args }). OAR could not resolve ${RPC_ENTRY} (install @earendil-works/pi-coding-agent and @earendil-works/pi-ai if omitted).`,
         },
       }, host);
       if (refusal !== null) { return refusal; }

@@ -15,13 +15,17 @@ import { piLiteralConfigValue } from "./config-value.js";
 
 /*
  * Structural slices of Pi's `AuthInteraction` event and prompt unions keep the
- * emitted `.d.ts` free of `@earendil-works/pi-coding-agent` imports so hosts
- * without the optional Pi peer still type-check cleanly. `toPiInteraction`
- * below still checks assignability against `ModelRuntime["login"]`.
+ * emitted `.d.ts` free of `@earendil-works/pi-coding-agent` imports so slim
+ * hosts without Pi still type-check cleanly. The unexported bidirectional check
+ * below fails `typecheck` if Pi adds, removes, or changes a variant (catching
+ * drift that bivariant method parameters on `PiInteraction` would hide).
  */
 type PiLoginParameters = Parameters<ModelRuntime["login"]>;
 type PiAuthType = PiLoginParameters[1];
 type PiInteraction = PiLoginParameters[2];
+type NativePiAuthEvent = Parameters<PiInteraction["notify"]>[0];
+type NativePiAuthPrompt = Parameters<PiInteraction["prompt"]>[0];
+type MutualAssignable<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 
 export type PiAuthEvent =
   | { readonly type: "auth_url"; readonly url: string; readonly instructions?: string }
@@ -31,6 +35,12 @@ export type PiAuthEvent =
 export type PiAuthPrompt =
   | { readonly type: "select"; readonly message: string; readonly signal?: AbortSignal; readonly options: readonly { readonly id: string; readonly label: string; readonly description?: string }[] }
   | { readonly type: "text" | "secret" | "manual_code"; readonly message: string; readonly placeholder?: string; readonly signal?: AbortSignal };
+
+const verifyPiAuthTypes: readonly [
+  MutualAssignable<NativePiAuthEvent, PiAuthEvent>,
+  MutualAssignable<NativePiAuthPrompt, PiAuthPrompt>,
+] = [true, true];
+void verifyPiAuthTypes;
 
 export function toLoginEvent(event: PiAuthEvent): ProviderLoginEvent {
   switch (event.type) {
