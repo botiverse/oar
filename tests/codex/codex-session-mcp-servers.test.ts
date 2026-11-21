@@ -1,5 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 import type { McpServer, Session } from "../../packages/oar/src/contracts/session.js";
+import { serveMcpTools } from "../../packages/oar/src/mcp/serve-tools.js";
 import { codexThreadOpen } from "../../packages/oar/src/runtimes/codex/open.js";
 import { codexSession } from "../../packages/oar/src/runtimes/codex/session.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
@@ -57,6 +58,21 @@ test("thread/start and thread/resume both carry the servers as one mcp_servers c
   // None given, or an empty list: no config at all.
   expect(codexThreadOpen({ cwd: "/work", mcpServers: [] }).params).not.toHaveProperty("config");
   expect(codexThreadOpen({ cwd: "/work", resume: "thread-1" }).params).not.toHaveProperty("config");
+});
+
+test("served tools are required on new, resumed and forked threads", async () => {
+  const served = await serveMcpTools({ name: "host", tools: [] });
+  try {
+    // A host can transport the entry to another process to open the session.
+    const servers = [structuredClone(served.server), remote];
+    for (const options of [{}, { resume: "one" }, { resume: "one", fork: {} }]) {
+      const { config } = codexThreadOpen({ cwd: "/work", ...options, mcpServers: servers }).params;
+      expect(config).toEqual({ mcp_servers: {
+        host: { url: served.server.url, http_headers: served.server.headers, enabled: true, required: true, startup_timeout_sec: 30 },
+        "remote.v2": { url: remote.url, http_headers: remote.headers, enabled: true },
+      } });
+    }
+  } finally { await served.close(); }
 });
 
 test("a name codex would refuse to start, or one given twice, fails the open before codex starts", async () => {

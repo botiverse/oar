@@ -42,7 +42,8 @@ export function codexMcpServersConfig(servers: readonly McpServer[]): JsonRecord
     throw new Error(`codex starts no MCP server named ${JSON.stringify(invalid.name)}: its names match ${CODEX_MCP_SERVER_NAME.source}`);
   }
   return Object.fromEntries(servers.map((server) => [server.name, isHttpMcpServer(server)
-    ? { url: server.url, ...(server.headers === undefined ? {} : { http_headers: server.headers }), enabled: true }
+    ? { url: server.url, ...(server.headers === undefined ? {} : { http_headers: server.headers }), enabled: true,
+        ...(server.origin === "serveMcpTools" ? { required: true, startup_timeout_sec: 30 } : {}) }
     : { command: server.command, args: server.args ?? [], ...(server.env === undefined ? {} : { env: server.env }), enabled: true }]));
 }
 

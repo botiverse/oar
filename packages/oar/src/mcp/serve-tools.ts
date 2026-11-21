@@ -279,7 +279,7 @@ export async function serveMcpTools(options: ServeMcpToolsOptions): Promise<Serv
   });
   const port = await listen(server);
   return {
-    server: { name: options.name, type: "http", url: `http://127.0.0.1:${String(port)}/mcp`, headers: { Authorization: `Bearer ${token}` } },
+    server: { name: options.name, type: "http", origin: "serveMcpTools", url: `http://127.0.0.1:${String(port)}/mcp`, headers: { Authorization: `Bearer ${token}` } },
     setTools(next) {
       tools.setTools(checkTools(next));
     },
