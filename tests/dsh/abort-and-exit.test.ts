@@ -4,7 +4,7 @@ import { DSH_BRIDGE_PROTOCOL } from "../../packages/oar/src/runtimes/dsh/bridge.
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { fakeLineProcess, type FakeLineProcess } from "../fixtures/fake-line-process.js";
 
-interface LaunchResult { profileOpened(): void; readonly child: FakeLineProcess; readonly directory: { readonly path: string; remove(): void } }
+interface LaunchResult { profileLoaded(): void; readonly child: FakeLineProcess; readonly directory: { readonly path: string; remove(): void } }
 const launchDsh = vi.fn<() => Promise<LaunchResult>>();
 vi.mock("../../packages/oar/src/runtimes/dsh/launch.js", async (original) => ({
   ...await original<Record<string, unknown>>(),
@@ -30,7 +30,7 @@ async function openFakeDsh(onCommand?: (message: Record<string, unknown>, emit: 
     if (onCommand?.(message, emit, (code) => { proc.end(code); }) === true) { return; }
     emit({ type: "response", id: message.id, result: {} });
   });
-  launchDsh.mockResolvedValueOnce({ child, profileOpened() {}, directory: { path: "/tmp/dsh", remove() {} } });
+  launchDsh.mockResolvedValueOnce({ child, profileLoaded() {}, directory: { path: "/tmp/dsh", remove() {} } });
   const opening = dshSession(installation, { cwd: "/work" });
   setImmediate(() => { child.emit(`${JSON.stringify({ type: "ready", protocol: DSH_BRIDGE_PROTOCOL, services: {} })}\n`); });
   const session = await opening;

@@ -481,8 +481,17 @@ file while another session was starting on the same warm profile.
 [CI failure](https://github.com/botiverse/oar/actions/runs/44888513603/job/136799023287)
 
 OAR takes an OS-backed write lock on `profiles/acp/.oar-startup.sqlite`
-before launching DSH. New and resumed sessions release it on the native open
-reply. Model and skill queries release it when the bridge reports ready.
+before launching DSH. New sessions, resumes and inventory queries release the
+lock when Cordis loads the bridge module from the parsed profile. Plugin
+readiness and session opening continue in parallel with the next start.
+On Linux with 0.2.2-rc.5, four simultaneous warm opens finished at 3.0,
+5.1, 6.9 and 8.8 s. For twenty, the lock serialized about 2.4 s per start:
+the first was ready at 3.3 s, the tenth at 23.0 s and the last at 49.7 s.
+These are measurements on one machine. A queued session open waits for the
+starts ahead of it. The caller can dispose the session only after open
+returns and cannot cancel a queued open. The 60 s bridge readiness timeout
+starts after lock acquisition and process launch. Model and skill queries
+count the queue wait toward their caller's deadline.
 Different profiles start independently, and open sessions run concurrently.
 The lock file can remain after exit. The OS releases the lock if the OAR
 process dies during startup. DSH processes launched outside OAR do not take
