@@ -13,6 +13,7 @@ export const dshRuntime = defineRuntime({
   sessionCapabilities: (installation) => {
     const version = installation.via === "executable" ? installation.version : undefined;
     return {
+      nativeSessionFile: true,
       compactionEvents: { started: true, ended: true },
       contextUsage: { tokens: true, contextWindow: true },
       mcpTransports: ["stdio"],

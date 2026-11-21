@@ -1,7 +1,7 @@
 // oxlint-disable -- A stand-in executable, deliberately untyped like the services it fakes.
 // A stand-in `dsh`: it loads the real bridge text OAR wrote, from the --patch row
 // OAR wrote, over fake injected services. FAKE_DSH_MODE selects the fault.
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 
 const mode = process.env.FAKE_DSH_MODE ?? "ok";
 if (process.argv.includes("--help")) {
@@ -25,6 +25,9 @@ const on = (channel, listener) => { listeners.set(channel, [...(listeners.get(ch
 const emit = (channel, ...args) => { for (const listener of listeners.get(channel) ?? []) { listener(...args); } };
 const missing = new Set((process.env.FAKE_DSH_MISSING ?? "").split(",").filter((name) => name.length > 0));
 const sessions = new Map();
+const materializedFiles = new Map();
+const turnCounts = new Map();
+const fakeSessionFile = (id, turn = 1) => process.env.FAKE_DSH_SESSION_FILE?.replace("{id}", id).replace("{turn}", String(turn));
 
 function makeAgent(id) {
   const nextTurn = [];
@@ -50,8 +53,15 @@ function makeAgent(id) {
       agent.status = "running";
       emit("session/event", session, { type: "turn/start", seq: 0, time: 0, data: { turn: 1 } });
       setTimeout(() => {
-        emit("agent/error", { agent, turn: 1, step: 0, error: Object.assign(new Error("first"), { code: "X", cause: new Error("second") }) });
-        emit("session/event", session, { type: "turn/end", seq: 1, time: 0, data: { turn: 1, reason: { kind: "completed" } } });
+        const turn = (turnCounts.get(id) ?? 0) + 1;
+        turnCounts.set(id, turn);
+        const path = fakeSessionFile(id, turn);
+        if (path !== undefined) {
+          if (process.env.FAKE_DSH_SESSION_FILE_WRITE !== "0") { writeFileSync(path, "{\"type\":\"session\"}\n"); }
+          materializedFiles.set(id, path);
+        }
+        emit("agent/error", { agent, turn, step: 0, error: Object.assign(new Error("first"), { code: "X", cause: new Error("second") }) });
+        emit("session/event", session, { type: "turn/end", seq: turn, time: 0, data: { turn, reason: { kind: "completed" } } });
         agent.status = "idle";
       }, 5);
       return;
@@ -80,6 +90,10 @@ const persistence = {
   ...(missing.has("open") ? {} : { open: async (id) => {
     if (id.startsWith("00000000")) { throw Object.assign(new Error(`session "${id}" not found`), { name: "SessionPersistenceNotFoundError", sessionId: id }); }
     return { header: { id, ...(mode === "no-saved-cwd" ? {} : { cwd: process.env.FAKE_DSH_CWD ?? process.cwd() }) }, read: async () => ({ events: [] }), close: async () => {} };
+  } }),
+  ...(missing.has("stat") ? {} : { stat: async (id) => {
+    const path = materializedFiles.get(id) ?? (process.env.FAKE_DSH_SESSION_FILE_AT_OPEN === "1" ? fakeSessionFile(id) : undefined);
+    return { header: { id, cwd: process.env.FAKE_DSH_CWD ?? process.cwd() }, revision: "1", ...(path === undefined ? {} : { location: { kind: "jsonl", path } }) };
   } }),
   flush: async () => {},
 };

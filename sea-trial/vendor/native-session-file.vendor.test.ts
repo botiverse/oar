@@ -1,11 +1,13 @@
 import { stat } from "node:fs/promises";
 import { isAbsolute } from "node:path";
 import { expect, test } from "vitest";
-import { codexRuntime, promptAndWait } from "../../packages/oar/src/index.js";
+import { codexRuntime, dshRuntime, promptAndWait } from "../../packages/oar/src/index.js";
 import { startCodexAimock, startPiAimock } from "../harness/aimock.js";
+import { startDshAimock } from "../harness/dsh-aimock.js";
 import { isPiBackend, piTestRuntime } from "./support/pi-runtime.js";
 
 const codex = process.env.OAR_TEST === "codex-aimock";
+const dsh = process.env.OAR_TEST === "dsh-aimock";
 interface FileIdentity { readonly dev: bigint; readonly ino: bigint }
 
 // On Windows Codex can return the same rollout with a different path prefix on resume.
@@ -17,13 +19,15 @@ async function fileIdentity(path: string | null | undefined): Promise<FileIdenti
   return { dev: status.dev, ino: status.ino };
 }
 
-test.skipIf(!codex && !isPiBackend)("locates the persisted root file on fresh, resumed and supported forked sessions", async () => {
-  const runtime = codex ? codexRuntime : piTestRuntime;
+test.skipIf(!codex && !dsh && !isPiBackend)("locates the persisted root file on fresh, resumed and supported forked sessions", async () => {
+  const runtime = codex ? codexRuntime : (dsh ? dshRuntime : piTestRuntime);
   const installation = await runtime.installation();
   if (installation.kind !== "available") { throw new Error("fixture runtime unavailable"); }
-  const fixture = codex ? await startCodexAimock() : await startPiAimock();
+  const fixture = codex ? await startCodexAimock() : (dsh ? await startDshAimock() : await startPiAimock());
   try {
-    const options = codex ? { cwd: process.cwd(), ...(fixture.env === undefined ? {} : { env: fixture.env }), model: "gpt-6.2-sol" } : { cwd: process.cwd(), model: "aimock/aimock-model" };
+    const options = codex
+      ? { cwd: process.cwd(), ...(fixture.env === undefined ? {} : { env: fixture.env }), model: "gpt-6.2-sol" }
+      : (dsh ? { cwd: "cwd" in fixture ? fixture.cwd : process.cwd(), ...(fixture.env === undefined ? {} : { env: fixture.env }) } : { cwd: process.cwd(), model: "aimock/aimock-model" });
     let id: string | undefined = undefined;
     let source: FileIdentity | undefined = undefined;
     for (const mode of codex ? ["fresh", "resume", "fork"] : ["fresh", "resume"]) {

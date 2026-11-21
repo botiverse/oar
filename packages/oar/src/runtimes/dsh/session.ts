@@ -15,6 +15,7 @@ import { createAbortFallback } from "../../shared/abort-fallback.js";
 import { appendCleanupFailure, cleanupFailureReason } from "../../shared/executable/process-cleanup.js";
 import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
+import { sessionFileLocator } from "../../shared/native-session-file.js";
 import { sameDirectory } from "../../shared/same-directory.js";
 import { checkSessionName, refuseSessionOptions } from "../../shared/session-options.js";
 import { withSessionCredentials, type SessionCredentials } from "../../shared/session-credentials.js";
@@ -104,13 +105,32 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
   let projection = initialDshProjection(sessionId);
   const { child, directory } = await launchDsh(command, options.cwd, env, { mcpRows, disableSessionLogUpload: options.sessionLogUpload === "off" });
   const fallback = createAbortFallback(() => { child.kill(); });
+  let exited = false;
+  let hasSessionFileStat = false;
+  let sessionFilePath: string | undefined = undefined;
+  const rememberSessionFile = (value: unknown): void => {
+    sessionFilePath = typeof value === "string" && value.length > 0 ? value : undefined;
+  };
   const control = dshControl(child, (message) => {
     const { state, frame } = foldDsh(projection, message);
     projection = state;
-    if (frame.sessionId === undefined && frame.body.events.some((event) => event.kind === "turn_ended")) { fallback.clear(); }
+    if (frame.sessionId === undefined && frame.body.events.some((event) => event.kind === "turn_ended")) {
+      fallback.clear();
+      if (hasSessionFileStat && !exited) {
+        void (async (): Promise<void> => {
+          try {
+            const answer = await control.request("sessionFile", { sessionId });
+            rememberSessionFile(answer.path);
+          } catch {
+            // Best-effort refresh before unexpected exit; explicit calls still query or report errors.
+          }
+        })();
+      }
+    }
     kernel.frame(frame.body, frame.sessionId === undefined ? undefined : { sessionId: frame.sessionId });
   }, credentials.redact);
   child.onExit((code, reason) => {
+    exited = true;
     fallback.clear();
     kernel.processExited(code, sessionExitReason(child, reason, credentials.redact));
   });
@@ -138,6 +158,19 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
     throw appendCleanupFailure(openFailure(error, sessionId, options.resume !== undefined), cleanupFailureReason(child.diagnostics().cleanup));
   }
   kernel.frame(dshOpenedFrame(opened));
+  hasSessionFileStat = opened.sessionFileStat === true;
+  rememberSessionFile(opened.sessionFile);
+  const nativeSessionFile = hasSessionFileStat ? async (): Promise<string | null> => {
+    if (!exited) {
+      try {
+        const answer = await control.request("sessionFile", { sessionId });
+        rememberSessionFile(answer.path);
+      } catch (error) {
+        if (!isDshExitedError(error)) { throw error; }
+      }
+    }
+    return sessionFileLocator(sessionFilePath, credentials.redact)();
+  } : undefined;
 
   const capabilities = { queue: { durable: false }, attribution: "nested", images: Array.isArray(opened.imageTypes) && opened.imageTypes.length > 0 } as const;
   const methods = asRecord(opened.methods) ?? {};
@@ -155,6 +188,7 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
 
   return credentials.seal({
     id: sessionId, capabilities, resources: child.resources,
+    ...(nativeSessionFile === undefined ? {} : { nativeSessionFile }),
     ...(compaction === undefined ? {} : { compact: compaction.compact }),
     ...(options.goals === true ? { goal: dshGoalControl(kernel, control, sessionId, refusalOf) } : {}),
     prompt: async (text, inputOptions) => kernel.control({ kind: "prompt", input: text, ...inputOptions }, async () => {
@@ -201,7 +235,10 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
       await kernel.dispose(async () => {
         // Native disposal records its own turn end and flushes the log; the
         // process owner then bounds shutdown and removes anything left.
-        try { await control.request("dispose", {}, DISPOSE_TIMEOUT_MS); }
+        try {
+          const disposed = await control.request("dispose", {}, DISPOSE_TIMEOUT_MS);
+          rememberSessionFile(asRecord(disposed.sessionFiles)?.[sessionId]);
+        }
         catch (error) {
           kernel.frame({ type: "dsh/dispose-failed", native: error instanceof DshCommandError ? error.native : { message: String(error) }, events: [] });
         }
