@@ -41,6 +41,14 @@ Devin behaves, and why OAR maps it this way.
 
 ## Authentication
 
+On 2026-11-21, OAR 0.125.0 read `logged_in` on Devin Pro with CLI
+3000.14.30821 (Linux) and listed 169 models. One prompt without a model
+override completed on `swe-2-high`, the value of the opening model events
+and of `Session.model()` before and after the turn. In a separate open
+without a prompt, both the `session/new` reply and `config_option_update`
+notifications reported the same model. The completed turn returned
+`usage().value.total === null`.
+
 `WINDSURF_API_KEY` is the only environment credential Devin reads;
 `DEVIN_API_KEY` is ignored. `devin auth status` exits 0 in every state and
 does not see the environment key, so with the key set OAR reports `unknown`

@@ -660,6 +660,26 @@ OpenCode's credential files. OpenCode 1 has no such API: it is refused with
 starts, and a bundled installation with `unsupported_installation`.
 There is still no `opencodeRuntime.login`/`authStatus`.
 
+**Go subscription (2.3.2, Linux, OAR 0.125.0).** Signing in with a Go API
+key added 33 `opencode-go/` models to the 11 listed before login. The
+opening model event named OpenCode's default, followed by the selected Go
+model. The second value matched both `Session.model()` and the provider
+and model in the native assistant message. One turn on
+`opencode-go/claude-haiku-5-5` completed. The native limits endpoint
+(`GET /api/experimental/usage/limits`) returned `data: null` before and
+after a turn on this account. Per-turn tokens came from `Session.usage()`;
+the endpoint supplied no subscription balance.
+
+Some Go models require the account owner to enable the Global region.
+On `opencode-go/deepseek-v4.1-flash`, the provider returned HTTP 400
+with `invalid_request_error` and directed the user to select Global.
+The native assistant record identified the requested Go model and the
+turn failed. A local replay of the provider response through OpenCode
+2.3.2 produced a `session/prompt/error` frame carrying `turn_ended`
+with `kind: "failed"`, `failure: "provider"` and the provider's region
+instruction in `reason`, prefixed with `Internal error: `. OAR leaves
+region selection to the user. [Go privacy settings](https://opencode.ai/docs/console/go/#enable-restricted-models).
+
 **Options.** `timeoutMs` (default 30 s) is one budget for starting the
 server until its integrations are loaded (every readiness read gets only
 what is left of it), and the bound for each later request.
