@@ -100,8 +100,8 @@
     "which": "^2.0.2"
   },
   "optionalDependencies": {
-    "@earendil-works/pi-ai": "^1.5.2",
-    "@earendil-works/pi-coding-agent": "^1.5.2"
+    "@earendil-works/pi-ai": "~1.5.2",
+    "@earendil-works/pi-coding-agent": "~1.5.2"
   },
   "peerDependencies": {
     "@cursor/sdk": "1.4.1",
