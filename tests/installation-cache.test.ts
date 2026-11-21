@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, test } from "vitest";
@@ -53,8 +53,10 @@ test.skipIf(process.platform === "win32")("a replaced executable is probed again
   const cli = await fakeCli(dir, "fake-cli", "1.0.0");
   const probe = executableInstallation("OAR_FIXTURE_CACHE_BIN", cli);
   assert.equal(await versionOf(probe), "1.0.0");
+  const previous = await stat(cli);
   await rm(cli);
   await fakeCli(dir, "fake-cli", "2.0.0");
+  await utimes(cli, previous.atime, new Date(previous.mtimeMs + 2000));
   assert.equal(await versionOf(probe), "2.0.0");
 });
 
