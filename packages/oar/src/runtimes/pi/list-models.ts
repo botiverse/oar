@@ -30,8 +30,9 @@ export { projectPiModels } from "./model-projection.js";
  * `OAR_PI_AGENT_DIR` pins the agent dir exactly as the session adapter does,
  * so the list and the session see the same providers.
  *
- * Pi keys on provider API keys rather than one login, so "nothing configured"
- * is an `ok` empty list, not `unauthenticated`.
+ * When `getAvailable()` returns no models while the runtime's unfiltered
+ * catalog (`getModels()`) is non-empty, models exist and none has credentials,
+ * so the answer is `unauthenticated` rather than an `ok` empty list.
  */
 export function createPiListModels<Model extends PiListedModel>(
   createRuntime: (signal: AbortSignal, cwd: string) => Promise<PiAvailabilitySource<Model>>,
@@ -45,6 +46,14 @@ export function createPiListModels<Model extends PiListedModel>(
       const signal = AbortSignal.timeout(options.timeoutMs ?? 15_000);
       const runtime = await createRuntime(signal, listingCwd(options));
       const available = await runtime.getAvailable(undefined, { signal });
+      if (available.length === 0 && (runtime.getModels?.().length ?? 0) > 0) {
+        const saved = runtime.savedDefault;
+        const savedNote = saved === undefined ? "" : ` (default is ${saved.provider}/${saved.id})`;
+        return {
+          kind: "unauthenticated",
+          detail: `No Pi provider has configured credentials${savedNote}; configure a provider API key or sign in via createPiProviderAuth().loginProviders().`,
+        };
+      }
       const context = {
         providerName: (providerId: string): string | undefined => runtime.getProvider?.(providerId)?.name,
         ...(runtime.savedDefault === undefined ? {} : { savedDefault: runtime.savedDefault }),
@@ -84,6 +93,7 @@ export const piModelLister = (project: PiProjectOptions = {}): ModelLister => cr
   const id = settingsManager.getDefaultModel();
   return {
     getAvailable: async (providerId, options) => { const models = await modelRuntime.getAvailable(providerId, options); return models; },
+    getModels: () => modelRuntime.getModels(),
     getProvider: (providerId) => modelRuntime.getProvider(providerId),
     ...(provider === undefined || id === undefined ? {} : { savedDefault: { provider, id } }),
   };
