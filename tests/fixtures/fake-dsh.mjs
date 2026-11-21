@@ -26,13 +26,23 @@ const emit = (channel, ...args) => { for (const listener of listeners.get(channe
 const missing = new Set((process.env.FAKE_DSH_MISSING ?? "").split(",").filter((name) => name.length > 0));
 const sessions = new Map();
 const materializedFiles = new Map();
+const bufferedFiles = new Map();
 const turnCounts = new Map();
+const disposedSessions = new Set();
 const fakeSessionFile = (id, turn = 1) => process.env.FAKE_DSH_SESSION_FILE?.replace("{id}", id).replace("{turn}", String(turn));
+
+function materializeBuffered(id) {
+  const path = bufferedFiles.get(id);
+  if (path === undefined) { return; }
+  bufferedFiles.delete(id);
+  if (process.env.FAKE_DSH_SESSION_FILE_WRITE !== "0") { writeFileSync(path, "{\"type\":\"session\"}\n"); }
+  materializedFiles.set(id, path);
+}
 
 function makeAgent(id) {
   const nextTurn = [];
   const header = { id, cwd: process.env.FAKE_DSH_CWD ?? process.cwd() };
-  const session = { id, header };
+  const session = { id, header, seq: 0 };
   const agent = {
     session,
     status: "idle",
@@ -55,10 +65,14 @@ function makeAgent(id) {
       setTimeout(() => {
         const turn = (turnCounts.get(id) ?? 0) + 1;
         turnCounts.set(id, turn);
+        session.seq = turn;
         const path = fakeSessionFile(id, turn);
         if (path !== undefined) {
-          if (process.env.FAKE_DSH_SESSION_FILE_WRITE !== "0") { writeFileSync(path, "{\"type\":\"session\"}\n"); }
-          materializedFiles.set(id, path);
+          if (process.env.FAKE_DSH_BUFFER_UNTIL_FLUSH === "1") { bufferedFiles.set(id, path); }
+          else {
+            if (process.env.FAKE_DSH_SESSION_FILE_WRITE !== "0") { writeFileSync(path, "{\"type\":\"session\"}\n"); }
+            materializedFiles.set(id, path);
+          }
         }
         emit("agent/error", { agent, turn, step: 0, error: Object.assign(new Error("first"), { code: "X", cause: new Error("second") }) });
         emit("session/event", session, { type: "turn/end", seq: turn, time: 0, data: { turn, reason: { kind: "completed" } } });
@@ -79,7 +93,7 @@ function makeAgent(id) {
 function handleFor(id) {
   const agent = makeAgent(id);
   sessions.set(id, agent);
-  return { agent, dispose: async () => { if (mode === "dispose-fails") { throw new Error("native dispose failed"); } } };
+  return { agent, dispose: async () => { disposedSessions.add(id); if (mode === "dispose-fails") { throw new Error("native dispose failed"); } } };
 }
 
 const agents = {
@@ -92,11 +106,15 @@ const persistence = {
     return { header: { id, ...(mode === "no-saved-cwd" ? {} : { cwd: process.env.FAKE_DSH_CWD ?? process.cwd() }) }, read: async () => ({ events: [] }), close: async () => {} };
   } }),
   ...(missing.has("stat") ? {} : { stat: async (id) => {
+    if (process.env.FAKE_DSH_STAT_THROW_AFTER_DISPOSE === "1" && disposedSessions.has(id)) {
+      throw new Error("stat unavailable after dispose");
+    }
     const path = materializedFiles.get(id) ?? (process.env.FAKE_DSH_SESSION_FILE_AT_OPEN === "1" ? fakeSessionFile(id) : undefined);
     return { header: { id, cwd: process.env.FAKE_DSH_CWD ?? process.cwd() }, revision: "1", ...(path === undefined ? {} : { location: { kind: "jsonl", path } }) };
   } }),
-  flush: async () => {},
+  flush: async () => { for (const id of [...bufferedFiles.keys()]) { materializeBuffered(id); } },
 };
+const sessionStore = { flush: async (session) => { materializeBuffered(session.id); } };
 const llm = {
   listProviders: () => [{ id: "local", name: "Local" }, ...(mode === "listing-fails" ? [{ id: "broken", name: "Broken" }] : [])],
   listModels: async (provider) => {
@@ -122,7 +140,7 @@ const attachments = process.env.FAKE_DSH_IMAGES === "1" ? {
   imageLimits: { mediaTypes: ["image/png"] },
   saveImages: async (imgs) => { await new Promise((resolve) => { setTimeout(resolve, 30); }); return imgs.map((_, index) => ({ id: `att-${index}` })); },
 } : undefined;
-const services = { agents, sessionPersistence: persistence, llm, skills, ...(attachments === undefined ? {} : { attachments }), ...(mode === "no-default" ? {} : { agentDefaultModel: { currentSelection: () => ({ provider: "local", model: "thinks" }) } }) };
+const services = { agents, sessions: sessionStore, sessionPersistence: persistence, llm, skills, ...(attachments === undefined ? {} : { attachments }), ...(mode === "no-default" ? {} : { agentDefaultModel: { currentSelection: () => ({ provider: "local", model: "thinks" }) } }) };
 const sessionLogPatch = patch.find((row) => row.id === "session-log-deepseek");
 const sessionLogEntry = missing.has("session-log-deepseek") ? [] : [{
   options: {

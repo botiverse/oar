@@ -62,8 +62,6 @@ function requireMethod(target, key, capability) {
   }
 }
 
-
-
 export function apply(ctx, config) {
   const loader = ctx.get("loader");
   if (typeof loader?.await !== "function") {
@@ -132,12 +130,6 @@ ${dshControlSource}
   for (const channel of ["subagent/start", "subagent/end"]) { ctx.on(channel, (info) => { write({ type: "native", channel, info }); }); }
 
 ${dshInputSource}
-  const sessionFileOf = async (sessionId) => {
-    if (typeof persistence?.stat !== "function") { return undefined; }
-    const snapshot = await persistence.stat(sessionId);
-    const location = snapshot?.location;
-    return typeof location?.path === "string" && location.path.length > 0 ? location.path : undefined;
-  };
   const opened = async (handle, route) => {
     const { agent } = handle;
     handles.set(agent.session.id, handle);
@@ -267,11 +259,6 @@ ${dshGoalSource}
         } catch (error) { return { id: provider.id, name: provider.name, failure: String(error?.message ?? error) }; }
       }));
       return { providers, default: defaultRoute() };
-    },
-    async sessionFile(request) {
-      owned(request.sessionId);
-      const path = await sessionFileOf(request.sessionId);
-      return { path: path ?? null };
     },
     async dispose() {
       const ids = [...handles.keys()];

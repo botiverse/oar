@@ -82,3 +82,28 @@ test("nativeSessionFile re-queries stat on each live call when the selected gene
   await session.dispose();
   expect(await session.nativeSessionFile?.()).toBe(template.replace("{id}", session.id).replace("{turn}", "2"));
 });
+
+test("nativeSessionFile keeps the last known path when post-dispose stat fails", async () => {
+  const template = path.join(dir, "keep-{id}.v4.jsonl.zstd");
+  const session = await dshRuntime.session(installation, {
+    cwd: dir,
+    env: { FAKE_DSH_SESSION_FILE: template, FAKE_DSH_STAT_THROW_AFTER_DISPOSE: "1" },
+  });
+  const expected = template.replace("{id}", session.id);
+  await runOneTurn(session);
+  expect(await session.nativeSessionFile?.()).toBe(expected);
+  await session.dispose();
+  expect(await session.nativeSessionFile?.()).toBe(expected);
+});
+
+test("nativeSessionFile flushes buffered post-turn events without materializing an empty session", async () => {
+  const template = path.join(dir, "buffered-{id}.v4.jsonl.zstd");
+  const session = await dshRuntime.session(installation, {
+    cwd: dir,
+    env: { FAKE_DSH_SESSION_FILE: template, FAKE_DSH_BUFFER_UNTIL_FLUSH: "1" },
+  });
+  expect(await session.nativeSessionFile?.()).toBeNull();
+  await runOneTurn(session);
+  expect(await session.nativeSessionFile?.()).toBe(template.replace("{id}", session.id));
+  await session.dispose();
+});

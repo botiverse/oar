@@ -109,7 +109,7 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
   let hasSessionFileStat = false;
   let sessionFilePath: string | undefined = undefined;
   const rememberSessionFile = (value: unknown): void => {
-    sessionFilePath = typeof value === "string" && value.length > 0 ? value : undefined;
+    if (typeof value === "string" && value.length > 0) { sessionFilePath = value; }
   };
   const control = dshControl(child, (message) => {
     const { state, frame } = foldDsh(projection, message);
