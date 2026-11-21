@@ -44,7 +44,7 @@ DSH is a Cordis plugin tree. Injected services, with no package import:
 - `agents`: `create({sessionId, meta: {cwd}, agentOptions})`, `resume({resumeSessionId, agentOptions})`, returning a handle with `agent` and `dispose()`.
 - `agent`: `status`, `followup(message)`, `steer(message)`, `cancel(cause, {keepInbox})`, `inbox.nextTurn`, `inbox.nextStep`, `inbox.remove(id)`; `agent.model.current()` and `select()` from 0.2.2-alpha.2, absent on 0.2.1-rc.5.
 - `llm.resolveCallConfig(route)`: validates a route and effort before any provider request; `llm.listProviders()`, `listModels(provider)`, `resolveModelInfo(provider, model)`: the catalog; `agentDefaultModel.currentSelection()`: the configured default.
-- `sessionPersistence.open(id, "read")`: the saved header and log without taking the session over.
+- `sessionPersistence.open(id, "read")`: the saved header and log without taking the session over; `sessionPersistence.stat(id)`: the session metadata and, from `0.2.2-alpha.2` once materialized on disk, `location.path` (`0.2.1-rc.5` omits `location`; live-verified on `0.2.2-rc.5`).
 - `skills.snapshot({cwd})`: global invocation-neutral catalog and completeness flag, without an agent scope.
 - Events: `session/event` (the durable log), `agent/assistant-stream` (transient chunks), `agent/status`, `agent/error`, `subagent/start`, `subagent/end`.
 
@@ -89,6 +89,7 @@ it differs from the request, the open is refused rather than run.
 | withdraw | `inbox.remove(id)` | Only an input in `nextTurn`: a steer may already be in the next request. `not_queued` when native says it is gone. |
 | abort | `agent.cancel({kind: "user"}, {keepInbox: false})` | Accepted is delivery; the outcome is the native `turn/end`. Pending inbox entries are discarded natively and reported as `input_dropped`. `keepInbox: true` would leave them stranded on an idle agent. A 10-second fallback kills the process if no turn end follows. |
 | dispose | `handle.dispose()`, `persistence.flush()`, stdin close | Native turn end `aborted` with `{kind: "disposed"}`; pending inbox entries are discarded natively. The process owner bounds shutdown and removes survivors; the `exited` response answers the request. |
+| nativeSessionFile | `sessionPersistence.stat(id)` (`location.path`) | Available from `0.2.2-alpha.2` (`0.2.1-rc.5` omits `location` on `stat(id)`, so `sessionCapabilities` declares `false` and the session member is absent below `0.2.2-alpha.2`). Queries `stat(id)` on each live call so selected-generation changes are picked up rather than cached; on an explicit call when `stat(id)` has not materialized yet while `session.seq > 0` (DSH's 200 ms live-write batch), drains the session via `sessions.flush(session)` before re-reading `stat(id)` without flushing a 0-event session. Returns the native absolute path once a regular file exists on disk (typically `session.v4.jsonl.zstd`), `null` before materialization, and remains readable after disposal from the last observed path. |
 
 `inject` has no OAR control and is not exposed.
 

@@ -217,6 +217,16 @@ it.each([
   expect(declaration?.sessionLogUpload === undefined).toBe(!refused);
 });
 
+it.each([
+  ["0.2.1-rc.5", false],
+  ["0.2.2-alpha.2", true],
+  ["0.2.2-rc.5", true],
+  ["bad", undefined],
+  [undefined, undefined],
+] as const)("gates DSH nativeSessionFile declaration at 0.2.2-alpha.2 (%s)", (version, expected) => {
+  expect(dshRuntime.sessionCapabilities(executable(version)).nativeSessionFile).toBe(expected);
+});
+
 describe("installedSessionCapabilities", () => {
   const base = { id: "probe", session: scriptedRuntime({ turn: () => undefined }).session };
   it("merges an installation's refusals over the static ones and keeps a per-version manual compaction", () => {

@@ -62,8 +62,6 @@ function requireMethod(target, key, capability) {
   }
 }
 
-
-
 export function apply(ctx, config) {
   const loader = ctx.get("loader");
   if (typeof loader?.await !== "function") {
@@ -137,10 +135,13 @@ ${dshInputSource}
     handles.set(agent.session.id, handle);
     routes.set(agent, route);
     const modelCurrent = typeof agent.model?.current === "function";
+    const sessionFile = await sessionFileOf(agent.session.id);
     return { compact: typeof ctx.get("compaction")?.compactNow === "function", imageTypes: await imageTypes(agent), sessionId: agent.session.id, header: agent.session.header, status: agent.status,
       jobMethods: methods(jobs, ["get", "kill", "wait"]),
       methods: methods(agent, AGENT_METHODS), inboxMethods: methods(agent.inbox, INBOX_METHODS),
       pending: { nextTurn: agent.inbox?.nextTurn?.length, nextStep: agent.inbox?.nextStep?.length },
+      sessionFileStat: typeof persistence?.stat === "function",
+      ...(sessionFile === undefined ? {} : { sessionFile }),
       modelCurrent, ...(modelCurrent ? { model: agent.model.current() } : {}) };
   };
 
@@ -260,17 +261,25 @@ ${dshGoalSource}
       return { providers, default: defaultRoute() };
     },
     async dispose() {
+      const ids = [...handles.keys()];
       const results = await Promise.allSettled([...handles.values()].map(async (handle) => { await handle.dispose(); }));
       handles.clear();
       if (typeof persistence?.flush === "function") { await persistence.flush(); }
+      const sessionFiles = {};
+      for (const id of ids) {
+        try {
+          const path = await sessionFileOf(id);
+          if (path !== undefined) { sessionFiles[id] = path; }
+        } catch {}
+      }
       const failed = results.find((result) => result.status === "rejected");
       if (failed !== undefined) { throw failed.reason; }
-      return {};
+      return Object.keys(sessionFiles).length === 0 ? {} : { sessionFiles };
     },
   };
 
   write({ type: "ready", protocol: PROTOCOL,
-    services: { agents: methods(agents, ["create", "resume"]), sessionPersistence: methods(persistence, ["list", "open", "flush"]) } });
+    services: { agents: methods(agents, ["create", "resume"]), sessionPersistence: methods(persistence, ["list", "open", "flush", "stat"]) } });
 
   const input = createInterface({ input: process.stdin, crlfDelay: Infinity });
   input.on("line", (line) => { void receive(line); });
