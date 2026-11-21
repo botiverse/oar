@@ -1,3 +1,5 @@
+/* oxlint-disable import/max-dependencies -- Recorded account replies, child environment, and fixture ownership share one native peer. */
+import guardedFixtureArgs from "../fixtures/guard-processes.js";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -99,7 +101,7 @@ function fakeAccountAgy(options: FakeAccountOptions = {}) {
   }));
   const env = { HOME: dir, USERPROFILE: dir, DISPLAY: ":99", WAYLAND_DISPLAY: "wayland-0", DBUS_SESSION_BUS_ADDRESS: null, XDG_RUNTIME_DIR: dir };
   return {
-    installation: { kind: "available", via: "executable", command: fakeAgentBinary(dir, [script]), version: "1.5.13" } as const,
+    installation: { kind: "available", via: "executable", command: fakeAgentBinary(dir, guardedFixtureArgs(script)), version: "1.5.13" } as const,
     env, dir, trace: () => readTrace(traceFile), acpPid: () => reportedProcess(JSON.parse(readFileSync(pidFile, "utf8"))),
   };
 }

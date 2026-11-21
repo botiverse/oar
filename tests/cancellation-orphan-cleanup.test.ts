@@ -1,4 +1,5 @@
 /* oxlint-disable import/max-dependencies -- Both protocol drivers share the same actual process-tree transition. */
+import guardedFixtureArgs from "./fixtures/guard-processes.js";
 import { fileURLToPath } from "node:url";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
@@ -41,10 +42,10 @@ afterEach(async context => {
 });
 async function open(protocol: string, resume: boolean): Promise<Session> {
   if (protocol === "acp") {
-    return acpSession({ args: [fixture, protocol], abortTimeoutMs: 250, capabilities: { queue: { durable: false }, attribution: "opaque" } })(installation,
+    return acpSession({ args: guardedFixtureArgs(fixture, protocol), abortTimeoutMs: 250, capabilities: { queue: { durable: false }, attribution: "opaque" } })(installation,
       { cwd: process.cwd(), ...(resume ? { resume: "cancel-root" } : {}) });
   }
-  const child = spawnLineProcess(process.execPath, [fixture, protocol], { killTree: true });
+  const child = spawnLineProcess(process.execPath, guardedFixtureArgs(fixture, protocol), { killTree: true });
   return withSessionCredentials(async (_installation, _options, credentials) => streamJsonSession(child, "cancel-root", credentials, {
     initial: resume ? resumedClaudeProjection : initialClaudeProjection, projection: claudeProjectionProfile,
     capabilities: { queue: { durable: false }, attribution: "attributed", images: false },

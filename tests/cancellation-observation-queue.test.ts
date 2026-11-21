@@ -1,4 +1,5 @@
 /* oxlint-disable import/max-dependencies -- One native control combines the real batcher, caller diagnostics and process-tree assertions. */
+import guardedFixtureArgs from "./fixtures/guard-processes.js";
 import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
 import { afterEach, expect, test, vi } from "vitest";
@@ -25,7 +26,7 @@ function ready(session: Session, since: number): Record<string, unknown> | undef
 // oxlint-disable-next-line eslint/max-statements, eslint/max-lines-per-function -- Two real turns span a held background query and an expired foreground read.
 test.each([false, true])("ACP background query queue: wait before cancelling = %s", async waitBeforeCancel => {
   const cleanupEvidence = captureCleanupEvidence();
-  const session = await acpSession({ args: [fixture, "acp"], capabilities: { queue: { durable: false }, attribution: "opaque" } })(
+  const session = await acpSession({ args: guardedFixtureArgs(fixture, "acp"), capabilities: { queue: { durable: false }, attribution: "opaque" } })(
     { kind: "available", via: "executable", command: process.execPath }, { cwd: process.cwd(), resume: "cancel-root" });
   const entered = Promise.withResolvers<void>(), release = Promise.withResolvers<void>();
   const owned: ProcessIdentity[] = [], source = tables.processTableSource();

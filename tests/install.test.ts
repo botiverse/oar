@@ -1,3 +1,4 @@
+import guardedFixtureArgs from "./fixtures/guard-processes.js";
 import assert from "node:assert/strict";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -46,7 +47,7 @@ function fakeInstall(name: string, mode: Mode): FakeInstall {
     await Promise.resolve();
     return {
       kind: "plan",
-      steps: [{ command: [process.execPath, fakeInstaller, stateFile], display: `install ${name}` }],
+      steps: [{ command: [process.execPath, ...guardedFixtureArgs(fakeInstaller, stateFile)], display: `install ${name}` }],
       source: "https://example.invalid/install",
       network: true,
       privileges: false,

@@ -1,3 +1,4 @@
+import guardedFixtureArgs from "../../tests/fixtures/guard-processes.js";
 import { piRpcTestOptions } from "../harness/pi-rpc.js";
 /* oxlint-disable import/max-dependencies -- Native reader isolation, fixture files and process cleanup evidence. */
 import assert from "node:assert/strict";
@@ -102,7 +103,7 @@ describe.skipIf(process.env.OAR_TEST !== "pi-rpc-aimock")("native Pi RPC readers
 import { captureProcess } from ${JSON.stringify(identityModule)};
 if (process.argv.includes("--version") && ${JSON.stringify(stage)} !== "version") { console.log(${JSON.stringify(PI_AI_VERSION)}); }
 else { writeFileSync(${JSON.stringify(pidFile)}, JSON.stringify({ ...captureProcess(process.pid), directory: process.env.OAR_PI_RPC_DIRECTORY })); setInterval(() => {}, 1000); }`);
-    const runtime = createPiRuntime({ execution: "subprocess", command: process.execPath, args: ["--import", import.meta.resolve("tsx"), script] });
+    const runtime = createPiRuntime({ execution: "subprocess", command: process.execPath, args: guardedFixtureArgs("--import", import.meta.resolve("tsx"), script) });
     try {
       const options = { cwd: f.cwd, env: f.env, timeoutMs: 8000 };
       if (reader === "models") {

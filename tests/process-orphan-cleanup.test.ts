@@ -1,3 +1,4 @@
+import guardedFixtureArgs from "./fixtures/guard-processes.js";
 import { fileURLToPath } from "node:url";
 import { afterEach, expect, test, vi } from "vitest";
 import { spawnLineProcess } from "../packages/oar/src/shared/executable/process.js";
@@ -12,7 +13,7 @@ afterEach(() => { vi.restoreAllMocks(); });
 
 // oxlint-disable-next-line eslint/max-statements -- The intermediate parent exits between capture and shutdown, leaving an actual independent tool.
 test.each([false, true])("prepared cleanup follows a tool after its intermediate parent exits (unreadable: %s)", async (unreadable) => {
-  const child = spawnLineProcess(process.execPath, [fixture], { killTree: true });
+  const child = spawnLineProcess(process.execPath, guardedFixtureArgs(fixture), { killTree: true });
   const ready = Promise.withResolvers<{ middle: ProcessIdentity; tool: ProcessIdentity }>();
   const orphaned = Promise.withResolvers<void>();
   child.onLine(line => {
@@ -48,7 +49,7 @@ test.each([false, true])("prepared cleanup follows a tool after its intermediate
 
 // oxlint-disable-next-line eslint/max-statements -- This ordinary kill must capture the tree before EOF even on Windows.
 test("ordinary tree shutdown observes descendants before closing the root", async () => {
-  const child = spawnLineProcess(process.execPath, [fixture], { killTree: true });
+  const child = spawnLineProcess(process.execPath, guardedFixtureArgs(fixture), { killTree: true });
   const ready = Promise.withResolvers<{ middle: ProcessIdentity; tool: ProcessIdentity }>();
   child.onLine(line => { const value = asRecord(JSON.parse(line)); if (value?.middle !== undefined && value.tool !== undefined) { ready.resolve({ middle: reportedProcess(value.middle), tool: reportedProcess(value.tool) }); } });
   let owned: { middle: ProcessIdentity; tool: ProcessIdentity } | undefined = undefined;
