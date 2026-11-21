@@ -142,6 +142,35 @@ OAR is built in the open: the agents and people working on it talk, review and s
 [Pi Durable](docs/runtimes/pi-durable.md) also runs through a host-owned Harness,
 including in a browser ([demo](apps/pi-durable/README.md)).
 
+### Community runtimes
+
+Shipped from `@botiverse/oar/community` and maintained outside the core team: a
+host adds one with its own deployment and credentials, so they are not in
+`defaultRuntimes`.
+
+<table>
+  <tr>
+    <td align="center" width="112">
+      <a href="docs/runtimes/morph.md">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/morph-on-dark.svg">
+          <img src="packages/oar/assets/brands/morph.svg" width="32" height="32" alt="">
+        </picture><br>
+        Mister Morph
+      </a>
+    </td>
+    <td align="center" width="112">
+      <a href="docs/runtimes/cybion.md">
+        <img src="packages/oar/assets/brands/cybion.svg" width="32" height="32" alt=""><br>
+        Cybion
+      </a>
+    </td>
+  </tr>
+</table>
+
+[Cybion](https://cybion.ntnl.io) runs on a Cybion deployment, where the Thread
+keeps its own context and runs its tools on the owner's devices.
+
 ## Library
 
 One API drives every runtime: swap `"claude"` for `"codex"`, `"grok"` or
