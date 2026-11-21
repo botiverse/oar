@@ -10,7 +10,7 @@ import { factoryRefusedSessionOptions } from "./options.js";
 export const factoryRuntime = defineRuntime({
   id: "factory",
   // mcpTransports is omitted until HTTP MCP tool invocation is verified (factory.vendor.test.ts covers stdio only).
-  sessionCapabilities: () => ({ steer: true, images: true, contextUsage: { tokens: true, contextWindow: true }, stopTask: false }), brand: runtimeBrands.factory, verifiedPlatforms: verifiedPlatforms.factory,
+  sessionCapabilities: () => ({ taskEventTypes: [], steer: true, images: true, contextUsage: { tokens: true, contextWindow: true }, stopTask: false }), brand: runtimeBrands.factory, verifiedPlatforms: verifiedPlatforms.factory,
   // droid 1.12.1: FACTORY_API_KEY first, then OS keyring (auth.v2.keyring / auth.v2.loginkeychain) or keyfile (auth.v2.file + auth.v2.key) under $FACTORY_HOME_OVERRIDE/.factory.
   credentials: {
     scope: "single_account",

@@ -7,11 +7,11 @@ export default defineConfig({
       "tests/**/*.test.ts",
       "sea-trial/vendor/*.test.ts",
     ],
-    // The CI check enables the scripted community unit tests on every platform.
+    // The full check enables the scripted community unit tests on every platform.
     // Vendor files (*.vendor.test.ts) skip unless OAR_TEST names their backend; exclude them when OAR_TEST is unset.
     exclude: [
       ...configDefaults.exclude,
-      ...(process.env.OAR_COMMUNITY_TESTS === undefined ? ["tests/community/**"] : []),
+      ...(process.env.npm_lifecycle_event !== "check" && process.env.OAR_COMMUNITY_TESTS === undefined ? ["tests/community/**"] : []),
       ...(process.env.OAR_TEST === undefined ? ["sea-trial/vendor/*.vendor.test.ts"] : []),
     ],
     // Cold Windows runners: one powershell resolution is allowed up to 15s,

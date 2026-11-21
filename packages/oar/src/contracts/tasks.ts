@@ -54,6 +54,8 @@ export type TaskEventBody =
       readonly kind: "task_ended";
       readonly taskId: string;
       readonly status: "completed" | "failed" | "stopped";
+      /** Native task result text, when the terminal report carries it directly. */
+      readonly output?: string;
       readonly summary?: string;
       readonly outputFile?: string;
     };

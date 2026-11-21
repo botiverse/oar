@@ -16,6 +16,7 @@ import type { ProviderAuthReader } from "./provider-auth.js";
 import type { RuntimeBrand } from "./brand.js";
 import type { RuntimeCredentials } from "./credentials.js";
 import type { StartSession } from "./session.js";
+import type { TaskType } from "./tasks.js";
 
 /**
  * The `SessionOptions` a runtime can refuse at open. `mcpServerCredentials`
@@ -58,6 +59,15 @@ export interface SessionCapabilityDeclaration {
   readonly mcpTransports?: readonly McpTransport[];
   /** Per-server native startup reports are available before input. A first model request may run while discovery is pending. */
   readonly mcpStartup?: { readonly kind: "per_server"; readonly firstModelRequest: "may_start_pending" };
+  /** Observed native task classes with lifecycle events. An empty array means this adapter has no task projection. */
+  readonly taskEventTypes?: readonly TaskType[];
+  /** Where the host can read the child's own result. Omitted modes are unverified. */
+  readonly subagentResults?: {
+    /** The parent tool result contains child output before the originating turn ends. */
+    readonly foreground?: "parent_tool_result";
+    /** Child output can arrive at completion without another host input, including between parent turns. */
+    readonly background?: "child_text" | "task_output";
+  };
   /** Whether an opened session exposes `Session.stopTask(taskId)`. */
   readonly stopTask?: boolean;
   /** A completed native file-edit tool can report applied changes by path and kind. */

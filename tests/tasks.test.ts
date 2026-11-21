@@ -41,7 +41,7 @@ function frame(seq: number, events: RuntimeEventBody[]): RawEvent {
 test("a codex subagent given more work after it completed reads as running again", () => {
   const { value } = tasksOf([
     frame(0, [{ kind: "task_started", taskId: "child", taskType: "agent", childSessionId: "child", description: "/root/helper" }]),
-    frame(1, [{ kind: "task_ended", taskId: "child", status: "completed" }]),
+    frame(1, [{ kind: "task_ended", taskId: "child", status: "completed", output: "previous attempt" }]),
     frame(2, [{ kind: "task_updated", taskId: "child", status: "running" }]),
   ]);
   expect(value).toEqual([{

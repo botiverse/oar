@@ -9,7 +9,7 @@ import { devinCheckUpdate } from "./update.js";
 
 export const devinRuntime = defineRuntime({
   id: "devin",
-  sessionCapabilities: () => ({ steer: false, stopTask: false }),
+  sessionCapabilities: () => ({ taskEventTypes: [], steer: false, stopTask: false }),
   manualCompaction: { kind: "unsupported", reason: "Devin CLI ACP exposes no verified manual compaction protocol or structured completion signal." },
   brand: runtimeBrands.devin,
   // Devin 3000.12.57: WINDSURF_API_KEY (DEVIN_API_KEY is ignored) and $XDG_DATA_HOME/devin/credentials.toml (experiments/devin-acp/README.md).

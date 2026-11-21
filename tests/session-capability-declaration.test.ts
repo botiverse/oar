@@ -18,7 +18,7 @@ describe("Runtime.sessionCapabilities", () => {
       expect(runtime.sessionCapabilities, runtime.id).toBeTypeOf("function");
       const declared = runtime.sessionCapabilities?.(executable("1.0.0"));
       expect(declared, runtime.id).not.toBeInstanceOf(Promise);
-      const known = new Set(["steer", "images", "refusedSessionOptions", "manualCompaction", "compactionEvents", "contextUsage", "mcpTransports", "mcpStartup", "stopTask", "fileChanges", "nativeSessionFile", "sideQuestion"]);
+      const known = new Set(["steer", "images", "refusedSessionOptions", "manualCompaction", "taskEventTypes", "subagentResults", "compactionEvents", "contextUsage", "mcpTransports", "mcpStartup", "stopTask", "fileChanges", "nativeSessionFile", "sideQuestion"]);
       expect(Object.keys(declared ?? {}).every((key) => known.has(key)), runtime.id).toBe(true);
       // The static declarations are always part of the answer, and the answer is plain data a host can send on.
       expect(declared?.refusedSessionOptions ?? {}, runtime.id).toMatchObject(runtime.refusedSessionOptions ?? {});

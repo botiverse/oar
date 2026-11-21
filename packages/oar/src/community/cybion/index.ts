@@ -30,7 +30,7 @@ export function createCybionRuntime(options: CybionOptions): CybionRuntime {
   const client = new CybionClient(options);
   return defineRuntime({
     id: "cybion",
-    sessionCapabilities: () => ({ steer: true, images: true }),
+    sessionCapabilities: () => ({ taskEventTypes: [], steer: true, images: true }),
     brand: cybionBrand,
     installation: cybionInstallation,
     session: cybionSessionWith(client),

@@ -17,7 +17,11 @@ function qwenSessionCapabilities(installation: AvailableInstallation): SessionCa
   const refusedSessionOptions = qwenNativeMemoryRefusal(version);
   // 0.26.0: first release adding HTTP MCP (qwen.vendor.test.ts), context usage, and system-defaults memory toggle.
   if (installation.via === "executable" && semverAtLeast(version, "0.26.0")) {
-    return { steer: false, images: false, stopTask: false, contextUsage: { tokens: true, contextWindow: true }, mcpTransports: ["stdio", "http"], refusedSessionOptions };
+    return {
+      ...(semverAtLeast(version, "0.26.8") ? { taskEventTypes: ["agent"] } : {}),
+      ...(semverAtLeast(version, "0.27.4") ? { subagentResults: { foreground: "parent_tool_result" } } : {}),
+      steer: false, images: false, stopTask: false, contextUsage: { tokens: true, contextWindow: true }, mcpTransports: ["stdio", "http"], refusedSessionOptions,
+    };
   }
   if (installation.via === "executable" && semverBelow(version, "0.26.0")) {
     return { steer: false, images: false, stopTask: false, mcpTransports: ["stdio"], refusedSessionOptions };

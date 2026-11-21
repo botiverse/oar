@@ -7,7 +7,7 @@
     "typecheck": "pnpm --filter @botiverse/oar typecheck && pnpm --filter @botiverse/oar-cli typecheck && tsrs --noEmit && tsrs -p apps/pi-durable/tsconfig.json",
     "lint": "oxlint --type-aware --deny-warnings --ignore-pattern \"tests/community/**\" packages/oar/src packages/cli/src apps/arena apps/harbor apps/pi-durable experiments sea-trial tests vitest.config.ts",
     "test": "vitest run",
-    "check": "pnpm run typecheck && pnpm run lint && pnpm run test && pnpm run sea-trial",
+    "check": "pnpm run typecheck && pnpm run lint && vitest run && pnpm run sea-trial",
     "oar": "pnpm run build && node packages/cli/dist/index.js",
     "arena": "tsx apps/arena/server.ts",
     "harbor": "tsx apps/harbor/harbor.ts",

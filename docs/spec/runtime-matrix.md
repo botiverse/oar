@@ -307,6 +307,13 @@ The failure class and available compaction events vary by runtime.
 
 ### Native tasks and single-task stop
 
+`sessionCapabilities(installation).taskEventTypes` lists verified native task
+classes, is empty for adapters with no task projection and is absent when
+unverified. `subagentResults.foreground` identifies a parent tool result in
+the originating turn. `subagentResults.background` identifies child text or
+a terminal task's `output` that can be observed without another host input.
+Missing modes remain unknown. See [child result timing and version coverage](../../experiments/task-controls/child-output.md).
+
 | Runtime | Native task lifecycle | `stopTask(taskId)` |
 | --- | --- | --- |
 | Claude | `system/task_started`, patches, changed progress descriptions, notifications | Native `stop_task`; acceptance is not an end. |
