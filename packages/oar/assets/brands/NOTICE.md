@@ -7,6 +7,13 @@ Brand names and marks belong to their respective owners.
 
 Mister Morph: `app_logo_dark.svg` from the Mister Morph website (quailyquaily/mistermorph-website, `public/`), the project's own mark. `morph-on-dark.svg` swaps its two colors (#1F1F1F and white) for dark backgrounds.
 
+Cybion: `clients/brand/cybion-logo.svg` from the Cybion project's own brand
+assets (`zccz14/cybion`, a private repository), copied unmodified on 2026-11-21.
+The Cybion runtime is contributed by that project, so this is the project
+supplying its own mark rather than an asset taken from a published page. It
+carries its own dark background and is used on both backgrounds. Cybion branding
+belongs to its owner; the LobeHub MIT license below does not cover this asset.
+
 Factory Droid: https://factory.com/favicon.svg (retrieved 2026-11-15), unmodified official site asset for identification. Factory branding belongs to its owner; the LobeHub MIT license below does not cover this asset. It carries its own dark background and is used on both backgrounds.
 
 Pi: https://pi.dev/logo-on-dark.svg (retrieved 2026-09-16), unmodified official site asset for identification on dark backgrounds. Pi branding belongs to its respective owner; the LobeHub MIT license below does not cover this asset.
