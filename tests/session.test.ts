@@ -43,8 +43,8 @@ test("events() reads the flat events off the stream: one per reading, sharing th
       "3 turn_started",
       "7 text:echo:hello",
       "8 text:steer:extra",
-      "9 turn_ended",
       "9 usage",
+      "9 turn_ended",
       "11 exited",
     ]
   `);
@@ -55,8 +55,8 @@ test("events({ coalesceText }) merges consecutive text into one event carrying t
     [
       "3 turn_started",
       "8 text:echo:hellosteer:extra",
-      "9 turn_ended",
       "9 usage",
+      "9 turn_ended",
       "11 exited",
     ]
   `);

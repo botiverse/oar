@@ -152,11 +152,14 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
       // flips _isAgentRunActive off) is the turn's end, NOT agent_end, which
       // precedes threshold compaction and auto-retries; between the two pi
       // rejects new prompts ("Cannot submit a prompt while compaction is in
-      // progress"). The context read here is therefore post-compaction.
-      const events: RuntimeEventBody[] = state.runStarted
-        ? [{ kind: "turn_ended", outcome: piRunOutcome(state, event.aborted) }] : [];
+      // progress"). The context read here is therefore post-compaction, and
+      // precedes turn_ended so per-turn consumers observe it before closing.
+      const events: RuntimeEventBody[] = [];
       if (extra.context !== undefined && extra.context !== null) {
         events.push({ kind: "usage", usage: { context: extra.context } });
+      }
+      if (state.runStarted) {
+        events.push({ kind: "turn_ended", outcome: piRunOutcome(state, event.aborted) });
       }
       return { state: { ...initialPiProjection, tokens: state.tokens }, events };
     }

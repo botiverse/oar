@@ -142,9 +142,9 @@ export const claudeProjectionProfile: StreamJsonProjectionProfile<ClaudeProjecti
     const accumulated = accumulate(state, agentPath, message);
     const running = foldModelUsage(state.modelUsage, message);
     const { context, cacheWriteByTtl, reading } = claudeContextUsage(state.context, message);
-    const after: RuntimeEventBody[] = [];
+    const before: RuntimeEventBody[] = [...claudeServiceTierEvents(message)];
     if (accumulated !== null || context !== null || running.total !== null || cacheWriteByTtl !== undefined) {
-      after.push({ kind: "usage", usage: {
+      before.push({ kind: "usage", usage: {
         ...(context === null ? {} : { context }),
         ...(accumulated === null ? {} : { tokens: accumulated.tokens }),
         ...(running.total === null ? {} : { total: running.total }),
@@ -159,7 +159,7 @@ export const claudeProjectionProfile: StreamJsonProjectionProfile<ClaudeProjecti
     // No anchor on an aborted turn: a fork through it loses the interruption (lastAssistantUuid).
     const anchor = root && outcome.kind !== "aborted" ? state.lastAssistantUuid : null;
     return { state: { ...(accumulated?.state ?? state), modelUsage: running.usage, context: reading, assistantFailures: remaining, ...(root ? { lastAssistantUuid: null } : {}) },
-      outcome, before: claudeServiceTierEvents(message), after, ...(anchor === null ? {} : { forkAnchor: anchor }) };
+      outcome, before, ...(anchor === null ? {} : { forkAnchor: anchor }) };
   },
   init: claudeServiceTierEvents,
   compacted: (state, root) => root ? { ...state, context: claudeContextCompacted(state.context) } : state,

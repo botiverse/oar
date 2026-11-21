@@ -7,5 +7,5 @@
 [{"kind":"frame","body":{"type":"assistant","native":"<original frame>","events":[{"kind":"tool_call_started","callId":"call_http-call","tool":"mcp__remote__echo","input":"{\"text\":\"http-call\"}"}]},"agentPath":[]}]
 [{"kind":"frame","body":{"type":"user","native":"<original frame>","events":[{"kind":"tool_call_ended","callId":"call_http-call","content":[{"type":"text","text":"echo:http-call via=http token=44dd13e52efb"}],"result":"ok"}]},"agentPath":[]}]
 [{"kind":"frame","body":{"type":"assistant","native":"<original frame>","events":[{"kind":"text_delta","text":"echoed"}]},"agentPath":[]}]
-[{"kind":"frame","body":{"type":"result/success","native":"<original frame>","events":[{"kind":"turn_ended","outcome":{"kind":"completed"}},{"kind":"usage","usage":{"tokens":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0}}}]},"agentPath":[]}]
+[{"kind":"frame","body":{"type":"result/success","native":"<original frame>","events":[{"kind":"usage","usage":{"tokens":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0}}},{"kind":"turn_ended","outcome":{"kind":"completed"}}]},"agentPath":[]}]
 [{"kind":"frame","body":{"type":"command_lifecycle","native":"<original frame>","events":[]},"agentPath":[]}]

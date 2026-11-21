@@ -184,8 +184,8 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
       }
       active = null;
       frame("scripted/end", { outcome }, [
-        { kind: "turn_ended", outcome },
         { kind: "usage", usage: { tokens: usage(), context: { tokens: totals.input + totals.output, contextWindow: 200_000, percent: ((totals.input + totals.output) / 200_000) * 100 } } },
+        { kind: "turn_ended", outcome },
       ]);
       const next = queued.shift();
       if (next !== undefined && kernel.unreachable() === null) {

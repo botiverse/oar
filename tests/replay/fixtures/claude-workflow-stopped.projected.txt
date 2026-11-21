@@ -53,4 +53,4 @@ assistant text               │ event
 stream_event                 │ event
 stream_event                 │ event
 stream_event                 │ event
-result success               │ event → service_tier, turn_ended completed, usage in=15900 out=240 cacheRead=0 cacheWrite=0 total in=15900 out=240 cacheRead=0 cacheWrite=0
+result success               │ event → service_tier, usage in=15900 out=240 cacheRead=0 cacheWrite=0 total in=15900 out=240 cacheRead=0 cacheWrite=0, turn_ended completed

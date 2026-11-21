@@ -44,7 +44,7 @@ test("a script's text, reasoning and tool call become events, ended by the runti
   const started = await session.prompt("fix it");
   const outcome = await awaitTurnEnd(session, started.seq);
   assert.deepEqual(outcome, { kind: "completed" });
-  assert.deepEqual(events.map((event) => event.kind), ["turn_started", "reasoning", "tool_call_started", "tool_call_ended", "text_delta", "turn_ended", "usage"]);
+  assert.deepEqual(events.map((event) => event.kind), ["turn_started", "reasoning", "tool_call_started", "tool_call_ended", "text_delta", "usage", "turn_ended"]);
   const ended = events.find((event) => event.kind === "tool_call_ended");
   assert.ok(ended?.kind === "tool_call_ended" && ended.result === "ok" && toolResultText(ended.content) === "contents");
   assert.equal(session.model().value, "scripted-1");
@@ -142,7 +142,7 @@ test("a tool that fails after an abort ended its turn records nothing: the sessi
   await delay(0);
   assert.deepEqual(
     [abort.kind, outcome, events.map((event) => event.kind), session.status().value, continued],
-    ["accepted", { kind: "aborted" }, ["turn_started", "tool_call_started", "turn_ended", "usage"], { kind: "idle", lastTurnOutcome: { kind: "aborted" } }, false],
+    ["accepted", { kind: "aborted" }, ["turn_started", "tool_call_started", "usage", "turn_ended"], { kind: "idle", lastTurnOutcome: { kind: "aborted" } }, false],
   );
   await session.dispose();
 });
@@ -165,7 +165,7 @@ test("a tool that returns after dispose ended its turn records nothing", async (
   await delay(0);
   assert.deepEqual(
     [events.map((event) => event.kind), session.status().value],
-    [["turn_started", "tool_call_started", "turn_ended", "usage", "exited"], { kind: "idle", lastTurnOutcome: { kind: "aborted" } }],
+    [["turn_started", "tool_call_started", "usage", "turn_ended", "exited"], { kind: "idle", lastTurnOutcome: { kind: "aborted" } }],
   );
 });
 

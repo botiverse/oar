@@ -18,15 +18,15 @@ system task_notification     │ event → task_ended
 user tool_result             │ event → tool_call_ended
 assistant thinking           │ event → reasoning empty
 assistant text               │ event → text_delta
-result success               │ event → service_tier, turn_ended completed, usage in=43876 out=834 cacheRead=35315 cacheWrite=8543 total in=69147 out=1011 cacheRead=47627 cacheWrite=21484
+result success               │ event → service_tier, usage in=43876 out=834 cacheRead=35315 cacheWrite=8543 total in=69147 out=1011 cacheRead=47627 cacheWrite=21484, turn_ended completed
 system init                  │ event → turn_active, model, service_tier
 assistant thinking           │ event → reasoning empty
 assistant text               │ event → text_delta
-result success               │ event → service_tier, turn_ended completed, usage in=66439 out=863 cacheRead=57757 cacheWrite=8654 total in=91710 out=1040 cacheRead=70069 cacheWrite=21595
+result success               │ event → service_tier, usage in=66439 out=863 cacheRead=57757 cacheWrite=8654 total in=91710 out=1040 cacheRead=70069 cacheWrite=21595, turn_ended completed
 system status                │ event → compaction_started
 system status                │ event
 system init                  │ event → turn_active, model, service_tier
 system compact_boundary      │ event → compaction_ended
 user text                    │ event
 user text                    │ event
-result success               │ event → service_tier, turn_ended completed, usage in=66439 out=863 cacheRead=57757 cacheWrite=8654 total in=115697 out=2213 cacheRead=92511 cacheWrite=21669
+result success               │ event → service_tier, usage in=66439 out=863 cacheRead=57757 cacheWrite=8654 total in=115697 out=2213 cacheRead=92511 cacheWrite=21669, turn_ended completed

@@ -638,6 +638,14 @@ Further rules:
   ([claude.md](../runtimes/claude.md)); every other session has no
   `contextBreakdown` member, and `contextUsage()` stays the fold of what each
   runtime reported on its own.
+- **`turn_ended` is the last event of its turn.** Every event belonging to a
+  closing turn, including its closing `usage` (tokens and context) and any
+  `service_tier`, `model`, `effort` or `input_dropped` reported on that frame,
+  precedes `turn_ended`, also within one frame. Events of a subsequent turn
+  that opens on the same frame follow `turn_ended` after a `turn_active` event
+  (for example Pi Durable's view handover or Grok's deferred native turn).
+  Consumers that finalize per-turn summaries at `turn_ended` therefore observe
+  the turn's complete events and usage before closing it.
 - **A turn's completion frame may be boundedly deferred to read current context.**
   An adapter may hold a turn's native completion frame for a bounded window so
   it can query the runtime's current context usage before `turn_ended` is
@@ -1409,7 +1417,7 @@ seq=18  ◇ response  root  →rq-9     accepted
 seq=19  ✓ frame     root            assistant   → text_delta "Running them…", tool_call_started call_1
         ↳ ONE frame, one record, two events in the frame's order; `native` is the whole message
 seq=20  ✓ frame     root            user        → tool_call_ended call_1
-seq=21  ✓ frame     root            result      → turn_ended completed, usage {in:12034, out:512}
+seq=21  ✓ frame     root            result      → usage {in:12034, out:512}, turn_ended completed
         ↳ the turn's end = the runtime's own completion event. rq-9 gets no
           further response: the runtime said the outcome itself
 ```

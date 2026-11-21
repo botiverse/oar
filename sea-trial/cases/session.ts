@@ -4,6 +4,7 @@ import { assertPlacement } from "../harness/placement.js";
 import type { ControlResult, RequestRecord, ResponseRecord, RawEvent } from "../../packages/oar/src/contracts/session.js";
 import { awaitTurnEnd, turnEndAfter } from "../../packages/oar/src/observe/turns.js";
 import { steerOrSkip, type TrialCase } from "../harness/runner.js";
+import { assertNoUsageAfterTurnEnded } from "../harness/stream-order.js";
 /** Root-agent records of one turn: from the prompt request through the runtime's turn end. */
 function turnRecords(records: readonly RawEvent[], result: ControlResult): readonly RawEvent[] {
   const start = records.findIndex((record) => record.seq === result.request.seq);
@@ -78,17 +79,14 @@ export const sessionCases: readonly TrialCase[] = [
       assert.ok(accept?.kind === "response" && accept.body.kind === "accepted", "the accept answers the request inside the turn");
       const last = turn.at(-1);
       assert.ok(last?.kind === "frame" && last.body.events.some((view) => view.kind === "turn_ended"), "the turn ends with the runtime's own turn_ended event");
+      assertNoUsageAfterTurnEnded(session.records());
       for (const [index, record] of turn.entries()) {
-        if (record.agentPath.length === 0) {
-          assert.equal(record.sessionId, session.id, "root records carry the session id");
-        }
+        if (record.agentPath.length === 0) { assert.equal(record.sessionId, session.id, "root records carry the session id"); }
         if (record.kind === "frame") {
           assert.ok(record.body.type.length > 0, "every event names its runtime-native type");
           assert.notEqual(record.body.native, undefined, "every event carries the runtime's frame verbatim");
         }
-        if (index > 0) {
-          assert.ok(record.seq > (turn[index - 1]?.seq ?? Number.NaN), "seq is strictly increasing");
-        }
+        if (index > 0) { assert.ok(record.seq > (turn[index - 1]?.seq ?? Number.NaN), "seq is strictly increasing"); }
       }
       assert.deepEqual(live.map((record) => record.seq), session.records().filter((record) => record.seq >= (live[0]?.seq ?? 0)).map((record) => record.seq), "live delivery and the retained log agree");
       await session.dispose();
@@ -132,6 +130,7 @@ export const sessionCases: readonly TrialCase[] = [
       const late = await session.abort();
       assert.equal(late.response.body.kind, "rejected", "a late abort is rejected, not an error");
       assert.equal(turnEndAfter(session.records(), started.request.seq, session.id, inputId)?.kind, outcome.kind, "a late abort changed nothing");
+      assertNoUsageAfterTurnEnded(session.records());
       await session.dispose();
     },
   },
@@ -179,14 +178,13 @@ export const sessionCases: readonly TrialCase[] = [
       const records = session.records();
       const prompts = records.filter((record) => record.kind === "request" && record.body.kind === "prompt");
       assert.equal(prompts.length, 3, "three prompts are three request records");
+      assertNoUsageAfterTurnEnded(records);
       for (const [index, result] of results.entries()) {
         const ends = rootTurnEnds(turnRecords(records, result));
         assert.equal(ends.length, 1, `turn ${String(index + 1)} ends exactly once`);
       }
       for (const [index, record] of records.entries()) {
-        if (index > 0) {
-          assert.ok(record.seq > (records[index - 1]?.seq ?? Number.NaN), "seq stays strictly increasing across turns");
-        }
+        if (index > 0) { assert.ok(record.seq > (records[index - 1]?.seq ?? Number.NaN), "seq stays strictly increasing across turns"); }
       }
       await session.dispose();
     },
@@ -227,6 +225,7 @@ export const sessionCases: readonly TrialCase[] = [
         });
       }
       assert.equal(rootTurnEnds(session.records()).length, 2, "the queued input runs as its own turn after the active one");
+      assertNoUsageAfterTurnEnded(session.records());
       await session.dispose();
     },
   },

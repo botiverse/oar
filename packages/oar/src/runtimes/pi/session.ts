@@ -171,7 +171,7 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
     for (const command of commands) {
       const unstarted = event.type === "agent_settled" && !nativeActive ? nextOwner : null;
       kernel.frame(unstarted === null ? command.body : { ...command.body,
-        events: [...command.body.events, refusedInput(unstarted.request, "Pi settled before agent_start")] });
+        events: [refusedInput(unstarted.request, "Pi settled before agent_start"), ...command.body.events] });
     }
     if (abortStarted) { void abortNative(); }
     if (event.type === "agent_settled") {

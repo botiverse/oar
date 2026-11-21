@@ -37,8 +37,8 @@ export const createMockSession = (attach?: AttachMock): StartSession => async (_
   const end = (outcome: "completed" | "aborted"): void => {
     active = null;
     kernel.frame({ type: "mock/end", native: { outcome, used: 1 }, events: [
-      { kind: "turn_ended", outcome: { kind: outcome } },
       { kind: "usage", usage: { context: { tokens: 1, contextWindow: 100, percent: 1 }, tokens: { input: 1, output: 1 } } },
+      { kind: "turn_ended", outcome: { kind: outcome } },
     ] });
     const next = queued.shift();
     if (next !== undefined) {

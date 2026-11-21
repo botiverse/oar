@@ -44,7 +44,7 @@ export const qoderProjectionProfile: StreamJsonProjectionProfile<QoderProjection
     const report = state.tokensExposed && agentPath.length === 0 ? qoderUsage(message) : null;
     const usage = report === null ? state.usage : addTokens(state.usage, report);
     const before: RuntimeEventBody[] = report === null ? [] : [{ kind: "usage", usage: { total: usage } }];
-    return { state: { ...state, usage }, outcome: outcome(message), before, after: [] };
+    return { state: { ...state, usage }, outcome: outcome(message), before };
   },
   init: () => [], compacted: (state) => state,
   system: (state, message, agentPath) => {

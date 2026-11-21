@@ -41,7 +41,7 @@ assistant text               │ event
 stream_event                 │ event
 stream_event                 │ event
 stream_event                 │ event
-result success               │ event → service_tier, turn_ended completed, usage in=10300 out=220 cacheRead=0 cacheWrite=0 total in=10300 out=220 cacheRead=0 cacheWrite=0
+result success               │ event → service_tier, usage in=10300 out=220 cacheRead=0 cacheWrite=0 total in=10300 out=220 cacheRead=0 cacheWrite=0, turn_ended completed
 system task_progress         │ event
 system task_progress         │ event
 system task_progress         │ event → task_updated
@@ -61,4 +61,4 @@ assistant text               │ event
 stream_event                 │ event
 stream_event                 │ event
 stream_event                 │ event
-result success               │ event → service_tier, turn_ended completed, usage in=15900 out=245 cacheRead=0 cacheWrite=0 total in=19650 out=325 cacheRead=0 cacheWrite=0
+result success               │ event → service_tier, usage in=15900 out=245 cacheRead=0 cacheWrite=0 total in=19650 out=325 cacheRead=0 cacheWrite=0, turn_ended completed
