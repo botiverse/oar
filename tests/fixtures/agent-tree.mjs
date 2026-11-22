@@ -1,5 +1,6 @@
 /* oxlint-disable typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument -- Standalone untyped child-process fixture. */
 import { captureProcess } from "./process-tree.ts";
+import { once } from "node:events";
 import { spawn } from "node:child_process";
 import { renameSync, writeFileSync } from "node:fs";
 
@@ -20,15 +21,27 @@ import { renameSync, writeFileSync } from "node:fs";
  * leaks nothing for long.
  */
 const sleeper = ["-e", "setTimeout(() => {}, 60000)"];
+
+// Until the identity is published, only this fixture owns a handle to its tool.
+async function publishTool(tool, file, includeAgent) {
+  try {
+    const child = captureProcess(tool.pid);
+    const report = includeAgent === true ? { agent: captureProcess(process.pid), grandchild: child } : child;
+    writeFileSync(`${file}.tmp`, JSON.stringify(report));
+    renameSync(`${file}.tmp`, file);
+  } catch (error) {
+    const exited = once(tool, "exit");
+    tool.kill("SIGKILL");
+    await exited;
+    throw error;
+  }
+}
 if (process.env.OAR_FIXTURE_IGNORE_SIGTERM === "1") {
   const lateTool = process.env.OAR_FIXTURE_LATE_TOOL;
   process.on("SIGTERM", () => {
     if (lateTool !== undefined) {
       const tool = spawn(process.execPath, sleeper, { stdio: "ignore", detached: true });
-      tool.once("spawn", () => {
-        writeFileSync(`${lateTool}.tmp`, JSON.stringify(captureProcess(tool.pid)));
-        renameSync(`${lateTool}.tmp`, lateTool);
-      });
+      tool.once("spawn", () => { void publishTool(tool, lateTool, false); });
     }
   });
   setTimeout(() => {
@@ -38,8 +51,5 @@ if (process.env.OAR_FIXTURE_IGNORE_SIGTERM === "1") {
 const pidFile = process.env.OAR_FIXTURE_PIDS;
 if (pidFile !== undefined) {
   const grandchild = spawn(process.execPath, sleeper, { stdio: "ignore", detached: process.env.OAR_FIXTURE_DETACH_TOOL === "1" });
-  grandchild.once("spawn", () => {
-    writeFileSync(`${pidFile}.tmp`, JSON.stringify({ agent: captureProcess(process.pid), grandchild: captureProcess(grandchild.pid) }));
-    renameSync(`${pidFile}.tmp`, pidFile);
-  });
+  grandchild.once("spawn", () => { void publishTool(grandchild, pidFile, true); });
 }
