@@ -62,15 +62,19 @@ roles. Children are native agents with their own lifecycle, including
 background execution.
 
 Kimi offers a terminal application and several programmatic surfaces: the
-Node SDK (`KimiHarness`/`Session`), native KAP/klient services, and `kimi acp`
-for ACP JSON-RPC over stdio. These interfaces expose different subsets.
+Node SDK (`KimiHarness`/`Session`), native KAP (`kimi web --json`) REST and
+WebSocket services, and `kimi acp` for ACP JSON-RPC over stdio. These interfaces
+expose different subsets.
 The [Node Session](https://github.com/MoonshotAI/kimi-code/blob/f9ca33376/packages/node-sdk/src/session.ts#L140-L200)
 has prompt/steer methods and approval/question handlers. Native
 [agent services](https://github.com/MoonshotAI/kimi-code/blob/f9ca33376/packages/klient/src/contract/agent/services.ts#L28-L55)
 separate submission from cancellation. ACP instead binds
 [`klient.session(sessionId).agent('main')`](https://github.com/MoonshotAI/kimi-code/blob/f9ca33376/packages/acp-server/src/session.ts#L249-L344)
 and translates that agent's event stream, so one ACP session does not expose
-every agent in the native session. OAR uses `kimi acp`.
+every agent in the native session. OAR selects **KAP** (`kimi web --json`)
+when the executable reports version `>= 2.7.2-botiverse.1` or `>= 2.7.3` and
+`/api/v1/meta` advertises all required KAP capabilities, and falls back to
+`kimi acp` on earlier builds or missing capabilities.
 
 ## Independent skill discovery
 
@@ -120,12 +124,86 @@ retaining both user-preservation assertions.
 ## High-level mapping to OAR
 
 OAR exposes one ordered record stream per Session
-([contract](../../packages/oar/src/contracts/session.ts)). Every ACP frame is
-recorded verbatim as a frame's `native`; the cross-runtime `events` are what
-OAR read out of it. Control calls are request/response record pairs. The
-profile declares `capabilities` `{ queue: { durable: false }, attribution:
-"opaque" }`, with `images` read from `initialize`; the session has no
-`steer`.
+([contract](../../packages/oar/src/contracts/session.ts)). On the opened
+`Session`, **KAP** builds (`>= 2.7.2-botiverse.1` or `>= 2.7.3` with required
+`/api/v1/meta` capabilities) report `{ queue: { durable: false },
+attribution: "attributed", images: true }`, while **ACP fallback** reports
+`{ queue: { durable: false }, attribution: "opaque" }` with `images` read
+from `initialize`. Before open, `kimiRuntime.sessionCapabilities(installation)`
+([declaration](../../packages/oar/src/runtimes/kimi/options.ts)) branches on
+version:
+
+- **`>= 2.7.2-botiverse.1` (fork KAP builds):** declares
+  `taskEventTypes: ["agent", "shell"]`,
+  `subagentResults: { foreground: "parent_tool_result", background: "child_text" }`,
+  `steer: true`, `images: true`, `stopTask: true`,
+  `contextUsage: { tokens: true, contextWindow: true }`,
+  `mcpTransports: ["stdio", "http"]`,
+  `manualCompaction: { kind: "supported", activeTurn: "reject" }`, and
+  `compactionEvents: { started: true, ended: true }` (with no
+  `appendSystemPrompt` refusal). `SessionOptions.additionalDirectories` is
+  supported on create and refused on resume.
+- **`>= 2.7.3` (official upstream candidates):** declares only
+  `{ subagentResults: { foreground: "parent_tool_result" }, contextUsage: { tokens: true, contextWindow: true }, mcpTransports: ["stdio", "http"] }`,
+  leaving KAP-only capabilities (`steer`, `stopTask`, `taskEventTypes`,
+  `manualCompaction`, `compactionEvents`, and `appendSystemPrompt` refusal)
+  unknown until open-time `/api/v1/meta` negotiation succeeds or falls back to
+  ACP.
+- **ACP fallback (`<= 2.7.2-botiverse.0` or missing `/meta` capabilities):**
+  declares `taskEventTypes: []`, `steer: false`, `stopTask: false`,
+  `manualCompaction: { kind: "unsupported" }`, and refuses
+  `appendSystemPrompt`.
+
+### KAP transport selection and session mapping (2.7.2-botiverse.1+)
+
+1. **Negotiation and fallback:** `kimiRuntime.session()` tries `kimi web
+   --json --host 127.0.0.1 --port 0` when the installed version meets the KAP
+   threshold, registers the ephemeral startup bearer token with
+   `SessionCredentials` so errors and raw records redact it, checks
+   `GET /api/v1/meta` for `websocket`, `tasks`, `session_ephemeral_mcp`,
+   `session_append_system_prompt`, and `steer_parent_correlation`, and checks
+   `GET /api/v1/auth` (`models_ready`). Earlier binaries, unknown `--json`, or
+   missing capability bits fall back cleanly to `kimi acp`.
+2. **Open boundary and option confirmation:** After workspace registration
+   (`additionalDirectories` on create; non-empty on resume refused before boot),
+   cold resume pre-checks (`GET /api/v1/sessions/{id}` and `:resume` mapping
+   `SessionNotFoundError`, archived/in-use `SessionUnavailableError`, and
+   `ResumeCwdError`), OAR connects the bearer-authenticated WebSocket, sends
+   `subscribe` for `main`, and waits for both the initial `agent` snapshot and
+   the initial `turns` boundary before admitting any control (`turns.failed`
+   rejects opening). Explicit `options.model` and `options.effort` both require
+   positive readback on `agent.model` and `agent.thinking`. Ended root turns
+   present in the initial snapshot are marked historical without re-emitting
+   replay frames.
+3. **Controls, steers, and compaction:** `prompt`, mid-turn `steer`, `queue`,
+   `withdraw`, `abort` (`:cancel` with kill fallback), and WS `task.stop`
+   (`stopTask`) map to native KAP routes, and `abort()` returns `no_active_turn`
+   (disarming its kill fallback) when KAP replies `{ cancelled: false }`.
+   Accepted `steer` holds the adapter
+   queue across parent turn completion until the linked continuation turn
+   starts (`steered_from_turn_id` and `steered_from_prompt_id` reference the
+   parent turn, while `user_message.prompt_ids` carries the steer prompt ID) or
+   the turn aborts or fails. Manual `compact()` delegates to shared
+   `manualCompaction`, driving queue admission from `compaction.busy()`, draining
+   held input from its `released` hook, and rejecting compaction or `steer()`
+   with `busy` while manual compaction is unresolved or a turn, awaiting
+   prompt, steer, or queued input is active.
+4. **Unexpected WS closure and shutdown:** When the event WebSocket drops
+   unexpectedly, controls (`prompt`, `steer`, `queue`, `abort`, `stopTask`,
+   `compact`) immediately reject with `runtime_exited`, held input is dropped,
+   and OAR terminates the owned subprocess to settle the kernel cleanly. Normal
+   disposal closes the WebSocket before `POST /api/v1/shutdown` and preserves
+   persisted workspaces and sessions.
+5. **Ephemeral MCP and failures:** KAP sessions forward per-session
+   `mcpServers` (including explicit `{}` clears on `:resume`) and
+   `appendSystemPrompt` on both create and `:resume`, fixing delayed/unbound MCP
+   discovery and stale tool schemas seen on 2.6.x ACP ([Pass 1 wire probes](../../experiments/kimi-kap-wire/README.md),
+   [Pass 2 patched probes](../../experiments/kimi-kap-wire/patched/README.md)).
+   Structured `turn.ended` errors map through `kapFailedTurn` to `auth` (with
+   401 `credential: "rejected"`), `rate_limited`, `overloaded`,
+   `model_unavailable`, `model_refused`, `input_too_large`, and `limit_reached`.
+
+Below is the **ACP fallback** mapping (`kimi acp`):
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
@@ -302,13 +380,12 @@ after cancellation and a failed outcome otherwise. If the process has
 exited, its exit response settles the turn
 ([test](../../tests/acp/acp-session.test.ts)).
 
-**Steer (not available on this transport):** the native SDK and agent
-services support steering, but the ACP method set has no steer operation, so
-the session has no `steer`: a host reads the absent member, not a runtime
-name. During a running turn, `steerOrQueue()` and default `deliver()`
-therefore queue: the queue request is accepted and the input runs after the
-current turn; no steer request is recorded (`kimi-steer-or-queue.ts` on kimi
-0.42.0 and 2.0.0, run while OAR still rejected a `steer()` before queueing).
+**Steer (KAP vs ACP):** native KAP provides `POST /sessions/{id}/steer`, so on
+KAP builds (`>= 2.7.2-botiverse.1` or `>= 2.7.3`) `sessionCapabilities().steer`
+is `true` and `session.steer()` runs mid-turn without tearing down the active
+session. ACP fallback (`kimi acp`) exposes no steer RPC, so on ACP builds the
+session has no `steer` member and `steerOrQueue()` / default `deliver()` queue
+until the active turn ends (`kimi-steer-or-queue.ts` on kimi 0.42.0 and 2.0.0).
 Idle delivery prompts immediately. `deliver(input, { when: "interrupt", ... })`
 uses the shared interruption path: it withdraws held inputs, aborts the active
 turn if needed, and merges the inputs into a new prompt after the native turn
@@ -503,12 +580,16 @@ running session are absent ([native surfaces](live-configure.md)).
 [ACP effort channel](../../packages/oar/src/shared/acp/effort.ts),
 [test](../../tests/acp/acp-session-effort.test.ts).
 
-`session()` refuses `systemPrompt` and `appendSystemPrompt` with an
-`UnsupportedOptionError`, declared before open in
+On **ACP fallback** builds (`<= 2.7.2-botiverse.0` or missing KAP
+capabilities), `session()` refuses `systemPrompt` and `appendSystemPrompt`
+with an `UnsupportedOptionError`, declared before open in
 `kimiRuntime.refusedSessionOptions` ([options](../../packages/oar/src/runtimes/kimi/options.ts)),
 because `kimi acp` has no per-session
 instruction input through its protocol or launcher
 ([refused session options](../spec/runtime-matrix.md#refused-session-options)).
+On **KAP** builds (`>= 2.7.2-botiverse.1` or `>= 2.7.3`), `appendSystemPrompt`
+is accepted on create and `:resume` (`append_system_prompt`), while
+`systemPrompt` remains refused.
 The first-party launch audit (kimi **2.1.1**, 2026-10-07; 2.2.0 changes
 neither the `acp` command nor the ACP server source) checked `kimi --help`,
 `kimi acp --help` and the matching release source. The top-level CLI accepts
@@ -527,13 +608,14 @@ sessions; OAR does not use that as a prompt override or modify user config.
 
 | Session option | Channel used by OAR |
 | --- | --- |
-| `cwd` | ACP `session/new`; resume in another directory is refused. |
-| `resume` | ACP `session/resume`, or `session/load` when resume is not advertised. |
-| `model` | ACP `session/set_model`, with config-update readback. |
-| `effort` | ACP `session/set_config_option` on `thinking`, with readback. |
+| `cwd` | ACP `session/new` (or KAP `workspaces` + `sessions`); resume in another directory is refused. |
+| `resume` | ACP `session/resume` / `session/load`, or KAP `GET /sessions/{id}` + `:resume`. |
+| `model` | ACP `session/set_model` with config-update readback, or KAP `agent_config.model` with `agent.model` readback. |
+| `effort` | ACP `session/set_config_option` on `thinking`, or KAP `agent_config.thinking` with required positive `agent.thinking` readback. |
 | `env` | Environment of this session's subprocess and tool subprocesses; `null` removes an inherited variable ([contract](../spec/runtime-matrix.md#session-environment)). |
-| `mcpServers` | ACP `mcpServers` on `session/new` and `session/resume` ([session MCP servers](#session-mcp-servers)). |
-| `systemPrompt`, `appendSystemPrompt` | Refused: the selected native launcher does not carry them. |
+| `mcpServers` | ACP `mcpServers` on `session/new` and `session/resume`, or KAP `mcp_servers` on create/`:resume` (explicit `{}` clears on KAP resume). |
+| `systemPrompt` | Refused on both transports. |
+| `appendSystemPrompt` | Supported on KAP (`append_system_prompt` on create/`:resume`); refused on ACP fallback. |
 | `name` | Refused: kimi has no verified session name setting ([session name](../spec/runtime-matrix.md#session-name)). |
 | `fork`, `goals`, `endTurnProcessesOnAbort` | Refused ([refused session options](../spec/runtime-matrix.md#refused-session-options)). |
 
@@ -551,14 +633,15 @@ the push follows the answer by about 8 ms, so `contextUsage()` at
 `kimi-code/k3`; a one-word turn already occupies about 20.6k tokens (the
 system prompt). Per-agent usage remains unexposed.
 
-Native agent compaction exists; ACP
-[`/compact` dispatches a background task](https://github.com/MoonshotAI/kimi-code/blob/f9ca33376/packages/acp-server/src/builtin-commands.ts#L100-L110).
-OAR has no typed compact operation (`kimiRuntime.manualCompaction` is
-declared `unsupported`), and no ACP frame reports a compaction,
-so Kimi sessions never carry `compaction_started` or `compaction_ended`
-events. Prompt text can reach that slash route, but completion text emitted
-after the OAR Turn ends is dropped; prompt completion does not establish
-compaction completion.
+**Compaction (KAP vs ACP):** native agent compaction exists. On **ACP
+fallback**, [`/compact` dispatches a background task](https://github.com/MoonshotAI/kimi-code/blob/f9ca33376/packages/acp-server/src/builtin-commands.ts#L100-L110)
+without exposing a typed compact RPC, so `manualCompaction` is declared
+`unsupported` and ACP sessions carry no `compaction_started` /
+`compaction_ended` events. On **KAP** builds (`>= 2.7.2-botiverse.1` or
+`>= 2.7.3`), `kimiRuntime.sessionCapabilities().manualCompaction` is
+`{ kind: "supported", activeTurn: "reject" }` backed by
+`POST /sessions/{id}:compact` and settled by WebSocket `compaction_started` /
+`compaction_ended` events (`trigger: "manual"`).
 
 ### Tools, permissions, and extensions
 
@@ -1078,7 +1161,16 @@ plugin identity, so `plugin` remains absent. See
 
 ## Failures
 
-Measured on Kimi **2.1.1** against a scripted OpenAI provider
+**KAP (`>= 2.7.2-botiverse.1` / `>= 2.7.3`):** WebSocket `turn.ended` structured
+errors (`turn.error.code`, `status_code`, `end_reason`) map through
+[`kapFailedTurn`](../../packages/oar/src/runtimes/kimi/kap-failures.ts) to OAR
+`FailedTurn` failure classes (`auth` with 401 `credential: "rejected"`,
+`rate_limited`, `overloaded`, `model_unavailable`, `model_refused`,
+`input_too_large`, and `limit_reached`). HTTP control and open rejections map
+similarly (`401` to `RuntimeFailureError("auth")` or `auth` failure, `429` to
+`rate_limited`, `400` to `invalid_request`).
+
+**ACP fallback (`kimi acp`):** measured on Kimi **2.1.1** against a scripted OpenAI provider
 ([failure evidence](../spec/runtime-matrix.md#failure-evidence),
 [shared ACP classifier](../../packages/oar/src/shared/acp/failure.ts)).
 

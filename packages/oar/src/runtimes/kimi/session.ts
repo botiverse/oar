@@ -1,8 +1,11 @@
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
-import { kimiRefusedSessionOptions } from "./options.js";
+import { kimiAcpRefusedSessionOptions } from "./options.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
+import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
+import { openKimiKapSession } from "./kap-session.js";
+import { isKimiKapCandidate } from "./version.js";
 
 export function selectKimiAuthMethod(initialized: JsonRecord): string | undefined {
   const methods = Array.isArray(initialized.authMethods) ? initialized.authMethods : [];
@@ -39,7 +42,7 @@ export const kimiAcpProfile: AcpSessionProfile = {
   sessionStartTimeoutMs: 630_000,
   selectAuthMethod: selectKimiAuthMethod,
   validateOptions: (options) => {
-    refuseSessionOptions(kimiRefusedSessionOptions, options);
+    refuseSessionOptions(kimiAcpRefusedSessionOptions, options);
     if (options.resume !== undefined && (options.additionalDirectories?.length ?? 0) > 0) {
       throw new UnsupportedOptionError("additionalDirectories", "kimi applies additionalDirectories only when creating a session; they have no effect on resume");
     }
@@ -61,4 +64,14 @@ export const kimiAcpProfile: AcpSessionProfile = {
   },
 };
 
-export const kimiSession = acpSession(kimiAcpProfile);
+const directAcpSession = acpSession(kimiAcpProfile);
+
+export const kimiSession = withSessionCredentials(async (installation, options, credentials, context) => {
+  if (installation.via === "executable" && isKimiKapCandidate(installation.version)) {
+    const result = await openKimiKapSession(installation, options, credentials);
+    if (result.kind === "session") {
+      return result.session;
+    }
+  }
+  return directAcpSession(installation, options, context);
+});

@@ -16,6 +16,8 @@ describe("native task records and child output", () => {
     ["qoder", "1.1.83", ["agent"], undefined],
     ["qwen", "0.27.4", ["agent"], { foreground: "parent_tool_result" }],
     ["kimi", "2.6.3", [], { foreground: "parent_tool_result" }],
+    ["kimi", "2.7.2-botiverse.0", [], { foreground: "parent_tool_result" }],
+    ["kimi", "2.7.2-botiverse.1", ["agent", "shell"], { foreground: "parent_tool_result", background: "child_text" }],
     ["opencode", "1.19.5", [], { foreground: "parent_tool_result" }],
     ["opencode", "2.2.7", [], { foreground: "parent_tool_result" }],
     ["opencode", "2.3.0", ["agent"], { background: "child_text" }],

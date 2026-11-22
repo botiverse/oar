@@ -180,3 +180,16 @@ test("classifyTool distinguishes Factory MCP tools from malformed triple-undersc
   assert.deepEqual(classifyTool("factory", "a___b\nc"), { kind: "other", detail: "a___b\nc" });
   assert.deepEqual(classifyTool("factory", "__proto__"), { kind: "other", detail: "__proto__" });
 });
+
+test("classifyTool maps Kimi KAP tools including Agent subagent task fields", () => {
+  assert.deepEqual(classifyTool("kimi", "Write"), { kind: "edit_file" });
+  assert.deepEqual(classifyTool("kimi", "Glob"), { kind: "search" });
+  assert.deepEqual(classifyTool("kimi", "FetchURL"), { kind: "fetch" });
+  assert.deepEqual(classifyTool("kimi", "WebSearch"), { kind: "web" });
+  assert.deepEqual(classifyTool("kimi", "WaitFor"), { kind: "wait" });
+  assert.deepEqual(classifyTool("kimi", "Agent", JSON.stringify({ description: "inspect files", subagent_type: "research" })), {
+    kind: "subagent",
+    detail: "inspect files",
+    description: "inspect files",
+  });
+});
