@@ -28,7 +28,7 @@ jobs:
           mkdir -p evidence
           result=0
           for transport in kap sdk acp; do
-            node .github/kimi-transport-probe/probe.mjs "$transport" "$RUNNER_TEMP/kimi333" "evidence/$transport.json" || result=1
+            node .github/kimi-transport-probe/run.mjs "$transport" "$RUNNER_TEMP/kimi333" "evidence/$transport.json" || result=1
           done
           exit "$result"
       - uses: actions/upload-artifact@v4

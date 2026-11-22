@@ -4,25 +4,22 @@ import { once } from "node:events";
 import { existsSync, readFileSync } from "node:fs";
 import {
   mkdir,
-  mkdtemp,
   readdir,
   readFile,
-  rm,
   writeFile,
 } from "node:fs/promises";
 import { createServer } from "node:http";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-const [kind, prefix, outputArg] = process.argv.slice(2);
+const [kind, prefix, outputArg, root] = process.argv.slice(2);
 const output = path.resolve(outputArg);
 const modules = path.resolve(prefix, "node_modules");
 
 const startingCwd = process.cwd();
-const root = await mkdtemp(path.join(tmpdir(), "kimi-transport-"));
+if (!root) throw new Error("The probe launcher must supply a temporary root");
 const home = path.join(root, "home"),
   cwd = path.join(root, "project"),
   state = path.join(home, "kimi");
@@ -377,14 +374,23 @@ const echoArgs = [
 async function diskMarkerFiles() {
   const found = [];
   async function visit(dir) {
-    for (const ent of await readdir(dir, { withFileTypes: true })) {
-      const file = path.join(dir, ent.name);
-      if (ent.isDirectory()) await visit(file);
-      else if (
-        ent.isFile() &&
-        (await readFile(file)).includes(publicConfigMarker)
-      )
-        found.push(path.relative(state, file).split(path.sep).join("/"));
+    const entries = await sample(() => readdir(dir, { withFileTypes: true }));
+    for (const entry of entries ?? []) {
+      const file = path.join(dir, entry.name);
+      if (entry.isDirectory()) await visit(file);
+      else if (entry.isFile()) {
+        const data = await sample(() => readFile(file));
+        if (data?.includes(publicConfigMarker))
+          found.push(path.relative(state, file).split(path.sep).join("/"));
+      }
+    }
+  }
+  async function sample(read) {
+    try {
+      return await read();
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+      results.vanishedDuringScan = (results.vanishedDuringScan ?? 0) + 1;
     }
   }
   await visit(state);
@@ -685,6 +691,12 @@ async function acp() {
       prompt: [{ type: "text", text: "STEER333" }],
     }),
   );
+  await check("steeringExtension", () =>
+    c.ask("_session/steering", {
+      sessionId: id,
+      prompt: [{ type: "text", text: "STEER333" }],
+    }),
+  );
   const simultaneous = prompt(id, "STEER333").then(
     (v) => ({ ok: v }),
     (e) => ({ error: e.message }),
@@ -921,11 +933,5 @@ try {
   await new Promise((r) => server.close(r));
   await writeFile(output, JSON.stringify(results, null, 2));
   process.chdir(startingCwd);
-  await rm(root, {
-    recursive: true,
-    force: true,
-    maxRetries: 5,
-    retryDelay: 100,
-  });
   console.log(kind, results.error ?? "completed", results.requests.length);
 }
