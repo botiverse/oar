@@ -110,3 +110,43 @@ for (const backend of backends) {
     }, 120_000);
   });
 }
+
+describe.skipIf(process.env.OAR_TEST !== "grok-aimock")("grok-aimock serveMcpTools readiness", () => {
+  const grok = defineRuntime({ id: "grok-aimock", session: grokSession, installation: grokInstallation });
+
+  test("rejects open when a served server is unavailable even if mcp_initialized arrives first", async () => {
+    const dead = await serveMcpTools({ name: "deadhost", tools: [hostEcho] });
+    const token = dead.server.headers?.Authorization?.replace("Bearer ", "") ?? "";
+    await dead.close();
+    const env = await startGrokAimock((mock) => { mock.onMessage(/.*/u, { content: "ok" }); });
+    try {
+      let caught: unknown = null;
+      try {
+        const session = await runtimeUnderTest(grok, env.env, env.cwd).startSession({ mcpServers: [dead.server] });
+        await session.dispose();
+      } catch (error) { caught = error; }
+      expect(caught).toBeInstanceOf(Error);
+      const message = caught instanceof Error ? caught.message : String(caught);
+      expect(message).toContain('Grok served MCP server "deadhost": handshake_failed');
+      expect(message).not.toContain(token);
+    } finally {
+      await env.stop();
+    }
+  }, 60_000);
+
+  test("opens and resumes with an empty-tool served server", async () => {
+    const empty = await serveMcpTools({ name: "emptyhost", tools: [] });
+    const env = await startGrokAimock((mock) => { mock.onMessage(/.*/u, { content: "ok" }); });
+    try {
+      const subject = runtimeUnderTest(grok, env.env, env.cwd);
+      const first = await subject.startSession({ mcpServers: [empty.server] });
+      const { id } = first;
+      await first.dispose();
+      const resumed = await subject.startSession({ resume: id, mcpServers: [empty.server] });
+      await resumed.dispose();
+    } finally {
+      await env.stop();
+      await empty.close();
+    }
+  }, 60_000);
+});

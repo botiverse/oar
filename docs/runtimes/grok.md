@@ -880,11 +880,18 @@ filesystem methods does not disable every vendor-configured tool.
 
 ### Session MCP servers
 
-When a host attaches a `serveMcpTools` entry, OAR waits during open for
-`_x.ai/mcp_initialized` on that session. The existing session-open deadline
-also bounds discovery. A named `unavailable` report for a served server
-rejects the open with Grok's reason (for example, `handshake_failed`).
-An unavailable optional server can coexist with a working served server.
+When a host attaches a `serveMcpTools` entry, OAR waits during open for both
+`_x.ai/mcp_initialized` and a `_x.ai/mcp/server_status` report with
+`status: "ready"` for every served server on that session. Grok emits
+`_x.ai/mcp/server_status` asynchronously (either before or after
+`_x.ai/mcp_initialized`, observed on 1.0.70 and 1.0.92 for both `session/new`
+and `session/resume`, including empty-tool servers), so waiting for both
+prevents a fast-failing server from slipping past `_x.ai/mcp_initialized`. The
+existing session-open deadline bounds discovery. A named non-ready terminal
+status for a served server (`unavailable`, `needsauth`/`needs_auth`;
+`initializing` is non-terminal) rejects the open with Grok's reason (for
+example, `handshake_failed`). An unavailable optional server can coexist with
+a working served server.
 
 Grok 1.0.70 and 1.0.92 reported a server `ready` when its HTTP handshake
 finished, before its catalog arrived. In a local provider control that held
