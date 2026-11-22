@@ -5,6 +5,7 @@ import { boolField, inventoryOk, inventoryRead, named, nativeRows, skillScope, t
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { DshCommandError, dshControl } from "./control.js";
 import { dshEnvironment, launchDsh } from "./launch.js";
+import { profileWaitReason, type DshProfileWait } from "./profile-startup.js";
 import { dshVersionUnsupported } from "./version.js";
 
 function project(row: JsonRecord): SkillEntry {
@@ -23,6 +24,7 @@ function project(row: JsonRecord): SkillEntry {
 export const dshSkills: InventoryReader<SkillEntry> = async (installation, options = {}) => {
   if (installation.via !== "executable") { return unsupportedInventory("installation_unsupported", "DSH skill discovery requires an executable"); }
   const timeoutMs = options.timeoutMs ?? 15_000;
+  const profileWait: DshProfileWait = {};
   const result = await inventoryRead(async (signal, own) => {
     const env = dshEnvironment(options.env);
     const version = installation.version ?? await readExecutableVersion(installation.command, timeoutMs, undefined, env, signal);
@@ -30,10 +32,10 @@ export const dshSkills: InventoryReader<SkillEntry> = async (installation, optio
     const refusal = dshVersionUnsupported(version);
     if (refusal !== null) { return refusal; }
     const scope = workspaceScope(options);
-    const launched = await launchDsh(installation.command, scope.cwd, env, { signal }).catch(() => null);
+    const launched = await launchDsh(installation.command, scope.cwd, env, { signal, profileWait }).catch(() => null);
     if (launched === null) { return unavailableInventory("query_failed", "Native inventory query failed"); }
     own(launched.child);
-    const control = dshControl(launched.child, () => {});
+    const control = dshControl(launched.child, () => {}, undefined, launched.profileLoaded);
     await control.ready;
     let snapshot: JsonRecord = {};
     try { snapshot = await control.request("skills", { cwd: scope.cwd }, timeoutMs); }
@@ -46,5 +48,6 @@ export const dshSkills: InventoryReader<SkillEntry> = async (installation, optio
     if (typeof snapshot.complete !== "boolean") { throw new TypeError("DSH skill snapshot has no completeness flag"); }
     return inventoryOk(scope, "discovered", nativeRows(snapshot.skills).map(row => project(row)), !snapshot.complete);
   }, timeoutMs);
-  return result;
+  const reason = profileWaitReason(profileWait);
+  return result.kind === "unavailable" && result.code === "timeout" && reason !== undefined ? unavailableInventory("timeout", reason) : result;
 };

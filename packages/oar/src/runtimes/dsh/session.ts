@@ -103,7 +103,7 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
   const agentOptions = dshAgentOptions(options);
   const kernel = credentials.kernel(sessionId);
   let projection = initialDshProjection(sessionId);
-  const { child, directory } = await launchDsh(command, options.cwd, env, { mcpRows, disableSessionLogUpload: options.sessionLogUpload === "off" });
+  const { child, directory, profileLoaded } = await launchDsh(command, options.cwd, env, { mcpRows, disableSessionLogUpload: options.sessionLogUpload === "off" });
   const fallback = createAbortFallback(() => { child.kill(); });
   let exited = false;
   let hasSessionFileStat = false;
@@ -128,7 +128,7 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
       }
     }
     kernel.frame(frame.body, frame.sessionId === undefined ? undefined : { sessionId: frame.sessionId });
-  }, credentials.redact);
+  }, credentials.redact, profileLoaded);
   child.onExit((code, reason) => {
     exited = true;
     fallback.clear();
