@@ -32,6 +32,7 @@ export function createRuntimeState(
     observedRootPromptIds: new Set(),
     compactionBusy,
     activeRootTurn: null,
+    activeRootPromptId: null,
     rootTurnEpoch: 0,
     awaitingTurnStart: false,
     abortRequested: false,
@@ -42,18 +43,15 @@ export function createRuntimeState(
 }
 
 function settlePendingSteersOnTurnStart(state: KapRuntimeState, opened: KapTurnRef): void {
-  if (opened.steeredFromPromptId !== undefined) {
-    state.observedRootPromptIds.add(opened.steeredFromPromptId);
-  }
   for (let i = state.pendingSteers.length - 1; i >= 0; i -= 1) {
     const entry = state.pendingSteers[i];
     if (entry === undefined) { continue; }
-    const matchedPrompt = opened.steeredFromPromptId !== undefined && entry.promptId === opened.steeredFromPromptId;
-    const matchedParent =
-      opened.steeredFromPromptId === undefined &&
-      opened.steeredFromTurnId !== undefined &&
-      entry.parentTurnId === opened.steeredFromTurnId;
-    if (matchedPrompt || matchedParent) {
+    const matchedParentTurn = opened.steeredFromTurnId !== undefined && entry.parentTurnId === opened.steeredFromTurnId;
+    const matchedParentPrompt =
+      opened.steeredFromPromptId !== undefined &&
+      entry.parentPromptId !== null &&
+      entry.parentPromptId === opened.steeredFromPromptId;
+    if (matchedParentTurn || matchedParentPrompt) {
       state.pendingSteers.splice(i, 1);
     } else {
       entry.parentTurnId ??= opened.turnId;
@@ -62,6 +60,9 @@ function settlePendingSteersOnTurnStart(state: KapRuntimeState, opened: KapTurnR
 }
 
 function recordObservedRootPrompts(state: KapRuntimeState, promptIds: readonly string[]): void {
+  if (promptIds[0] !== undefined) {
+    state.activeRootPromptId = promptIds[0];
+  }
   for (const pid of promptIds) {
     state.observedRootPromptIds.add(pid);
     for (let i = state.pendingSteers.length - 1; i >= 0; i -= 1) {
@@ -123,21 +124,29 @@ export function processWsFrame(
     manualCompactionActive: state.compactionBusy(),
     pendingToAppInteractions: pendingToApp,
   });
-  if (projected.rootUserPromptIds !== undefined) {
-    recordObservedRootPrompts(state, projected.rootUserPromptIds);
-  }
   if (projected.openedTurn !== undefined && projected.openedTurn.agentId === "main") {
     state.rootTurnEpoch += 1;
     state.awaitingTurnStart = false;
     state.abortRequested = false;
     state.activeRootTurn = projected.openedTurn.turnId;
+    if (projected.openedTurn.steeredFromTurnId !== undefined || projected.openedTurn.steeredFromPromptId !== undefined) {
+      state.activeRootPromptId = null;
+    }
     settlePendingSteersOnTurnStart(state, projected.openedTurn);
   }
-  if (projected.endedTurnId !== undefined && (state.activeRootTurn === projected.endedTurnId || (state.awaitingTurnStart && state.activeRootTurn === null))) {
+  if (projected.rootUserPromptIds !== undefined) {
+    recordObservedRootPrompts(state, projected.rootUserPromptIds);
+  }
+  if (
+    projected.endedTurn !== undefined &&
+    projected.endedTurn.agentId === "main" &&
+    (state.activeRootTurn === projected.endedTurn.turnId || (state.awaitingTurnStart && state.activeRootTurn === null))
+  ) {
     state.awaitingTurnStart = false;
     state.activeRootTurn = null;
+    state.activeRootPromptId = null;
     state.abortFallback.clear();
-    if (state.abortRequested || projected.endedTurnOutcome === "failed") {
+    if (state.abortRequested || projected.endedTurn.outcome === "failed") {
       state.pendingSteers.length = 0;
     }
     state.abortRequested = false;

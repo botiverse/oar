@@ -52,6 +52,7 @@ export async function openKimiKapSession(
     if (state !== null) {
       state.abortFallback.clear();
       state.awaitingTurnStart = false;
+      state.activeRootPromptId = null;
       state.pendingSteers.length = 0;
       state.held.length = 0;
     }
@@ -88,6 +89,7 @@ export async function openKimiKapSession(
     opened.child.onExit((code, reason) => {
       runtimeState.abortFallback.clear();
       runtimeState.awaitingTurnStart = false;
+      runtimeState.activeRootPromptId = null;
       runtimeState.pendingSteers.length = 0;
       runtimeState.held.length = 0;
       const baseReason = opened.exitReason(reason);
@@ -118,6 +120,7 @@ export async function openKimiKapSession(
         await activeKernel.dispose(async () => {
           runtimeState.abortFallback.clear();
           runtimeState.awaitingTurnStart = false;
+          runtimeState.activeRootPromptId = null;
           runtimeState.pendingSteers.length = 0;
           runtimeState.held.length = 0;
           await opened.disposeTransport();

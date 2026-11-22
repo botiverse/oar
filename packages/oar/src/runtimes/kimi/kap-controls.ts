@@ -36,6 +36,7 @@ export const KAP_SESSION_CAPABILITIES: SessionCapabilities = {
 export interface PendingKapSteer {
   readonly promptId: string;
   parentTurnId: string | null;
+  readonly parentPromptId: string | null;
 }
 
 export interface KapRuntimeState {
@@ -50,6 +51,7 @@ export interface KapRuntimeState {
   readonly observedRootPromptIds: Set<string>;
   compactionBusy: () => boolean;
   activeRootTurn: string | null;
+  activeRootPromptId: string | null;
   rootTurnEpoch: number;
   awaitingTurnStart: boolean;
   abortRequested: boolean;
@@ -87,11 +89,7 @@ function maybeScheduleDrain(state: KapRuntimeState): void {
   }
 }
 
-const WS_CLOSED_REJECTION: ResponseBody = {
-  kind: "rejected",
-  code: "runtime_exited",
-  reason: "Kimi KAP WebSocket is closed",
-};
+const WS_CLOSED_REJECTION: ResponseBody = { kind: "rejected", code: "runtime_exited", reason: "Kimi KAP WebSocket is closed" };
 
 function hasActiveRootTurn(state: KapRuntimeState): boolean {
   return state.activeRootTurn !== null || state.awaitingTurnStart || state.prompting || state.dispatching;
@@ -130,6 +128,7 @@ async function postKapPrompt(
   );
   if (state.rootTurnEpoch === turnEpochBefore && state.activeRootTurn === null) {
     state.awaitingTurnStart = true;
+    state.activeRootPromptId = promptId;
   }
   return { kind: "accepted", native: data };
 }
@@ -207,13 +206,12 @@ export function createKapControls(state: KapRuntimeState): Pick<
       const body = { kind: "steer" as const, input, ...optionalInputFields(steerOptions) };
       const result = await state.kernel.control(body, async (req) => {
         if (state.socket.closed()) { return WS_CLOSED_REJECTION; }
-        if (!hasActiveRootTurn(state)) {
-          return { kind: "rejected", code: "no_active_turn", reason: "no active turn to steer" };
-        }
+        if (state.compactionBusy()) { return { kind: "rejected", code: "busy", reason: "manual compaction is in progress" }; }
+        if (!hasActiveRootTurn(state)) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn to steer" }; }
         const promptId = steerOptions?.inputId ?? req.id;
         const pendingSteer: PendingKapSteer | null = state.observedRootPromptIds.has(promptId)
           ? null
-          : { promptId, parentTurnId: state.activeRootTurn };
+          : { promptId, parentTurnId: state.activeRootTurn, parentPromptId: state.activeRootPromptId };
         if (pendingSteer !== null) { state.pendingSteers.push(pendingSteer); }
         const delivery = await withInputImages(KAP_SESSION_CAPABILITIES, steerOptions?.images, async (loaded) => {
           if (state.socket.closed()) {
@@ -279,6 +277,10 @@ export function createKapControls(state: KapRuntimeState): Pick<
         try {
           const url = `/sessions/${encodeURIComponent(state.sessionId)}:cancel`;
           const data = await kapRequest(state.endpoint.origin, state.endpoint.token, url, { method: "POST", body: {}, timeoutMs: 15_000 });
+          if (data.cancelled === false) {
+            disarm();
+            return { kind: "rejected", code: "no_active_turn", reason: "Kimi reported no active turn to cancel", native: data };
+          }
           state.abortRequested = true;
           return { kind: "accepted", native: data };
         } catch (error) {

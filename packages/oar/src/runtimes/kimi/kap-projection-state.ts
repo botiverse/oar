@@ -17,6 +17,12 @@ export interface KapTurnRef {
   readonly steeredFromPromptId?: string;
 }
 
+export interface KapEndedTurnRef {
+  readonly turnId: string;
+  readonly agentId: string;
+  readonly outcome: "completed" | "aborted" | "failed";
+}
+
 export interface KapProjectedFrame {
   readonly at: RecordAt;
   readonly body: FrameBody;
@@ -25,8 +31,7 @@ export interface KapProjectedFrame {
   readonly pendingInteraction?: KapPendingInteraction;
   readonly endedInteractionId?: string;
   readonly openedTurn?: KapTurnRef;
-  readonly endedTurnId?: string;
-  readonly endedTurnOutcome?: "completed" | "aborted" | "failed";
+  readonly endedTurn?: KapEndedTurnRef;
   readonly rootUserPromptIds?: readonly string[];
 }
 

@@ -124,20 +124,35 @@ retaining both user-preservation assertions.
 ## High-level mapping to OAR
 
 OAR exposes one ordered record stream per Session
-([contract](../../packages/oar/src/contracts/session.ts)). On **KAP** builds
-(`>= 2.7.2-botiverse.1` or `>= 2.7.3` advertising `/meta` KAP capabilities),
-`kimiRuntime.sessionCapabilities()` declares `{ queue: { durable: false },
-attribution: "attributed", images: true, steer: true, stopTask: true,
-manualCompaction: { kind: "supported", activeTurn: "reject" },
-compactionEvents: { started: true, ended: true }, taskEventTypes: ["agent",
-"shell"], subagentResults: { foreground: "parent_tool_result", background:
-"child_text" }, additionalDirectories: { onCreate: true, onResume: "refused" },
-mcpTransports: ["stdio", "http"] }` and does not refuse `appendSystemPrompt`.
-On **ACP fallback** builds (`<= 2.7.2-botiverse.0`, unknown `web --json`, or
-incomplete `/meta.capabilities`), the profile declares `capabilities`
-`{ queue: { durable: false }, attribution: "opaque", steer: false, stopTask:
-false, manualCompaction: { kind: "unsupported" } }` with `images` read from
-`initialize`, and refuses `appendSystemPrompt`.
+([contract](../../packages/oar/src/contracts/session.ts)). On the opened
+`Session`, **KAP** builds (`>= 2.7.2-botiverse.1` or `>= 2.7.3` with required
+`/api/v1/meta` capabilities) report `{ queue: { durable: false },
+attribution: "attributed", images: true }`, while **ACP fallback** reports
+`{ queue: { durable: false }, attribution: "opaque" }` with `images` read
+from `initialize`. Before open, `kimiRuntime.sessionCapabilities(installation)`
+([declaration](../../packages/oar/src/runtimes/kimi/options.ts)) branches on
+version:
+
+- **`>= 2.7.2-botiverse.1` (fork KAP builds):** declares
+  `taskEventTypes: ["agent", "shell"]`,
+  `subagentResults: { foreground: "parent_tool_result", background: "child_text" }`,
+  `steer: true`, `images: true`, `stopTask: true`,
+  `contextUsage: { tokens: true, contextWindow: true }`,
+  `mcpTransports: ["stdio", "http"]`,
+  `manualCompaction: { kind: "supported", activeTurn: "reject" }`, and
+  `compactionEvents: { started: true, ended: true }` (with no
+  `appendSystemPrompt` refusal). `SessionOptions.additionalDirectories` is
+  supported on create and refused on resume.
+- **`>= 2.7.3` (official upstream candidates):** declares only
+  `{ subagentResults: { foreground: "parent_tool_result" }, contextUsage: { tokens: true, contextWindow: true }, mcpTransports: ["stdio", "http"] }`,
+  leaving KAP-only capabilities (`steer`, `stopTask`, `taskEventTypes`,
+  `manualCompaction`, `compactionEvents`, and `appendSystemPrompt` refusal)
+  unknown until open-time `/api/v1/meta` negotiation succeeds or falls back to
+  ACP.
+- **ACP fallback (`<= 2.7.2-botiverse.0` or missing `/meta` capabilities):**
+  declares `taskEventTypes: []`, `steer: false`, `stopTask: false`,
+  `manualCompaction: { kind: "unsupported" }`, and refuses
+  `appendSystemPrompt`.
 
 ### KAP transport selection and session mapping (2.7.2-botiverse.1+)
 
@@ -162,13 +177,17 @@ false, manualCompaction: { kind: "unsupported" } }` with `images` read from
    replay frames.
 3. **Controls, steers, and compaction:** `prompt`, mid-turn `steer`, `queue`,
    `withdraw`, `abort` (`:cancel` with kill fallback), and WS `task.stop`
-   (`stopTask`) map to native KAP routes. Accepted `steer` holds the adapter
+   (`stopTask`) map to native KAP routes, and `abort()` returns `no_active_turn`
+   (disarming its kill fallback) when KAP replies `{ cancelled: false }`.
+   Accepted `steer` holds the adapter
    queue across parent turn completion until the linked continuation turn
-   starts (`steered_from_turn_id` / `steered_from_prompt_id` / matching prompt
-   ID) or the turn aborts or fails. Manual `compact()` delegates to shared
+   starts (`steered_from_turn_id` and `steered_from_prompt_id` reference the
+   parent turn, while `user_message.prompt_ids` carries the steer prompt ID) or
+   the turn aborts or fails. Manual `compact()` delegates to shared
    `manualCompaction`, driving queue admission from `compaction.busy()`, draining
-   held input from its `released` hook, and rejecting compaction while a turn,
-   awaiting prompt, steer, or queued input is active.
+   held input from its `released` hook, and rejecting compaction or `steer()`
+   with `busy` while manual compaction is unresolved or a turn, awaiting
+   prompt, steer, or queued input is active.
 4. **Unexpected WS closure and shutdown:** When the event WebSocket drops
    unexpectedly, controls (`prompt`, `steer`, `queue`, `abort`, `stopTask`,
    `compact`) immediately reject with `runtime_exited`, held input is dropped,

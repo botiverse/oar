@@ -18,6 +18,7 @@ import { recordChildAgent } from "./kap-items.js";
 import {
   asBoolean,
   asString,
+  type KapEndedTurnRef,
   type KapPendingInteraction,
   type KapProjectionOptions,
   type KapProjectionState,
@@ -79,7 +80,7 @@ export function projectTurnEndedEvents(
   agentId: string,
   turn: JsonRecord,
   events: RuntimeEventBody[],
-): { readonly turnId: string; readonly outcome: "completed" | "aborted" | "failed" } | undefined {
+): KapEndedTurnRef | undefined {
   const turnId = asString(turn.turn_id);
   if (turnId === undefined) { return undefined; }
   if (asString(turn.kind) === "system" || state.systemTurnIds.has(turnId)) {
@@ -112,7 +113,7 @@ export function projectTurnEndedEvents(
     ...(promptIds !== undefined && promptIds.length === 1 && promptIds[0] !== undefined ? { inputId: promptIds[0] } : {}),
     ...(promptIds !== undefined && promptIds.length > 1 ? { inputIds: [...promptIds] } : {}),
   });
-  return { turnId, outcome: outcome.kind };
+  return { turnId, agentId, outcome: outcome.kind };
 }
 
 export function projectTaskEvents(

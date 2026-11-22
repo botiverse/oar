@@ -3,7 +3,16 @@ import { asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
 import type { RecordAt } from "../../shared/session-kernel.js";
 import { projectContextUsage, projectRetryUpdate, projectStepUsage } from "./kap-failures.js";
 import { projectItemEvents, recordChildAgent, registerChildAgentsFromRefs } from "./kap-items.js";
-import { asString, asStringArray, stringifyToolInput, type KapProjectedFrame, type KapProjectionOptions, type KapProjectionState } from "./kap-projection-state.js";
+import {
+  asString,
+  asStringArray,
+  stringifyToolInput,
+  type KapEndedTurnRef,
+  type KapProjectedFrame,
+  type KapProjectionOptions,
+  type KapProjectionState,
+  type KapTurnRef,
+} from "./kap-projection-state.js";
 import {
   projectInteractionEvent,
   projectTaskEvents,
@@ -14,6 +23,7 @@ import {
 export { kapFailedTurn } from "./kap-failures.js";
 export {
   createKapProjection,
+  type KapEndedTurnRef,
   type KapPendingInteraction,
   type KapProjectedFrame,
   type KapProjectionOptions,
@@ -59,6 +69,12 @@ function projectTaskListFrame(
   }
 }
 
+interface TurnsSnapshotResult {
+  readonly openedTurn?: KapTurnRef;
+  readonly endedTurn?: KapEndedTurnRef;
+  readonly rootUserPromptIds?: readonly string[];
+}
+
 function projectTurnsSnapshot(
   state: KapProjectionState,
   agentId: string,
@@ -67,7 +83,7 @@ function projectTurnsSnapshot(
   options: KapProjectionOptions,
   events: RuntimeEventBody[],
   subscribeAgents: string[],
-): void {
+): TurnsSnapshotResult {
   const turns = asRecordList(rawFrame.turns);
   const isFirstSnapshot = !state.seenInitialTurns.has(agentId);
   state.seenInitialTurns.add(agentId);
@@ -81,18 +97,31 @@ function projectTurnsSnapshot(
       }
     }
   }
+  let openedTurn: KapTurnRef | null = null;
+  let endedTurn: KapEndedTurnRef | null = null;
+  const rootPromptIds: string[] = [];
   for (const turn of turns) {
     const turnId = asString(turn.turn_id);
     if (turnId !== undefined && state.historicalTurnIds.has(turnId)) { continue; }
-    projectTurnStartedEvents(state, agentId, turn, events);
+    const started = projectTurnStartedEvents(state, agentId, turn, events);
+    if (started !== undefined) { openedTurn = started; endedTurn = null; }
     for (const item of asRecordList(turn.items)) {
       const evType = asString(item.status) === "running" ? "item.started" : "item.ended";
       projectItemEvents(state, evType, agentPath, turnId, item, options, events, subscribeAgents);
+      if (agentId === "main" && asString(item.type) === "user_message") {
+        rootPromptIds.push(...asStringArray(item.prompt_ids));
+      }
     }
     if (asString(turn.status) === "ended") {
-      projectTurnEndedEvents(state, agentId, turn, events);
+      const ended = projectTurnEndedEvents(state, agentId, turn, events);
+      if (ended !== undefined) { endedTurn = ended; }
     }
   }
+  return {
+    ...(openedTurn === null ? {} : { openedTurn }),
+    ...(endedTurn === null ? {} : { endedTurn }),
+    ...(rootPromptIds.length > 0 ? { rootUserPromptIds: rootPromptIds } : {}),
+  };
 }
 
 function projectItemDelta(
@@ -161,8 +190,14 @@ export function projectKapFrame(
     return { at, body: { type, native: rawFrame, events }, ...outcome };
   }
   if (type === "turns") {
-    projectTurnsSnapshot(state, agentId, agentPath, rawFrame, options, events, subscribeAgents);
-    return { at, body: { type, native: rawFrame, events }, ...(subscribeAgents.length > 0 ? { subscribeAgents } : {}) };
+    const snapshot = projectTurnsSnapshot(state, agentId, agentPath, rawFrame, options, events, subscribeAgents);
+    const spanId = snapshot.openedTurn?.turnId ?? snapshot.endedTurn?.turnId ?? resolvedSpan;
+    return {
+      at: { agentPath, ...(spanId === undefined ? {} : { spanId }) },
+      body: { type, native: rawFrame, events },
+      ...(subscribeAgents.length > 0 ? { subscribeAgents } : {}),
+      ...snapshot,
+    };
   }
   if (type === "turn.started" && turnRecord !== null) {
     const openedTurn = projectTurnStartedEvents(state, agentId, turnRecord, events);
@@ -184,12 +219,8 @@ export function projectKapFrame(
     return { at, body: { type, native: rawFrame, events } };
   }
   if (type === "turn.ended" && turnRecord !== null) {
-    const ended = projectTurnEndedEvents(state, agentId, turnRecord, events);
-    return {
-      at,
-      body: { type, native: rawFrame, events },
-      ...(ended === undefined ? {} : { endedTurnId: ended.turnId, endedTurnOutcome: ended.outcome }),
-    };
+    const endedTurn = projectTurnEndedEvents(state, agentId, turnRecord, events);
+    return { at, body: { type, native: rawFrame, events }, ...(endedTurn === undefined ? {} : { endedTurn }) };
   }
   if (type === "item.started" || type === "item.ended") {
     const item = asRecord(rawFrame.item);

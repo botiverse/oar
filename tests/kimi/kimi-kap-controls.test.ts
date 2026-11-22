@@ -50,15 +50,15 @@ test("requires positive effort confirmation when agent snapshot omits thinking",
   ).rejects.toThrow(UnsupportedOptionError);
 });
 
-async function assertSlowCompactionQueue(session: Session, fx: KapTestFixture): Promise<void> {
-  const events: Event[] = [];
-  session.events((ev) => { events.push(ev); });
+async function assertSlowCompactionQueue(session: Session, fx: KapTestFixture, events: Event[]): Promise<void> {
   const outcome = await session.compact?.({ timeoutMs: 25 });
   expect(outcome?.kind).toBe("unconfirmed");
   const queued = await session.queue("AFTER_COMPACT", { inputId: randomUUID() });
   const blocked = await session.prompt("BLOCKED_WHILE_COMPACTING");
-  expect([queued.response.body, blocked.response.body]).toEqual([
+  const blockedSteer = await session.steer?.("STEER_WHILE_COMPACTING");
+  expect([queued.response.body, blocked.response.body, blockedSteer?.response.body]).toEqual([
     expect.objectContaining({ kind: "accepted", queued: "adapter" }),
+    expect.objectContaining({ kind: "rejected", code: "busy" }),
     expect.objectContaining({ kind: "rejected", code: "busy" }),
   ]);
   expect(postedPrompts(fx)).toEqual([]);
@@ -68,8 +68,10 @@ async function assertSlowCompactionQueue(session: Session, fx: KapTestFixture): 
 
 test("holds queue and direct prompts through unconfirmed compaction, then drains on release", async () => {
   const fx = useFixture();
+  const events: Event[] = [];
   const session = await fx.open("2.7.2-botiverse.1", { env: { FAKE_KIMI_SCENARIO: "slow_compact", FAKE_KIMI_LOG: fx.logFile } });
-  await assertSlowCompactionQueue(session, fx);
+  session.events((ev) => { events.push(ev); });
+  await assertSlowCompactionQueue(session, fx, events);
 });
 
 test("rejects compact while a prompt is active or awaiting its first frame", async () => {
@@ -109,19 +111,24 @@ test("settles active turn when WebSocket closes mid-turn", async () => {
   await session.dispose();
 });
 
-async function runChainedSteer(session: Session, fx: KapTestFixture, events: Event[]): Promise<string[]> {
-  await session.prompt("HOLD_FOR_CONTROLS");
-  await waitTurnStarted(session, "initial held turn");
-  await session.queue("QUEUED_AFTER_STEER", { inputId: randomUUID() });
-  await session.steer?.("STEER_FIRST HOLD_STEER");
+async function runChainedSteer(input: {
+  readonly session: Session;
+  readonly fx: KapTestFixture;
+  readonly events: Event[];
+  readonly parentPromptId: string;
+}): Promise<string[]> {
+  await input.session.prompt("HOLD_FOR_CONTROLS", { inputId: input.parentPromptId });
+  await waitTurnStarted(input.session, "initial held turn");
+  await input.session.queue("QUEUED_AFTER_STEER", { inputId: randomUUID() });
+  await input.session.steer?.("STEER_FIRST HOLD_STEER");
   await waitUntil(
-    () => session.records().some((r) => r.kind === "frame" && asRecord(asRecord(r.body.native)?.turn)?.steered_from_turn_id !== undefined),
-    "first steer turn.started",
+    () => input.session.records().some((r) => r.kind === "frame" && asRecord(asRecord(r.body.native)?.turn)?.steered_from_prompt_id === input.parentPromptId),
+    "first steer turn.started with parent prompt correlation",
   );
-  expect(postedPrompts(fx).some((body) => body.includes("QUEUED_AFTER_STEER"))).toBe(false);
-  await session.steer?.("STEER_SECOND");
-  await finishAndDispose(session, "chained steer + queued turn");
-  return events.filter((ev) => ev.kind === "text_delta").map((ev) => ev.text);
+  expect(postedPrompts(input.fx).some((body) => body.includes("QUEUED_AFTER_STEER"))).toBe(false);
+  await input.session.steer?.("STEER_SECOND");
+  await finishAndDispose(input.session, "chained steer + queued turn");
+  return input.events.filter((ev) => ev.kind === "text_delta").map((ev) => ev.text);
 }
 
 test("keeps queued input held across chained steer continuations and inter-turn gaps", async () => {
@@ -129,7 +136,81 @@ test("keeps queued input held across chained steer continuations and inter-turn 
   const events: Event[] = [];
   const session = await fx.open("2.7.2-botiverse.1", { env: { FAKE_KIMI_LOG: fx.logFile } });
   session.events((ev) => { events.push(ev); });
-  const texts = await runChainedSteer(session, fx, events);
+  const texts = await runChainedSteer({ session, fx, events, parentPromptId: randomUUID() });
   expect(texts.indexOf("reply:STEER_SECOND")).toBeGreaterThanOrEqual(0);
   expect(texts.indexOf("reply:QUEUED_AFTER_STEER")).toBeGreaterThan(texts.indexOf("reply:STEER_SECOND"));
+});
+
+async function runNoUserMsgSteer(session: Session, events: Event[]): Promise<string[]> {
+  await session.prompt("HOLD_FOR_CONTROLS", { inputId: randomUUID() });
+  await waitTurnStarted(session, "held parent before no-user-msg steer");
+  await session.queue("QUEUED_AFTER_NO_USER_MSG", { inputId: randomUUID() });
+  await session.steer?.("NO_STEER_USER_MSG");
+  await finishAndDispose(session, "no-user-msg steer drain");
+  return events.filter((ev) => ev.kind === "text_delta").map((ev) => ev.text);
+}
+
+test("releases queued input when steered successor correlates via parent IDs without user_message", async () => {
+  const fx = useFixture();
+  const events: Event[] = [];
+  const session = await fx.open("2.7.2-botiverse.1", { env: { FAKE_KIMI_LOG: fx.logFile } });
+  session.events((ev) => { events.push(ev); });
+  const texts = await runNoUserMsgSteer(session, events);
+  expect(texts.indexOf("reply:QUEUED_AFTER_NO_USER_MSG")).toBeGreaterThan(texts.indexOf("reply:NO_STEER_USER_MSG"));
+});
+
+async function assertInitialRunningTurn(session: Session): Promise<void> {
+  expect(session.status().value.kind).toBe("running");
+  const pBusy = await session.prompt("SECOND_PROMPT");
+  const cBusy = await session.compact?.();
+  const aborted = await session.abort();
+  expect([pBusy.response.body, cBusy, aborted.response.body]).toEqual([
+    expect.objectContaining({ kind: "rejected", code: "busy" }),
+    expect.objectContaining({ kind: "rejected", code: "busy" }),
+    expect.objectContaining({ kind: "accepted" }),
+  ]);
+  await waitUntil(() => session.status().value.kind === "idle", "initial running turn aborted to idle");
+  const pNext = await session.prompt("AFTER_ABORT");
+  expect(pNext.response.body.kind).toBe("accepted");
+  await finishAndDispose(session, "follow-up after initial running turn abort");
+}
+
+test("adopts running root turn from initial snapshot for busy gating and abort", async () => {
+  const fx = useFixture();
+  const session = await fx.open("2.7.2-botiverse.1", { env: { FAKE_KIMI_SCENARIO: "initial_running_turn", FAKE_KIMI_LOG: fx.logFile } });
+  await assertInitialRunningTurn(session);
+});
+
+test("keeps pending root start active when a child turn ends first", async () => {
+  const fx = useFixture();
+  const session = await fx.open("2.7.2-botiverse.1", { env: { FAKE_KIMI_LOG: fx.logFile } });
+  const pFirst = await session.prompt("CHILD_END_BEFORE_START");
+  await waitUntil(
+    () => session.records().some((r) => r.kind === "frame" && r.body.type === "turn.ended" && asRecord(r.body.native)?.agent_id === "agent-child-1"),
+    "child turn.ended before root turn.started",
+  );
+  const pSecond = await session.prompt("SECOND_SHOULD_REJECT_BUSY");
+  expect([pFirst.response.body.kind, pSecond.response.body]).toEqual(["accepted", expect.objectContaining({ kind: "rejected", code: "busy" })]);
+  await finishAndDispose(session, "root turn completion after early child turn end");
+});
+
+async function assertCancelFalsePreservesTurn(session: Session): Promise<void> {
+  await session.prompt("HOLD_FOR_CONTROLS", { inputId: randomUUID() });
+  const aborted = await session.abort();
+  expect(aborted.response.body).toMatchObject({ kind: "rejected", code: "no_active_turn", native: { cancelled: false } });
+  await session.steer?.("release");
+  await waitUntil(
+    () => session.records().some((r) => r.kind === "frame" && r.body.events.some((ev) => ev.kind === "text_delta" && ev.text === "reply:release")) &&
+      session.status().value.kind === "idle",
+    "held turn and steer release idle",
+  );
+  const nextTurn = await session.prompt("SURVIVED");
+  expect(nextTurn.response.body.kind).toBe("accepted");
+  await finishAndDispose(session, "follow-up after cancelled:false refusal");
+}
+
+test("disarms fallback and rejects no_active_turn when KAP returns cancelled: false", async () => {
+  const fx = useFixture();
+  const session = await fx.open("2.7.2-botiverse.1", { env: { FAKE_KIMI_SCENARIO: "cancel_false", FAKE_KIMI_LOG: fx.logFile } });
+  await assertCancelFalsePreservesTurn(session);
 });

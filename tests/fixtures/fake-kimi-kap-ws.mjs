@@ -57,6 +57,20 @@ function sendSubscribeAgent({ socket, msg, opts, now }) {
   makeWsFrame(socket, agent);
 }
 
+function initialBaseTurns(opts) {
+  if (opts.scenario === "resume_history") {
+    return [{ turn_id: "old-turn-1", ordinal: 0, kind: "agent", status: "ended", outcome: "completed", items: [{ type: "assistant_message", item_id: "old-am-1", status: "ended", text: "historical-text" }] }];
+  }
+  if (opts.scenario === "initial_running_turn") {
+    if (opts.state) {
+      opts.state.activeTurnId = "live-open-turn-1";
+      opts.state.activePromptId = "p-live-1";
+    }
+    return [{ turn_id: "live-open-turn-1", ordinal: 0, kind: "agent", status: "running", items: [{ type: "user_message", item_id: "um-live-1", status: "ended", prompt_ids: ["p-live-1"], text: "in-flight" }] }];
+  }
+  return [];
+}
+
 function handleClientMsg(socket, msg, opts) {
   if (msg.type === "subscribe") {
     const now = new Date().toISOString();
@@ -66,9 +80,7 @@ function handleClientMsg(socket, msg, opts) {
       makeWsFrame(socket, { type: "response", request_id: msg.request_id, code: 0, msg: "ok" });
       return;
     }
-    const baseTurns = opts.scenario === "resume_history"
-      ? [{ turn_id: "old-turn-1", ordinal: 0, kind: "agent", status: "ended", outcome: "completed", items: [{ type: "assistant_message", item_id: "old-am-1", status: "ended", text: "historical-text" }] }]
-      : [];
+    const baseTurns = initialBaseTurns(opts);
     const sendTurns = () => {
       const turns = [...baseTurns, ...(opts.state?.liveTurns ?? [])];
       makeWsFrame(socket, { type: "turns", session_id: msg.session_id, agent_id: "main", event_created_at: now, turns, has_more: false });
