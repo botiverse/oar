@@ -84,3 +84,37 @@ Both tested versions honor `BROWSER` on all three platforms, so the existing
 2.1.126 login floor remains sufficient. The temporary Actions workflow used
 to gather this evidence is removed; normal CI and `pnpm check` do not run
 these native login experiments.
+
+## Observed, 2026-11-21
+
+In six direct Linux runs with disposable homes, Claude printed the manual
+sign-in URL on stdout 301 to 335 ms after launch. On 2.1.326 it followed
+the introduction on the same line. On 2.1.330 it occupied the next line.
+All six runs stopped before sign-in. Before the fix, OAR on 2.1.330
+offered the paste prompt with no URL in all three browser modes and the
+local OAuth server received zero exchanges.
+
+On 2.1.330, Claude.ai printed a compact authorize URL on `claude.ai`.
+For a managed `forceLoginMethod=console` setting, the same native command
+printed an expanded authorize URL on `platform.claude.com`. The separate
+stream-json `claude_authenticate` control returned `manualUrl` and
+`automaticUrl` on both versions. It completed a synthetic Claude.ai login
+on each, opening no browser, but refused the managed Console setting even
+when the control omitted its login method. OAR uses `auth login` so Claude
+selects the account type and honors the requested browser behavior.
+
+The probe first exercises the normal remote handoff in the suppressed mode,
+cancelling at the first paste prompt. For the separate synthetic exchanges
+it requests Claude's expanded URL in the login child with
+`CLAUDE_CODE_FULL_SIGN_IN_LINK=1` so the local server can independently
+verify PKCE and state. The adapter relays the native link without changing
+that environment setting.
+
+| Linux Claude | Unmodified remote link received before paste | Browser attempts, default / suppressed / failing | Verified exchanges and signed-in status |
+| --- | --- | --- | --- |
+| 2.1.126 (login floor) | Expanded | 1 / 0 / 1 | 3 of 3 |
+| 2.1.326 | Expanded | 1 / 0 / 1 | 3 of 3 |
+| 2.1.330 | Compact | 1 / 0 / 1 | 3 of 3 |
+
+Each exchange produced one URL and one paste prompt. All credentials and
+exchanges in the completion controls were synthetic.

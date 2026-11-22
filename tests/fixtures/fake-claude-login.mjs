@@ -30,7 +30,7 @@ const [stateFile, ...args] = process.argv.slice(2);
 const state = JSON.parse(readFileSync(stateFile, "utf8"));
 const ESC = "\u001B";
 const BEL = "\u0007";
-const URL = "https://claude.com/cai/oauth/authorize?code=true&client_id=fixture&state=fixture-state";
+const URL = "https://claude.com/cai/oauth/authorize?code=true&client_id=fixture&state=fixture-state&response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&code_challenge_method=S256&code_challenge=fixture-challenge";
 
 function save(changes) {
   Object.assign(state, changes);
@@ -71,7 +71,12 @@ if (command === "--version") {
     setInterval(() => {}, 1000);
   }
   process.stdout.write(`${ESC}[2mOpening browser to sign in…${ESC}[22m\n`);
-  process.stdout.write(`If the browser didn't open, visit: ${ESC}]8;;${URL}${BEL}${ESC}[4m${URL}${ESC}[24m${ESC}]8;;${BEL}\n`);
+  const link = state.url ?? URL;
+  const hyperlink = `${ESC}]8;;${link}${BEL}${ESC}[4m${link}${ESC}[24m${ESC}]8;;${BEL}`;
+  const stdoutLines = state.stdoutLines ?? ["If the browser didn't open, visit: {link}"];
+  for (const line of stdoutLines) {
+    process.stdout.write(`${line.replace("{link}", hyperlink)}\n`);
+  }
   process.stdout.write("Paste code here if prompted > ");
   if (state.mode === "browser") {
     setTimeout(() => {
