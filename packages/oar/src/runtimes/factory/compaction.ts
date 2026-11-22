@@ -12,18 +12,41 @@ import type { DroidClient } from "./client.js";
  * turn to finish before compacting."; on an empty conversation with -32602
  * "Nothing to compact". Only the identified RPC answer belongs to the request.
  */
-export function factoryCompaction(kernel: SessionKernel, client: DroidClient, sessionId: string): CompactionOperation {
+export function factoryCompaction(
+  kernel: SessionKernel,
+  client: DroidClient,
+  sessionId: string,
+  recordConfirmed?: (record: () => void) => Promise<void>,
+): CompactionOperation {
   let requestId: string | null = null;
+  let settled: Promise<void> = Promise.resolve();
   return {
     async start(request, reply) {
       requestId = request.id;
       const answer = client.request("droid.compact_session", {}, (outcome) => {
         if (outcome.kind === "exited") { return; }
-        client.mark(() => { kernel.frame({ type: outcome.kind === "result" ? "droid.compact_session" : "droid.compact_session/error",
-          native: outcome.native, responseTo: request.id, events: [] }); });
+        const type = outcome.kind === "result" ? "droid.compact_session" : "droid.compact_session/error";
+        let recorded = false;
+        const record = (): void => {
+          if (recorded) { return; }
+          recorded = true;
+          kernel.frame({ type, native: outcome.native, responseTo: request.id, events: [] });
+        };
+        const result = outcome.kind === "result" ? asRecord(outcome.result) : null;
+        const removed = asNumber(result?.removedCount);
+        const confirmed = result?.newSessionId === sessionId && removed !== null && Number.isSafeInteger(removed) && removed > 0;
+        if (!confirmed) {
+          client.mark(record);
+          return;
+        }
+        // Refresh context stats before recording completion so session.contextUsage()
+        // reflects compaction as soon as compact() resolves.
+        settled = (async (): Promise<void> => {
+          try { if (recordConfirmed !== undefined) { await recordConfirmed(record); } } finally { record(); }
+        })();
       }, request.id);
       reply({ kind: "accepted" });
-      await answer;
+      try { await answer; } finally { await settled; }
     },
     observe(frame: Frame): CompactionSettlement | null {
       if (requestId === null || frame.body.responseTo !== requestId) { return null; }

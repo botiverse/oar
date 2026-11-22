@@ -132,17 +132,30 @@ input.on("line", (line) => {
         note({ type: "agent_turn_completed", reason: "completed", turnId: "native" });
       }
       if (mode === "noisy") { write({ type: "response", id: message.id, error: { code: -32_603, message: "context unavailable" } }); return; }
-      if (mode === "slow-context" && contextReads >= 2) {
-        const read = contextReads;
-        setTimeout(() => { reply({ used: read * 25, remaining: 100 - read * 25, limit: 100, accuracy: "exact", updatedAt: new Date().toISOString() }); }, Number(process.env.FAKE_DROID_CONTEXT_MS ?? "60"));
+      if (mode === "compact-context-exit" && contextReads >= 2) {
+        setTimeout(() => { process.exit(0); }, 10);
         return;
       }
-      reply({ used: contextReads === 1 ? 10 : contextReads * 25, remaining: 90, limit: 100, accuracy: "estimated", updatedAt: new Date().toISOString() });
+      const compactDrop = mode === "compact-context" || mode === "slow-compact-context" || mode === "compact-context-notify" || mode === "compact-context-exit";
+      const used = mode === "auto-compact-context"
+        ? (contextReads <= 2 ? 80 : 20)
+        : compactDrop ? (contextReads === 1 ? 80 : 20) : (contextReads === 1 ? 10 : contextReads * 25);
+      if ((mode === "slow-context" || mode === "slow-compact-context" || mode === "compact-context-notify") && contextReads >= 2) {
+        setTimeout(() => { reply({ used, remaining: 100 - used, limit: 100, accuracy: "exact", updatedAt: new Date().toISOString() }); }, Number(process.env.FAKE_DROID_CONTEXT_MS ?? "60"));
+        return;
+      }
+      reply({ used, remaining: 100 - used, limit: 100, accuracy: "estimated", updatedAt: new Date().toISOString() });
+      if (mode === "auto-compact-context" && contextReads === 2) {
+        setTimeout(() => { note({ type: "session_compacted", summaryId: "auto", removedCount: 4 }); }, 15);
+      }
       return;
     case "droid.compact_session":
       if (mode === "compact-refusal") { write({ type: "response", id: message.id, error: { code: -32602, message: "Nothing to compact" } }); return; }
       note({ type: "session_compacted", summaryId: "summary", removedCount: 4 });
       reply({ newSessionId: sessionId, removedCount: mode === "compact-zero" ? 0 : 4 });
+      if (mode === "compact-context-notify") {
+        setTimeout(() => { note({ type: "settings_updated", settings: { ...settings, modelId: "after-compact" } }); }, 10);
+      }
       return;
     case "droid.list_models":
       reply({ models: [{ id: "gpt-6.1-sol", displayName: "GPT 6.1 Sol", supportedReasoningEfforts: ["low", "medium", "high"], defaultReasoningEffort: "medium" }] });

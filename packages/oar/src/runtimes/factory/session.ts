@@ -17,7 +17,7 @@ import { factoryContextReadback } from "./context-usage.js";
 import { factoryOpenRequest, openFactory, serverReply } from "./open.js";
 import { confirmSettings } from "./settings.js";
 import { factoryCompaction } from "./compaction.js";
-import { droidImages, type FactorySessionTimings, type Held } from "./session-state.js";
+import { createFrameQueue, droidImages, type FactorySessionTimings, type Held } from "./session-state.js";
 import { foldFactoryNotification, initialFactoryProjection, type FactoryProjection } from "./projection.js";
 
 /*
@@ -125,23 +125,19 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
       // Any input droid hands back under the id an abort waits on: the abort was honored.
       if (typeof awaited === "string" && body.events.some(event => event.kind === "input_dropped" && event.inputId === awaited)) { disarm(); }
       kernel.frame(extra.length === 0 && after.length === 0 ? body : { ...body, events: [...extra, ...body.events, ...after] });
+      if (notification?.type === "session_compacted" && !compaction.busy()) { contextReadback.readBackground(); }
       if (notification?.type === "settings_updated") { settingsWaiter?.(asRecord(notification.settings) ?? {}); }
       if (ended || (wasBusy && !busy())) { released(); }
     };
-    let notificationQueue: Promise<void> | null = null;
+    const frameQueue = createFrameQueue();
     const onNotification = (message: JsonRecord): void => {
       const notification = asRecord(asRecord(message.params)?.notification);
       const waitContext = notification?.type === "agent_turn_completed" && notification.reason !== "cancelled" && abortingTurn === false && kernel.unreachable() === null;
-      if (notificationQueue === null && !waitContext) { applyNotification(message); return; }
-      const previous = notificationQueue ?? Promise.resolve();
-      const next = (async (): Promise<void> => {
-        await previous;
-        if (waitContext && kernel.unreachable() === null) { await contextReadback.readBounded(); }
-        applyNotification(message);
-      })();
-      notificationQueue = next;
-      // oxlint-disable-next-line promise/prefer-await-to-then -- Clear the tail pointer only when no newer notification queued behind it.
-      void next.finally(() => { if (notificationQueue === next) { notificationQueue = null; } });
+      if (frameQueue.idle && !waitContext) { applyNotification(message); return; }
+      void frameQueue.enqueue(async () => {
+        try { if (waitContext && kernel.unreachable() === null) { await contextReadback.readBounded(); } }
+        finally { applyNotification(message); }
+      });
     };
     const onServerRequest = (message: JsonRecord): void => {
       const id = typeof message.id === "string" ? message.id : String(message.id);
@@ -158,7 +154,12 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
       busyReason: "droid compacts only between turns, after OAR's held input has been sent",
       // droid's compact_session answer (or refusal) is the end of the operation; its frame names the request.
       settledBy: "native_response",
-      create: () => factoryCompaction(kernel, client, sessionId),
+      create: () => factoryCompaction(kernel, client, sessionId, async (record) => {
+        await frameQueue.enqueue(async () => {
+          try { if (kernel.unreachable() === null) { await contextReadback.readBounded(); } }
+          finally { record(); }
+        });
+      }),
       released,
     });
     /** Send one input with `add_user_message`; the reply answers the control. */
@@ -209,9 +210,8 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
     };
     client.onExit((code, reason) => {
       contextReadback.end();
-      const pending = notificationQueue;
-      if (pending === null) { finishExit(code, reason); return; }
-      exitSettled = (async (): Promise<void> => { await pending; finishExit(code, reason); })();
+      if (frameQueue.idle) { finishExit(code, reason); return; }
+      exitSettled = (async (): Promise<void> => { try { await frameQueue.drain(); } finally { finishExit(code, reason); } })();
     });
 
     await confirmSettings(client, options, settings, recordReply("droid.update_session_settings"), (waiter) => { settingsWaiter = waiter; });

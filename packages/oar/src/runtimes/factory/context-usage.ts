@@ -3,13 +3,13 @@ import type { JsonRecord } from "../../shared/json.js";
 import type { DroidClient, DroidOutcome } from "./client.js";
 import { contextOf } from "./open.js";
 
-/** Default bound for post-turn `droid.get_context_stats` before emitting `turn_ended`. */
+/** Default bound for bounded `droid.get_context_stats` reads before `turn_ended` or settled manual compaction. */
 export const FACTORY_CONTEXT_TIMEOUT_MS = 1000;
 
 export interface FactoryContextReadback {
-  /** Fire-and-forget read (used at open); a stale reply never overwrites a newer readback. */
+  /** Fire-and-forget read (used at open and automatic compaction); a stale reply never overwrites a newer readback. */
   readBackground(): void;
-  /** Bounded read awaited before emitting a completed turn's `turn_ended`; timeout keeps the previous value. */
+  /** Bounded read awaited before emitting `turn_ended` or recording settled manual compaction; timeout keeps the previous value. */
   readBounded(): Promise<void>;
   /** Cancel any active bounded wait immediately (on abort, dispose, or process exit). */
   end(): void;

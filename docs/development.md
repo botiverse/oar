@@ -174,6 +174,13 @@ turns, exits and findings (stalled turns, failed turns, unexpected exits,
 failed resumes, leftover processes) with the record seq that shows each one.
 It uses real logins and spends quota; run it on purpose, for hours, not in CI.
 
+Two-pass verification is required for any complete runtime integration or major
+adapter change: Pass 1 probes the runtime's native protocol, credentials, and
+edge cases; Pass 2 exercises the full stack end-to-end through the `oar` CLI and
+`pnpm harbor` against the real installation (steer, compaction, restart/resume,
+abort/recovery, and zero findings or credential leaks). A change that only
+passes Pass 1 probes is incomplete.
+
 ### Vendor: is the runtime-specific integration right?
 
 `sea-trial/vendor/*.vendor.test.ts`, run by

@@ -25,6 +25,38 @@ it("announces a tool call once, then replaces its input as droid streams it, and
   ]);
 });
 
+it("projects nested script_only repl-tool-call blocks from assistant messages once without duplicating outer tool_call announcements", () => {
+  const { events } = fold([
+    note({ type: "tool_call", toolUse: { type: "tool_use", id: "script-1", name: "Script", input: {} } }),
+    note({ type: "tool_call", toolUse: { type: "tool_use", id: "script-1", name: "Script", input: { script: "await tools.Execute({ command: 'pwd' })" } } }),
+    note({ type: "create_message", message: { id: "m-script", role: "assistant", content: [
+      { type: "tool_use", id: "script-1", name: "Script", input: { script: "await tools.Execute({ command: 'pwd' })" } },
+    ] } }),
+    note({ type: "create_message", message: { id: "repl-tool-call:nested-1", role: "assistant", visibility: "user_only", content: [
+      { type: "tool_use", id: "nested-1", name: "Execute", input: { command: "pwd", summary: "Print cwd", riskLevel: "low" } },
+    ] } }),
+    note({ type: "create_message", message: { id: "repl-tool-call:nested-2", role: "assistant", visibility: "user_only", content: [
+      { type: "tool_use", id: "nested-2", name: "Read", input: { file_path: "/w/a.ts" } },
+      { type: "tool_use", id: "nested-3", name: "Grep", input: { pattern: "tool_call", path: "/w" } },
+    ] } }),
+    note({ type: "tool_result", toolUseId: "nested-1", messageId: "repl-tool-result:nested-1", content: "/w", isError: false }),
+    note({ type: "tool_result", toolUseId: "nested-2", messageId: "repl-tool-result:nested-2", content: "ok", isError: false }),
+    note({ type: "tool_result", toolUseId: "nested-3", messageId: "repl-tool-result:nested-3", content: "hit", isError: false }),
+    note({ type: "tool_result", toolUseId: "script-1", content: [{ type: "text", text: "exit 0" }], isError: false }),
+  ]);
+  expect(events).toEqual([
+    { kind: "tool_call_started", callId: "script-1", tool: "Script", input: "{}" },
+    { kind: "tool_call_input", callId: "script-1", input: "{\"script\":\"await tools.Execute({ command: 'pwd' })\"}" },
+    { kind: "tool_call_started", callId: "nested-1", tool: "Execute", input: "{\"command\":\"pwd\",\"summary\":\"Print cwd\",\"riskLevel\":\"low\"}" },
+    { kind: "tool_call_started", callId: "nested-2", tool: "Read", input: "{\"file_path\":\"/w/a.ts\"}" },
+    { kind: "tool_call_started", callId: "nested-3", tool: "Grep", input: "{\"pattern\":\"tool_call\",\"path\":\"/w\"}" },
+    { kind: "tool_call_ended", callId: "nested-1", content: [{ type: "text", text: "/w" }], result: "ok" },
+    { kind: "tool_call_ended", callId: "nested-2", content: [{ type: "text", text: "ok" }], result: "ok" },
+    { kind: "tool_call_ended", callId: "nested-3", content: [{ type: "text", text: "hit" }], result: "ok" },
+    { kind: "tool_call_ended", callId: "script-1", content: [{ type: "text", text: "exit 0" }], result: "ok" },
+  ]);
+});
+
 it("echoes only inputs OAR sent, by RPC id and messageId, and drops undrained steering on an interrupt", () => {
   const start: FactoryProjection = { ...initialFactoryProjection, turnId: "in-1",
     sent: new Map([["rpc-1", { requestId: "rpc-1", inputId: "in-1" }], ["rpc-2", { requestId: "rpc-2", inputId: "in-2" }]]) };

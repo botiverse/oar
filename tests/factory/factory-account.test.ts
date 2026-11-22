@@ -58,6 +58,10 @@ it("status reads auth/status; FACTORY_API_KEY is configured, not a confirmed log
   expect(await factoryAuthStatus(await installed("success"))).toMatchObject({ kind: "logged_out" });
   expect(await factoryAuthStatus(await installed("success"), { env: { FACTORY_API_KEY: "fk-test" } }))
     .toMatchObject({ kind: "unknown", configured: ["FACTORY_API_KEY"] });
+  expect(projectFactoryAuthStatus({ state: "authenticated", accounts: [{ label: "Factory", active: true, email: "user@example.com", organizationId: "org_1" }] }))
+    .toEqual({ kind: "logged_in", source: "droid exec --output-format acp: auth/status", account: { credential: "account", email: "user@example.com" } });
+  expect(projectFactoryAuthStatus({ state: "authenticated", accounts: [{ label: "Factory", active: true, email: "   " }] }))
+    .toEqual({ kind: "logged_in", source: "droid exec --output-format acp: auth/status", account: { credential: "account" } });
   expect(projectFactoryAuthStatus({ state: "something-new" })).toMatchObject({ kind: "unknown" });
 });
 
