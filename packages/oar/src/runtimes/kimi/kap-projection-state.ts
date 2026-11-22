@@ -26,6 +26,8 @@ export interface KapProjectedFrame {
   readonly endedInteractionId?: string;
   readonly openedTurn?: KapTurnRef;
   readonly endedTurnId?: string;
+  readonly endedTurnOutcome?: "completed" | "aborted" | "failed";
+  readonly rootUserPromptIds?: readonly string[];
 }
 
 export interface KapProjectionOptions {

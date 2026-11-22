@@ -47,23 +47,47 @@ function sendUpgradeResponse(socket, key, bearer) {
   );
 }
 
+function sendSubscribeAgent({ socket, msg, opts, now }) {
+  const [first] = [...opts.sessions.values()];
+  const model = opts.scenario === "wrong_model" ? "wrong-model" : (first?.model ?? "default-model");
+  const agent = { type: "agent", session_id: msg.session_id, agent_id: "main", event_created_at: now, status: "idle", compacting: false, model, plan_mode: false, swarm_mode: false, tower_mode: false };
+  if (opts.scenario !== "omit_effort") {
+    agent.thinking = opts.scenario === "wrong_effort" ? "low" : (first?.thinking ?? "off");
+  }
+  makeWsFrame(socket, agent);
+}
+
 function handleClientMsg(socket, msg, opts) {
   if (msg.type === "subscribe") {
-    const [first] = [...opts.sessions.values()];
-    const model = opts.scenario === "wrong_model" ? "wrong-model" : (first?.model ?? "default-model");
-    const thinking = opts.scenario === "wrong_effort" ? "low" : (first?.thinking ?? "off");
     const now = new Date().toISOString();
-    makeWsFrame(socket, { type: "agent", session_id: msg.session_id, agent_id: "main", event_created_at: now, status: "idle", compacting: false, model, thinking, plan_mode: false, swarm_mode: false, tower_mode: false });
-    const turns = opts.scenario === "resume_history"
+    sendSubscribeAgent({ socket, msg, opts, now });
+    if (opts.scenario === "turns_failed_on_open") {
+      makeWsFrame(socket, { type: "turns.failed", session_id: msg.session_id, agent_id: "main", event_created_at: now, code: 50_001, msg: "Failed to load initial turns" });
+      makeWsFrame(socket, { type: "response", request_id: msg.request_id, code: 0, msg: "ok" });
+      return;
+    }
+    const baseTurns = opts.scenario === "resume_history"
       ? [{ turn_id: "old-turn-1", ordinal: 0, kind: "agent", status: "ended", outcome: "completed", items: [{ type: "assistant_message", item_id: "old-am-1", status: "ended", text: "historical-text" }] }]
       : [];
-    makeWsFrame(socket, { type: "turns", session_id: msg.session_id, agent_id: "main", event_created_at: now, turns, has_more: false });
+    const sendTurns = () => {
+      const turns = [...baseTurns, ...(opts.state?.liveTurns ?? [])];
+      makeWsFrame(socket, { type: "turns", session_id: msg.session_id, agent_id: "main", event_created_at: now, turns, has_more: false });
+    };
+    if (opts.scenario === "delayed_initial_turns") {
+      makeWsFrame(socket, { type: "response", request_id: msg.request_id, code: 0, msg: "ok" });
+      setTimeout(sendTurns, 60);
+      return;
+    }
+    sendTurns();
     makeWsFrame(socket, { type: "response", request_id: msg.request_id, code: 0, msg: "ok" });
     return;
   }
   if (msg.type === "task.stop") {
     opts.recordLog({ wsTaskStop: msg.task_id });
     makeWsFrame(socket, { type: "response", request_id: msg.request_id, code: 0, msg: "ok", data: { stopped: msg.task_id } });
+    if (msg.task_id === "__drop_ws__") {
+      setImmediate(() => { socket.destroy(); });
+    }
   }
 }
 
@@ -96,6 +120,10 @@ export function attachKapWsServer(server, opts) {
   return {
     broadcast: (obj) => {
       for (const ws of wsClients) { makeWsFrame(ws, obj); }
+    },
+    closeAll: () => {
+      for (const ws of wsClients) { ws.destroy(); }
+      wsClients.clear();
     },
     size: () => wsClients.size,
   };

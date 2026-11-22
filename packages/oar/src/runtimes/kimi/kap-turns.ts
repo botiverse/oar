@@ -79,7 +79,7 @@ export function projectTurnEndedEvents(
   agentId: string,
   turn: JsonRecord,
   events: RuntimeEventBody[],
-): string | undefined {
+): { readonly turnId: string; readonly outcome: "completed" | "aborted" | "failed" } | undefined {
   const turnId = asString(turn.turn_id);
   if (turnId === undefined) { return undefined; }
   if (asString(turn.kind) === "system" || state.systemTurnIds.has(turnId)) {
@@ -105,13 +105,14 @@ export function projectTurnEndedEvents(
   state.stepUsageByTurn.delete(turnId);
   const promptIds = state.turnPromptIds.get(turnId);
   state.turnPromptIds.delete(turnId);
+  const outcome = mapTurnOutcome(turn);
   events.push({
     kind: "turn_ended",
-    outcome: mapTurnOutcome(turn),
+    outcome,
     ...(promptIds !== undefined && promptIds.length === 1 && promptIds[0] !== undefined ? { inputId: promptIds[0] } : {}),
     ...(promptIds !== undefined && promptIds.length > 1 ? { inputIds: [...promptIds] } : {}),
   });
-  return turnId;
+  return { turnId, outcome: outcome.kind };
 }
 
 export function projectTaskEvents(

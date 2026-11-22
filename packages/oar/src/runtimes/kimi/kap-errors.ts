@@ -141,11 +141,13 @@ export function verifyAgentOptions(agentState: JsonRecord, options: SessionOptio
     }
   }
   if (options.effort !== undefined) {
-    const reportedThinking = typeof agentState.thinking === "string" ? agentState.thinking : undefined;
-    if (reportedThinking !== undefined && reportedThinking !== options.effort) {
+    const reportedThinking = typeof agentState.thinking === "string" && agentState.thinking.length > 0
+      ? agentState.thinking
+      : undefined;
+    if (reportedThinking !== options.effort) {
       throw new UnsupportedOptionError(
         "effort",
-        `Kimi applied thinking "${reportedThinking}" instead of requested effort "${options.effort}"`,
+        `Kimi confirmed thinking "${reportedThinking ?? "missing"}" instead of requested effort "${options.effort}"`,
       );
     }
   }

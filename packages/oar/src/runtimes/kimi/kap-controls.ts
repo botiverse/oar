@@ -1,6 +1,7 @@
 import type {
   AdapterSession,
   InputImage,
+  InputOptions,
   InputOrigin,
   ResponseBody,
   SessionCapabilities,
@@ -8,7 +9,6 @@ import type {
 import type { createAbortFallback } from "../../shared/abort-fallback.js";
 import { enqueueHeld, withdrawControl, type HeldInput } from "../../shared/held-input.js";
 import { inputImagesRefusal, withInputImages } from "../../shared/input-images.js";
-import type { JsonRecord } from "../../shared/json.js";
 import type { SessionKernel } from "../../shared/session-kernel.js";
 import {
   mapAbortControlError,
@@ -33,6 +33,11 @@ export const KAP_SESSION_CAPABILITIES: SessionCapabilities = {
   images: true,
 };
 
+export interface PendingKapSteer {
+  readonly promptId: string;
+  parentTurnId: string | null;
+}
+
 export interface KapRuntimeState {
   readonly sessionId: string;
   readonly endpoint: KapEndpoint;
@@ -41,24 +46,30 @@ export interface KapRuntimeState {
   readonly abortFallback: ReturnType<typeof createAbortFallback>;
   readonly taskAgentById: Map<string, string>;
   readonly held: HeldKapInput[];
-  manualCompactionActive: boolean;
+  readonly pendingSteers: PendingKapSteer[];
+  readonly observedRootPromptIds: Set<string>;
+  compactionBusy: () => boolean;
   activeRootTurn: string | null;
   rootTurnEpoch: number;
   awaitingTurnStart: boolean;
+  abortRequested: boolean;
   prompting: boolean;
   dispatching: boolean;
-  steering: number;
   drainScheduled: boolean;
 }
 
-export function isKapSessionBusy(state: KapRuntimeState): boolean {
+export function isKapTurnBusy(state: KapRuntimeState): boolean {
   return (
-    state.manualCompactionActive ||
     state.activeRootTurn !== null ||
     state.awaitingTurnStart ||
+    state.pendingSteers.length > 0 ||
     state.prompting ||
     state.dispatching
   );
+}
+
+export function isKapSessionBusy(state: KapRuntimeState): boolean {
+  return state.compactionBusy() || isKapTurnBusy(state);
 }
 
 export function scheduleDrainHeld(state: KapRuntimeState): void {
@@ -71,14 +82,62 @@ export function scheduleDrainHeld(state: KapRuntimeState): void {
 }
 
 function maybeScheduleDrain(state: KapRuntimeState): void {
-  if (!isKapSessionBusy(state) && state.steering === 0 && state.held.length > 0) {
+  if (!isKapSessionBusy(state) && state.held.length > 0) {
     scheduleDrainHeld(state);
   }
 }
 
+const WS_CLOSED_REJECTION: ResponseBody = {
+  kind: "rejected",
+  code: "runtime_exited",
+  reason: "Kimi KAP WebSocket is closed",
+};
+
+function hasActiveRootTurn(state: KapRuntimeState): boolean {
+  return state.activeRootTurn !== null || state.awaitingTurnStart || state.prompting || state.dispatching;
+}
+
+function optionalInputFields(opts?: {
+  readonly inputId?: string | undefined;
+  readonly images?: readonly InputImage[] | undefined;
+  readonly origin?: InputOrigin | undefined;
+}): Pick<InputOptions, "inputId" | "images" | "origin"> {
+  return {
+    ...(opts?.inputId === undefined ? {} : { inputId: opts.inputId }),
+    ...(opts?.images === undefined ? {} : { images: opts.images }),
+    ...(opts?.origin === undefined ? {} : { origin: opts.origin }),
+  };
+}
+
+function removePendingSteer(list: PendingKapSteer[], target: PendingKapSteer | null): void {
+  if (target === null) { return; }
+  const idx = list.indexOf(target);
+  if (idx !== -1) { list.splice(idx, 1); }
+}
+
+async function postKapPrompt(
+  state: KapRuntimeState,
+  promptId: string,
+  content: ReturnType<typeof buildKapContent>,
+): Promise<ResponseBody> {
+  if (state.socket.closed()) { return WS_CLOSED_REJECTION; }
+  const turnEpochBefore = state.rootTurnEpoch;
+  const data = await kapRequest(
+    state.endpoint.origin,
+    state.endpoint.token,
+    `/sessions/${encodeURIComponent(state.sessionId)}/prompts`,
+    { method: "POST", body: { prompt_id: promptId, content }, timeoutMs: 30_000 },
+  );
+  if (state.rootTurnEpoch === turnEpochBefore && state.activeRootTurn === null) {
+    state.awaitingTurnStart = true;
+  }
+  return { kind: "accepted", native: data };
+}
+
 export async function drainHeldInput(state: KapRuntimeState): Promise<void> {
   if (state.kernel.unreachable() !== null) { return; }
-  if (isKapSessionBusy(state) || state.steering > 0 || state.held[0]?.accepted !== true) { return; }
+  if (state.socket.closed()) { state.held.length = 0; return; }
+  if (isKapSessionBusy(state) || state.held[0]?.accepted !== true) { return; }
   const entry = state.held.shift();
   if (entry === undefined) { return; }
   state.dispatching = true;
@@ -87,8 +146,7 @@ export async function drainHeldInput(state: KapRuntimeState): Promise<void> {
     kind: "prompt",
     input: entry.input,
     carries: [inputId],
-    ...(entry.images === undefined ? {} : { images: entry.images }),
-    ...(entry.origin === undefined ? {} : { origin: entry.origin }),
+    ...optionalInputFields({ images: entry.images, origin: entry.origin }),
   });
   const unreachable = state.kernel.unreachable();
   if (unreachable !== null) {
@@ -97,17 +155,9 @@ export async function drainHeldInput(state: KapRuntimeState): Promise<void> {
     return;
   }
   try {
-    const turnEpochBefore = state.rootTurnEpoch;
     const delivered = await withInputImages(KAP_SESSION_CAPABILITIES, entry.images, async (loaded) => {
-      const data = await kapRequest(state.endpoint.origin, state.endpoint.token, `/sessions/${encodeURIComponent(state.sessionId)}/prompts`, {
-        method: "POST",
-        body: { prompt_id: inputId, content: buildKapContent(entry.input, loaded) },
-        timeoutMs: 30_000,
-      });
-      if (state.rootTurnEpoch === turnEpochBefore && state.activeRootTurn === null) {
-        state.awaitingTurnStart = true;
-      }
-      return { kind: "accepted", native: data } satisfies ResponseBody;
+      const response = await postKapPrompt(state, inputId, buildKapContent(entry.input, loaded));
+      return response;
     });
     state.kernel.respond(request.id, state.kernel.unreachable() ?? delivered);
   } catch (error) {
@@ -124,113 +174,79 @@ export function createKapControls(state: KapRuntimeState): Pick<
 > {
   return {
     prompt: async (input, promptOptions) => {
-      const result = await state.kernel.control(
-        {
-          kind: "prompt",
-          input,
-          ...(promptOptions?.inputId === undefined ? {} : { inputId: promptOptions.inputId }),
-          ...(promptOptions?.images === undefined ? {} : { images: promptOptions.images }),
-          ...(promptOptions?.origin === undefined ? {} : { origin: promptOptions.origin }),
-          ...(promptOptions?.carries === undefined ? {} : { carries: promptOptions.carries }),
-        },
-        async (req) => {
-          if (isKapSessionBusy(state) || state.held.length > 0) {
-            return { kind: "rejected", code: "busy", reason: "another turn is active" };
-          }
+      const body = {
+        kind: "prompt" as const,
+        input,
+        ...optionalInputFields(promptOptions),
+        ...(promptOptions?.carries === undefined ? {} : { carries: promptOptions.carries }),
+      };
+      const result = await state.kernel.control(body, async (req) => {
+        if (state.socket.closed()) { return WS_CLOSED_REJECTION; }
+        if (isKapSessionBusy(state) || state.held.length > 0) {
+          return { kind: "rejected", code: "busy", reason: "another turn is active" };
+        }
+        state.prompting = true;
+        try {
           const delivery = await withInputImages(KAP_SESSION_CAPABILITIES, promptOptions?.images, async (loaded) => {
-            const turnEpochBefore = state.rootTurnEpoch;
-            state.prompting = true;
             try {
-              const promptId = promptOptions?.inputId ?? req.id;
-              const data = await kapRequest(
-                state.endpoint.origin,
-                state.endpoint.token,
-                `/sessions/${encodeURIComponent(state.sessionId)}/prompts`,
-                {
-                  method: "POST",
-                  body: { prompt_id: promptId, content: buildKapContent(input, loaded) },
-                  timeoutMs: 30_000,
-                },
-              );
-              if (state.rootTurnEpoch === turnEpochBefore && state.activeRootTurn === null) {
-                state.awaitingTurnStart = true;
-              }
-              return { kind: "accepted", native: data };
+              const response = await postKapPrompt(state, promptOptions?.inputId ?? req.id, buildKapContent(input, loaded));
+              return response;
             } catch (error) {
               return mapPromptControlError(error);
-            } finally {
-              state.prompting = false;
-              maybeScheduleDrain(state);
             }
           });
           return delivery;
-        },
-      );
+        } finally {
+          state.prompting = false;
+          maybeScheduleDrain(state);
+        }
+      });
       return result;
     },
     steer: async (input, steerOptions) => {
-      const result = await state.kernel.control(
-        {
-          kind: "steer",
-          input,
-          ...(steerOptions?.inputId === undefined ? {} : { inputId: steerOptions.inputId }),
-          ...(steerOptions?.images === undefined ? {} : { images: steerOptions.images }),
-          ...(steerOptions?.origin === undefined ? {} : { origin: steerOptions.origin }),
-        },
-        async (req) => {
-          if (state.activeRootTurn === null && !state.awaitingTurnStart && !state.prompting) {
-            return { kind: "rejected", code: "no_active_turn", reason: "no active turn to steer" };
+      const body = { kind: "steer" as const, input, ...optionalInputFields(steerOptions) };
+      const result = await state.kernel.control(body, async (req) => {
+        if (state.socket.closed()) { return WS_CLOSED_REJECTION; }
+        if (!hasActiveRootTurn(state)) {
+          return { kind: "rejected", code: "no_active_turn", reason: "no active turn to steer" };
+        }
+        const promptId = steerOptions?.inputId ?? req.id;
+        const pendingSteer: PendingKapSteer | null = state.observedRootPromptIds.has(promptId)
+          ? null
+          : { promptId, parentTurnId: state.activeRootTurn };
+        if (pendingSteer !== null) { state.pendingSteers.push(pendingSteer); }
+        const delivery = await withInputImages(KAP_SESSION_CAPABILITIES, steerOptions?.images, async (loaded) => {
+          if (state.socket.closed()) {
+            removePendingSteer(state.pendingSteers, pendingSteer);
+            return WS_CLOSED_REJECTION;
           }
-          const delivery = await withInputImages(KAP_SESSION_CAPABILITIES, steerOptions?.images, async (loaded) => {
-            state.steering += 1;
-            try {
-              const promptId = steerOptions?.inputId ?? req.id;
-              const data = await kapRequest(
-                state.endpoint.origin,
-                state.endpoint.token,
-                `/sessions/${encodeURIComponent(state.sessionId)}/steer`,
-                {
-                  method: "POST",
-                  body: { prompt_id: promptId, content: buildKapContent(input, loaded) },
-                  timeoutMs: 30_000,
-                },
-              );
-              return { kind: "accepted", native: data };
-            } catch (error) {
-              return mapSteerControlError(error);
-            } finally {
-              state.steering -= 1;
-              maybeScheduleDrain(state);
-            }
-          });
-          return delivery;
-        },
-      );
+          try {
+            const url = `/sessions/${encodeURIComponent(state.sessionId)}/steer`;
+            const payload = { prompt_id: promptId, content: buildKapContent(input, loaded) };
+            const data = await kapRequest(state.endpoint.origin, state.endpoint.token, url, { method: "POST", body: payload, timeoutMs: 30_000 });
+            if (state.observedRootPromptIds.has(promptId)) { removePendingSteer(state.pendingSteers, pendingSteer); }
+            return { kind: "accepted", native: data };
+          } catch (error) {
+            removePendingSteer(state.pendingSteers, pendingSteer);
+            return mapSteerControlError(error);
+          } finally {
+            maybeScheduleDrain(state);
+          }
+        });
+        if (delivery.kind === "rejected") { removePendingSteer(state.pendingSteers, pendingSteer); }
+        return delivery;
+      });
       return result;
     },
     queue: async (input, queueOptions) => {
-      const result = await state.kernel.control(
-        {
-          kind: "queue",
-          input,
-          ...(queueOptions?.inputId === undefined ? {} : { inputId: queueOptions.inputId }),
-          ...(queueOptions?.images === undefined ? {} : { images: queueOptions.images }),
-          ...(queueOptions?.origin === undefined ? {} : { origin: queueOptions.origin }),
-        },
-        (req) => {
-          const invalidImage = inputImagesRefusal(KAP_SESSION_CAPABILITIES, queueOptions?.images);
-          if (invalidImage !== null) { return invalidImage; }
-          enqueueHeld(state.held, {
-            request: req,
-            input,
-            ...(queueOptions?.inputId === undefined ? {} : { inputId: queueOptions.inputId }),
-            ...(queueOptions?.images === undefined ? {} : { images: queueOptions.images }),
-            ...(queueOptions?.origin === undefined ? {} : { origin: queueOptions.origin }),
-            accepted: false,
-          });
-          return { kind: "accepted", queued: "adapter" };
-        },
-      );
+      const body = { kind: "queue" as const, input, ...optionalInputFields(queueOptions) };
+      const result = await state.kernel.control(body, (req) => {
+        if (state.socket.closed()) { return WS_CLOSED_REJECTION; }
+        const invalidImage = inputImagesRefusal(KAP_SESSION_CAPABILITIES, queueOptions?.images);
+        if (invalidImage !== null) { return invalidImage; }
+        enqueueHeld(state.held, { request: req, input, ...optionalInputFields(queueOptions), accepted: false });
+        return { kind: "accepted", queued: "adapter" };
+      });
       const entry = state.held.find((value) => value.request.id === result.request.id);
       if (entry !== undefined) {
         entry.accepted = true;
@@ -241,16 +257,10 @@ export function createKapControls(state: KapRuntimeState): Pick<
     withdraw: withdrawControl(state.kernel, state.held),
     stopTask: async (taskId) => {
       const result = await state.kernel.control({ kind: "stop_task", taskId }, async () => {
-        if (state.socket.closed()) {
-          return { kind: "rejected", code: "runtime_exited", reason: "Kimi KAP WebSocket is closed" };
-        }
+        if (state.socket.closed()) { return WS_CLOSED_REJECTION; }
         try {
-          const data: JsonRecord = await state.socket.command({
-            type: "task.stop",
-            session_id: state.sessionId,
-            agent_id: state.taskAgentById.get(taskId) ?? "main",
-            task_id: taskId,
-          });
+          const agentId = state.taskAgentById.get(taskId) ?? "main";
+          const data = await state.socket.command({ type: "task.stop", session_id: state.sessionId, agent_id: agentId, task_id: taskId });
           return { kind: "accepted", native: data };
         } catch (error) {
           if (error instanceof KapApiError) {
@@ -263,17 +273,13 @@ export function createKapControls(state: KapRuntimeState): Pick<
     },
     abort: async () => {
       const result = await state.kernel.control({ kind: "abort" }, async () => {
-        if (state.activeRootTurn === null && !state.awaitingTurnStart && !state.prompting) {
-          return { kind: "rejected", code: "no_active_turn", reason: "no active turn to abort" };
-        }
+        if (state.socket.closed()) { return WS_CLOSED_REJECTION; }
+        if (!hasActiveRootTurn(state)) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn to abort" }; }
         const disarm = state.abortFallback.arm();
         try {
-          const data = await kapRequest(
-            state.endpoint.origin,
-            state.endpoint.token,
-            `/sessions/${encodeURIComponent(state.sessionId)}:cancel`,
-            { method: "POST", body: {}, timeoutMs: 15_000 },
-          );
+          const url = `/sessions/${encodeURIComponent(state.sessionId)}:cancel`;
+          const data = await kapRequest(state.endpoint.origin, state.endpoint.token, url, { method: "POST", body: {}, timeoutMs: 15_000 });
+          state.abortRequested = true;
           return { kind: "accepted", native: data };
         } catch (error) {
           disarm();

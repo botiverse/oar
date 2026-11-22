@@ -3,7 +3,7 @@ import { asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
 import type { RecordAt } from "../../shared/session-kernel.js";
 import { projectContextUsage, projectRetryUpdate, projectStepUsage } from "./kap-failures.js";
 import { projectItemEvents, recordChildAgent, registerChildAgentsFromRefs } from "./kap-items.js";
-import { asString, stringifyToolInput, type KapProjectedFrame, type KapProjectionOptions, type KapProjectionState } from "./kap-projection-state.js";
+import { asString, asStringArray, stringifyToolInput, type KapProjectedFrame, type KapProjectionOptions, type KapProjectionState } from "./kap-projection-state.js";
 import {
   projectInteractionEvent,
   projectTaskEvents,
@@ -75,10 +75,11 @@ function projectTurnsSnapshot(
     for (const turn of turns) {
       const turnId = asString(turn.turn_id);
       if (turnId === undefined) { continue; }
-      state.historicalTurnIds.add(turnId);
-      if (asString(turn.kind) === "system") { state.systemTurnIds.add(turnId); }
+      if (asString(turn.status) === "ended" && !state.startedTurnIds.has(turnId)) {
+        state.historicalTurnIds.add(turnId);
+        if (asString(turn.kind) === "system") { state.systemTurnIds.add(turnId); }
+      }
     }
-    return;
   }
   for (const turn of turns) {
     const turnId = asString(turn.turn_id);
@@ -183,13 +184,33 @@ export function projectKapFrame(
     return { at, body: { type, native: rawFrame, events } };
   }
   if (type === "turn.ended" && turnRecord !== null) {
-    const endedTurnId = projectTurnEndedEvents(state, agentId, turnRecord, events);
-    return { at, body: { type, native: rawFrame, events }, ...(endedTurnId === undefined ? {} : { endedTurnId }) };
+    const ended = projectTurnEndedEvents(state, agentId, turnRecord, events);
+    return {
+      at,
+      body: { type, native: rawFrame, events },
+      ...(ended === undefined ? {} : { endedTurnId: ended.turnId, endedTurnOutcome: ended.outcome }),
+    };
   }
   if (type === "item.started" || type === "item.ended") {
     const item = asRecord(rawFrame.item);
-    if (item !== null) { projectItemEvents(state, type, agentPath, frameTurnId, item, options, events, subscribeAgents); }
-    return { at, body: { type, native: rawFrame, events }, ...(subscribeAgents.length > 0 ? { subscribeAgents } : {}) };
+    let rootUserPromptIds: readonly string[] | null = null;
+    if (item !== null) {
+      projectItemEvents(state, type, agentPath, frameTurnId, item, options, events, subscribeAgents);
+      if (
+        agentId === "main" &&
+        asString(item.type) === "user_message" &&
+        (frameTurnId === undefined || !state.historicalTurnIds.has(frameTurnId))
+      ) {
+        const ids = asStringArray(item.prompt_ids);
+        if (ids.length > 0) { rootUserPromptIds = ids; }
+      }
+    }
+    return {
+      at,
+      body: { type, native: rawFrame, events },
+      ...(subscribeAgents.length > 0 ? { subscribeAgents } : {}),
+      ...(rootUserPromptIds === null ? {} : { rootUserPromptIds }),
+    };
   }
   if (type === "item.updated") {
     const itemId = asString(rawFrame.item_id);

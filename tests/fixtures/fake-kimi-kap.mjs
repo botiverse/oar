@@ -40,20 +40,27 @@ function sendErr(res, code, msg) {
   res.end(JSON.stringify({ code, msg, data: null }));
 }
 
-function emitPromptTurn(wsHub, promptId, texts) {
+function emitPromptTurn(ctx, promptId, texts) {
   const now = new Date().toISOString();
-  wsHub.broadcast({ type: "turn.started", session_id: "kap-sess-1", agent_id: "main", event_created_at: now, turn: { turn_id: `turn-${promptId}`, ordinal: 0, kind: "agent", status: "running", steps: [] } });
-  wsHub.broadcast({ type: "item.ended", session_id: "kap-sess-1", agent_id: "main", turn_id: `turn-${promptId}`, event_created_at: now, item: { type: "user_message", item_id: `um-${promptId}`, status: "ended", created_at: now, prompt_ids: [promptId], placement: "opener", origin: { kind: "user" }, text: texts, attachments: [], skills: [] } });
+  const turnId = `turn-${promptId}`;
+  ctx.state.activeTurnId = turnId;
+  ctx.state.activeTexts = texts;
+  ctx.state.liveTurns.push({ turn_id: turnId, ordinal: 0, kind: "agent", status: "running", steps: [] });
+  ctx.wsHub.broadcast({ type: "turn.started", session_id: "kap-sess-1", agent_id: "main", event_created_at: now, turn: { turn_id: turnId, ordinal: 0, kind: "agent", status: "running", steps: [] } });
+  ctx.wsHub.broadcast({ type: "item.ended", session_id: "kap-sess-1", agent_id: "main", turn_id: turnId, event_created_at: now, item: { type: "user_message", item_id: `um-${promptId}`, status: "ended", created_at: now, prompt_ids: [promptId], placement: "opener", origin: { kind: "user" }, text: texts, attachments: [], skills: [] } });
+  if (texts.includes("DROP_WS_MID_TURN")) {
+    setTimeout(() => { ctx.wsHub.closeAll(); }, 15);
+  }
 }
 
-function emitTurnCompletion(wsHub, promptId, texts) {
+function emitTurnCompletion({ wsHub, turnId, promptId, texts }) {
   if (texts.includes("INTERACT")) {
     wsHub.broadcast({ type: "interaction", session_id: "kap-sess-1", agent_id: "main", interaction_id: "int-approval-1", kind: "approval", status: "pending", tool_call_id: "call-1" });
     return;
   }
   const now = new Date().toISOString();
-  wsHub.broadcast({ type: "item.ended", session_id: "kap-sess-1", agent_id: "main", turn_id: `turn-${promptId}`, event_created_at: now, item: { type: "assistant_message", item_id: `am-${promptId}`, status: "ended", created_at: now, text: `reply:${texts}` } });
-  wsHub.broadcast({ type: "turn.ended", session_id: "kap-sess-1", agent_id: "main", event_created_at: now, turn: { turn_id: `turn-${promptId}`, ordinal: 0, kind: "agent", status: "ended", outcome: "completed", steps: [], usage: { input_other: 5, output: 2, input_cache_read: 0, input_cache_creation: 0 } } });
+  wsHub.broadcast({ type: "item.ended", session_id: "kap-sess-1", agent_id: "main", turn_id: turnId, event_created_at: now, item: { type: "assistant_message", item_id: `am-${promptId}`, status: "ended", created_at: now, text: `reply:${texts}` } });
+  wsHub.broadcast({ type: "turn.ended", session_id: "kap-sess-1", agent_id: "main", event_created_at: now, turn: { turn_id: turnId, ordinal: 0, kind: "agent", status: "ended", outcome: "completed", steps: [], usage: { input_other: 5, output: 2, input_cache_read: 0, input_cache_creation: 0 } } });
 }
 
 function handleGetSession(url, res) {
@@ -84,28 +91,30 @@ function handleCompact(wsHub, res) {
     const now = new Date().toISOString();
     wsHub.broadcast({ type: "turn.started", session_id: "kap-sess-1", agent_id: "main", event_created_at: now, turn: { turn_id: "sys-compact-1", ordinal: 1, kind: "system", status: "ended", outcome: "completed", steps: [] } });
     wsHub.broadcast({ type: "item.ended", session_id: "kap-sess-1", agent_id: "main", turn_id: "sys-compact-1", event_created_at: now, item: { type: "system", kind: "compaction", item_id: "cmp-1", status: "ended", outcome: "completed", trigger: "manual", created_at: now } });
-  }, 20);
+  }, scenario === "slow_compact" ? 100 : 20);
 }
 
 function handleInteraction(ctx, res) {
   sendOk(res, { resolved: true });
   setTimeout(() => {
     const now = new Date().toISOString();
-    ctx.wsHub.broadcast({ type: "item.ended", session_id: "kap-sess-1", agent_id: "main", turn_id: `turn-${ctx.state.latestPromptId}`, event_created_at: now, item: { type: "assistant_message", item_id: `am-after-int-${ctx.state.latestPromptId}`, status: "ended", created_at: now, text: "after-interaction" } });
-    ctx.wsHub.broadcast({ type: "turn.ended", session_id: "kap-sess-1", agent_id: "main", event_created_at: now, turn: { turn_id: `turn-${ctx.state.latestPromptId}`, ordinal: 0, kind: "agent", status: "ended", outcome: "completed", steps: [] } });
+    const turnId = ctx.state.activeTurnId ?? `turn-${ctx.state.latestPromptId}`;
+    ctx.wsHub.broadcast({ type: "item.ended", session_id: "kap-sess-1", agent_id: "main", turn_id: turnId, event_created_at: now, item: { type: "assistant_message", item_id: `am-after-int-${ctx.state.latestPromptId}`, status: "ended", created_at: now, text: "after-interaction" } });
+    ctx.wsHub.broadcast({ type: "turn.ended", session_id: "kap-sess-1", agent_id: "main", event_created_at: now, turn: { turn_id: turnId, ordinal: 0, kind: "agent", status: "ended", outcome: "completed", steps: [] } });
   }, 15);
 }
 
 function handlePrompt(ctx, res) {
   const { prompt_id: promptId, content = [] } = ctx.body;
   ctx.state.latestPromptId = promptId;
+  const turnId = `turn-${promptId}`;
   const texts = content.filter((p) => p.type === "text").map((p) => p.text).join("");
   const emitBeforeHttp = texts.includes("RACE_WS_FIRST");
-  if (emitBeforeHttp) { emitPromptTurn(ctx.wsHub, promptId, texts); } else { setTimeout(() => { emitPromptTurn(ctx.wsHub, promptId, texts); }, 10); }
+  if (emitBeforeHttp) { emitPromptTurn(ctx, promptId, texts); } else { setTimeout(() => { emitPromptTurn(ctx, promptId, texts); }, 10); }
   if (texts.includes("HOLD_FOR_CONTROLS")) {
-    ctx.state.heldPromptRelease = () => { ctx.state.heldPromptRelease = null; emitTurnCompletion(ctx.wsHub, promptId, texts); };
-  } else if (!texts.includes("HANG_ABORT")) {
-    setTimeout(() => { emitTurnCompletion(ctx.wsHub, promptId, texts); }, 30);
+    ctx.state.heldPromptRelease = () => { ctx.state.heldPromptRelease = null; emitTurnCompletion({ wsHub: ctx.wsHub, turnId, promptId, texts }); };
+  } else if (!texts.includes("HANG_ABORT") && !texts.includes("DROP_WS_MID_TURN")) {
+    setTimeout(() => { emitTurnCompletion({ wsHub: ctx.wsHub, turnId, promptId, texts }); }, 30);
   }
   if (emitBeforeHttp) { setTimeout(() => { sendOk(res, { prompt_id: promptId }); }, 40); } else { sendOk(res, { prompt_id: promptId }); }
 }
@@ -134,22 +143,40 @@ function dispatchRoute(ctx, res) {
   dispatchSecondaryRoute(ctx, res);
 }
 
+function handleSteer(ctx, res) {
+  const { prompt_id: steerPromptId, content = [] } = ctx.body;
+  const steerTexts = content.filter((p) => p.type === "text").map((p) => p.text).join("");
+  const parentTurnId = ctx.state.activeTurnId ?? `turn-${ctx.state.latestPromptId}`;
+  const steerTurnId = `turn-steer-${++ctx.state.steerSeq}`;
+  ctx.state.heldPromptRelease = null;
+  ctx.state.activeTurnId = steerTurnId;
+  ctx.state.activeTexts = steerTexts;
+  ctx.state.latestPromptId = steerPromptId;
+  sendOk(res, { prompt_id: steerPromptId });
+  setTimeout(() => {
+    const endNow = new Date().toISOString();
+    ctx.wsHub.broadcast({ type: "turn.ended", session_id: "kap-sess-1", agent_id: "main", event_created_at: endNow, turn: { turn_id: parentTurnId, ordinal: 0, kind: "agent", status: "ended", outcome: "interrupted", end_reason: "interrupted", steps: [] } });
+    setTimeout(() => {
+      const startNow = new Date().toISOString();
+      ctx.wsHub.broadcast({ type: "turn.started", session_id: "kap-sess-1", agent_id: "main", event_created_at: startNow, turn: { turn_id: steerTurnId, ordinal: 1, kind: "agent", status: "running", steered_from_turn_id: parentTurnId, steered_from_prompt_id: steerPromptId, steps: [] } });
+      ctx.wsHub.broadcast({ type: "item.ended", session_id: "kap-sess-1", agent_id: "main", turn_id: steerTurnId, event_created_at: startNow, item: { type: "user_message", item_id: `um-${steerPromptId}`, status: "ended", created_at: startNow, prompt_ids: [steerPromptId], placement: "opener", origin: { kind: "user" }, text: steerTexts, attachments: [], skills: [] } });
+      if (!steerTexts.includes("HOLD_STEER")) {
+        setTimeout(() => { emitTurnCompletion({ wsHub: ctx.wsHub, turnId: steerTurnId, promptId: steerPromptId, texts: steerTexts }); }, 15);
+      }
+    }, 25);
+  }, 10);
+}
+
 function dispatchSecondaryRoute(ctx, res) {
-  if (ctx.method === "POST" && ctx.url.endsWith("/steer")) {
-    sendOk(res, { prompt_id: ctx.body.prompt_id });
-    if (ctx.state.heldPromptRelease) {
-      const release = ctx.state.heldPromptRelease;
-      setTimeout(() => { release(); }, 20);
-    }
-    return;
-  }
+  if (ctx.method === "POST" && ctx.url.endsWith("/steer")) { handleSteer(ctx, res); return; }
   if (ctx.method === "POST" && ctx.url.endsWith(":compact")) { handleCompact(ctx.wsHub, res); return; }
   if (ctx.method === "POST" && ctx.url.endsWith(":cancel")) {
     sendOk(res, { cancelled: true });
     if (scenario !== "abort_hang") {
       setTimeout(() => {
         ctx.state.heldPromptRelease = null;
-        ctx.wsHub.broadcast({ type: "turn.ended", session_id: "kap-sess-1", agent_id: "main", event_created_at: new Date().toISOString(), turn: { turn_id: `turn-${ctx.state.latestPromptId}`, ordinal: 0, kind: "agent", status: "ended", outcome: "interrupted", end_reason: "user_cancelled", steps: [] } });
+        const turnId = ctx.state.activeTurnId ?? `turn-${ctx.state.latestPromptId}`;
+        ctx.wsHub.broadcast({ type: "turn.ended", session_id: "kap-sess-1", agent_id: "main", event_created_at: new Date().toISOString(), turn: { turn_id: turnId, ordinal: 0, kind: "agent", status: "ended", outcome: "interrupted", end_reason: "user_cancelled", steps: [] } });
       }, 15);
     }
     return;
@@ -169,7 +196,7 @@ function runKapStub() {
     process.exit(2);
   }
   const sessions = new Map();
-  const state = { heldPromptRelease: null, latestPromptId: null };
+  const state = { heldPromptRelease: null, activeTurnId: null, activeTexts: "", latestPromptId: null, liveTurns: [], steerSeq: 0 };
   let wsHub = null;
   const server = createServer((req, res) => {
     if (req.headers.authorization !== `Bearer ${bearer}`) { sendErr(res, 40_100, "Unauthorized"); return; }
@@ -183,7 +210,7 @@ function runKapStub() {
       dispatchRoute({ method: req.method ?? "GET", url, body, sessions, state, wsHub, server }, res);
     });
   });
-  wsHub = attachKapWsServer(server, { bearer, scenario, sessions, recordLog });
+  wsHub = attachKapWsServer(server, { bearer, scenario, sessions, state, recordLog });
   server.listen(0, "127.0.0.1", () => {
     const addr = server.address();
     process.stdout.write(`${JSON.stringify({ origin: `http://127.0.0.1:${addr.port}`, ws_url: `ws://127.0.0.1:${addr.port}/api/v1/ws`, token: bearer, kimi_agent_protocol_version: "1.0.0" })}\n`);
