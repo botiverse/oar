@@ -15,6 +15,14 @@ async function skill(dir: string, name: string, flags = ""): Promise<void> {
   await mkdir(dir, { recursive: true });
   await writeFile(join(dir, "SKILL.md"), `---\nname: ${name}\ndescription: Synthetic ${name} metadata\n${flags}---\nPRIVATE SKILL BODY\n!\`touch OAR_SKILL_BODY_EXECUTED\`\n`);
 }
+async function conversationEntries(home: string): Promise<string[]> {
+  try {
+    return await readdir(join(home, ".gemini", "antigravity-cli", "conversations"));
+  } catch (error) {
+    if (asRecord(error)?.code === "ENOENT") { return []; }
+    throw error;
+  }
+}
 function overlay(env: NodeJS.ProcessEnv): Record<string, string | null> {
   return { ...Object.fromEntries(Object.keys(process.env).map(key => [key, null])), ...Object.fromEntries(Object.entries(env).filter((entry): entry is [string, string] => typeof entry[1] === "string")) };
 }
@@ -77,7 +85,7 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("Antigravity nati
       expect(conversations).toBe(0);
       const files = await readdir(f.home, { recursive: true });
       expect(files.some(file => /OAR_SKILL_BODY_EXECUTED|oauth|credential/u.test(file))).toBe(false);
-      expect(files.some(file => /(?:^|[/\\])conversations[/\\]/u.test(file))).toBe(false);
+      expect(await conversationEntries(f.home)).toEqual([]);
       const output = resolve(process.env.OAR_TRIAL_RUN_DIR ?? "oar-trial-run", "antigravity-skills", "catalog.json");
       await mkdir(dirname(output), { recursive: true });
       await writeFile(output, JSON.stringify({ version: installation.version, native: rows, result, conversations, modelRequests: f.raw.length, configValuesUnchanged: true, configBytesChanged: afterConfig !== beforeConfig, binaryUnchanged: true, files }, null, 2).replaceAll(f.home, "<home>"));
@@ -106,7 +114,8 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("Antigravity nati
       else { expect(result).toEqual({ kind: "unavailable", code: "not_authenticated", reason: "Sign in to Antigravity to read its skills." }); }
       expect(f.raw).toHaveLength(0);
       const files = await readdir(f.home, { recursive: true });
-      expect(files.filter(file => /(?:^|[/\\])conversations[/\\]|oauth|credential/u.test(file))).toEqual([]);
+      expect(files.filter(file => /oauth|credential/u.test(file))).toEqual([]);
+      expect(await conversationEntries(f.home)).toEqual([]);
       if (local) { expect(files).toEqual(["project"]); }
       else {
         const db = new DatabaseSync(join(f.home, ".gemini/antigravity-cli/conversation_summaries.db"), { readOnly: true });
