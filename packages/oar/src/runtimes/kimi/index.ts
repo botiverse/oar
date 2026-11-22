@@ -2,23 +2,15 @@ import { runtimeBrands } from "../../brands.js";
 import { verifiedPlatforms } from "../../platforms.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { onFirstCall } from "../../shared/lazy.js";
-import { semverAtLeast } from "../../shared/semver.js";
 import { kimiAccountUsage } from "./account-usage.js";
 import { kimiInstallation } from "./installation.js";
 import { kimiInstall, kimiInstallPlan } from "./install.js";
 import { kimiCheckUpdate, kimiUpgrade } from "./update.js";
-import { kimiRefusedSessionOptions } from "./options.js";
+import { kimiRefusedSessionOptions, kimiSessionCapabilities } from "./options.js";
 
 export const kimiRuntime = defineRuntime({
   id: "kimi",
-  sessionCapabilities: (installation) => ({
-    taskEventTypes: [],
-    ...(installation.via === "executable" && semverAtLeast(installation.version, "2.6.3") ? { subagentResults: { foreground: "parent_tool_result" } } : {}),
-    steer: false, stopTask: false, contextUsage: { tokens: true, contextWindow: true },
-    // 2.1.1: oldest version observed advertising mcpCapabilities.http and tested calling stdio/HTTP echo tools in mcp-servers-acp.vendor.test.ts.
-    ...(installation.via === "executable" && semverAtLeast(installation.version, "2.1.1") ? { mcpTransports: ["stdio", "http"] as const } : {}),
-  }),
-  manualCompaction: { kind: "unsupported", reason: "The ACP transport reports compaction as ordinary text, without a structural completion signal." },
+  sessionCapabilities: kimiSessionCapabilities,
   brand: runtimeBrands.kimi, verifiedPlatforms: verifiedPlatforms.kimi,
   // Kimi 2.6.3: $KIMI_CODE_HOME (default ~/.kimi-code) credentials/ and config.toml; model and endpoint env overrides (docs/runtimes/kimi.md).
   credentials: {

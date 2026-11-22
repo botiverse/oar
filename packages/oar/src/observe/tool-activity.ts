@@ -109,7 +109,7 @@ const BY_RUNTIME: Record<string, Record<string, ToolActionKind>> = {
   // opencode a category, opencode's `write` the same `edit` as its `edit`).
   // Additional names and arguments: experiments/tool-activity-audit/results/.
   grok: { run_terminal_command: "run_command", search_replace: "edit_file", use_tool: "mcp", read_file: "read_file", grep: "search" },
-  kimi: { Bash: "run_command", Edit: "edit_file", Read: "read_file", Grep: "search" },
+  kimi: { Bash: "run_command", Edit: "edit_file", Write: "edit_file", Read: "read_file", Grep: "search", Glob: "search", Agent: "subagent", FetchURL: "fetch", WebSearch: "web", WaitFor: "wait" },
   qwen: { run_shell_command: "run_command", edit: "edit_file", read_file: "read_file", grep_search: "search" },
   qoder: { Bash: "run_command", Edit: "edit_file", Read: "read_file", Grep: "search" },
   codebuddy: { Bash: "run_command", Edit: "edit_file", Read: "read_file", Grep: "search" },
@@ -229,7 +229,7 @@ const FIELDS: Record<string, Record<string, (input: string) => InputFields>> = {
   pi: { bash: (input) => stringFields(input, false) },
   cursor: { shell: (input) => stringFields(input, false) },
   grok: { run_terminal_command: (input) => stringFields(input, true) },
-  kimi: { Bash: (input) => stringFields(input, false) },
+  kimi: { Bash: (input) => stringFields(input, false), Agent: taskFields },
   opencode: { bash: (input) => stringFields(input, false), shell: (input) => stringFields(input, false), subagent: taskFields },
   qwen: { run_shell_command: (input) => stringFields(input, false) },
   qoder: { Bash: (input) => stringFields(input, false) },
