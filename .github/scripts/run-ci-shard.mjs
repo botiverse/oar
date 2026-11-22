@@ -32,6 +32,19 @@ export function parseGithubEnv(content) {
   return env;
 }
 
+export function prependPath(env, extra, delimiter = path.delimiter) {
+  const dirs = extra.filter(Boolean);
+  if (dirs.length === 0) { return env; }
+  const keys = Object.keys(env).filter(key => key.toLowerCase() === "path");
+  const pathKey = keys[0] ?? "PATH";
+  const existing = keys.map(key => env[key]).filter(Boolean);
+  for (const key of keys) {
+    if (key !== pathKey) { delete env[key]; }
+  }
+  env[pathKey] = [...dirs, ...existing].join(delimiter);
+  return env;
+}
+
 function runCommand(command, args, env, timeoutMs = STEP_TIMEOUT_MS) {
   const isWin = process.platform === "win32";
   const result = spawnSync(command, args, {
@@ -89,9 +102,7 @@ async function runEntry(entry, osName) {
       }
       if (existsSync(githubPath)) {
         const extra = readFileSync(githubPath, "utf8").split(/\r?\n/u).filter(Boolean);
-        if (extra.length > 0) {
-          env.PATH = `${extra.join(path.delimiter)}${path.delimiter}${env.PATH ?? ""}`;
-        }
+        prependPath(env, extra);
       }
     }
 

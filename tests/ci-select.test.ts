@@ -67,3 +67,24 @@ test("run-ci-shard rejects unknown shard names", () => {
   expect(result.status).toBe(1);
   expect(result.stderr).toContain("Unknown shard");
 });
+
+function runPrependPath(env: Readonly<Record<string, string>>, extra: readonly string[], delimiter: string): unknown {
+  const script = `import { prependPath } from "./.github/scripts/run-ci-shard.mjs";
+    const env = JSON.parse(process.argv[1]);
+    prependPath(env, JSON.parse(process.argv[2]), process.argv[3]);
+    process.stdout.write(JSON.stringify(env));`;
+  const result = spawnSync(process.execPath, ["--input-type=module", "-e", script, JSON.stringify(env), JSON.stringify(extra), delimiter], { encoding: "utf8" });
+  expect(result.status, result.stderr).toBe(0);
+  return JSON.parse(result.stdout);
+}
+
+test.each([
+  { initial: { Path: String.raw`C:\Windows\System32;C:\pnpm` }, extra: [String.raw`D:\temp\claude`], delimiter: ";", expected: { Path: String.raw`D:\temp\claude;C:\Windows\System32;C:\pnpm` } },
+  { initial: { Path: String.raw`C:\Windows`, PATH: String.raw`C:\pnpm` }, extra: [String.raw`D:\temp\qwen`], delimiter: ";", expected: { Path: String.raw`D:\temp\qwen;C:\Windows;C:\pnpm` } },
+  { initial: { PATH: "/usr/bin" }, extra: ["/tmp/bin"], delimiter: ":", expected: { PATH: "/tmp/bin:/usr/bin" } },
+  { initial: {}, extra: ["/tmp/bin"], delimiter: ":", expected: { PATH: "/tmp/bin" } },
+])("prependPath preserves existing PATH casing without duplicates (%#)", ({ initial, extra, delimiter, expected }) => {
+  const updated = asRecord(runPrependPath(initial, extra, delimiter)) ?? {};
+  expect(Object.keys(updated)).toEqual(Object.keys(expected));
+  expect(updated).toEqual(expected);
+});
