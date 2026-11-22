@@ -206,33 +206,37 @@ export async function withTreeProbe<Result>(
   const pidFile = path.join(dir, "pids.json");
   const lateFile = path.join(dir, "late.pid");
   let tree: AgentTree | undefined = undefined;
-  try {
-    return await body({
-      dir,
-      env: {
-        OAR_FIXTURE_PIDS: pidFile,
-        ...(options.ignoreSigterm ? { OAR_FIXTURE_IGNORE_SIGTERM: "1" } : {}),
-        ...(options.detachTool === true ? { OAR_FIXTURE_DETACH_TOOL: "1" } : {}),
-        ...(options.lateTool === true ? { OAR_FIXTURE_LATE_TOOL: lateFile } : {}),
-      },
-      async tree() {
-        if (!await eventually(() => existsSync(pidFile), 10_000)) {
-          throw new Error(`the fake agent never reported its pids in ${pidFile}`);
-        }
-        // The fixture renames a complete file into place, so one read suffices.
-        tree = readTree(pidFile);
-        return tree;
-      },
-      async lateTool() {
-        if (!await eventually(() => existsSync(lateFile), 10_000)) {
-          throw new Error(`the fake agent never reported a late tool in ${lateFile}`);
-        }
-        return reportedProcess(JSON.parse(readFileSync(lateFile, "utf8")));
-      },
+  const run = async (): Promise<Result> => body({
+    dir,
+    env: {
+      OAR_FIXTURE_PIDS: pidFile,
+      ...(options.ignoreSigterm ? { OAR_FIXTURE_IGNORE_SIGTERM: "1" } : {}),
+      ...(options.detachTool === true ? { OAR_FIXTURE_DETACH_TOOL: "1" } : {}),
+      ...(options.lateTool === true ? { OAR_FIXTURE_LATE_TOOL: lateFile } : {}),
+    },
+    async tree() {
+      if (!await eventually(() => existsSync(pidFile), 10_000)) {
+        throw new Error(`the fake agent never reported its pids in ${pidFile}`);
+      }
+      // The fixture renames a complete file into place, so one read suffices.
+      tree = readTree(pidFile);
+      return tree;
+    },
+    async lateTool() {
+      if (!await eventually(() => existsSync(lateFile), 10_000)) {
+        throw new Error(`the fake agent never reported a late tool in ${lateFile}`);
+      }
+      return reportedProcess(JSON.parse(readFileSync(lateFile, "utf8")));
+    },
+  });
+  const result = await run().catch(async (bodyError: unknown) => {
+    await reap(tree, { pidFile, lateFile, dir }).catch((cleanupError: unknown) => {
+      throw new AggregateError([bodyError, cleanupError], "Process-tree probe and cleanup both failed", { cause: bodyError });
     });
-  } finally {
-    await reap(tree, { pidFile, lateFile, dir });
-  }
+    throw bodyError;
+  });
+  await reap(tree, { pidFile, lateFile, dir });
+  return result;
 }
 
 function readTree(file: string): AgentTree {
@@ -250,8 +254,7 @@ async function reap(tree: AgentTree | undefined, files: { pidFile: string; lateF
     const late: unknown = JSON.parse(readFileSync(lateFile, "utf8"));
     signalFixture(reportedProcess(late));
   }
-  // Let process exit/close handlers run while Windows releases open files,
-  // so a failed assertion is not masked by a still-locked fixture directory.
+  // Let exit handlers run while Windows releases open files.
   await rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 }
 

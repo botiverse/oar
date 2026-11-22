@@ -8,6 +8,11 @@ if (process.argv.includes("status") && process.env.OAR_FIXTURE_QODER === "1") {
   process.stdout.write('{"logged_in":true}');
   process.exit(0);
 }
+// This reader is launched directly by the test's Windows .cmd wrapper.
+if (process.env.OAR_FIXTURE_LAUNCHER_REPORT !== undefined) {
+  const { writeProcessReport } = await import("./process-tree.ts");
+  writeProcessReport(process.env.OAR_FIXTURE_LAUNCHER_REPORT, process.ppid);
+}
 await import("./agent-tree.mjs");
 // The real fixture tree holds the event loop open even when an SDK import never finishes.
 await Promise.withResolvers().promise;
