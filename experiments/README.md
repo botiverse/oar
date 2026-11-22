@@ -44,6 +44,7 @@
 
 - [Kimi first Web startup](kimi-web-startup/README.md): native first-token race, readiness gate, warm bypass and reader deadlines; [upstream #5035](https://github.com/MoonshotAI/kimi-code/issues/5035).
 
+- [Runtime version check: 2026-11-21](runtime-version-checks/2026-11-21.md): Pi candidate failures before the upgrade, the packed-host recheck and Qwen 0.28.3.
 - [Runtime version check: 2026-11-20](runtime-version-checks/2026-11-20.md): frozen candidates, the Claude 2.1.330 local login timeout, Pi 1.6.0 and all 106 failed CI jobs.
 
 - [Runtime version check: 2026-11-19](runtime-version-checks/2026-11-19.md): six changed releases, Kimi 2.7.0 resume, Cursor 1.4.2 on three platforms and all 25 CI failure logs.
