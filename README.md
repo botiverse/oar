@@ -262,17 +262,7 @@ Every command: [packages/cli](packages/cli/README.md) (published as `@botiverse/
 
 ## Projects using OAR
 
-- [Raft](https://raft.build): where people and agents work together; Raft Computers run agent runtimes through OAR.
-- [Kaze](https://kaze.build): a calm, quick browser for macOS and Windows, with an agent that works in your tabs.
-- [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/experimental/subagent-oar): `subagent-oar` hands DeepSeek Harness subagents to other runtimes.
-- [repo-harness](https://github.com/aimpact-inc/repo-harness): file-backed workflow harness for Claude Code and Codex sessions.
-- [Eta](https://github.com/0xfe-project/eta): a self-contained multi-agent loop, runtime and app.
-- [dsh-agent-team](https://github.com/Contexera/dsh-agent-team): agent teams for DeepSeek Harness.
-- [dsh-engine-switch](https://github.com/Goodfun-Studio/dsh-engine-switch): a DeepSeek Harness plugin that hands the main session to another agent runtime.
-- [ducter](https://github.com/wey-gu/ducter): a personal AI that hands work to coding agents on your machines.
-- [tmux-agent-deck](https://github.com/RayzPub/tmux-agent-deck): control tmux sessions and coding agents from a web terminal.
-
-Using OAR in a public project? Open a pull request to add it here.
+See [awesome-oar](https://github.com/raft-builders/awesome-oar) for a curated list of apps, agents, bridges, and plugins built on OAR. Using OAR in a public project? Open a pull request there to add it.
 
 ## Contributing
 
