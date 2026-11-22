@@ -9,6 +9,7 @@ import { awaitIdle, awaitTurnEnd } from "../../packages/oar/src/observe/turns.js
 import { viewOf } from "../../packages/oar/src/observe/session-view.js";
 import { ModelConfirmationError, ResumeCwdError, UnsupportedOptionError, type RawEvent, type Session } from "../../packages/oar/src/contracts/index.js";
 import { createFactorySession } from "../../packages/oar/src/runtimes/factory/session.js";
+import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { fakeAgentBinary } from "../fixtures/process-tree.js";
 
 const fakeDroid = path.resolve(import.meta.dirname, "../fixtures/fake-droid.mjs");
@@ -30,6 +31,7 @@ async function session(
   return opened;
 }
 const events = (records: readonly RawEvent[]) => records.flatMap(record => eventsOf(record));
+const notificationOf = (record: RawEvent) => (record.kind === "frame" ? asRecord(asRecord(asRecord(record.body.native)?.params)?.notification) : null);
 
 const LATE = "11111111-0000-4000-8000-000000000001";
 const endsLate = (records: readonly RawEvent[]): boolean => events(records).some(event => event.kind === "turn_ended" && event.inputId === LATE);
@@ -220,4 +222,69 @@ it("keeps previous contextUsage on post-turn get_context_stats timeout and leave
   expect(opened.contextUsage().value).toEqual({ tokens: 10, contextWindow: 100, percent: 10 });
   await expect.poll(() => opened.records().filter(record => record.kind === "frame" && record.body.type === "droid.get_context_stats").length, { timeout: 2000 }).toBe(2);
   expect(opened.contextUsage().value).toEqual({ tokens: 10, contextWindow: 100, percent: 10 });
+});
+
+it("refreshes contextUsage before resolving manual compaction", async () => {
+  const opened = await session("compact-context");
+  await expect.poll(() => opened.contextUsage().value, { timeout: 2000 }).toEqual({ tokens: 80, contextWindow: 100, percent: 80 });
+  expect(await opened.compact?.()).toMatchObject({ kind: "completed" });
+  expect(opened.contextUsage().value).toEqual({ tokens: 20, contextWindow: 100, percent: 20 });
+  const records = opened.records();
+  const stats = records.findLastIndex(record => record.kind === "frame" && record.body.type === "droid.get_context_stats");
+  const compacted = records.findLastIndex(record => record.kind === "frame" && record.body.type === "droid.compact_session");
+  expect(stats).toBeGreaterThan(-1);
+  expect(stats).toBeLessThan(compacted);
+});
+
+it("keeps previous contextUsage on post-compaction get_context_stats timeout and leaves late replies raw", async () => {
+  const opened = await session("slow-compact-context", 0, { contextReadTimeoutMs: 40, contextMs: 180 });
+  await expect.poll(() => opened.contextUsage().value, { timeout: 2000 }).toEqual({ tokens: 80, contextWindow: 100, percent: 80 });
+  expect(await opened.compact?.()).toMatchObject({ kind: "completed" });
+  expect(opened.contextUsage().value).toEqual({ tokens: 80, contextWindow: 100, percent: 80 });
+  await expect.poll(() => opened.records().filter(record => record.kind === "frame" && record.body.type === "droid.get_context_stats").length, { timeout: 2000 }).toBe(2);
+  expect(opened.contextUsage().value).toEqual({ tokens: 80, contextWindow: 100, percent: 80 });
+});
+
+it("orders notifications arriving during slow post-compaction get_context_stats after droid.compact_session", async () => {
+  const opened = await session("compact-context-notify", 0, { contextReadTimeoutMs: 500, contextMs: 60 });
+  await expect.poll(() => opened.contextUsage().value, { timeout: 2000 }).toEqual({ tokens: 80, contextWindow: 100, percent: 80 });
+  expect(await opened.compact?.()).toMatchObject({ kind: "completed" });
+  expect(opened.contextUsage().value).toEqual({ tokens: 20, contextWindow: 100, percent: 20 });
+  await expect.poll(() => opened.records().some(record => asRecord(notificationOf(record)?.settings)?.modelId === "after-compact"), { timeout: 2000 }).toBe(true);
+  const records = opened.records();
+  const compacted = records.findLastIndex(record => record.kind === "frame" && record.body.type === "droid.compact_session");
+  const laterNotice = records.findLastIndex(record => asRecord(notificationOf(record)?.settings)?.modelId === "after-compact");
+  expect(compacted).toBeGreaterThan(-1);
+  expect(laterNotice).toBeGreaterThan(compacted);
+});
+
+it("records confirmed droid.compact_session before exited when droid exits during slow get_context_stats", async () => {
+  const opened = await session("compact-context-exit", 0, { contextReadTimeoutMs: 500 });
+  await expect.poll(() => opened.contextUsage().value, { timeout: 2000 }).toEqual({ tokens: 80, contextWindow: 100, percent: 80 });
+  expect(await opened.compact?.()).toMatchObject({ kind: "completed" });
+  await expect.poll(() => opened.records().some(record => record.kind === "response" && record.body.kind === "exited"), { timeout: 2000 }).toBe(true);
+  const records = opened.records();
+  const compacted = records.findLastIndex(record => record.kind === "frame" && record.body.type === "droid.compact_session");
+  const exited = records.findLastIndex(record => record.kind === "response" && record.body.kind === "exited");
+  expect(compacted).toBeGreaterThan(-1);
+  expect(exited).toBeGreaterThan(compacted);
+});
+
+it("settles manual compaction and dispose cleanly when disposed during slow post-compaction get_context_stats", async () => {
+  const opened = await session("slow-compact-context", 0, { contextReadTimeoutMs: 2000, contextMs: 2000 });
+  await expect.poll(() => opened.contextUsage().value, { timeout: 2000 }).toEqual({ tokens: 80, contextWindow: 100, percent: 80 });
+  const compacting = opened.compact?.();
+  await expect.poll(() => opened.records().some(record => notificationOf(record)?.type === "session_compacted"), { timeout: 2000 }).toBe(true);
+  await sleep(10);
+  await opened.dispose();
+  expect(await compacting).toBeDefined();
+});
+
+it("refreshes contextUsage in background on automatic session_compacted", async () => {
+  const opened = await session("auto-compact-context", 0, { contextReadTimeoutMs: 500 });
+  await expect.poll(() => opened.contextUsage().value, { timeout: 2000 }).toEqual({ tokens: 80, contextWindow: 100, percent: 80 });
+  const first = await opened.prompt("hello");
+  await awaitTurnEnd(opened, first.request.seq);
+  expect(opened.contextUsage().value).toEqual({ tokens: 80, contextWindow: 100, percent: 80 });
+  await expect.poll(() => opened.contextUsage().value, { timeout: 2000 }).toEqual({ tokens: 20, contextWindow: 100, percent: 20 });
 });

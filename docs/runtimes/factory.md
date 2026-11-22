@@ -32,8 +32,17 @@ The [November 18 runtime check](../../experiments/runtime-version-checks/2026-11
 covers droid 1.14.0 against a local provider, including steering and six native
 scenarios. The [CI runtime manifest](../../.github/runtime-versions.json)
 names the accepted version for Linux and macOS. Windows is not yet
-verified. No Factory account has run a turn through OAR yet: Factory's own
-models, a real limits answer and a completed sign-in are unverified.
+verified. On November 22, 2026, Linux x64 checks on `droid 1.17.2`
+(protocol `1.365.0`) exercised both a live Factory Team Plan `FACTORY_API_KEY`
+and a live OAuth `device-pairing` sign-in (without `FACTORY_API_KEY`):
+`install`, `checkUpdate`, `listModels` (80 models), `skills`, completed OAuth
+`login` with `auth/status` (`account.email`), `accountUsage`
+(`/api/billing/limits` via both `FACTORY_API_KEY` and decrypted `auth.v2.file` +
+`auth.v2.key`), CLI `run` / `--resume`, `oar mcp`, SDK controls
+(`serveMcpTools`, `compact`, `steer`, `abort` + recovery), multi-turn
+`pnpm harbor` runs under both auth modes (compaction reducing context,
+restart/resume, zero findings, zero orphan tool calls), and OAuth `logout`
+clearing `auth.v2.file` (`logged_out` / `credentials_missing`).
 
 ## OAR mapping
 
@@ -155,6 +164,7 @@ Unmatched JSON responses use `response` and non-JSON stdout lines use `stdout`.
 | `thinking_text_delta` | `reasoning` text |
 | first `tool_call` for an id | `tool_call_started` (input as JSON) |
 | later `tool_call` for that id (droid streams the input) | `tool_call_input` |
+| assistant `create_message` `tool_use` block with unseen id (e.g. `script_only` `repl-tool-call:<uuid>`) | `tool_call_started` (ids already announced by `tool_call` are skipped) |
 | `tool_result` | `tool_call_ended` with droid's content and `isError` as `result` |
 | user `create_message` for an input OAR sent | `user_message` |
 | `queued_messages_discarded` | `input_dropped` |
@@ -162,17 +172,30 @@ Unmatched JSON responses use `response` and non-JSON stdout lines use `stdout`.
 | `session_compacted` | `compaction_ended` |
 | `agent_turn_completed` | `usage`, then `turn_ended` |
 
+In `script_only` tool execution mode observed on `droid 1.17.2`, droid invokes
+built-in tools inside an outer `Script` call: `Script` arrives through
+`tool_call` (with later assistant `create_message` echo ignored), while nested
+`Execute`, `Read`, `Create`, `Edit`, `Grep`, and `Glob` calls arrive only as
+`repl-tool-call:<uuid>` assistant `create_message` frames before their
+`tool_result`. Projecting unseen assistant `tool_use` blocks restores
+`tool_call_started` before `tool_result` for those nested calls, and
+`classifyTool` maps those recorded built-in names (`Script` remains `other`)
+plus `<server>___<tool>` as `mcp` and extracts `Execute` `command` and `summary`.
+
 `assistant_message_retracted` stays a native frame: OAR has no event that
 takes streamed text back. droid's `tool_result` carries no exit code field, so
 none is reported.
 
 Permission: new sessions open with `skipPermissionsUnsafe`, so droid asks
-nothing. A resumed session does ask (`load_session` has no such flag): OAR
-answers each `droid.request_permission` with `proceed_once` and never with a
-standing grant (`proceed_always`, `proceed_auto_run_*`, ...). Without
-`proceed_once` on offer it chooses droid's `cancel`, and with neither it
-answers an error rather than a value droid did not offer. OAR records the
-request and its answer. `droid.ask_user` and
+nothing. A resumed session does not carry that open-time flag (`load_session`
+has no such parameter), though `droid 1.17.2` was observed reporting
+`autonomyMode: "auto-medium"` / `autonomyLevel: "medium"` on both open and
+resume and running low/medium tool calls without prompting. Whenever droid
+does send `droid.request_permission`, OAR answers each request with
+`proceed_once` and never with a standing grant (`proceed_always`,
+`proceed_auto_run_*`, ...). Without `proceed_once` on offer it chooses droid's
+`cancel`, and with neither it answers an error rather than a value droid did
+not offer. OAR records the request and its answer. `droid.ask_user` and
 `droid.pick_options` are answered as cancelled: nobody sits at a prompt in
 embedded use.
 
@@ -189,15 +212,19 @@ on the parent's turn end (below).
 request on a session's first message included. OAR sums it from when the
 session opened: `input` is `inputTokens` plus the cache parts droid reports
 beside it (`cacheReadTokens`, `cacheCreationTokens`), `output` is
-`outputTokens`. `thinkingTokens` stays in the native frame: whether
-`outputTokens` already includes it is not established without a Factory model.
+`outputTokens` (`claude-opus-5-5 --effort high` on `droid 1.17.2` returned a
+4-character answer with `thinkingTokens: 97`, `outputTokens: 114`, and zero
+`thinking_text_delta` frames, confirming `outputTokens` includes
+`thinkingTokens` here).
 Once a turn reports sub-agent tokens (`childTokenUsage`), the usage report's
-`total` adds them. OAR reads `droid.get_context_stats` at open and before
-emitting `turn_ended` on each non-aborted turn, with a one-second bound. Its
-reply is a frame of that name; a usable reading yields a `usage` event with
-`context` (`used` of `limit`), so `contextUsage()` is current when the turn
-ends. On error or timeout, `contextUsage()` keeps its previous reading and any
-late reply is retained as a raw frame without overwriting a later turn's value.
+`total` adds them. OAR reads `droid.get_context_stats` in the background at open and on automatic
+`session_compacted` notifications, and runs a bounded read (1-second default)
+before emitting `turn_ended` on each non-aborted turn and after a confirmed
+manual `droid.compact_session` response before settling compaction. Its reply is a frame of that name; a usable reading yields a
+`usage` event with `context` (`used` of `limit`), so `contextUsage()` is
+current when the turn or compaction settles. On error or timeout,
+`contextUsage()` keeps its previous reading and any late reply is retained as a
+raw frame without overwriting a later readback's value.
 
 ### Failures
 
@@ -263,18 +290,27 @@ droid's sign-in is on its own ACP entry, `droid exec --output-format acp`
   since droid keeps using the key. A refusal is `rejected` with droid's words, any URL removed.
   Deadline 15 minutes.
 - **authStatus** reads `auth/status`: `unauthenticated` is `logged_out`,
-  `authenticated` is `logged_in` (`credential: "account"`). With
-  `FACTORY_API_KEY` set, droid uses the key instead of any stored login and
-  reports it as authenticated without checking it, so OAR answers `unknown`
-  with `configured: ["FACTORY_API_KEY"]`. At its deadline the read answers
-  `unknown` at once; stopping droid continues in the background.
+  `authenticated` is `logged_in` (`credential: "account"`, with `email` copied
+  from the active account when non-empty). With `FACTORY_API_KEY` set, droid
+  uses the key instead of any stored login and reports it as authenticated
+  without checking it, so OAR answers `unknown` with
+  `configured: ["FACTORY_API_KEY"]`. At its deadline the read answers `unknown`
+  at once; stopping droid continues in the background.
 - **logout** sends droid's `logout` and reads `auth/status`: logged out is
   `logged_out`; a set `FACTORY_API_KEY` is `still_logged_in`.
 
-Verified on 1.12.1 without an account: status logged out, the key case, the
-login up to the URL (then cancelled) and logout. A completed sign-in with a
-Factory account, and what `auth/status` reports for it (the account label is
-not mapped to an email until seen), are not yet verified.
+Verified on 1.12.1 without an account (status logged out, the key case, login
+up to the URL then cancelled, and logout) and on 1.17.2 (Linux x64): an
+unapproved `device-pairing` attempt timed out after 5 minutes with JSON-RPC
+`-32603` ("Internal error", reported by OAR as `failed / rejected`), and
+`logout` with `FACTORY_API_KEY` set returned `failed / still_logged_in`. A
+completed OAuth `device-pairing` login stored `auth.v2.file` + `auth.v2.key`
+(under `FACTORY_DISABLE_KEYRING=1`), `auth/status` returned
+`accounts: [{ label: "Factory", active: true, email, organizationId }]`
+(mapped by OAR to `logged_in` with `account: { credential: "account", email }`),
+and OAuth `logout` removed `auth.v2.file` cleanly (`auth/status` then returned
+`logged_out` and `accountUsage` returned `reauth_required` with
+`credentials_missing`).
 
 ## Manual compaction
 
@@ -348,10 +384,14 @@ Standard window with no Extra Usage to continue on (`overagePreference`
 limits and `hasActiveSubscription: false` is `unsupported` with
 `quota_unavailable`. A customer-hosted ("prem") deployment is not handled.
 
-**The answer's shape comes from droid's own code** (its usage screen and the
-model-switch checks of droid 1.12.1; droid does not schema-check the answer
-itself) **and is unverified on a real account.** The tests use a local HTTP
-server through `FACTORY_API_BASE_URL`.
+**Live `/api/billing/limits` behavior is verified on `droid 1.17.2`**
+(HTTP 200 on November 22, 2026 under both a Factory Team Plan `FACTORY_API_KEY`
+and a completed OAuth `device-pairing` login decrypting `auth.v2.file` with
+`auth.v2.key` without `FACTORY_API_KEY`): pre-spend
+(`usedPercent: 0, windowEnd: null`), post-spend (`usedPercent` and ISO
+`windowEnd` projected into `usedRatio` and `resetsAt` across all six
+`standard.*` and `core.*` 5-hour/weekly/monthly windows), and post-Harbor usage
+increases under OAuth.
 
 There are no limit resets: droid's bundle has no reset or redeem endpoint. A
 turn that hits a limit ends with `model_usage_exhausted` or
@@ -366,10 +406,7 @@ droid with a fresh HOME whose only model is a custom model served by aimock
 on it with no Factory login.
 
 ## Open gaps
-
-- A real Factory account: Factory's models, `thinkingTokens`, the
-  `model_usage_exhausted` path, a completed sign-in, the logged-in status, and
-  the `/api/billing/limits` answer.
+- The `model_usage_exhausted` path on an exhausted real quota.
 - Windows.
 - Child sessions as linked sessions (`child_session_available`).
 - `outputSchema` through `structuredOutputFormat`, `disallowedTools` through

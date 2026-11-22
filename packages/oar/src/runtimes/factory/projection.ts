@@ -147,6 +147,21 @@ export function foldFactoryNotification(state: FactoryProjection, message: JsonR
     }
     case "create_message": {
       const created = asRecord(notification.message);
+      if (created?.role === "assistant") {
+        // droid 1.17.2 `script_only` emits nested tool invocations as `repl-tool-call:<uuid>`
+        // assistant `create_message` frames rather than `tool_call` notifications, while outer
+        // calls arrive via `tool_call` first and echo the same id here once finalized.
+        let added: Set<string> | null = null;
+        const events: RuntimeEventBody[] = [];
+        for (const block of asRecordList(created.content)) {
+          if (block.type !== "tool_use" || typeof block.id !== "string") { continue; }
+          if ((added ?? state.toolCalls).has(block.id)) { continue; }
+          added ??= new Set(state.toolCalls);
+          added.add(block.id);
+          events.push({ kind: "tool_call_started", callId: block.id, tool: typeof block.name === "string" ? block.name : "unknown", input: inputText(block.input) });
+        }
+        return added === null ? frame([]) : frame(events, { ...state, toolCalls: added });
+      }
       const requestId = typeof notification.requestId === "string" ? notification.requestId : undefined;
       const sent = requestId === undefined ? undefined : state.sent.get(requestId);
       if (created?.role !== "user" || sent === undefined || created.id !== sent.inputId) { return frame([]); }

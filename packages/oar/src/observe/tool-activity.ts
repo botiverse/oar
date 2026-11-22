@@ -46,12 +46,12 @@ export interface ToolAction {
    * `run_command`: the command line as the runtime reported it. Set only for runtimes whose
    * shell input shape is recorded (claude `Bash` and `PowerShell`, codex `commandExecution`, pi `bash`, cursor `shell`,
    * grok `run_terminal_command`, kimi / qoder / codebuddy `Bash`, opencode `bash` / `shell`,
-   * qwen `run_shell_command`, antigravity `run_command`, dsh `bash`).
+   * qwen `run_shell_command`, antigravity `run_command`, dsh `bash`, factory `Execute`).
    */
   readonly command?: string;
   /**
    * The agent's own one-line account of the call, where the runtime sends one (claude `Bash`
-   * and `PowerShell`, grok `run_terminal_command`, antigravity `run_command`, dsh `bash`). On a `subagent` call (claude `Agent` or `Task`, opencode `subagent`) it is
+   * and `PowerShell`, grok `run_terminal_command`, antigravity `run_command`, dsh `bash`, factory `Execute`). On a `subagent` call (claude `Agent` or `Task`, opencode `subagent`) it is
    * the subagent's task, also its `detail`.
    */
   readonly description?: string;
@@ -141,6 +141,8 @@ const BY_RUNTIME: Record<string, Record<string, ToolActionKind>> = {
     webFetch: "fetch",
     mcp: "mcp",
   },
+  // Factory droid 1.17.2 (`script_only` repl-tool-call + outer tools recorded live on 2026-11-22). Script wrapper proves no single category.
+  factory: { Execute: "run_command", Read: "read_file", Create: "edit_file", Edit: "edit_file", Grep: "search", Glob: "search", Script: "other" },
 };
 
 /** Tool names are open, including names also present on Object.prototype. */
@@ -152,9 +154,7 @@ function recorded<T>(table: Record<string, Record<string, T>>, runtime: string, 
 function kindOf(runtimeId: string, tool: string, inputJson?: string): ToolActionKind {
   const runtime = runtimeId.replace(/-aimock$/u, "");
   const direct = recorded(BY_RUNTIME, runtime, tool);
-  if (direct !== undefined) {
-    return direct;
-  }
+  if (direct !== undefined) { return direct; }
   // MCP tools are conventionally prefixed on claude (mcp__server__tool).
   if (tool.startsWith("mcp__")) {
     return "mcp";
@@ -163,6 +163,8 @@ function kindOf(runtimeId: string, tool: string, inputJson?: string): ToolAction
   if (runtime === "antigravity" && /^mcp_.+_.+/u.test(tool)) {
     return "mcp";
   }
+  // Factory exposes session MCP server tools under `<server>___<tool>`.
+  if (runtime === "factory" && !tool.startsWith("___") && !tool.endsWith("___") && tool.includes("___") && !/[\r\n]/u.test(tool)) { return "mcp"; }
   // Qwen's deferred-tool dispatcher is not specific to MCP. Only the
   // recorded MCP target namespace proves that category.
   if (runtime === "qwen" && tool === "tool_call" && inputJson !== undefined) {
@@ -234,6 +236,7 @@ const FIELDS: Record<string, Record<string, (input: string) => InputFields>> = {
   codebuddy: { Bash: (input) => stringFields(input, false) },
   antigravity: { run_command: (input) => stringFields(input, true, "CommandLine", "toolSummary") },
   dsh: { bash: (input) => stringFields(input, true) },
+  factory: { Execute: (input) => stringFields(input, true, "command", "summary") },
 };
 
 const FIRST_STRING_KEYS = ["command", "cmd", "path", "file_path", "filePath", "file", "pattern", "query", "url"];

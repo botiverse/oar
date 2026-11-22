@@ -141,3 +141,42 @@ test("classifyTool lists a codex fileChange's paths once each, a rename's target
     kind: "edit_file", detail: "/w/a.txt", paths: ["/w/a.txt", "/w/b.txt", "/w/c.txt"],
   });
 });
+
+test("classifyTool reads recorded Factory Droid 1.17.2 built-in tools", () => {
+  assert.deepEqual(
+    classifyTool("factory", "Execute", JSON.stringify({ command: "echo hi", summary: "Print greeting", riskLevel: "low" })),
+    { kind: "run_command", detail: "echo hi", command: "echo hi", description: "Print greeting" },
+  );
+  assert.deepEqual(
+    classifyTool("factory-aimock", "Read", JSON.stringify({ file_path: "/w/a.ts" })),
+    { kind: "read_file", detail: "/w/a.ts", paths: ["/w/a.ts"] },
+  );
+  assert.deepEqual(
+    classifyTool("factory", "Create", JSON.stringify({ file_path: "/w/new.txt", content: "line1" })),
+    { kind: "edit_file", detail: "/w/new.txt", paths: ["/w/new.txt"] },
+  );
+  assert.deepEqual(
+    classifyTool("factory", "Edit", JSON.stringify({ file_path: "/w/new.txt", old_str: "line1", new_str: "line2" })),
+    { kind: "edit_file", detail: "/w/new.txt", paths: ["/w/new.txt"] },
+  );
+  assert.deepEqual(
+    classifyTool("factory", "Grep", JSON.stringify({ pattern: "tool_call", path: "/w", output_mode: "content" })),
+    { kind: "search", detail: "tool_call" },
+  );
+  assert.deepEqual(
+    classifyTool("factory", "Glob", JSON.stringify({ folder: "/w", patterns: "*.txt" })),
+    { kind: "search" },
+  );
+  assert.deepEqual(classifyTool("factory", "Script", JSON.stringify({ script: "await tools.Read({ file_path: '/w/a.ts' })" })), { kind: "other", detail: "Script" });
+  assert.deepEqual(classifyTool("factory", "Bash"), { kind: "other", detail: "Bash" });
+});
+
+test("classifyTool distinguishes Factory MCP tools from malformed triple-underscore names", () => {
+  assert.deepEqual(classifyTool("factory", "oar_live_host___host_badge", JSON.stringify({ label: "x" })), { kind: "mcp" });
+  assert.deepEqual(classifyTool("factory", "___"), { kind: "other", detail: "___" });
+  assert.deepEqual(classifyTool("factory", "a___"), { kind: "other", detail: "a___" });
+  assert.deepEqual(classifyTool("factory", "___b"), { kind: "other", detail: "___b" });
+  assert.deepEqual(classifyTool("factory", "____"), { kind: "other", detail: "____" });
+  assert.deepEqual(classifyTool("factory", "a___b\nc"), { kind: "other", detail: "a___b\nc" });
+  assert.deepEqual(classifyTool("factory", "__proto__"), { kind: "other", detail: "__proto__" });
+});

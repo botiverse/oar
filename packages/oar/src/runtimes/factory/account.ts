@@ -14,7 +14,7 @@ import { loginBounds, loginExecutable, stoppedResult } from "../../shared/login.
  * - `initialize` advertises `authMethods` `device-pairing` and
  *   `factory-api-key` and `agentCapabilities.auth` `{ logout, status }`;
  * - `auth/status` answers `{ state: "unauthenticated" }`, or
- *   `{ state: "authenticated", accounts: [{ label, active }] }`. With
+ *   `{ state: "authenticated", accounts: [{ label, active, email?, organizationId? }] }`. With
  *   `FACTORY_API_KEY` set it answers authenticated with the label
  *   "Factory API key" without checking the key;
  * - `authenticate { methodId: "device-pairing" }` from a client declaring
@@ -96,7 +96,8 @@ export function projectFactoryAuthStatus(result: JsonRecord | undefined): AuthSt
     return { kind: "unknown", source: SOURCE, configured: ["FACTORY_API_KEY"],
       detail: "FACTORY_API_KEY is set; droid uses it instead of any stored login and reports it without checking it" };
   }
-  return { kind: "logged_in", source: SOURCE, account: { credential: "account" } };
+  const email = typeof active?.email === "string" && active.email.trim() !== "" ? active.email.trim() : undefined;
+  return { kind: "logged_in", source: SOURCE, account: { credential: "account", ...(email === undefined ? {} : { email }) } };
 }
 
 async function statusQuery(call: AcpCall): Promise<AuthStatus> {
