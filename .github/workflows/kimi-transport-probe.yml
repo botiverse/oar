@@ -1,0 +1,39 @@
+name: Kimi transport comparison
+on:
+  pull_request:
+    paths:
+      - '.github/kimi-transport-probe/**'
+      - '.github/workflows/kimi-transport-probe.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install the two pinned distributions in a temporary prefix
+        shell: bash
+        run: npm install --prefix "$RUNNER_TEMP/kimi333" --no-audit --no-fund @moonshot-ai/kimi-code@2.7.2 @botiverse/kimi-code-sdk@2.3.1-botiverse.1
+      - name: Compare each transport against a local scripted provider
+        shell: bash
+        run: |
+          mkdir -p evidence
+          result=0
+          for transport in kap sdk acp; do
+            node .github/kimi-transport-probe/probe.mjs "$transport" "$RUNNER_TEMP/kimi333" "evidence/$transport.json" || result=1
+          done
+          exit "$result"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kimi-transport-${{ matrix.os }}
+          path: evidence/*.json
+          if-no-files-found: error
