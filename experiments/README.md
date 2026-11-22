@@ -1,5 +1,7 @@
 # experiments
 
+- [Kimi 2.7.2 KAP wire contract](kimi-kap-wire/README.md) follows session creation through model selection, tool calls, usage, cancellation, compaction and child-agent completion.
+
 - [The next request after an interrupted turn](abort-aftermath/README.md) compares model-visible history after stopping a stream or a running tool.
 
 - [Codex thread instructions](codex-instruction-retention/README.md) traces what reaches the model after compaction and collaboration-mode changes.
