@@ -56,6 +56,25 @@ test("--check reports the runtime's own check without upgrading", async () => {
   assert.deepEqual(renderUpgradeReport(report), ["fake\t1.0.0 -> 1.1.0 available (stable channel, fake update --check)"]);
 });
 
+test("an upgrade-only runtime runs its updater only for an upgrade request", async () => {
+  let calls = 0;
+  const target = runtime("upgrade-only", {
+    upgrade: async (installation, options) => {
+      await Promise.resolve();
+      assert.equal(installation, executable);
+      assert.equal(options?.timeoutMs, 1234);
+      calls += 1;
+      return { kind: "upgraded", from: "1.0.0", to: "1.1.0", output: "" };
+    },
+  });
+  const checkOnly = await readUpgrade(target, { upgrade: false });
+  assert.equal(checkOnly.unsupported, "upgrade-only exposes no update check");
+  assert.equal(calls, 0);
+  const report = await readUpgrade(target, { upgrade: true, timeoutMs: 1234 });
+  assert.equal(report.upgrade?.kind, "upgraded");
+  assert.equal(calls, 1);
+});
+
 test("a check that sees an older release than the installed one says no update", () => {
   const behind: UpdateCheck = { kind: "ok", installed: "1.3.0", latest: "1.2.1", updateAvailable: false, source: "registry" };
   assert.deepEqual(renderUpgradeReport({ runtimeId: "agy", check: behind }), ["agy\t1.3.0, no update (source lists 1.2.1, registry)"]);

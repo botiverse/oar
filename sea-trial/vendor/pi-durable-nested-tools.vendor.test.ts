@@ -34,7 +34,7 @@ test.skipIf(process.env.OAR_TEST !== "pi-durable-aimock").each([false, true])("n
     await entered.promise;
     adopted = await fixture.runtime.session({ kind: "available", via: "bundled" }, { cwd: "/virtual", resume: session.id });
     const initial = adopted.records().flatMap((record) => record.kind === "frame" ? record.body.events : []);
-    expect(initial).toContainEqual({ kind: "tool_call_started", tool: "leaf", callId: "call-outer/nested", arguments: {} });
+    expect(initial).toContainEqual({ kind: "tool_call_started", tool: "leaf", callId: "call-outer/nested", input: "{}" });
     release.resolve();
     expect(await awaitTurnEnd(session, first.seq)).toEqual({ kind: "completed" });
     await fixture.harness.waitForIdle(BACKGROUND_CONTEXT);

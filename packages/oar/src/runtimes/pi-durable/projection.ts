@@ -109,7 +109,7 @@ function toolEvents(previous: ConversationView, view: ConversationView, entries:
     if (prior === undefined || prior.status === "pending") {
       const args = toolArguments(slot, view);
       events.push({ kind: "tool_call_started", callId: slot.callId, tool: slot.name,
-        ...(args === undefined ? {} : { arguments: args }) });
+        ...(args === undefined ? {} : { input: JSON.stringify(args) }) });
     }
     if (slot.status === "running" && slot.output !== undefined && slot.output !== prior?.output) {
       events.push({ kind: "tool_call_progress", callId: slot.callId, output: slot.output });

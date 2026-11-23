@@ -63,6 +63,18 @@ test("tool output is the native retained window, and an absent terminal result r
   expect(end.frame.events.filter(event => event.kind !== "usage")).toEqual([{ kind: "tool_call_ended", callId: "call" }]);
 });
 
+test("a root tool start recovers serialized input from its matching assistant call", () => {
+  const args = { query: 'quote " and newline\n', limit: 3 };
+  const active = view({ tools: [{ callId: "lookup", name: "search", status: "running" }] });
+  const snapshot: ConversationView = { ...active, entries: [{ ...entry(5, ""), model: [
+    { ...message, content: [{ type: "toolCall", id: "lookup", name: "search", arguments: args }] },
+  ] }] };
+  const initial = foldDurableView(initialDurableProjection(snapshot), call(snapshot), [], true);
+  expect(initial.frame.events.filter(event => event.kind === "tool_call_started")).toEqual([
+    { kind: "tool_call_started", callId: "lookup", tool: "search", input: JSON.stringify(args) },
+  ]);
+});
+
 test("entry appends survive an immediate native window trim in the same notification", () => {
   const entries = Array.from({ length: 110 }, (_, index) => entry(index + 5, String(index)));
   const native: Extract<WatchCall<ConversationView>, { kind: "value" }> = { ...call({ ...empty, entries: entries.slice(-50) }), ops: [["p", ["entries"], 0, 0, entries], ["p", ["entries"], 0, 60, []]] };
