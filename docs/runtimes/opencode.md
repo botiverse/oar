@@ -1221,9 +1221,11 @@ See [host-served tools](../spec/runtime-matrix.md#host-served-tools).
   An isolated script installation advanced from 2.2.7 to 2.3.2, and stayed
   on 2.3.2 on a second run. The v1 adapter does not drive an upgrade.
 - [Session MCP servers](#session-mcp-servers) ran against a local scripted
-  provider. [CI](../../.github/workflows/ci.yml) runs shared behavior and
-  full vendor suites on both OpenCode majors. A pull request that reaches
-  OpenCode runs both on Linux and Windows. Main pushes add macOS.
+  provider. [ci.yml](../../.github/workflows/ci.yml) runs shared behavior and
+  full vendor suites on both OpenCode majors on Linux; PRs touching OpenCode
+  also run Windows OpenCode v2, while daily
+  [platform-matrix.yml](../../.github/workflows/platform-matrix.yml) runs macOS
+  (both majors) and Windows (`v1` and `v2`).
   OpenCode declares all three in `verifiedPlatforms`. Each job retains
   its installed version and trial artifacts. The v2 vendor suite
   also runs after a behavior failure. The

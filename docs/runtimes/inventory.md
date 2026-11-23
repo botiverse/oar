@@ -96,11 +96,13 @@ Cursor SDK 1.4.0 discovery was subsequently measured in the
 Antigravity, CodeBuddy, Cursor, Devin, DSH, Factory, Qoder and Qwen were not probed
 in the original baseline;
 At that baseline OAR answered all four of their inventory queries `unsupported`
-(`transport_unavailable`), as it does for Kimi, Pi Durable and Mister Morph
-([defineRuntime default](../../packages/oar/src/contracts/runtime.ts)). No full-fidelity three-way intersection is verified across the five
-probed **OAR-selected transports**. Skills are the broadest commonality, but Kimi
-needs a different transport and Claude's context view is narrower than a
-discovery catalog. A tool list is not necessarily a built-in tool list, a
+(`transport_unavailable`), as it currently does for CodeBuddy, Qoder, Cybion,
+Pi Durable and Mister Morph
+([defineRuntime default](../../packages/oar/src/contracts/runtime.ts); native
+`skills` was later added for Antigravity, Devin, DSH, Factory, Kimi and Qwen).
+Across the five originally probed runtimes, skills is the broadest shipped
+intersection (with Kimi querying its separate native Web transport), while
+Claude's context view is narrower than a discovery catalog. A tool list is not necessarily a built-in tool list, a
 schema catalog, or a permission grant.
 
 ## Codex

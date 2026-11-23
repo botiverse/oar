@@ -717,9 +717,10 @@ never rewrites the host process environment.
 The [migration report](../../experiments/antigravity-cli-acp-2026-11-05.md)
 links repeatable native controls and the runtime-specific vendor tests.
 The local behavior suite covers prompt, steer, queue, cancellation, resume,
-models, images and disposal as applicable. Required CI installs the pinned
-CLI 1.5.11 archive on Linux, macOS and Windows, verifies its SHA-512, and runs
-the behavior and vendor suites with an isolated home and local provider.
+models, images and disposal as applicable. Required CI (`ci.yml`) installs the pinned CLI 1.5.11 archive on Linux,
+verifies its SHA-512, and runs the behavior and vendor suites with an isolated
+home and local provider; daily `platform-matrix.yml` runs the same install and
+suites on macOS and Windows.
 The manual sharing-evidence workflow uses the same installer. The local
 Linux results do not stand in for CI's macOS/Windows runs.
 Real Gemini sessions on 1.5.12 supplied context usage updates and whole-turn

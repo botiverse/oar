@@ -1067,10 +1067,13 @@ replay the 1.0.25 frames (fixture [`fake-acp-grok.mjs`](../../tests/fixtures/fak
 nested snake_case lineage → graph edge, the envelope-parent
 `subagent_finished`, never-fabricated lineage, listed versus unlisted vendor
 methods, and per-prompt ledgers accumulating into `usage()`. [Terminal tests](../../tests/acp/acp-terminal.test.ts)
-cover shell compatibility, truncation, and cleanup. [Snapshot tests](../../tests/acp/acp-vendor-snapshot.test.ts)
-check recorded schema assumptions (1.0.5), not execution of the current
-harness. The [CI behavior matrix](../../.github/workflows/ci.yml) also runs
-Grok against a local scripted provider on Linux and macOS. Windows runs in
+cover shell compatibility, truncation, and cleanup. [Login tests](../../tests/login/grok-login.test.ts)
+cover device-code auth, status, and logout against a fake CLI, and
+[app-request tests](../../tests/app-requests.test.ts) classify the recorded
+1.0.5 prompt requests. The [CI behavior matrix](../../.github/workflows/ci.yml)
+also runs Grok against a local scripted provider on Linux, and daily
+[platform-matrix.yml](../../.github/workflows/platform-matrix.yml) runs it on
+macOS. Windows runs in
 the separate [main-push observation workflow](../../.github/workflows/acp-windows.yml):
 intermittent startup or MCP timeouts remain unexplained and do not gate PRs.
 

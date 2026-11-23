@@ -1187,9 +1187,9 @@ termination after ten seconds without a turn end).
 [Adapter](../../packages/oar/src/runtimes/pi/session.ts).
 
 **Mapped:** installation checks that the bundled SDK resolves or imports;
-there is no executable to probe and no version to report. The SDK is a
-regular dependency of OAR and moves with the OAR version, so Pi has no
-`checkUpdate` or `upgrade` ([runtime updates](update.md)). Native providers
+there is no executable to probe and no version to report. The Pi SDK packages are optional dependencies of OAR (installed by default,
+direct dependencies of the CLI) and move with OAR's published range, so Pi has
+no `checkUpdate` or `upgrade` ([runtime updates](update.md)). Native providers
 support API keys and OAuth; `createPiProviderAuth` exposes per-provider
 status, interactive login (auth-URL / device-code / prompt events bridged from
 pi's `AuthInteraction`), `setApiKey` and logout through `ModelRuntime`,

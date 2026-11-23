@@ -99,8 +99,9 @@ disable them was found.
 
 ## Verification and open gaps
 
-Live authenticated turns are unverified: Devin talks ConnectRPC to
-Cognition's servers, which `aimock` cannot stand in for. Still open: rate-limit
+CI has no `aimock` backend for Devin because it talks ConnectRPC to
+Cognition's servers; live verification covers one Linux `3000.14.30821`
+`logged_in` read, model list, and `swe-2-high` turn above. Still open: rate-limit
 and quota payloads, mid-turn prompts, tool-call detail, child attribution,
 installer runs on Linux and Windows, and skill queries on macOS and Windows.
 

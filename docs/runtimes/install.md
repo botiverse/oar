@@ -98,7 +98,8 @@ repeats the real install in a child process with isolated HOME, npm prefix,
 cache and configuration files. It checks that planning leaves both HOME
 and Node's installation unchanged and removes its private temporary cache,
 compares the native reported version to the installed package, and verifies
-the second install is idempotent. The three-platform CI `check` jobs run it;
+the second install is idempotent. The daily three-platform `codebuddy-installer`
+job in [runtime-latest.yml](../../.github/workflows/runtime-latest.yml) runs it;
 this page records only the Linux observation above. Unit regressions
 also cover missing npm, denied write access, failed/timed-out prefix queries,
 explicit executable overrides and environment-specific prefix discovery.
