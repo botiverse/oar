@@ -18,10 +18,10 @@ tools, each used only where the one before does not fit.
 When a runtime either can or cannot do a whole thing, the thing is an
 optional member and its presence is the capability. `Runtime.accountUsage`,
 `redeemLimitReset`, `inspectLimitResets`, `listModels`, `installPlan`,
-`install`, `checkUpdate`, `upgrade`, `login`, `logout`, `authStatus` and
-`providers` work this way, and so do the optional `Session` members
+`install`, `checkUpdate`, `upgrade`, `login`, `logout`, `authStatus`,
+`providers` and `sideQuestion` work this way, and so do the optional `Session` members
 (`steer`, `withdraw`, `stopTask`, `compact`, `resources`,
-`contextBreakdown`, `goal`). A session that cannot steer has no `steer`;
+`contextBreakdown`, `goal`, `lastModelRequest`, `nativeSessionFile`). A session that cannot steer has no `steer`;
 one whose queue OAR does not hold has no `withdraw`; one OAR has no memory
 reader for has no `resources`. A session without structured native goal
 controls has no `goal`; enabling that native feature is an explicit session
@@ -100,7 +100,7 @@ on the installation:
   `manualCompaction` and `mcpToolsListChanged`: what a host checks before it
   installs, signs in, or relies on compaction or tool-list changes.
 - `Session.capabilities`: per-session facts that are not operations
-  (`images`, the `attribution` tier, whether held input is `durable`), some
+  (`images`, `nativeMemory`, the `attribution` tier, whether held input is `durable`), some
   known only after the runtime's handshake.
 
 A declaration is added for a real pre-action need, not mirrored for every

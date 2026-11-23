@@ -77,7 +77,7 @@ boundary without reconstructing hidden adapter state.
 Orientation follows this cost boundary: local discovery uses only evidenced
 local readers; account and catalog effects require a deeper explicit read.
 The [orientation contract](../spec/orientation.md) composes native readers,
-while its readiness projection leaves selection and freshness policy to hosts.
+and leaves readiness, selection and freshness policy to hosts.
 
 ## Agent ergonomics are invariants
 

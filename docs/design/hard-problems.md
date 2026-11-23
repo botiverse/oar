@@ -70,10 +70,13 @@ subject of [foundations.md](foundations.md).
     tell you this; only conformance tests against real behavior pin it down
     (see [`../../experiments/README.md`](../../experiments/README.md)).
 13. **Cancellation and steering.** Abort, steer and queue differ per
-    runtime: claude, codex, pi, cursor, antigravity, qoder, factory and grok
-    (`_x.ai/interject`) absorb a steer at the next step boundary, grok's
+    runtime: claude, codex, pi, pi-durable, cursor, antigravity, qoder, factory,
+    dsh, kimi over KAP (2.7.2-botiverse.1+), opencode v1 (and v2 when
+    `_meta.steering` is advertised), morph, cybion and grok (`_x.ai/interject`)
+    absorb a steer at the next step boundary, grok's
     other native path (`_meta.sendNow`, which OAR does not use) cancels the
-    running turn and starts a new one, and kimi, qwen, codebuddy, devin and opencode v2 before 2.2.7 cannot steer at all. Each interacts with the
+    running turn and starts a new one, and kimi over ACP, qwen, codebuddy,
+    devin and unadvertised opencode v2 cannot steer at all. Each interacts with the
     event stream differently.
 
 ## Beyond a single local process

@@ -823,7 +823,7 @@ page. Add the fact as a declaration where it can be one.
 
 ## Showing what the model received (2026-11-19)
 
-**Status: designed, not implemented** ([spec](../spec/model-request.md)).
+**Status: shipped for Claude and bundled Pi SDK** ([spec](../spec/model-request.md); Pi RPC and the remaining adapters declare a refusal).
 
 **Considered:** a request-body hook per runtime (Raft has one for Pi and
 was about to add one for Claude); reconstructing the request from each
