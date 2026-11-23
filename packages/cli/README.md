@@ -35,7 +35,8 @@ result, the others still report, and the exit code is 1.
   result is judged by the installation probe afterwards, not the installer's
   exit code. `--plan` only prints the steps it would run and changes nothing;
   `--line <line>` picks a release line where a runtime ships several
-  (opencode: `v1`, `v2`); `--timeout <ms>` bounds the installer. Where OAR will
+  (opencode: `v1`, `v2`); `--json` prints the report as JSON; `--timeout <ms>`
+  bounds the installer. Where OAR will
   not run the installer here (it needs privileges or a missing tool), it
   prints the vendor's steps for you to run. The exit code is 1 when the
   install failed or was refused. See
@@ -169,8 +170,8 @@ behavior), pass `--record` so the claim points at a log anyone can read:
 ## The `oar-voyage/3` format
 
 `--record` writes one JSON object per line, discriminated by `kind`. The
-format is defined and owned by `@botiverse/oar`, which exports the line
-builders and the `openVoyage` recorder; other tools (such as the
+format is defined and owned by `@botiverse/oar`, which exports the `openVoyage`
+recorder and its `VoyageHeader` and `VoyageRecorder` types; other tools (such as the
 [oar-coxswain](https://github.com/botiverse/oar-coxswain) cockpit) may write
 or read it as consumers.
 
