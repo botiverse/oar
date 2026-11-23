@@ -125,9 +125,12 @@ export function processWsFrame(
     pendingToAppInteractions: pendingToApp,
   });
   if (projected.openedTurn !== undefined && projected.openedTurn.agentId === "main") {
+    const preservingAbort = state.awaitingTurnStart || state.prompting || state.dispatching || state.pendingSteers.length > 0;
     state.rootTurnEpoch += 1;
     state.awaitingTurnStart = false;
-    state.abortRequested = false;
+    if (!preservingAbort) {
+      state.abortRequested = false;
+    }
     state.activeRootTurn = projected.openedTurn.turnId;
     if (projected.openedTurn.steeredFromTurnId !== undefined || projected.openedTurn.steeredFromPromptId !== undefined) {
       state.activeRootPromptId = null;
@@ -146,7 +149,7 @@ export function processWsFrame(
     state.activeRootTurn = null;
     state.activeRootPromptId = null;
     state.abortFallback.clear();
-    if (state.abortRequested || projected.endedTurn.outcome === "failed") {
+    if (state.abortRequested || projected.endedTurn.outcome !== "completed") {
       state.pendingSteers.length = 0;
     }
     state.abortRequested = false;

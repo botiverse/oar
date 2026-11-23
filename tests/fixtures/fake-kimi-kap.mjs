@@ -120,6 +120,11 @@ function handlePrompt(ctx, res) {
     sendOk(res, { prompt_id: promptId });
     return;
   }
+  if (texts.includes("DELAYED_START_ABORT")) {
+    setTimeout(() => { emitPromptTurn(ctx, promptId, texts); }, 80);
+    sendOk(res, { prompt_id: promptId });
+    return;
+  }
   const emitBeforeHttp = texts.includes("RACE_WS_FIRST");
   if (emitBeforeHttp) { emitPromptTurn(ctx, promptId, texts); } else { setTimeout(() => { emitPromptTurn(ctx, promptId, texts); }, 10); }
   if (texts.includes("HOLD_FOR_CONTROLS")) {
@@ -159,6 +164,30 @@ function handleSteer(ctx, res) {
   const steerTexts = content.filter((p) => p.type === "text").map((p) => p.text).join("");
   const parentTurnId = ctx.state.activeTurnId ?? `turn-${ctx.state.latestPromptId}`;
   const parentPromptId = ctx.state.activePromptId ?? ctx.state.latestPromptId;
+  if (steerTexts.includes("SERVER_INTERRUPT_PARENT")) {
+    sendOk(res, { prompt_id: steerPromptId });
+    setTimeout(() => {
+      ctx.state.heldPromptRelease = null;
+      ctx.wsHub.broadcast({ type: "turn.ended", session_id: "kap-sess-1", agent_id: "main", event_created_at: new Date().toISOString(), turn: { turn_id: parentTurnId, ordinal: 0, kind: "agent", status: "ended", outcome: "interrupted", end_reason: "user_cancelled", steps: [] } });
+    }, 15);
+    return;
+  }
+  if (steerTexts.includes("STAY_ON_PARENT")) {
+    sendOk(res, { prompt_id: steerPromptId });
+    return;
+  }
+  if (steerTexts.includes("HOLD_STEER_GAP")) {
+    const steerTurnId = `turn-steer-${++ctx.state.steerSeq}`;
+    ctx.state.heldPromptRelease = null;
+    ctx.state.activeTurnId = steerTurnId;
+    ctx.state.activePromptId = steerPromptId;
+    ctx.state.latestPromptId = steerPromptId;
+    sendOk(res, { prompt_id: steerPromptId });
+    setTimeout(() => {
+      ctx.wsHub.broadcast({ type: "turn.ended", session_id: "kap-sess-1", agent_id: "main", event_created_at: new Date().toISOString(), turn: { turn_id: parentTurnId, ordinal: 0, kind: "agent", status: "ended", outcome: "completed", steps: [] } });
+    }, 10);
+    return;
+  }
   const steerTurnId = `turn-steer-${++ctx.state.steerSeq}`;
   ctx.state.heldPromptRelease = null;
   ctx.state.activeTurnId = steerTurnId;
@@ -187,13 +216,24 @@ function dispatchSecondaryRoute(ctx, res) {
   if (ctx.method === "POST" && ctx.url.endsWith(":compact")) { handleCompact(ctx.wsHub, res); return; }
   if (ctx.method === "POST" && ctx.url.endsWith(":cancel")) {
     if (scenario === "cancel_false") { sendOk(res, { cancelled: false }); return; }
+    if (scenario === "late_cancel_reply") {
+      ctx.state.heldPromptRelease = null;
+      const turnId = ctx.state.activeTurnId ?? `turn-${ctx.state.latestPromptId}`;
+      ctx.wsHub.broadcast({ type: "turn.ended", session_id: "kap-sess-1", agent_id: "main", event_created_at: new Date().toISOString(), turn: { turn_id: turnId, ordinal: 0, kind: "agent", status: "ended", outcome: "interrupted", end_reason: "user_cancelled", steps: [] } });
+      setTimeout(() => { sendOk(res, { cancelled: true }); }, 60);
+      return;
+    }
     sendOk(res, { cancelled: true });
     if (scenario !== "abort_hang") {
       setTimeout(() => {
         ctx.state.heldPromptRelease = null;
         const turnId = ctx.state.activeTurnId ?? `turn-${ctx.state.latestPromptId}`;
+        if (scenario === "gap_cancel_starts_steer") {
+          const now = new Date().toISOString();
+          ctx.wsHub.broadcast({ type: "turn.started", session_id: "kap-sess-1", agent_id: "main", event_created_at: now, turn: { turn_id: turnId, ordinal: 1, kind: "agent", status: "running", steps: [] } });
+        }
         ctx.wsHub.broadcast({ type: "turn.ended", session_id: "kap-sess-1", agent_id: "main", event_created_at: new Date().toISOString(), turn: { turn_id: turnId, ordinal: 0, kind: "agent", status: "ended", outcome: "interrupted", end_reason: "user_cancelled", steps: [] } });
-      }, 15);
+      }, scenario === "delayed_cancel_after_start" ? 120 : 15);
     }
     return;
   }

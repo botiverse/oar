@@ -214,3 +214,84 @@ test("disarms fallback and rejects no_active_turn when KAP returns cancelled: fa
   const session = await fx.open("2.7.2-botiverse.1", { env: { FAKE_KIMI_SCENARIO: "cancel_false", FAKE_KIMI_LOG: fx.logFile } });
   await assertCancelFalsePreservesTurn(session);
 });
+
+async function assertAbortedSteerDrainsQueue(session: Session, events: Event[]): Promise<void> {
+  await session.prompt("HOLD_FOR_CONTROLS", { inputId: randomUUID() });
+  await waitTurnStarted(session, "held parent before server interrupt");
+  await session.queue("AFTER_SERVER_INTERRUPT", { inputId: randomUUID() });
+  await session.steer?.("SERVER_INTERRUPT_PARENT");
+  await waitUntil(() => events.some((ev) => ev.kind === "text_delta" && ev.text === "reply:AFTER_SERVER_INTERRUPT") && session.status().value.kind === "idle", "queued turn after interrupted parent");
+  const next = await session.prompt("FOLLOW_UP_OK");
+  expect(next.response.body.kind).toBe("accepted");
+  await finishAndDispose(session, "follow-up after server-interrupted steer");
+}
+
+test("clears pending steers when a turn ends aborted without a host abort request", async () => {
+  const fx = useFixture();
+  const events: Event[] = [];
+  const session = await fx.open("2.7.2-botiverse.1", { env: { FAKE_KIMI_LOG: fx.logFile } });
+  session.events((ev) => { events.push(ev); });
+  await assertAbortedSteerDrainsQueue(session, events);
+});
+
+async function assertAwaitStartAbort(session: Session): Promise<void> {
+  await session.prompt("DELAYED_START_ABORT", { inputId: randomUUID() });
+  const aborted = await session.abort();
+  const steered = await session.steer?.("STAY_ON_PARENT");
+  expect([aborted.response.body.kind, steered?.response.body.kind]).toEqual(["accepted", "accepted"]);
+  await waitUntil(() => session.status().value.kind === "idle" && session.records().some((r) => r.kind === "frame" && r.body.type === "turn.ended"), "delayed-start turn aborted");
+  const next = await session.prompt("AFTER_AWAIT_START_ABORT");
+  expect(next.response.body.kind).toBe("accepted");
+  await finishAndDispose(session, "follow-up after awaitingTurnStart abort");
+}
+
+test("preserves abortRequested across turn.started when abort was accepted during awaitingTurnStart", async () => {
+  const fx = useFixture();
+  const session = await fx.open("2.7.2-botiverse.1", { env: { FAKE_KIMI_SCENARIO: "delayed_cancel_after_start", FAKE_KIMI_LOG: fx.logFile } });
+  await assertAwaitStartAbort(session);
+});
+
+async function waitParentEndedInGap(session: Session): Promise<void> {
+  await session.prompt("HOLD_FOR_CONTROLS", { inputId: randomUUID() });
+  await waitTurnStarted(session, "held parent before steer gap");
+  await session.queue("DRAIN_AFTER_GAP_ABORT", { inputId: randomUUID() });
+  await session.steer?.("HOLD_STEER_GAP");
+  await waitUntil(() => session.records().some((r) => r.kind === "frame" && r.body.type === "turn.ended"), "parent ended in steer handoff gap");
+}
+
+test("allows abort during the steer-handoff gap and drains queued input cleanly", async () => {
+  const fx = useFixture();
+  const events: Event[] = [];
+  const session = await fx.open("2.7.2-botiverse.1", { env: { FAKE_KIMI_SCENARIO: "gap_cancel_starts_steer", FAKE_KIMI_LOG: fx.logFile } });
+  session.events((ev) => { events.push(ev); });
+  await waitParentEndedInGap(session);
+  const aborted = await session.abort();
+  expect(aborted.response.body.kind).toBe("accepted");
+  await waitUntil(() => events.some((ev) => ev.kind === "text_delta" && ev.text === "reply:DRAIN_AFTER_GAP_ABORT") && session.status().value.kind === "idle", "queued turn after gap abort");
+  await session.dispose();
+});
+
+test("clears stale pending steers without wedging when gap abort returns cancelled: false", async () => {
+  const fx = useFixture();
+  const events: Event[] = [];
+  const session = await fx.open("2.7.2-botiverse.1", { env: { FAKE_KIMI_SCENARIO: "cancel_false", FAKE_KIMI_LOG: fx.logFile } });
+  session.events((ev) => { events.push(ev); });
+  await waitParentEndedInGap(session);
+  const aborted = await session.abort();
+  expect(aborted.response.body).toMatchObject({ kind: "rejected", code: "no_active_turn", native: { cancelled: false } });
+  await waitUntil(() => events.some((ev) => ev.kind === "text_delta" && ev.text === "reply:DRAIN_AFTER_GAP_ABORT") && session.status().value.kind === "idle", "queued turn after gap cancel_false");
+  await session.dispose();
+});
+
+test("late :cancel reply after turn.ended does not leak abortRequested into the next steered turn", async () => {
+  const fx = useFixture();
+  const events: Event[] = [];
+  const session = await fx.open("2.7.2-botiverse.1", { env: { FAKE_KIMI_SCENARIO: "late_cancel_reply", FAKE_KIMI_LOG: fx.logFile } });
+  session.events((ev) => { events.push(ev); });
+  await session.prompt("HOLD_FOR_CONTROLS", { inputId: randomUUID() });
+  await waitTurnStarted(session, "first held turn before late cancel");
+  const aborted = await session.abort();
+  expect(aborted.response.body.kind).toBe("accepted");
+  const texts = await runChainedSteer({ session, fx, events, parentPromptId: randomUUID() });
+  expect(texts.indexOf("reply:QUEUED_AFTER_STEER")).toBeGreaterThan(texts.indexOf("reply:STEER_SECOND"));
+});
