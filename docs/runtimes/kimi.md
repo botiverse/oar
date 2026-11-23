@@ -271,10 +271,11 @@ method, passes the session's `mcpServers` (`[]` without them; see
 `session/set_model`, then selects yolo through `session/set_mode` when the
 answer advertises it (in `modes` or the `mode` config option). `session/new`
 and `session/resume` each have a 630-second deadline to allow SessionStart
-hooks. Initialize has its own 60-second deadline
+hooks. Initialize has its own 60-second deadline, and `session/load` retains
+the shared 60-second default independent of Kimi's 630-second hook allowance
 ([shared deadlines](../spec/runtime-matrix.md#acp-opening-deadlines)). Other
 opening and configuration requests retain 30 seconds, including authentication,
-session/list, session/load, model and mode configuration. `session/close`
+session/list, model and mode configuration. `session/close`
 has a separate two-second deadline; spawn, auth, and creation failures reject
 session construction with the process killed. The measured Kimi handshake returned `initialize`, `authenticate` (`{}`), `session/new` (model event),
 then three pushes: `available_commands_update` (the slash commands, `compact`

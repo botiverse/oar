@@ -1332,11 +1332,17 @@ All built-in ACP session adapters give `initialize` its own 60-second
 response deadline, starting when the spawned transport sends that request.
 The internal `AcpSessionProfile.initializeTimeoutMs` can override only that
 phase. It is independent of `requestTimeoutMs`, whose default remains
-15 seconds for other bounded requests. Existing profile overrides remain:
-Antigravity, CodeBuddy, Devin, Kimi and OpenCode use 30 seconds for ordinary
-bounded requests; Kimi gives `session/new` and `session/resume` 630 seconds
-for native SessionStart hooks. Each phase gets its own budget, so a slow
-initialize does not consume authentication or session creation time.
+15 seconds for other bounded requests. Because `session/load` replays
+persisted session history before answering, it gets a 60-second default
+deadline (at least `requestTimeoutMs` when unset;
+`AcpSessionProfile.sessionLoadTimeoutMs` can override it, independent of
+`requestTimeoutMs` and `sessionStartTimeoutMs`). Existing profile overrides remain:
+Antigravity, CodeBuddy, Devin, Grok, Kimi and OpenCode use 30 seconds for
+ordinary bounded requests; Kimi gives `session/new` and `session/resume`
+630 seconds for native SessionStart hooks. Each phase gets its own budget,
+so a slow initialize does not consume authentication or session creation
+time; post-open readiness checks (such as Grok's served-MCP discovery
+in `waitForOpenReadiness`) share the opening method's deadline.
 Isolated and shared connections use the same initialization rule.
 
 A timeout rejects opening with an `AcpError`, `kind: "timeout"`, the

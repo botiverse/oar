@@ -44,6 +44,8 @@ export interface AcpSessionProfile extends AcpDerivedSessionHooks, AcpSteerReque
   readonly maxInputBytes?: number; // OAR's bound on one input's UTF-8 bytes, for a runtime seen to cut long input silently: longer ones are refused (`unsupported`, `input_too_large`)
   /** Only session/new and session/resume, when native startup work needs a larger bound. */
   readonly sessionStartTimeoutMs?: number;
+  /** Only session/load (replays saved history); default 60 seconds, independent of requestTimeoutMs and sessionStartTimeoutMs. */
+  readonly sessionLoadTimeoutMs?: number;
   readonly abortTimeoutMs?: number;
   /** Compatibility for agents that put a fully quoted shell line in `command`. */
   readonly terminalShellCommand?: boolean;
@@ -202,22 +204,21 @@ function openedSessionId(method: string, response: JsonRecord, source?: string):
   return id;
 }
 
+const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
+const DEFAULT_SESSION_LOAD_TIMEOUT_MS = 60_000;
+
+function openMethodTimeoutMs(profile: AcpSessionProfile, method: OpenedAcpSession["openMethod"]): number {
+  const fallback = profile.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
+  return method === methods.agent.session.load ? (profile.sessionLoadTimeoutMs ?? Math.max(fallback, DEFAULT_SESSION_LOAD_TIMEOUT_MS)) : (profile.sessionStartTimeoutMs ?? fallback);
+}
+
 async function createOrResume(
-  process: AcpProcess,
-  profile: AcpSessionProfile,
-  initialized: JsonRecord,
-  options: SessionOptions,
-  meta: JsonRecord | undefined,
+  process: AcpProcess, profile: AcpSessionProfile, initialized: JsonRecord, options: SessionOptions, meta: JsonRecord | undefined,
 ): Promise<Pick<OpenedAcpSession, "response" | "sessionId" | "openMethod">> {
   const capabilities = asRecord(initialized.agentCapabilities);
   const sessionCapabilities = asRecord(capabilities?.sessionCapabilities);
-  const baseParams = {
-    cwd: options.cwd,
-    ...acpAdditionalDirectories(options, initialized),
-    mcpServers: acpMcpServersParam(options.mcpServers, initialized),
-    ...(meta === undefined ? {} : { _meta: meta }),
-  };
-  const timeoutMs = profile.requestTimeoutMs ?? 15_000;
+  const baseParams = { cwd: options.cwd, ...acpAdditionalDirectories(options, initialized), mcpServers: acpMcpServersParam(options.mcpServers, initialized), ...(meta === undefined ? {} : { _meta: meta }) };
+  const timeoutMs = profile.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
   if (options.resume !== undefined) {
     const sessionId = options.resume;
     const method = savedSessionMethod(options, profile, capabilities, sessionCapabilities);
@@ -226,34 +227,19 @@ async function createOrResume(
       await refuseResumeElsewhere(process, sessionId, options.cwd, timeoutMs);
     }
     const params = { ...baseParams, sessionId };
-    const resumed = await withAcpDeadline(
-      process,
-      method, method === methods.agent.session.load ? timeoutMs : profile.sessionStartTimeoutMs ?? timeoutMs,
-      (requestOptions) => process.connection.agent.request(method, params, requestOptions),
-    ).catch((error: unknown) => {
-      throw acpResumeFailure(error, method, sessionId, (native) => profile.isResumeNotFound?.(native) === true, profile.openFailure);
-    });
+    const resumed = await withAcpDeadline(process, method, openMethodTimeoutMs(profile, method), (requestOptions) => process.connection.agent.request(method, params, requestOptions))
+      .catch((error: unknown) => { throw acpResumeFailure(error, method, sessionId, (native) => profile.isResumeNotFound?.(native) === true, profile.openFailure); });
     const response = responseRecord(method, resumed);
     return { response, sessionId: method === methods.agent.session.fork ? openedSessionId(method, response, sessionId) : sessionId, openMethod: method };
   }
-
   const method = methods.agent.session.new;
-  const created = await withAcpDeadline(
-    process,
-    method, profile.sessionStartTimeoutMs ?? timeoutMs,
-    (requestOptions) => process.connection.agent.request(method, baseParams, requestOptions),
-  );
-  const response = responseRecord(method, created);
+  const response = responseRecord(method, await withAcpDeadline(process, method, openMethodTimeoutMs(profile, method), (requestOptions) => process.connection.agent.request(method, baseParams, requestOptions)));
   return { response, sessionId: openedSessionId(method, response), openMethod: method };
 }
 
 export async function openAcpSession(
-  process: AcpProcess,
-  profile: AcpSessionProfile,
-  options: SessionOptions,
-  observe: AcpOpenObserver = () => {},
-  observers?: AcpOpenObservers,
-  initializeStartedAt?: number,
+  process: AcpProcess, profile: AcpSessionProfile, options: SessionOptions,
+  observe: AcpOpenObserver = () => {}, observers?: AcpOpenObservers, initializeStartedAt?: number,
 ): Promise<OpenedAcpSession> {
   // A refused login or model rejects the open as a RuntimeFailureError (failure.ts).
   const initialized = await acpOpenStep(initializeAcpConnection(process, profile, options, observe, initializeStartedAt), "open", profile.openFailure);
@@ -262,13 +248,8 @@ export async function openAcpSession(
 
 /** Open/configure one session on an already initialized connection. */
 export async function openInitializedAcpSession(
-  process: AcpProcess,
-  profile: AcpSessionProfile,
-  options: SessionOptions,
-  initialized: JsonRecord,
-  observe: AcpOpenObserver = () => {},
-  bind: (sessionId: string) => void = () => {},
-  observers?: AcpOpenObservers,
+  process: AcpProcess, profile: AcpSessionProfile, options: SessionOptions, initialized: JsonRecord,
+  observe: AcpOpenObserver = () => {}, bind: (sessionId: string) => void = () => {}, observers?: AcpOpenObservers,
 ): Promise<OpenedAcpSession> {
   if (profile.confirmConfigOptionUpdates === true && observers === undefined) {
     throw new Error("ACP configuration confirmation requires a session notification observer");
@@ -278,23 +259,15 @@ export async function openInitializedAcpSession(
   const opened = await acpOpenStep(createOrResume(process, profile, initialized, options, profile.sessionMeta?.(options, initialized)), "open", profile.openFailure);
   bind(opened.sessionId);
   observe({ method: opened.openMethod, response: opened.response });
-  await waitForOpenReadiness(process, observers?.readiness, opened.sessionId, profile.sessionStartTimeoutMs ?? profile.requestTimeoutMs ?? 15_000, startedAt);
+  await waitForOpenReadiness(process, observers?.readiness, opened.sessionId, openMethodTimeoutMs(profile, opened.openMethod), startedAt);
   const setModelResponse = await configureAcpModel(process, profile, options, opened, observe, updates);
   const configure = profile.configureSession;
   if (configure !== undefined) {
     await configure({
-      request: (method, params) => withAcpDeadline(process, method, profile.requestTimeoutMs ?? 15_000,
-        (requestOptions) => process.connection.agent.request(method, params, requestOptions)),
-      sessionId: opened.sessionId,
-      response: opened.response,
-      options,
+      request: (method, params) => withAcpDeadline(process, method, profile.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS, (requestOptions) => process.connection.agent.request(method, params, requestOptions)),
+      sessionId: opened.sessionId, response: opened.response, options,
     });
   }
   const sessionCapabilities = asRecord(asRecord(initialized.agentCapabilities)?.sessionCapabilities);
-  return {
-    initialized,
-    ...opened,
-    supportsClose: hasAcpCapability(sessionCapabilities?.close),
-    ...(setModelResponse === undefined ? {} : { setModelResponse }),
-  };
+  return { initialized, ...opened, supportsClose: hasAcpCapability(sessionCapabilities?.close), ...(setModelResponse === undefined ? {} : { setModelResponse }) };
 }

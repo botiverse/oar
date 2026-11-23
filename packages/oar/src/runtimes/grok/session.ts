@@ -162,6 +162,7 @@ export const grokAcpProfile: AcpSessionProfile = {
   // Images despite `initialize` saying `promptCapabilities.image: false`: grok 1.0.44
   // hands an ACP image block to the model (live, docs/runtimes/grok.md).
   capabilities: { queue: { durable: false }, attribution: "nested", images: true },
+  requestTimeoutMs: 30_000,
   extensionNotifications: GROK_EXTENSION_NOTIFICATIONS,
   openReadiness: grokMcpStartup,
   redactExtensionNotification: redactGrokNotification,
