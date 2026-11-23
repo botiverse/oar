@@ -81,12 +81,7 @@ for (const backend of backends) {
         record({ kind: "served_mcp_progress", backend: backend.id, phase, providerRequests: env.raw.length });
       }, 10_000).unref() : undefined;
       try {
-        const opening = runtimeUnderTest(backend.runtime, env.env, env.cwd).startSession({ mcpServers: [served.server] });
-        if (backend.id === "pi-rpc-aimock") {
-          await expect(opening).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "mcpServers" });
-          return;
-        }
-        const session = await opening;
+        const session = await runtimeUnderTest(backend.runtime, env.env, env.cwd).startSession({ mcpServers: [served.server] });
         try {
           phase = "tool_turn";
           await structuralToolRound(session, env.mock, "please call the host tool");

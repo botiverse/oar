@@ -19,7 +19,7 @@ import { piFindSessionFile, piSessionDir, splitPiModelId } from "../resolve.js";
 import type { PiRuntimeOptions } from "../options.js";
 import { checkPiProjectPackages, reportMissingPiPackages } from "../project.js";
 import { piRpcControl } from "./control.js";
-import { readPiRpcCredentials } from "./credentials.js";
+import { servePiRpcPipe } from "./credentials.js";
 import { piRpcLaunch } from "./launch.js";
 import { assertPiRpcVersion } from "./version.js";
 import { piRpcExtensionSource } from "./extension.js";
@@ -30,7 +30,6 @@ import { ModelConfirmationError } from "../../../contracts/model-confirmation-er
 export const piRpcRefusedSessionOptions: RefusedSessionOptions = {
   ...piRefusedSessionOptions,
   modelRequests: "Pi runs RPC command-line extensions before user extensions that can replace the provider request",
-  mcpServerCredentials: "Pi RPC keeps its MCP configuration on disk while the session is running",
   launchArgs: "OAR owns Pi's RPC startup arguments; arbitrary CLI flags are not supported",
 };
 
@@ -83,10 +82,10 @@ export async function openPiRpc(options: SessionOptions, credentials: Credential
   const hasName = sessionFile !== undefined && SessionManager.open(sessionFile, sessionDir).getEntries().some((entry) => entry.type === "session_info");
   const directory = await privateTempDir("oar-pi-rpc-");
   try {
-    await writeFile(path.join(directory.path, "config.json"), JSON.stringify({ agentDir, resume: options.resume !== undefined,
+    const config = JSON.stringify({ agentDir, resume: options.resume !== undefined,
       hasHostAppend: Boolean(options.appendSystemPrompt), projectTrusted,
       servers: (options.mcpServers ?? []).map((server) => ({ name: server.name, config: piMcpServerConfig(server) })),
-    }), { mode: 0o600 });
+    });
     // A bundled host need not ship its own source files or a node_modules tree.
     const extension = path.join(directory.path, "extension.mjs");
     await writeFile(extension, piRpcExtensionSource, { mode: 0o600 });
@@ -111,7 +110,7 @@ export async function openPiRpc(options: SessionOptions, credentials: Credential
     lifetime?.own(child);
     const keyPipe = child.extraPipe;
     if (keyPipe === undefined) { child.kill(); await child.exited; throw new Error("Pi RPC requires a private credential pipe"); }
-    readPiRpcCredentials(keyPipe, credentials.add, () => { child.kill(); });
+    servePiRpcPipe(keyPipe, { config, remember: credentials.add, failed: () => { child.kill(); } });
     const control = piRpcControl(child, receive, credentials.redact);
     try {
       await child.spawned;
