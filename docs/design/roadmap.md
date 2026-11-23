@@ -30,10 +30,11 @@ increments, not a promise to add every feature listed.
   `@botiverse/oar/capabilities`, declared credentials (`Runtime.credentials`),
   and native payload reachability and read-backs.
 - Runtimes whose SDK or engine the host installs and hands over
-  (`createCursorRuntime`, `createPiDurableRuntime`), community runtimes under
+  (`createCursorRuntime`, plus `createPiDurableRuntime` under
+  `@botiverse/oar/pi-durable`), community runtimes under
   `@botiverse/oar/community` (`createMorphRuntime`, `createCybionRuntime`),
   optional Pi SDK installation in `@botiverse/oar`, one package entry per
-  runtime (`@botiverse/oar/runtimes/<id>`) so a host loads only what it uses,
+  built-in runtime (`@botiverse/oar/runtimes/<id>`) so a host loads only what it uses,
   and a clean-install check of the published packages.
 - Placement as a declared runtime choice ([system](system.md#placement)):
   `Runtime.execution`, Pi through its own RPC process
@@ -71,11 +72,12 @@ increments, not a promise to add every feature listed.
 ### 1. Make actions self-describing
 
 **Shipped:** a rejected control carries a typed `code` beside the prose
-`reason` (`busy`, `no_active_turn`, `not_queued`, `unsupported`,
-`runtime_exited`, `disposed`, `runtime_refused`, `error`); `Session.status()` is a query whose
+`reason` (`aborted`, `busy`, `no_active_turn`, `not_queued`, `unsupported`,
+`runtime_exited`, `session_released`, `disposed`, `runtime_refused`,
+`session_not_found`, `error`); `Session.status()` is a query whose
 `busy` matches its `running`; `awaitIdle` and `promptAndWait` (with
 `timeoutMs` and `signal`) write the wait, abort and settle sequence once;
-`TurnOutcome.failed` carries `FailureClass` (with `credential`, `status`,
+`TurnOutcome` `failed` carries `FailureClass` (with `credential`, `status`,
 `resetsAt` and `rateLimitType` where the runtime says them) and `failureAdvice`
 turns a class into a retry policy. Spec: [record-stream.md](../spec/record-stream.md),
 [runtime-matrix.md](../spec/runtime-matrix.md#failure-evidence); regression:
