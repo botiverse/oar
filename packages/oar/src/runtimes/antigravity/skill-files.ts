@@ -9,8 +9,9 @@ import { skillPathExists as exists, skillJson as json, skillDirectories as direc
 const aliases = [".agent", ".agents", "_agent", "_agents"];
 // Native root-agent mounts, not every directory extracted with the CLI.
 const builtins = ["agy-customizations", "antigravity_guide", "automation", "migrate-agent-settings", "migrate-workflows", "run-workflow"];
+const fileSkillVersions = new Set(["1.5.10", "1.5.11", "1.5.14", "1.5.15"]);
 export function hasAntigravityFileSkills(version: string | undefined, platform: NodeJS.Platform = process.platform): boolean {
-  return (platform === "linux" || platform === "darwin") && (version === "1.5.10" || version === "1.5.11" || version === "1.5.14");
+  return (platform === "linux" || platform === "darwin") && version !== undefined && fileSkillVersions.has(version);
 }
 async function repositoryDirectory(directory: string, signal: AbortSignal): Promise<boolean> {
   const dot = join(directory, ".git");

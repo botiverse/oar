@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({ auth: vi.fn(), run: vi.fn() }));
 vi.mock("../../packages/oar/src/runtimes/antigravity/auth.js", async original => ({ ...await original<object>(), readAntigravityAuthStatus: mocks.auth }));
 vi.mock("../../packages/oar/src/shared/executable/index.js", async original => ({ ...await original<object>(), runExecutable: mocks.run }));
 const fileTest = test.skipIf(process.platform !== "linux" && process.platform !== "darwin");
-const verifiedVersions = ["1.5.10", "1.5.11", "1.5.14"];
+const verifiedVersions = ["1.5.10", "1.5.11", "1.5.14", "1.5.15"];
 const homes: string[] = [];
 const installation = { kind: "available", via: "executable", command: "unused-agy", version: "1.5.11" } as const;
 async function file(path: string, contents: string): Promise<void> { await mkdir(dirname(path), { recursive: true }); await writeFile(path, contents); }
@@ -171,7 +171,7 @@ test.each(["linux", "darwin", "win32", "freebsd"] as const)("%s admits only a ve
   for (const version of verifiedVersions) {
     expect(hasAntigravityFileSkills(version, platform)).toBe(platform === "linux" || platform === "darwin");
   }
-  for (const version of [undefined, "1.5.0", "1.5.12", "1.5.13", "1.5.14-rc.1", "1.5.15"]) {
+  for (const version of [undefined, "1.5.0", "1.5.12", "1.5.13", "1.5.14-rc.1", "1.5.15-rc.1", "1.5.16"]) {
     expect(hasAntigravityFileSkills(version, platform)).toBe(false);
   }
 });

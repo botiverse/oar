@@ -26,7 +26,7 @@ function project(value: unknown): SkillEntry[] {
 export async function compareAntigravityFileSkills(output: string): Promise<void> {
   const installation = await antigravityRuntime.installation();
   assert.equal(installation.kind, "available"); assert.equal(installation.via, "executable");
-  assert.ok(installation.version === "1.5.10" || installation.version === "1.5.11" || installation.version === "1.5.14", "Select a verified file-reader version");
+  assert.ok(installation.version !== undefined && ["1.5.10", "1.5.11", "1.5.14", "1.5.15"].includes(installation.version), "Select a verified file-reader version");
   const fixture = await startAntigravityAimock(() => {});
   const home = fixture.env.HOME; assert.ok(home !== undefined);
   const cwd = join(home, "repo", "sub"); await mkdir(cwd, { recursive: true });
@@ -129,8 +129,8 @@ export async function compareAntigravityFileSkills(output: string): Promise<void
       observations.push({ case: stage, nativeRaw: native, config: await readFile(join(home, ".gemini/config/config.json"), "utf8").catch(() => null) });
       const expected = project(asRecord(command.data)?.skills);
       const swarm = expected.find(item => item.scope === "builtin" && item.path === swarmBuiltin);
-      if (installation.version === "1.5.14" && swarm !== undefined) {
-        assert.equal(swarm.disableModelInvocation, true, "Native 1.5.14 marks the mounted swarm builtin as user-invocable only");
+      if ((installation.version === "1.5.14" || installation.version === "1.5.15") && swarm !== undefined) {
+        assert.equal(swarm.disableModelInvocation, true, "Native marks the mounted swarm builtin as user-invocable only");
       }
       if (stage === "flags-plugins") {
         assert.ok(!expected.some(item => item.name === "hidden"), "Native omits the slash-command-disabled fixture");
