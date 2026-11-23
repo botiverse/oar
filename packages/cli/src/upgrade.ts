@@ -44,6 +44,10 @@ async function reportUpgrade(runtime: Runtime, request: UpgradeRequest): Promise
   if (installation.kind !== "available" && !(installation.kind === "unsupported" && installation.code === "version_unsupported")) {
     return { runtimeId, installation };
   }
+  const options = request.timeoutMs === undefined ? {} : { timeoutMs: request.timeoutMs };
+  if (request.upgrade && runtime.upgrade !== undefined) {
+    return { runtimeId, upgrade: await runtime.upgrade(installation, options) };
+  }
   if (runtime.checkUpdate === undefined) {
     return {
       runtimeId,
@@ -52,14 +56,10 @@ async function reportUpgrade(runtime: Runtime, request: UpgradeRequest): Promise
         : `${runtimeId} exposes no update check`,
     };
   }
-  const options = request.timeoutMs === undefined ? {} : { timeoutMs: request.timeoutMs };
-  if (!request.upgrade) {
-    return { runtimeId, check: await runtime.checkUpdate(installation, options) };
-  }
-  if (runtime.upgrade === undefined) {
-    return { runtimeId, check: await runtime.checkUpdate(installation, options), unsupported: `${runtimeId} has no updater oar can run` };
-  }
-  return { runtimeId, upgrade: await runtime.upgrade(installation, options) };
+  const check = await runtime.checkUpdate(installation, options);
+  return request.upgrade
+    ? { runtimeId, check, unsupported: `${runtimeId} has no updater oar can run` }
+    : { runtimeId, check };
 }
 
 function renderCheck(runtimeId: string, check: UpdateCheck): string {

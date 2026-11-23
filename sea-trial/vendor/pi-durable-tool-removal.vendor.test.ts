@@ -26,7 +26,7 @@ nativeTest("abort ends nested running slots and preserves the unstarted sequenti
   try {
     const first = await session.prompt("run sequential tools");
     await entered.promise;
-    await vi.waitFor(() => { expect(session.records().flatMap(record => record.kind === "frame" ? record.body.events : [])).toContainEqual({ kind: "tool_call_started", callId: "outer/nested", tool: "leaf", arguments: {} }); });
+    await vi.waitFor(() => { expect(session.records().flatMap(record => record.kind === "frame" ? record.body.events : [])).toContainEqual({ kind: "tool_call_started", callId: "outer/nested", tool: "leaf", input: "{}" }); });
     const abort = await session.abort();
     expect(abort.kind).toBe("accepted");
     expect(await awaitTurnEnd(session, first.seq)).toEqual({ kind: "aborted" });
@@ -70,7 +70,7 @@ nativeTest("a parent finishing with an unawaited nested call preserves its nativ
     expect(session.status().value.kind).toBe("idle");
     await session.dispose();
     const events = session.records().flatMap(record => record.kind === "frame" ? record.body.events : []);
-    expect(events.filter(event => event.kind === "tool_call_started" && event.callId === "outer/nested")).toEqual([{ kind: "tool_call_started", callId: "outer/nested", tool: "leaf", arguments: {} }]);
+    expect(events.filter(event => event.kind === "tool_call_started" && event.callId === "outer/nested")).toEqual([{ kind: "tool_call_started", callId: "outer/nested", tool: "leaf", input: "{}" }]);
     expect(events.filter(event => event.kind === "tool_call_ended" && event.callId === "outer/nested")).toEqual([{ kind: "tool_call_ended", callId: "outer/nested", result: "failed" }]);
   } finally { release.resolve(); await session.dispose(); await fixture.close(); }
 });
