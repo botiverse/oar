@@ -1,3 +1,4 @@
+import { modelOf } from "../../packages/oar/src/observe/usage.js";
 import { afterEach, expect, test, vi } from "vitest";
 import { ModelConfirmationError, promptAndWait } from "../../packages/oar/src/index.js";
 import { codexSession } from "../../packages/oar/src/runtimes/codex/session.js";
@@ -202,4 +203,16 @@ test("a resumed Session without codex's re-report has no usage total", async () 
   await promptAndWait(session, "again");
   expect(session.usage().value).toEqual({ total: null });
   await session.dispose();
+});
+
+test("resumed root and child model events replay under their own thread identities", async () => {
+  const { fake } = fakeAppServer(() => "root-model");
+  const session = await codexSession(installation, { cwd: "/work", resume: threadId });
+  try {
+    fake.emit(`${JSON.stringify({ method: "thread/started", params: { thread: { id: "child", model: "child-model" } } })}\n`);
+    fake.emit(`${JSON.stringify({ method: "thread/settings/updated", params: { threadId: "child", threadSettings: { model: "changed" } } })}\n`);
+    expect(session.model().value).toBe("root-model");
+    expect(modelOf(session.records(), "child").value).toBe("changed");
+    expect(modelOf(session.records(), session.id)).toEqual(session.model());
+  } finally { await session.dispose(); }
 });

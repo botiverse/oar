@@ -20,6 +20,22 @@ export function recordChildAgent(
   }
 }
 
+/** Task snapshots and live notices describe the same child as the spawning tool item's agent_refs. */
+export function recordTaskAgent(state: KapProjectionState, parentPath: readonly string[], task: JsonRecord, taskId: string, subscribeAgents: string[]): string | undefined {
+  const childId = asString(task.child_agent_id);
+  const reported = asString(task.parent_tool_call_id);
+  const previous = childId === undefined ? undefined : state.agentPaths.get(childId)?.at(-1);
+  const toolCallId = reported ?? (previous === taskId ? undefined : previous);
+  // A live task can identify a spawning call that its initial snapshot omitted.
+  if (childId !== undefined && previous !== undefined && reported !== undefined && previous !== reported) {
+    state.agentPaths.delete(childId);
+    state.lastModelByAgent.delete(childId);
+    state.lastEffortByAgent.delete(childId);
+  }
+  recordChildAgent(state, parentPath, toolCallId ?? taskId, childId, subscribeAgents);
+  return toolCallId;
+}
+
 export function registerChildAgentsFromRefs(
   state: KapProjectionState,
   parentPath: readonly string[],

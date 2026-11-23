@@ -21,6 +21,8 @@ export interface TaskView {
   readonly ambient?: boolean;
   readonly toolCallId?: string;
   readonly childSessionId?: string;
+  /** Initial selection reported by the native task start. */
+  readonly model?: string;
   readonly summary?: string;
   readonly output?: string;
   readonly outputFile?: string;

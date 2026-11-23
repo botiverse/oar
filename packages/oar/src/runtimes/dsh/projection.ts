@@ -13,6 +13,8 @@ export interface DshSessionFold {
   readonly turnOpen: boolean;
   readonly tokens: TokenTotals;
   readonly contextWindow: number | null;
+  readonly model: string | undefined;
+  readonly effort: string | undefined;
 }
 
 export interface DshProjection {
@@ -28,7 +30,7 @@ export interface DshFolded {
   readonly frame: { readonly body: FrameBody; readonly sessionId?: string };
 }
 
-const emptySession: DshSessionFold = { nextTurn: [], nextStep: [], turnOpen: false, tokens: noTokens, contextWindow: null };
+const emptySession: DshSessionFold = { nextTurn: [], nextStep: [], turnOpen: false, tokens: noTokens, contextWindow: null, model: undefined, effort: undefined };
 
 export function initialDshProjection(rootId: string): DshProjection {
   return { rootId, sessions: {}, links: [] };
@@ -149,6 +151,20 @@ function toolEnd(message: JsonRecord): readonly RuntimeEventBody[] {
     ...(typeof message.isError === "boolean" ? { result: message.isError ? "failed" : "ok" } : {}) }];
 }
 
+function selection(session: DshSessionFold, provider: unknown, id: unknown, reasoningEffort: unknown, initial = false): { readonly session: DshSessionFold; readonly events: readonly RuntimeEventBody[] } {
+  const events: RuntimeEventBody[] = [];
+  let { model, effort } = session;
+  if ((!initial || model === undefined) && typeof provider === "string" && provider.length > 0 && typeof id === "string" && id.length > 0) {
+    model = `${provider}/${id}`;
+    if (model !== session.model) { events.push({ kind: "model", model }); }
+  }
+  if ((!initial || effort === undefined) && typeof reasoningEffort === "string" && reasoningEffort.length > 0) {
+    effort = reasoningEffort;
+    if (effort !== session.effort) { events.push({ kind: "effort", effort }); }
+  }
+  return { session: { ...session, model, effort }, events };
+}
+
 function sessionEvent(state: DshProjection, sessionId: string, session: DshSessionFold, event: JsonRecord, cause: unknown): { readonly session: DshSessionFold; readonly links: readonly string[]; readonly events: readonly RuntimeEventBody[] } {
   const data = asRecord(event.data) ?? {};
   const unchanged = { session, links: state.links };
@@ -183,11 +199,10 @@ function sessionEvent(state: DshProjection, sessionId: string, session: DshSessi
       return { session: { ...session, contextWindow: asNumber(data.contextWindow) }, links: state.links, events: [] };
     case "request/header": {
       const config = asRecord(asRecord(data.header)?.config);
-      return { ...unchanged, events: [
-        ...(typeof config?.provider === "string" && typeof config.model === "string" ? [{ kind: "model" as const, model: `${config.provider}/${config.model}` }] : []),
-        ...(typeof config?.reasoningEffort === "string" ? [{ kind: "effort" as const, effort: config.reasoningEffort }] : []),
-      ] };
+      return { links: state.links, ...selection(session, config?.provider, config?.model, config?.reasoningEffort) };
     }
+    case "subagent/descriptor":
+      return { links: state.links, ...selection(session, data.agentProvider, data.agentModel, data.agentReasoningEffort, true) };
     case "subagent/catalog": {
       if (typeof data.childId !== "string" || data.childId === sessionId) { return { ...unchanged, events: [] }; }
       const link = `${sessionId} ${data.childId}`;

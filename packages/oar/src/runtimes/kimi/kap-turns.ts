@@ -14,7 +14,7 @@ import {
   parseKapUsage,
   sumStepUsages,
 } from "./kap-failures.js";
-import { recordChildAgent } from "./kap-items.js";
+import { recordTaskAgent } from "./kap-items.js";
 import {
   asBoolean,
   asString,
@@ -125,9 +125,7 @@ export function projectTaskEvents(
 ): void {
   const taskId = asString(rawFrame.task_id);
   if (taskId === undefined) { return; }
-  const parentToolCallId = asString(rawFrame.parent_tool_call_id);
-  const childAgentId = asString(rawFrame.child_agent_id);
-  recordChildAgent(state, agentPath, parentToolCallId ?? childAgentId ?? taskId, childAgentId, subscribeAgents);
+  const parentToolCallId = recordTaskAgent(state, agentPath, rawFrame, taskId, subscribeAgents);
   const status = asString(rawFrame.status);
   const nativeType = asString(rawFrame.kind);
   const description = asString(rawFrame.description);

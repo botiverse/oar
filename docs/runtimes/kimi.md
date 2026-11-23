@@ -76,6 +76,15 @@ when the executable reports version `>= 2.7.2-botiverse.1` or `>= 2.7.3` and
 `/api/v1/meta` advertises all required KAP capabilities, and falls back to
 `kimi acp` on earlier builds or missing capabilities.
 
+KAP reports a child's model on its subscribed WebSocket `type: "agent"`
+metadata frame. Model changes use the child's path within the parent
+session. The live 2.7.2 foreground task had distinct `task_id` and
+`child_agent_id`, and its `parent_tool_call_id` matched the spawning tool
+item. The child's subscribed `agent` frame reported the model `fixture`.
+The child path ends in the spawning tool call ID. When KAP omits it and no
+tool-item reference established the call, OAR uses the task ID. The child
+agent ID selects the subscription. [Recorded KAP frames](../../experiments/kimi-kap-wire/wire-samples.jsonl)
+
 ## Independent skill discovery
 
 `skills()` starts `kimi web --no-open --host 127.0.0.1 --port 0` with the

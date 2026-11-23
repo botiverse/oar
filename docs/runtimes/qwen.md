@@ -595,6 +595,13 @@ fallback from that map on each call; the model query uses it too. See
 
 ## Native task control
 
+In 0.28.4 scripted foreground and background agent runs, the only frame
+under the spawning call's path was a `user` frame. The root assistant
+messages reported the configured model. Qwen's output adapter reads that
+field from the process configuration even when formatting an assistant
+message with a parent call ID. Child model selection remains unknown.
+[Qwen output adapter](https://github.com/QwenLM/qwen-code/blob/e8424c88ddd463c56602063efde57c328b917cd4/packages/cli/src/nonInteractive/io/BaseJsonOutputAdapter.ts#L270-L285)
+
 Qwen 0.26.8 emits structured task lifecycle in stream-json:
 `system/task_started` and `system/task_notification`, with fields under
 `data`. OAR maps `system/task_started` (with a nonempty string `data.task_id`)

@@ -542,6 +542,13 @@ and reports `model_refused`. [Failures](#failures).
 
 ### Observation, children, and history
 
+Claude Code 2.1.330 sent two completed `assistant` frames from a scripted
+Task child. Both named the spawning call in `parent_tool_use_id` and the
+same model in `message.model`. OAR emits the first observed model and any
+change on that full child path. CLI-synthesized errors contribute no model.
+The root still reads its selection from `system/init`. A 2.1.292 child that
+reported Haiku is also covered by [recorded replay](../../tests/replay/fixtures/claude-usage-subagent-compact.projected.txt).
+
 **Mapped:** every JSON frame enters the stream verbatim in `native` (of a
 Frame, or of the response record for a control reply), except the effort
 read-back answer the adapter consumes at open, so message identity, input
@@ -910,8 +917,8 @@ result carries the running total. [sym]
   written, [replay](../../tests/replay/fixtures/claude-background-tasks.projected.txt)).
 - `unattributed` is the rest: the subagents', sidechains' and compaction's
   calls. A subagent gets no entry, because the stream does not say what it
-  spent: only its first `assistant` frame carries `parent_tool_use_id`, and
-  that frame's `message.usage` is the stream-start value (3 output tokens
+  spent. In the 2.1.292 usage recording only the first assistant frame
+  carried the parent call ID. Its `message.usage` is the stream-start value (3 output tokens
   in the recording), not the request's final usage, which claude's schema
   says "arrive[s] on the result message". [env 2.1.292]
 - A result with a zeroed `modelUsage` (claude's crash and startup-error

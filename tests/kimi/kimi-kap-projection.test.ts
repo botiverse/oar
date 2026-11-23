@@ -175,3 +175,37 @@ test("gates Kimi KAP vs ACP sessionCapabilities across 2.7.2-botiverse.0, 2.7.2-
   expect(upstream273).toMatchObject({ subagentResults: { foreground: "parent_tool_result" }, mcpTransports: ["stdio", "http"] });
   expect(upstream273.refusedSessionOptions?.appendSystemPrompt).toBeUndefined();
 });
+
+test.each([false, true])("child model joins its task id without a parent tool ID (task.list first: %s)", snapshot => {
+  const state = createKapProjection("sess");
+  const task = { task_id: "task-7", child_agent_id: "worker-3", kind: "subagent", status: "running" };
+  if (snapshot) { projectKapFrame(state, { type: "task.list", agent_id: "main", tasks: [task] }, DEFAULT_OPTS); }
+  const start = projectKapFrame(state, { type: "task", agent_id: "main", ...task }, DEFAULT_OPTS);
+  expect(start.body.events).toEqual([{ kind: "task_started", taskId: "task-7", taskType: "agent", nativeType: "subagent" }]);
+  const meta = { type: "agent", agent_id: "worker-3", model: "child-model" };
+  const child = projectKapFrame(state, meta, DEFAULT_OPTS);
+  expect(child).toMatchObject({ at: { agentPath: ["task-7"] }, body: { events: [{ kind: "model", model: "child-model" }] } });
+  expect(projectKapFrame(state, meta, DEFAULT_OPTS).body.events).toEqual([]);
+});
+
+test("a KAP tool item's child reference supplies the call ID when the task omits it", () => {
+  const state = createKapProjection("sess");
+  projectKapFrame(state, { type: "item.started", agent_id: "main", turn_id: "turn", item: {
+    type: "tool_call", item_id: "call", tool_name: "Agent", agent_refs: [{ agent_id: "worker", role: "child" }],
+  } }, DEFAULT_OPTS);
+  const started = projectKapFrame(state, { type: "task", agent_id: "main", task_id: "task", kind: "subagent", status: "running", child_agent_id: "worker" }, DEFAULT_OPTS);
+  expect(started.body.events).toEqual([{ kind: "task_started", taskId: "task", taskType: "agent", nativeType: "subagent", toolCallId: "call" }]);
+  expect(projectKapFrame(state, { type: "agent", agent_id: "worker", model: "fixture" }, DEFAULT_OPTS))
+    .toMatchObject({ at: { agentPath: ["call"] }, body: { events: [{ kind: "model", model: "fixture" }] } });
+});
+
+test("a live spawning call refines an initial KAP task-list fallback", () => {
+  const state = createKapProjection("sess");
+  const task = { task_id: "fallback", child_agent_id: "agent", kind: "subagent", status: "running" };
+  const meta = { type: "agent", agent_id: "agent", model: "m" };
+  projectKapFrame(state, { type: "task.list", agent_id: "main", tasks: [task] }, DEFAULT_OPTS);
+  expect(projectKapFrame(state, meta, DEFAULT_OPTS).at.agentPath).toEqual(["fallback"]);
+  const bound = projectKapFrame(state, { type: "task", agent_id: "main", ...task, parent_tool_call_id: "native-call" }, DEFAULT_OPTS);
+  expect(bound.body.events[0]).toMatchObject({ kind: "task_started", toolCallId: "native-call" });
+  expect(projectKapFrame(state, meta, DEFAULT_OPTS)).toMatchObject({ at: { agentPath: ["native-call"] }, body: { events: [{ kind: "model", model: "m" }] } });
+});

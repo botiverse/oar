@@ -977,6 +977,13 @@ checks both runtime and descendant termination. See
 
 ### Observation, children, and history
 
+OpenCode v2's `opencode/session/child_update` creation status identifies
+the child and parent sessions, depth and optional title. The recorded
+status and child text update supplied no selected model. A subsequent
+model-bearing ACP update is attributed to the child session. [Recorded
+child updates](../../experiments/opencode-child-background/enabled.json) ·
+[2.3.2 child envelope](https://github.com/anomalyco/opencode/blob/c0ad18b402eb2827fc1ee71c171b1177b3fc02d1/packages/cli/src/acp/child.ts)
+
 Text, reasoning (`agent_thought_chunk`), tool calls and `usage_update` arrive
 as `session/update`. A tool call's opening `tool_call` carries its name as
 `title` and no arguments: a shell call has `title` `bash`, `kind` `execute`

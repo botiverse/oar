@@ -25,6 +25,7 @@ export function codexTaskViews(item: JsonRecord): TaskEventBody[] {
         nativeType: "subAgent",
         childSessionId: taskId,
         background: true,
+        ...(typeof item.model === "string" && item.model.length > 0 ? { model: item.model } : {}),
         ...(typeof item.agentPath === "string" ? { description: item.agentPath } : {}),
         ...(typeof item.id === "string" ? { toolCallId: item.id } : {}),
       }];

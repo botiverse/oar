@@ -24,6 +24,7 @@ export interface StreamJsonProjectionState {
   readonly pendingInputId: string | null;
   /** Agent paths with a native compacting status, until its clear, boundary or result. */
   readonly compactingAgents: ReadonlySet<string>;
+  readonly childModels: ReadonlyMap<string, string>;
   readonly agents: ReadonlyMap<string, readonly string[]>;
   readonly partials: StreamJsonPartials;
 }
@@ -40,6 +41,7 @@ export const initialStreamJsonProjection: StreamJsonProjectionState = {
   pendingInputId: null,
   compactingAgents: new Set(),
   agents: new Map(),
+  childModels: new Map(),
   partials: new Map(),
 };
 

@@ -11,7 +11,7 @@ system task_started          │ event → task_started
 user text                    │ event @toolu_01NaDYZpPmHedVK8yuTeBxRq
 rate_limit_event             │ event
 system task_progress         │ event → task_updated
-assistant tool_use           │ event @toolu_01NaDYZpPmHedVK8yuTeBxRq → tool_call_started Bash
+assistant tool_use           │ event @toolu_01NaDYZpPmHedVK8yuTeBxRq → model, tool_call_started Bash
 user tool_result             │ event @toolu_01NaDYZpPmHedVK8yuTeBxRq → tool_call_ended
 system task_updated          │ event → task_updated
 system task_notification     │ event → task_ended
