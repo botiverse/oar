@@ -3,12 +3,14 @@ import assert from "node:assert/strict";
 import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { test } from "vitest";
+import fileSkills from "../../.github/antigravity-file-skills.json" with { type: "json" };
 import { antigravityRuntime } from "../../packages/oar/src/runtimes/antigravity/index.js";
 import { startAntigravityAimock } from "../harness/aimock-acp.js";
 
 test.skipIf(process.env.OAR_TEST !== "antigravity-file-skills" || process.platform !== "win32")("Windows keeps the pinned native skill reader and authentication guard", { timeout: 60_000 }, async () => {
   const installation = await antigravityRuntime.installation();
-  assert.equal(installation.kind, "available"); assert.equal(installation.via, "executable"); assert.equal(installation.version, "1.5.11");
+  assert.equal(installation.kind, "available"); assert.equal(installation.via, "executable");
+  assert.equal(installation.version, fileSkills.runtimes["antigravity-file-skills"].version);
   const fixture = await startAntigravityAimock(() => {});
   const home = fixture.env.HOME; assert.ok(home !== undefined);
   const cwd = join(home, "project"); await mkdir(cwd, { recursive: true });
