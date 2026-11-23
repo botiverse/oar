@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { pathToFileURL } from "node:url";
-import { downloadVerified, exactVersion, nativeVersion, packageDist, readManifest } from "./runtime-common.mjs";
+import { downloadVerified, errorCauseCode, exactVersion, formatError, jsonResponse, nativeVersion, packageDist, readManifest, textResponse } from "./runtime-common.mjs";
 import { freezeCandidates } from "./runtime-candidates.mjs";
 import { installRuntime } from "./runtime-install.mjs";
 import { rewriteSdkManifests } from "./runtime-sdk-candidate.mjs";
@@ -553,4 +553,82 @@ test("summary preserves setup, cancellation and incomplete-report failures besid
     assert.match(candidateSummary({ ...input, report: other }), /NEW \/ UNCLASSIFIED.*Step vendor/u);
   }
   assert.match(candidateSummary({ ...input, steps: { vendor: { outcome: "cancelled" } } }), /NEW \/ UNCLASSIFIED.*Step vendor: cancelled/u);
+});
+
+test("jsonResponse and textResponse retry transient 5xx and socket errors and stop on 4xx or unclassified causes", async t => {
+  let jsonCalls = 0;
+  await serverFor((_request, response) => {
+    if (++jsonCalls < 3) { response.statusCode = 503; response.end("unavailable"); return; }
+    response.setHeader("content-type", "application/json");
+    response.end(JSON.stringify({ ok: true }));
+  }, async url => {
+    const records = attemptRecorder();
+    assert.deepEqual(await jsonResponse(url, records), { ok: true });
+    assert.equal(jsonCalls, 3);
+    assert.deepEqual(records.attempts.map(record => record.retrying ?? false), [true, true, false]);
+  });
+
+  let notFoundCalls = 0;
+  await serverFor((_request, response) => { notFoundCalls++; response.statusCode = 404; response.end("missing"); }, async url => {
+    await assert.rejects(jsonResponse(url, attemptRecorder()), /HTTP 404/u);
+    assert.equal(notFoundCalls, 1);
+  });
+
+  let textCalls = 0;
+  await serverFor((_request, response) => {
+    if (++textCalls === 1) { response.statusCode = 502; response.end("bad gateway"); return; }
+    response.end("1.0.92\n");
+  }, async url => {
+    assert.equal(await textResponse(url, attemptRecorder()), "1.0.92\n");
+    assert.equal(textCalls, 2);
+  });
+
+  let resetCalls = 0;
+  const resetErr = new TypeError("fetch failed", { cause: Object.assign(new Error("connect ECONNRESET 104.16.0.1:443"), { code: "ECONNRESET" }) });
+  const mockReset = t.mock.method(globalThis, "fetch", async () => {
+    if (++resetCalls < 3) throw resetErr;
+    return new Response(JSON.stringify({ recovered: true }), { status: 200 });
+  });
+  try {
+    assert.deepEqual(await jsonResponse("https://example.invalid/pkg", attemptRecorder()), { recovered: true });
+    assert.equal(resetCalls, 3);
+  } finally { mockReset.mock.restore(); }
+
+  let dnsCalls = 0;
+  const dnsErr = new TypeError("fetch failed", { cause: Object.assign(new Error("getaddrinfo ENOTFOUND secret.internal"), { code: "ENOTFOUND" }) });
+  const mockDns = t.mock.method(globalThis, "fetch", async () => { dnsCalls++; throw dnsErr; });
+  try {
+    await assert.rejects(jsonResponse("https://example.invalid/pkg", attemptRecorder()), value => value === dnsErr);
+    assert.equal(dnsCalls, 1);
+  } finally { mockDns.mock.restore(); }
+});
+
+test("formatError and installRuntime preserve structured cause code without leaking cause prose or URLs", async t => {
+  const err = new TypeError("fetch failed", { cause: Object.assign(new Error("getaddrinfo ENOTFOUND https://secret.example/token"), { code: "ENOTFOUND" }) });
+  assert.equal(errorCauseCode(err), "ENOTFOUND");
+  assert.equal(formatError(err), "fetch failed (ENOTFOUND)");
+  assert.doesNotMatch(formatError(err), /secret\.example|token/u);
+
+  const timeoutErr = new TypeError("fetch failed", { cause: new DOMException("aborted https://secret.example", "TimeoutError") });
+  assert.equal(errorCauseCode(timeoutErr), "TimeoutError");
+  assert.equal(formatError(timeoutErr), "fetch failed (TimeoutError)");
+
+  const directory = mkdtempSync(path.join(tmpdir(), "oar-ci-cause-"));
+  const mock = t.mock.method(globalThis, "fetch", async () => { throw err; });
+  try {
+    const manifestFile = path.join(directory, "pins.json");
+    writeFileSync(manifestFile, JSON.stringify({ schemaVersion: 1, runtimes: { fixture: {
+      package: "fixture-pkg", version: "1.2.3", command: "fixture", env: "OAR_FIXTURE_BIN",
+    } } }));
+    const reportDirectory = path.join(directory, "reports");
+    await assert.rejects(installRuntime("fixture", manifestFile, { directory, reportDirectory }), value => value === err);
+    const report = JSON.parse(readFileSync(path.join(reportDirectory, readdirSync(reportDirectory)[0])));
+    assert.equal(report.stage, "resolve-artifact");
+    assert.equal(report.error, "fetch failed (ENOTFOUND)");
+    assert.equal(report.errorCause, "ENOTFOUND");
+    assert.doesNotMatch(JSON.stringify(report), /secret\.example|token/u);
+  } finally {
+    mock.mock.restore();
+    rmSync(directory, { recursive: true, force: true });
+  }
 });

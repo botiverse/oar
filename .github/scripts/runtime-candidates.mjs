@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { exactVersion, jsonResponse, nativeVersion, packageDist, readManifest, registryUrl } from "./runtime-common.mjs";
+import { exactVersion, formatError, jsonResponse, nativeVersion, packageDist, readManifest, registryUrl, textResponse } from "./runtime-common.mjs";
 
 const platforms = ["ubuntu-latest", "macos-latest", "windows-latest"];
 
@@ -40,11 +40,7 @@ export async function freezeCandidates({ baseline = readManifest(), request = js
         let selector = "latest";
         if (accepted.channel) {
           if (stableVersion) selector = await stableVersion(accepted.channel);
-          else {
-            const response = await fetch(accepted.channel, { signal: AbortSignal.timeout(30_000) });
-            assert.ok(response.ok, `Release channel: HTTP ${response.status}`);
-            selector = nativeVersion(await response.text());
-          }
+          else selector = nativeVersion(await textResponse(accepted.channel));
         }
         assert.ok(selector === "latest" || exactVersion(selector), `Invalid release channel version for ${key}`);
         const latest = await resolve(accepted.package, selector);
@@ -57,7 +53,7 @@ export async function freezeCandidates({ baseline = readManifest(), request = js
       result.runtimes[key] = candidate;
       if (candidate.version === accepted.version) result.unchanged.push(key);
       else for (const os of accepted.platforms) result.matrix.include.push({ key, os, suite: accepted.suite });
-    } catch (error) { result.errors.push({ key, error: error.message }); }
+    } catch (error) { result.errors.push({ key, error: formatError(error) }); }
   }
 
   const workspace = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url)));
@@ -89,7 +85,7 @@ export async function freezeCandidates({ baseline = readManifest(), request = js
           for (const phase of phases) result.sdkMatrix.include.push({ group, os, backend, phase });
         }
       }
-    } catch (error) { result.errors.push({ key: `sdk-${group}`, error: error.message }); }
+    } catch (error) { result.errors.push({ key: `sdk-${group}`, error: formatError(error) }); }
   }
   return result;
 }

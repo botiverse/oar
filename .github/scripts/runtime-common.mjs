@@ -44,10 +44,20 @@ export function nativeVersion(output) {
   return versions[0];
 }
 
-export async function jsonResponse(url) {
-  const response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
-  assert.ok(response.ok, `${url}: HTTP ${response.status}`);
-  return response.json();
+export function errorCauseCode(error) {
+  const seen = new Set();
+  for (let cause = error?.cause; cause && !seen.has(cause); cause = cause.cause) {
+    seen.add(cause);
+    if (typeof cause.code === "string" && cause.code.length > 0) return cause.code;
+    if (typeof cause.name === "string" && cause.name.length > 0 && cause.name !== "Error") return cause.name;
+  }
+}
+
+export function formatError(error) {
+  if (!(error instanceof Error)) return String(error);
+  const code = errorCauseCode(error) ?? (typeof error.code === "string" && error.code.length > 0 ? error.code : undefined);
+  if (!code || error.message.includes(code)) return error.message;
+  return `${error.message} (${code})`;
 }
 
 export function registryUrl(name, version) {
@@ -77,24 +87,29 @@ function networkFailure(error) {
   }
 }
 
-export async function downloadVerified(dist, { onAttempt = () => {}, timeoutMs = 120_000, retryDelayMs = 1_000 } = {}) {
+async function fetchWithRetry(url, readBody, {
+  onAttempt = () => {},
+  timeoutMs = 30_000,
+  retryDelayMs = 1_000,
+  logPrefix,
+  httpError = status => `HTTP ${status}`,
+} = {}) {
   for (let attempt = 1; attempt <= 3; attempt++) {
     const record = { attempt, maxAttempts: 3, startedAt: new Date().toISOString(), status: "downloading" };
     const publish = () => {
       // Do not print URLs, response bodies or arbitrary network error messages.
-      process.stdout.write(`Artifact download attempt: ${JSON.stringify(record)}\n`);
+      if (logPrefix) process.stdout.write(`${logPrefix}: ${JSON.stringify(record)}\n`);
       onAttempt({ ...record });
     };
     publish();
-    let bytes;
     try {
-      const response = await fetch(dist.url, { signal: AbortSignal.timeout(timeoutMs) });
+      const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
       record.httpStatus = response.status;
       if (!response.ok) {
         await response.body?.cancel();
-        throw new Error(`Artifact download: HTTP ${response.status} from ${dist.url}`);
+        throw new Error(httpError(response.status));
       }
-      bytes = Buffer.from(await response.arrayBuffer());
+      return { value: await readBody(response), record, publish };
     } catch (error) {
       const code = record.httpStatus >= 300 ? undefined : networkFailure(error);
       record.status = "failed";
@@ -104,20 +119,57 @@ export async function downloadVerified(dist, { onAttempt = () => {}, timeoutMs =
       publish();
       if (!record.retrying) throw error;
       await delay(retryDelayMs);
-      continue;
     }
-    // Integrity checks are outside the retry path, including after a recovered download.
-    try {
-      const [algorithm, expected] = dist.integrity.split("-");
-      assert.ok(["sha512", "sha384", "sha256", "sha1"].includes(algorithm) && expected, "Unsupported artifact integrity");
-      assert.equal(createHash(algorithm).update(bytes).digest("base64"), expected, "Artifact integrity mismatch");
-    } catch (error) {
-      Object.assign(record, { status: "failed", failure: "INTEGRITY", retrying: false, endedAt: new Date().toISOString() });
-      publish();
-      throw error;
-    }
-    Object.assign(record, { status: "verified", bytes: bytes.length, endedAt: new Date().toISOString() });
-    publish();
-    return bytes;
   }
+}
+
+export async function jsonResponse(url, { onAttempt, timeoutMs = 30_000, retryDelayMs = 1_000 } = {}) {
+  const { value, record, publish } = await fetchWithRetry(url, response => response.json(), {
+    onAttempt,
+    timeoutMs,
+    retryDelayMs,
+    httpError: status => `${url}: HTTP ${status}`,
+  });
+  Object.assign(record, { status: "ok", endedAt: new Date().toISOString() });
+  publish();
+  return value;
+}
+
+export async function textResponse(url, { onAttempt, timeoutMs = 30_000, retryDelayMs = 1_000, label = "Release channel" } = {}) {
+  const { value, record, publish } = await fetchWithRetry(url, response => response.text(), {
+    onAttempt,
+    timeoutMs,
+    retryDelayMs,
+    httpError: status => `${label}: HTTP ${status}`,
+  });
+  Object.assign(record, { status: "ok", endedAt: new Date().toISOString() });
+  publish();
+  return value;
+}
+
+export async function downloadVerified(dist, { onAttempt = () => {}, timeoutMs = 120_000, retryDelayMs = 1_000 } = {}) {
+  const { value: bytes, record, publish } = await fetchWithRetry(
+    dist.url,
+    async response => Buffer.from(await response.arrayBuffer()),
+    {
+      onAttempt,
+      timeoutMs,
+      retryDelayMs,
+      logPrefix: "Artifact download attempt",
+      httpError: status => `Artifact download: HTTP ${status} from ${dist.url}`,
+    },
+  );
+  // Integrity checks are outside the retry path, including after a recovered download.
+  try {
+    const [algorithm, expected] = dist.integrity.split("-");
+    assert.ok(["sha512", "sha384", "sha256", "sha1"].includes(algorithm) && expected, "Unsupported artifact integrity");
+    assert.equal(createHash(algorithm).update(bytes).digest("base64"), expected, "Artifact integrity mismatch");
+  } catch (error) {
+    Object.assign(record, { status: "failed", failure: "INTEGRITY", retrying: false, endedAt: new Date().toISOString() });
+    publish();
+    throw error;
+  }
+  Object.assign(record, { status: "verified", bytes: bytes.length, endedAt: new Date().toISOString() });
+  publish();
+  return bytes;
 }
