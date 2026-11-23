@@ -5,6 +5,7 @@ import path from "node:path";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import { claudeLogout } from "../../packages/oar/src/runtimes/claude/logout.js";
 import { fakeLoginCli, reportedIdentity, type FakeCli } from "../fixtures/login-fixtures.js";
+import { withFixtureDeadline } from "../fixtures/fixture-deadline.js";
 import { gone } from "../fixtures/process-tree.js";
 
 let dir = "";
@@ -95,7 +96,8 @@ test("a status that cannot tell leaves claude's own report: a logout that succee
 
 test("past the deadline the logout is stopped with everything it started, and the status decides", async () => {
   const fake = fakeClaude({ logoutMode: "hang" });
-  expect(await claudeLogout(installation(fake), { timeoutMs: 1000 })).toMatchInlineSnapshot(`
+  expect(await withFixtureDeadline(() => fake.read().workerPid !== undefined,
+    async () => claudeLogout(installation(fake), { timeoutMs: 1000 }))).toMatchInlineSnapshot(`
     {
       "detail": "claude auth logout did not finish within 1000 ms",
       "kind": "failed",

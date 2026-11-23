@@ -1,6 +1,8 @@
 import { afterEach, expect, test, vi } from "vitest";
 import type { LoginProvider } from "../../packages/oar/src/contracts/provider-auth.js";
 import { createOpencodeProviderAuth, OpencodeProviderAuthError } from "../../packages/oar/src/runtimes/opencode/provider-auth.js";
+import { holdFixtureDeadline } from "../fixtures/fixture-deadline.js";
+import { eventually } from "../fixtures/process-tree.js";
 import { recordedInteraction } from "../fixtures/login-interaction.js";
 import { fakeCalls, fakeConnections, fakeList, opencodeAuthFixture, rejectionOf, removeOpencodeAuthFixtures, serverRunning } from "../fixtures/opencode-provider-auth.js";
 
@@ -179,17 +181,23 @@ test("a 401 from serve is an authentication failure at once, not a timeout", asy
   expect(Date.now() - started).toBeLessThan(5000);
 });
 
+// oxlint-disable-next-line max-statements -- Measure the shared budget from the real server startup through the hanging HTTP request.
 test("startup and readiness share one timeoutMs: a late listen leaves readiness only the rest", async () => {
   vi.stubEnv("OAR_KILL_GRACE_MS", "3000");
   const { create, fake } = await opencodeAuthFixture({ listenDelayMs: 1200, hangPlugin: true });
-  const started = Date.now();
-  const error = await rejectionOf(create({ timeoutMs: 2000 }));
-  const elapsed = Date.now() - started;
+  const waitForFixture = holdFixtureDeadline();
+  const pending = rejectionOf(create({ timeoutMs: 2000 }));
+  await waitForFixture(pending, async () => {
+    expect(await eventually(() => fake.read().serverPid !== undefined, 10_000), "The server published its identity").toBe(true);
+  });
+  const started = performance.now();
+  const error = await pending;
+  const elapsed = performance.now() - started;
   expect(error).toMatchObject({ kind: "timed_out" });
   // A full timeoutMs for the hanging read would end after about 3.2 s.
   expect(elapsed, `ended after ${String(elapsed)} ms`).toBeLessThan(2800);
   expect(fakeCalls(fake)).toContainEqual({ method: "GET", path: "/api/plugin" });
-  await expect.poll(() => serverRunning(fake), { timeout: 10_000 }).toBe(false);
+  expect(await eventually(() => !serverRunning(fake), 10_000)).toBe(true);
 });
 
 test("a crashed or silent start is reported with OpenCode's first line", async () => {

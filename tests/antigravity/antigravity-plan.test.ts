@@ -18,7 +18,8 @@ import {
   readAntigravityTokenEmail,
 } from "../../packages/oar/src/runtimes/antigravity/token-email.js";
 import { asRecord, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
-import { fakeAgentBinary, gone, reportedProcess } from "../fixtures/process-tree.js";
+import { holdFixtureDeadline } from "../fixtures/fixture-deadline.js";
+import { eventually, fakeAgentBinary, gone, reportedProcess } from "../fixtures/process-tree.js";
 
 // Recorded agy 1.5.13 ACP initialize and authenticate replies (2026-11-20), identifiers removed.
 const authFixtureText = readFileSync(path.join(import.meta.dirname, "agy-1.5.13-authenticate.json"), "utf8");
@@ -55,8 +56,8 @@ function writeFakeState(dir: string, options: FakeAccountOptions): void {
 
 function fakeAgyScript(config: Record<string, unknown>): string {
   return [
-    `import { captureProcess } from ${JSON.stringify(new URL("../fixtures/process-tree.ts", import.meta.url).href)};`,
-    'import { appendFileSync, writeFileSync } from "node:fs";',
+    `import { writeProcessReport } from ${JSON.stringify(new URL("../fixtures/process-tree.ts", import.meta.url).href)};`,
+    'import { appendFileSync } from "node:fs";',
     'import { createInterface } from "node:readline";',
     `const cfg = ${JSON.stringify(config)};`,
     String.raw`const log = (entry) => appendFileSync(cfg.traceFile, JSON.stringify(entry) + "\n");`,
@@ -65,13 +66,12 @@ function fakeAgyScript(config: Record<string, unknown>): string {
     'if (args[0] === "models") { if (!cfg.loggedIn) { console.error("Please sign in to view available models"); process.exit(1); } console.log("gemini-3.8-flash"); process.exit(0); }',
     'if (args[0] === "-p" && args[1] === "/usage") { process.stdout.write(JSON.stringify(cfg.usageReply)); process.exit(0); }',
     'if (args[0] === "acp") {',
-    '  writeFileSync(cfg.pidFile, JSON.stringify(captureProcess(process.pid)));',
     '  createInterface({ input: process.stdin }).on("line", (line) => {',
     '    const req = JSON.parse(line);',
     '    log({ kind: "rpc", method: req.method, params: req.params });',
     String.raw`    if (req.method === "initialize") { process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id: req.id, result: cfg.initReply }) + "\n"); return; }`,
     '    if (req.method === "authenticate") {',
-    '      if (cfg.authMode === "stall") { setInterval(() => {}, 1000); return; }',
+    '      if (cfg.authMode === "stall") { writeProcessReport(cfg.pidFile, process.pid); setInterval(() => {}, 1000); return; }',
     String.raw`      if (cfg.authMode === "no_browser") { process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id: req.id, error: { code: -32603, message: "No browser is available here (this is a remote (SSH) session)." } }) + "\n"); return; }`,
     String.raw`      process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id: req.id, result: cfg.authReply }) + "\n");`,
     '    }',
@@ -102,7 +102,7 @@ function fakeAccountAgy(options: FakeAccountOptions = {}) {
   const env = { HOME: dir, USERPROFILE: dir, DISPLAY: ":99", WAYLAND_DISPLAY: "wayland-0", DBUS_SESSION_BUS_ADDRESS: null, XDG_RUNTIME_DIR: dir };
   return {
     installation: { kind: "available", via: "executable", command: fakeAgentBinary(dir, guardedFixtureArgs(script)), version: "1.5.13" } as const,
-    env, dir, trace: () => readTrace(traceFile), acpPid: () => reportedProcess(JSON.parse(readFileSync(pidFile, "utf8"))),
+    env, dir, ready: () => existsSync(pidFile), trace: () => readTrace(traceFile), acpPid: () => reportedProcess(JSON.parse(readFileSync(pidFile, "utf8"))),
   };
 }
 
@@ -212,9 +212,13 @@ test("omits plan when initialize does not advertise tier or authenticate refuses
 
 test("kills a stalled ACP tier probe at its short deadline and omits plan", async () => {
   const stalled = fakeAccountAgy({ persistedMethod: "oauth-personal", authMode: "stall" });
+  const waitForFixture = holdFixtureDeadline();
+  const plan = readAntigravityPlan(stalled.installation.command, { HOME: stalled.dir, USERPROFILE: stalled.dir }, { timeoutMs: 400 });
+  await waitForFixture(plan, async () => {
+    expect(await eventually(stalled.ready, 10_000), "authenticate published its process identity").toBe(true);
+  });
   const started = performance.now();
-  const plan = await readAntigravityPlan(stalled.installation.command, { HOME: stalled.dir, USERPROFILE: stalled.dir }, { timeoutMs: 400 });
-  expect(plan).toBeUndefined();
+  expect(await plan).toBeUndefined();
   expect(performance.now() - started).toBeLessThan(2000);
   expect(await gone(stalled.acpPid())).toBe(true);
 });

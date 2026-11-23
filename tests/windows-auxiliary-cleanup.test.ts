@@ -1,3 +1,4 @@
+import { holdFixtureDeadline } from "./fixtures/fixture-deadline.js";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "vitest";
@@ -31,7 +32,9 @@ async function stopTerminal(
 }
 
 windowsTest.each(["timeout", "cancelled", "stdout", "stderr", "closed-timeout", "closed-cancelled"])("a %s probe ends its launcher and descendants", async (mode) => {
+  // oxlint-disable-next-line max-statements -- Observe readiness, stop and liveness on the same Windows tree.
   await withTreeProbe({ ignoreSigterm: false }, async (probe) => {
+    const waitForFixture = holdFixtureDeadline(mode.endsWith("timeout"));
     const controller = new AbortController();
     const pending = runExecutable(fakeAgentBinary(probe.dir, [fixture]), [], {
       env: {
@@ -42,7 +45,7 @@ windowsTest.each(["timeout", "cancelled", "stdout", "stderr", "closed-timeout", 
       timeoutMs: mode.endsWith("timeout") ? 3000 : 60_000,
       signal: controller.signal,
     });
-    const tree = await probe.tree();
+    const tree = await waitForFixture(pending, async () => probe.tree(), controller);
     if (mode.endsWith("cancelled")) { controller.abort(); }
     const result = await bounded(pending);
     expect(result, "the stopped probe settles while its descendants would otherwise hold its pipes").not.toBeNull();

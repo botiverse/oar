@@ -1,6 +1,8 @@
+import { existsSync, readFileSync } from "node:fs";
+import { holdFixtureDeadline } from "./fixtures/fixture-deadline.js";
 import { setImmediate as nextTurn } from "node:timers/promises";
 import { afterEach, expect, test, vi } from "vitest";
-import { reportedProcess, signalFixture } from "./fixtures/process-tree.js";
+import { eventually, gone, reportedProcess, signalFixture } from "./fixtures/process-tree.js";
 import { processTableCommand } from "../packages/oar/src/shared/executable/process-table-command.js";
 import { processTableFailure } from "../packages/oar/src/shared/executable/process-tree.js";
 
@@ -34,11 +36,32 @@ test("query deadline includes pipes held after the query root exits", async () =
   const dir = await mkdtemp(path.join(tmpdir(), "oar-query-pipe-"));
   const file = path.join(dir, "tool.pid");
   const identityPath = path.resolve(import.meta.dirname, "fixtures/process-tree.ts");
-  const source = `const { captureProcess } = require(${JSON.stringify(identityPath)}); const {spawn} = require('node:child_process'); const fs = require('node:fs'); const tool = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], {stdio: ['ignore', 1, 'ignore'], detached: true}); fs.writeFileSync(process.argv[1], JSON.stringify(captureProcess(tool.pid))); process.exit(0);`;
+  const source = `
+    const { writeProcessReport } = require(${JSON.stringify(identityPath)});
+    const { spawn } = require("node:child_process");
+    const tool = spawn(process.execPath, ["-e", "setTimeout(() => {}, 60000)"], { stdio: ["ignore", 1, "ignore"], detached: true });
+    try {
+      writeProcessReport(process.argv[1] + ".root", process.pid);
+      writeProcessReport(process.argv[1], tool.pid);
+    } catch (error) {
+      tool.kill("SIGKILL");
+      throw error;
+    }
+    process.exit(0);
+  `;
 
   try {
+    const waitForFixture = holdFixtureDeadline();
+    const pending = Promise.allSettled([processTableCommand(process.execPath, ["-e", source, file])]);
+    await waitForFixture(pending, async () => {
+      expect(await eventually(() => existsSync(file), 10_000), "The child published its identity").toBe(true);
+      const root = readFileSync(`${file}.root`, "utf8");
+      const rootIdentity = reportedProcess(JSON.parse(root));
+      expect(await gone(rootIdentity), "The root exited while its child held stdout").toBe(true);
+    });
     const started = performance.now();
-    const failure = await processTableCommand(process.execPath, ["-e", source, file]).catch((error: unknown) => processTableFailure(error, "ps", 1));
+    const [result] = await pending;
+    const failure = result.status === "rejected" ? processTableFailure(result.reason, "ps", 1) : result.value;
     expect(failure).toEqual({ ok: false, source: "ps", elapsedMs: 1, reason: "timeout", code: "ETIMEDOUT", timeoutMs: 5000 });
     expect(performance.now() - started).toBeLessThan(10_000);
   } finally {

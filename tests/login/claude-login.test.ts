@@ -7,6 +7,8 @@ import { claudeAuthStatus } from "../../packages/oar/src/runtimes/claude/auth-st
 import { claudeLogin } from "../../packages/oar/src/runtimes/claude/login.js";
 import { fakeLoginCli, reportedIdentity, type FakeCli } from "../fixtures/login-fixtures.js";
 import { recordedInteraction } from "../fixtures/login-interaction.js";
+import { withFixtureDeadline } from "../fixtures/fixture-deadline.js";
+// oxlint-disable-next-line import/max-dependencies -- Collect real PID liveness as well as the login protocol and deadline.
 import { gone } from "../fixtures/process-tree.js";
 
 const CODE = "fixture-authorization-code#fixture-state";
@@ -157,7 +159,8 @@ test("a failure in claude's own words is reported in them, and `Login failed: In
 
 test("a deadline after `Login successful.` is not a timeout: the stored login is confirmed by the status", async () => {
   const fake = fakeClaude({ mode: "linger" });
-  const result = await claudeLogin(installation(fake), recordedInteraction([CODE]), { timeoutMs: 1500 });
+  const result = await withFixtureDeadline(() => fake.read().pid !== undefined,
+    async () => claudeLogin(installation(fake), recordedInteraction([CODE]), { timeoutMs: 1500 }));
   expect(result).toMatchInlineSnapshot(`
     {
       "account": {
@@ -206,7 +209,8 @@ test("a command that cannot be spawned fails at once", async () => {
 
 test("past the deadline the login is stopped with everything it started", async () => {
   const fake = fakeClaude({ mode: "hang" });
-  const result = await claudeLogin(installation(fake), recordedInteraction(["never"]), { timeoutMs: 1000 });
+  const result = await withFixtureDeadline(() => fake.read().workerPid !== undefined,
+    async () => claudeLogin(installation(fake), recordedInteraction(["never"]), { timeoutMs: 1000 }));
   expect(result).toMatchInlineSnapshot(`
     {
       "detail": "no sign-in within 1000 ms",

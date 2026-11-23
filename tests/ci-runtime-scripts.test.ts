@@ -1,13 +1,33 @@
-import { spawnSync } from "node:child_process";
+import { globSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { runExecutable } from "../packages/oar/src/shared/executable/run.js";
+import { asRecord, parseJson } from "../packages/oar/src/shared/json.js";
 import path from "node:path";
 import { expect, test } from "vitest";
 import { acceptedPiVersions, checkPiManifestConsistency, satisfiesPublishedRange } from "./fixtures/clean-install-pins.js";
 
-test("CI candidate scripts preserve failures and install only the frozen local fixture", () => {
-  const result = spawnSync(process.execPath,
-    ["--test", "--test-reporter=tap", ".github/scripts/runtime-ci.test.mjs"], { encoding: "utf8", timeout: 90_000, maxBuffer: 2 * 1024 * 1024 });
-  expect(result.status, result.stdout + result.stderr).toBe(0);
-  expect(result.stdout).toMatch(/# fail 0/u);
+function fixtureEnvironment(directory: string): NodeJS.ProcessEnv {
+  const inherited = Object.entries(process.env).filter(([key]) => !/^(?:temp|tmp|tmpdir|runner_temp|npm_config_cache)$/iu.test(key));
+  return { ...Object.fromEntries(inherited), TEMP: directory, TMP: directory, TMPDIR: directory, RUNNER_TEMP: directory,
+    npm_config_cache: path.join(directory, "cache") };
+}
+
+test("CI candidate scripts preserve failures and install only the frozen local fixture", async () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "oar-ci-"));
+  try {
+    const result = await runExecutable(process.execPath, ["--test", "--test-reporter=tap", ".github/scripts/runtime-ci.test.mjs"], {
+      timeoutMs: 90_000, env: fixtureEnvironment(directory),
+    });
+    if (!result.ok) {
+      const reports = globSync("oar-runtime install-test-*/reports/*.json", { cwd: directory });
+      const stages = reports.map(file => {
+        const raw = readFileSync(path.join(directory, file), "utf8");
+        return asRecord(parseJson(raw))?.stage;
+      });
+      throw new Error(`CI candidate scripts failed: ${JSON.stringify(result.diagnostics)}, active installer stages ${JSON.stringify(stages)}\n${result.stdout}\n${result.stderr}`);
+    }
+    expect(result.stdout).toMatch(/# fail 0/u);
+  } finally { rmSync(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); }
 }, 100_000);
 
 test("the gate derives Pi and undici pins from the actual accepted workspace graph", () => {

@@ -1,5 +1,5 @@
 /* oxlint-disable import/max-dependencies -- One real-process regression exercises each affected account entry point. */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, expect, test, vi } from "vitest";
@@ -15,7 +15,8 @@ import { readCodexAuthStatus } from "../packages/oar/src/runtimes/codex/login.js
 import { codebuddyAuthStatus } from "../packages/oar/src/runtimes/codebuddy/auth-status.js";
 import { factoryAuthStatus } from "../packages/oar/src/runtimes/factory/account.js";
 import { kimiAuthStatus, queryKimiAuth } from "../packages/oar/src/runtimes/kimi/auth-status.js";
-import { fakeAgentBinary, gone, withTreeProbe } from "./fixtures/process-tree.js";
+import { holdFixtureDeadline } from "./fixtures/fixture-deadline.js";
+import { eventually, fakeAgentBinary, gone, withTreeProbe } from "./fixtures/process-tree.js";
 
 const script = fileURLToPath(new URL("fixtures/stalled-account-query.mjs", import.meta.url));
 const TIMEOUT = 4000;
@@ -51,16 +52,18 @@ test.each(cases)("$name settles at its deadline while owned cleanup continues", 
       ...probe.env, HOME: probe.dir, CODEX_HOME: probe.dir, CODEBUDDY_API_KEY: null, WINDSURF_API_KEY: null,
       OAR_QUERY_STAGE: stage, OAR_QUERY_REQUESTS: requests,
     } }).then((value) => ({ value, error: null }), (error: unknown) => ({ value: null, error }));
-    const tree = await probe.tree();
-    // Wait until the fixture reaches the target stage before firing the deadline timer.
-    await vi.waitFor(() => {
-      expect(readFileSync(requests, "utf8").trim().split("\n")).toContain(stage);
-    }, { timeout: 10_000, interval: 10 });
-    const deadlineAt = performance.now();
-    vi.advanceTimersByTime(TIMEOUT);
-    vi.useRealTimers();
+    let deadlineAt = 0;
+    const [tree, ready] = await Promise.all([
+      probe.tree(),
+      eventually(() => existsSync(requests) && readFileSync(requests, "utf8").trim().split("\n").includes(stage), 10_000),
+    ]).finally(() => {
+      deadlineAt = performance.now();
+      vi.advanceTimersByTime(TIMEOUT);
+      vi.useRealTimers();
+    });
     const outcome = await result;
     const settleMs = performance.now() - deadlineAt;
+    expect(ready, stage).toBe(true);
     if (name.endsWith("status")) {
       expect(outcome.value).toMatchObject({ kind: "unknown" });
       expect(outcome.value).toHaveProperty("detail", expect.stringContaining("timed out"));
@@ -90,11 +93,12 @@ test.skipIf(process.platform === "win32")("login/logout's internal status reader
   vi.stubEnv("OAR_KILL_GRACE_MS", String(GRACE));
   await withTreeProbe({ ignoreSigterm: true }, async (probe) => {
     const command = fakeAgentBinary(probe.dir, [script]);
-    const started = performance.now();
+    const waitForFixture = holdFixtureDeadline();
     const result = readCodexAuthStatus({ kind: "available", via: "executable", command }, {
       timeoutMs: 1000, env: { ...probe.env, OAR_QUERY_REQUESTS: path.join(probe.dir, "requests") },
     });
-    const tree = await probe.tree();
+    const tree = await waitForFixture(result, async () => probe.tree());
+    const started = performance.now();
     expect(await result).toMatchObject({ kind: "unknown" });
     expect(performance.now() - started).toBeGreaterThanOrEqual(1000 + GRACE - 50);
     expect(await gone(tree.agent, 0)).toBe(true);
@@ -106,10 +110,11 @@ test.skipIf(process.platform === "win32").each(["authenticate", "logout"] as con
   vi.stubEnv("OAR_KILL_GRACE_MS", String(GRACE));
   await withTreeProbe({ ignoreSigterm: true, detachTool: true }, async probe => {
     const command = fakeAgentBinary(probe.dir, [script]);
-    const started = performance.now();
+    const waitForFixture = holdFixtureDeadline();
     const result = queryKimiAuth(command, method, { timeoutMs: 1000, joinCleanup: method === "authenticate",
       env: { ...probe.env, OAR_QUERY_STAGE: method, OAR_QUERY_REQUESTS: path.join(probe.dir, "requests") } });
-    const tree = await probe.tree();
+    const tree = await waitForFixture(result, async () => probe.tree());
+    const started = performance.now();
     expect(await result).toBe("timed_out");
     expect(performance.now() - started).toBeGreaterThanOrEqual(1000 + GRACE - 50);
     expect(await gone(tree.agent, 0)).toBe(true);

@@ -9,6 +9,7 @@
 // failed), "prompt" asks on stdin and installs nothing without an answer,
 // "hang" starts a worker that holds the output pipes and never finishes.
 import { captureProcess } from "./process-tree.ts";
+import saveLoginState from "./login-state.mjs";
 import { spawn } from "node:child_process";
 import { chmodSync, readFileSync, writeFileSync } from "node:fs";
 
@@ -16,7 +17,7 @@ const [stateFile] = process.argv.slice(2);
 const state = JSON.parse(readFileSync(stateFile, "utf8"));
 
 function save(changes) {
-  writeFileSync(stateFile, JSON.stringify({ ...state, ...changes }));
+  saveLoginState(stateFile, { ...state, ...changes });
 }
 
 function installRuntime() {
