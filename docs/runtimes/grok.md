@@ -219,8 +219,9 @@ state, and metadata. Credentials must be available in the runtime environment.
 startup hints in the `initialize` `_meta` (`clientIdentifier: "oar"`,
 `clientType: "generic"`, `startupHints: { nonInteractive, skipGitStatus,
 skipProjectLayout }`). It advertises terminal support, disables client
-filesystem methods, and gives initialize 60 seconds and other bounded opening
-requests 15 seconds ([shared deadlines](../spec/runtime-matrix.md#acp-opening-deadlines)). The
+filesystem methods, and gives initialize 60 seconds, `session/load` 60
+seconds, and other bounded opening requests 30 seconds
+([shared deadlines](../spec/runtime-matrix.md#acp-opening-deadlines)). The
 session request supplies the session's `mcpServers` (`[]` without them; see
 [session MCP servers](#session-mcp-servers)) and `_meta: { yoloMode: true }`.
 The `authenticate` answer's `_meta` carries the account email and
@@ -367,7 +368,7 @@ is an `exited` response, classified by the folds as described below. Around each
 `_x.ai/interject {sessionId, text, interjectionId: inputId}` (with `content`
 blocks when images travel) and answers `accepted` on a successful native RPC reply.
 Grok reported `{result: {status: "queued"}}` in the control. OAR does not
-require that status value. A 15-second timeout rejects with `error` and
+require that status value. A 30-second timeout rejects with `error` and
 leaves delivery unconfirmed. The successful reply is a frame `_x.ai/interject` with
 `responseTo` the steer request. An RPC error is a frame
 `_x.ai/interject/error` and the steer is rejected `runtime_refused`. With no
@@ -886,8 +887,9 @@ When a host attaches a `serveMcpTools` entry, OAR waits during open for both
 `_x.ai/mcp/server_status` asynchronously (either before or after
 `_x.ai/mcp_initialized`, observed on 1.0.70 and 1.0.92 for both `session/new`
 and `session/resume`, including empty-tool servers), so waiting for both
-prevents a fast-failing server from slipping past `_x.ai/mcp_initialized`. The
-existing session-open deadline bounds discovery. A named non-ready terminal
+prevents a fast-failing server from slipping past `_x.ai/mcp_initialized`. Discovery
+shares the opening method's deadline (30 seconds on `session/new` and
+`session/resume`, 60 seconds on `session/load`). A named non-ready terminal
 status for a served server (`unavailable`, `needsauth`/`needs_auth`;
 `initializing` is non-terminal) rejects the open with Grok's reason (for
 example, `handshake_failed`). An unavailable optional server can coexist with
