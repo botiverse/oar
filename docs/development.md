@@ -373,8 +373,10 @@ newer push or dispatch on the same ref cancels any in-progress or queued
   packages are packed and `npm install`ed into empty host projects: first a
   slim host (`--omit=optional`, no Pi packages or peers) verifies default
   runtimes probe without throwing (`pi` and `pi-rpc` report
-  `dependency_missing`), all exported entries (including `runtimes/pi`)
-  type-check, and adding the Pi Durable peers lets `pi-durable` open without
+  `dependency_missing`), the tested exported entries (root, `browser`,
+  `capabilities`, `forms`, `observe`, `kernel`, `brands`, `testing`, `agents`,
+  `agents/report`, and `runtimes/pi`) type-check, and adding the Pi Durable
+  peers lets `pi-durable` open without
   `@earendil-works/pi-coding-agent`; next a default host (`npm install`, with Pi
   `optionalDependencies`) verifies `pi` and `pi-rpc` probe `available`,
   `browser`, `forms`, `capabilities`, `observe`, `agents/report` and
