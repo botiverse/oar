@@ -1,20 +1,40 @@
 import { createInterface } from "node:readline";
 import type { Duplex } from "node:stream";
 
-/** Register each private key before acknowledging the child's native hook. */
-export function readPiRpcCredentials(pipe: Duplex, remember: (key: string) => void, failed: () => void): void {
+export interface PiRpcPipeHandlers {
+  readonly remember: (key: string) => void;
+  readonly failed: () => void;
+  readonly config?: string;
+}
+
+function isConfigRequest(message: unknown): boolean {
+  return typeof message === "object" && message !== null && !Array.isArray(message) && "type" in message && message.type === "config";
+}
+
+/** Serve one-time startup config and runtime provider keys over the private fd 3 pipe. */
+export function servePiRpcPipe(pipe: Duplex, handlers: PiRpcPipeHandlers): void {
   const lines = createInterface({ input: pipe, crlfDelay: Infinity });
+  let pendingConfig = handlers.config;
+  const reply = (line: string): string => {
+    const message: unknown = JSON.parse(line);
+    if (typeof message === "string") { handlers.remember(message); return "ok"; }
+    if (isConfigRequest(message) && pendingConfig !== undefined) {
+      const payload = pendingConfig;
+      pendingConfig = undefined;
+      return payload;
+    }
+    throw new TypeError("Invalid Pi RPC private pipe message");
+  };
   // readline forwards input errors to its own emitter. Both need listeners,
   // including when a child exits before the acknowledgment can be written.
-  pipe.on("error", failed);
-  lines.on("error", failed);
+  pipe.on("error", handlers.failed);
+  lines.on("error", handlers.failed);
   lines.on("line", (line) => {
-    try {
-      const key: unknown = JSON.parse(line);
-      if (typeof key !== "string") { throw new TypeError("Invalid Pi RPC credential message"); }
-      remember(key);
-      // Separate stdout and fd 3 reads have no cross-stream ordering.
-      pipe.write("ok\n");
-    } catch { failed(); }
+    try { pipe.write(`${reply(line)}\n`); } catch { handlers.failed(); }
   });
+}
+
+/** Register each private key before acknowledging the child's native hook. */
+export function readPiRpcCredentials(pipe: Duplex, remember: (key: string) => void, failed: () => void): void {
+  servePiRpcPipe(pipe, { remember, failed });
 }

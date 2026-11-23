@@ -225,19 +225,21 @@ The same factory object accepts `execution`, `command`, `args`,
 `--approve` by default and `--no-approve` for `projectTrusted: false`. These are
 per-process overrides, not persistent trust grants; trust and package policy
 are the same as on the SDK path
-([project trust](#project-trust-and-package-installation)). The child receives the
-session environment, including removals, so provider variables and MCP children
-are isolated from the host. This is broader than the SDK's bash/MCP-only env
-overlay. OAR passes `--no-mcp` and supplies session MCP servers through a small
-native extension, materialized from bundled source into a private directory.
-Its configuration uses a private file (0600 on POSIX), never command-line
-arguments. Discovered provider keys travel only in a separate bidirectional
-stdio pipe at fd 3. The extension waits for the parent to register each key for
-redaction before continuing startup or a model change; keys never enter OAR's
-private files or RPC stdout. These pipe and model-switch checks run on Linux,
-macOS and Windows. The child uses Pi's own
-`registerMcpServer`; collisions with user registrations still fail natively.
-Neither location exposes arbitrary inline extension factories or custom tools.
+([project trust](#project-trust-and-package-installation)). The child receives the session environment, including removals, so provider
+variables and MCP children are isolated from the host. This is broader than
+the SDK's bash/MCP-only env overlay. OAR passes `--no-mcp` and supplies
+session MCP servers through a small native extension, materialized from bundled
+source into a private directory. Instead of writing MCP configuration or
+credentials to disk or command-line arguments, the extension requests the
+startup config JSON once over the private bidirectional stdio pipe at fd 3
+before any user extension loads or tools run. Discovered provider keys travel
+over the same private fd 3 pipe, and the extension waits for the parent to
+register each key for redaction before continuing startup or a model change;
+keys and MCP credentials never enter OAR's private files or RPC stdout. These
+pipe and model-switch checks run on Linux, macOS and Windows. The child uses
+Pi's own `registerMcpServer`; collisions with user registrations still fail
+natively. Neither location exposes arbitrary inline extension factories or
+custom tools.
 Unsupported session options remain typed refusals. Both locations refuse
 `launchArgs`; in RPC, OAR owns the startup arguments so that flags cannot
 contradict checked options.
@@ -1016,9 +1018,10 @@ list was held for 6.5 seconds. An immediate first prompt waited for discovery
 and its first provider request included the tool. The hold was artificial; the
 in-process server had already answered.
 
-The bundled in-process SDK accepts stdio environment values and HTTP headers.
-Pi RPC accepts credential-free entries. It refuses entries with nonempty
-`env` or `headers` because its configuration remains on disk until disposal.
+Both the bundled in-process SDK and Pi RPC accept stdio environment values and
+HTTP headers. On Pi RPC, the startup extension fetches the session's MCP
+configuration once over the private fd 3 pipe before user extensions run,
+keeping MCP credentials out of private files and process arguments.
 [Native measurements](../../experiments/mcp-credential-admission/README.md).
 
 `SessionOptions.mcpServers` uses pi's own MCP support as the pi CLI runs it

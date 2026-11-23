@@ -369,7 +369,7 @@ one session, on top of the runtime's own, through each runtime's own channel
 0600 temporary file deleted right after `initialize` on Windows); pi-durable, morph and cybion refuse `mcpServers`, and dsh takes
 stdio `command` and `args` only. Give them again on `resume`. Their `env` and
 `headers` values never appear in a record or an error; antigravity, dsh, cursor,
-devin, Pi RPC (`execution: "subprocess"`) and cybion refuse an
+devin and cybion refuse an
 entry carrying them (declared as `mcpServerCredentials`; leave such entries out). Every runtime refuses the
 names `__proto__`, `__defineGetter__`, `__defineSetter__`, `__lookupGetter__`
 and `__lookupSetter__` (`option: "mcpServers"`), which some runtimes drop

@@ -4,7 +4,7 @@ import { createSubagents } from "../packages/oar/src/agents/index.js";
 import type { AvailableInstallation } from "../packages/oar/src/contracts/installation.js";
 import type { RefusableSessionOption } from "../packages/oar/src/contracts/runtime.js";
 import type { SessionOptions } from "../packages/oar/src/contracts/session.js";
-import { defineRuntime, UnsupportedOptionError } from "../packages/oar/src/index.js";
+import { createPiRuntime, defineRuntime, UnsupportedOptionError } from "../packages/oar/src/index.js";
 import { refuseSessionOptions } from "../packages/oar/src/shared/session-options.js";
 import { scriptedRuntime } from "../packages/oar/src/testing/index.js";
 import { allRuntimes } from "../sea-trial/harness/runtimes.js";
@@ -232,4 +232,17 @@ test.each(["", "   ", "-c", "--continue", "--help", "id\0secret"])("an empty, da
       option: "resume",
     });
   }
+});
+
+test("subprocess Pi accepts credentialed mcpServers and declares only its non-credential refusals", async () => {
+  const rpc = createPiRuntime({ execution: "subprocess" });
+  expect(Object.keys(rpc.refusedSessionOptions ?? {}).toSorted()).toEqual([
+    "additionalDirectories", "endTurnProcessesOnAbort", "fork", "goals", "launchArgs",
+    "modelRequests", "nativeMemoryDefault", "outputSchema", "serviceTier", "sessionLogUpload", "userConfiguration",
+  ]);
+  expect(() => {
+    refuseSessionOptions(rpc.refusedSessionOptions ?? {}, { cwd: "/tmp", ...given.mcpServerCredentials });
+  }).not.toThrow();
+  await expect(rpc.session(nowhere("pi"), { cwd: "/tmp", launchArgs: ["--probe"] }))
+    .rejects.toMatchObject({ name: "UnsupportedOptionError", option: "launchArgs" });
 });

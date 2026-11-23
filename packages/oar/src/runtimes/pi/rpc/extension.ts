@@ -20,15 +20,24 @@ export default async function oarPiRpcExtension(pi) {
       clearTimeout(waiter.timer);
       waiter.reject(new Error("Pi RPC credential pipe closed before acknowledgment"));
     }
+    keys.unref();
   };
   keys.on("error", fail);
   acknowledgments.on("error", fail);
   acknowledgments.on("close", fail);
-  acknowledgments.on("line", () => {
+  acknowledgments.on("line", (line) => {
     const waiter = waiting.shift();
-    if (waiter !== undefined) { clearTimeout(waiter.timer); waiter.resolve(); }
+    if (waiting.length === 0) { keys.unref(); }
+    if (waiter !== undefined) { clearTimeout(waiter.timer); waiter.resolve(line); }
   });
-  const config = JSON.parse(readFileSync(path.join(directory, "config.json"), "utf8"));
+  const exchange = (payload) => new Promise((resolve, reject) => {
+    if (keys.destroyed) { reject(new Error("Pi RPC credential pipe is closed")); return; }
+    keys.ref();
+    const timer = setTimeout(() => { keys.destroy(); fail(); }, 30_000);
+    waiting.push({ resolve, reject, timer });
+    keys.write(JSON.stringify(payload) + "\n");
+  });
+  const config = JSON.parse(await exchange({ type: "config" }));
   // Match DefaultResourceLoader.discoverAppendSystemPromptFile in the selected Pi.
   // Pi loads CLI extensions before reading the prompt flags. Use the selected
   // CLI's own config directory and the trust choice passed to --[no-]approve.
@@ -52,12 +61,7 @@ export default async function oarPiRpcExtension(pi) {
     if (auth.ok && auth.apiKey !== undefined) {
       // Parent acknowledgment orders registration before provider output on
       // stdout. The key stays in this private pipe, never a file or RPC frame.
-      await new Promise((resolve, reject) => {
-        if (keys.destroyed) { reject(new Error("Pi RPC credential pipe is closed")); return; }
-        const timer = setTimeout(() => { keys.destroy(); fail(); }, 30_000);
-        waiting.push({ resolve, reject, timer });
-        keys.write(JSON.stringify(auth.apiKey) + "\n");
-      });
+      await exchange(auth.apiKey);
     }
   };
   pi.on("session_start", async (_event, context) => {

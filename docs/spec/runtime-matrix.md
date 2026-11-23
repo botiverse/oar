@@ -1036,7 +1036,7 @@ in [user configuration](#user-configuration).
 | grok | `disallowedTools`, `serviceTier`, `additionalDirectories`, `name`, `userConfiguration: "exclude"` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay |
 | opencode, both lines | `disallowedTools`, `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | agent permissions can override global denies; permission names do not consistently match tool names |
 | pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping |
-| pi | `mcpServerCredentials` in subprocess mode, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `userConfiguration: "exclude"` | it runs in the host process through its SDK, with no command line. Subprocess mode keeps the private MCP configuration file through the first turn. [Isolation measurements](../../experiments/mcp-credential-admission/README.md) |
+| pi | `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `userConfiguration: "exclude"` | it runs in the host process through its SDK, with no command line. Subprocess mode delivers startup config (including MCP server credentials) once over the private fd 3 pipe at startup instead of writing it to disk ([pi](../runtimes/pi.md#optional-native-rpc-process)). |
 | qwen | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
 | dsh | `mcpServerCredentials`, `launchArgs`, `serviceTier`, `outputSchema`, `userConfiguration: "exclude"` | MCP credentials have no verified persistence boundary; launcher overlays can disable the bridge; root `agentOptions.outputSchema` is ignored while the native child API supports it; the other options remain unverified through the bridge ([mapping](../runtimes/dsh.md#session-options)) |
 | factory | `serviceTier`, `outputSchema`, `name`, `additionalDirectories`, `disallowedTools`, `userConfiguration: "exclude"` | no tier; structured output, session titles and tool denials not yet verified; no extra-directory or user-configuration exclusion channel ([mapping](../runtimes/factory.md#session-options)) |
@@ -1063,7 +1063,7 @@ call an attached server's tool, with the evidence on its runtime page
 | qoder | `--mcp-config <path>`: a 0600 FIFO removed once Qoder has read it (on Windows, a 0600 file removed once `initialize` completes) | yes | yes | the flag again | see [qoder](../runtimes/qoder.md) |
 | dsh | private invocation patch loads native MCP client plugins, checked active before open | command/args only | refused | supply entries again; omitted entries are absent | a native namespace collision refuses open ([dsh](../runtimes/dsh.md#session-mcp-servers)) |
 | factory | `mcpServers` on `initialize_session` and `load_session` (stdio `env` as a record, http `headers` as name/value pairs); droid offers the tools as `<server>___<tool>` | yes | yes | the param again | not measured ([factory](../runtimes/factory.md#session-mcp-servers)) |
-| pi | credential-free entries in subprocess mode; pi's MCP extension plus one registering the entries (`pi.registerMcpServer`); tools declared directly | yes | yes | registered again | oar's pi loads no `mcp.json`; a name another extension registered fails the open ([pi](../runtimes/pi.md#session-mcp-servers)) |
+| pi | in process: `pi.registerMcpServer` inline extension; subprocess: one-time fd 3 pipe delivery to `pi.registerMcpServer`; tools declared directly | yes | yes | registered again | oar's pi loads no `mcp.json`; a name another extension registered fails the open ([pi](../runtimes/pi.md#session-mcp-servers)) |
 
 Evidence: the vendor tests run the real CLI (pi: the bundled SDK) against a
 scripted provider whose model calls a stdio and an http echo server's tool, on
@@ -1234,8 +1234,8 @@ them from a streamable HTTP MCP server inside the host process, on
 `127.0.0.1` behind a random bearer token, and returns `close()` and an `mcpServers`
 entry containing the HTTP URL, authorization header, name and
 `origin: "serveMcpTools"`. Codex and Grok use the origin to wait for native
-startup during open. Claude, Codex, Pi SDK, Grok, Kimi, OpenCode,
-CodeBuddy, Factory, Qwen and Qoder accept the entry. Cursor, Devin, Pi RPC and Antigravity
+startup during open. Claude, Codex, Pi SDK, Pi RPC, Grok, Kimi, OpenCode,
+CodeBuddy, Factory, Qwen and Qoder accept the entry. Cursor, Devin and Antigravity
 refuse an entry with `headers` (`mcpServerCredentials`). Pi Durable refuses `mcpServers`,
 and DSH accepts only stdio command/args.
 A host tells before opening:
