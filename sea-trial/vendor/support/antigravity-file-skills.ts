@@ -26,13 +26,14 @@ function project(value: unknown): SkillEntry[] {
 export async function compareAntigravityFileSkills(output: string): Promise<void> {
   const installation = await antigravityRuntime.installation();
   assert.equal(installation.kind, "available"); assert.equal(installation.via, "executable");
-  assert.ok(installation.version === "1.5.10" || installation.version === "1.5.11", "Select a verified file-reader version");
+  assert.ok(installation.version === "1.5.10" || installation.version === "1.5.11" || installation.version === "1.5.14", "Select a verified file-reader version");
   const fixture = await startAntigravityAimock(() => {});
   const home = fixture.env.HOME; assert.ok(home !== undefined);
   const cwd = join(home, "repo", "sub"); await mkdir(cwd, { recursive: true });
   const nativeEnv = { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, ...fixture.env,
     DBUS_SESSION_BUS_ADDRESS: `unix:path=${join(home, "no-bus")}`, HTTP_PROXY: "http://127.0.0.1:9", HTTPS_PROXY: "http://127.0.0.1:9", ALL_PROXY: "http://127.0.0.1:9", NO_PROXY: "127.0.0.1,localhost" };
   const env: Record<string, string | null> = { ...Object.fromEntries(Object.keys(process.env).map(key => [key, null])), ...Object.fromEntries(Object.entries(nativeEnv).filter((entry): entry is [string, string] => typeof entry[1] === "string")) };
+  const swarmBuiltin = join(home, ".gemini/antigravity-cli/builtin/skills/native_swarm/SKILL.md");
   const observations: unknown[] = [];
   let queryCwd = cwd;
   try {
@@ -125,19 +126,23 @@ export async function compareAntigravityFileSkills(output: string): Promise<void
       assert.ok(native.ok, native.stderr);
       const payload = asRecord(parseJson(native.stdout)); assert.ok(payload); const command = asRecord(payload.command); assert.ok(command);
       assert.equal(payload.conversation_id, ""); assert.equal(payload.num_turns, 0); assert.equal(command.name, "skills");
+      observations.push({ case: stage, nativeRaw: native, config: await readFile(join(home, ".gemini/config/config.json"), "utf8").catch(() => null) });
       const expected = project(asRecord(command.data)?.skills);
+      const swarm = expected.find(item => item.scope === "builtin" && item.path === swarmBuiltin);
+      if (installation.version === "1.5.14" && swarm !== undefined) {
+        assert.equal(swarm.disableModelInvocation, true, "Native 1.5.14 marks the mounted swarm builtin as user-invocable only");
+      }
       if (stage === "flags-plugins") {
         assert.ok(!expected.some(item => item.name === "hidden"), "Native omits the slash-command-disabled fixture");
         assert.ok(expected.some(item => item.name === "manual" && item.disableModelInvocation === true), "Model-hidden skills remain directly invocable");
       }
-      observations.push({ case: stage, nativeRaw: native, config: await readFile(join(home, ".gemini/config/config.json"), "utf8").catch(() => null) });
       const timings: number[] = [];
       for (let round = 0; round < 3; round += 1) {
         const started = performance.now(); const result: Awaited<ReturnType<typeof antigravityRuntime.skills>> = await antigravityRuntime.skills(installation, { cwd: queryCwd, env }); timings.push(performance.now() - started);
         observations.push({ case: stage, round, result, native: expected });
         assert.equal(result.kind, "ok"); assert.equal(result.view, "discovered"); assert.equal(result.partial, true);
         // Only the unverified builtin mount may be absent; local skills named swarm still compare.
-        const verified: readonly SkillEntry[] = expected.filter(item => !(item.scope === "builtin" && item.path === join(home, ".gemini/antigravity-cli/builtin/skills/native_swarm/SKILL.md")));
+        const verified: readonly SkillEntry[] = expected.filter(item => !(item.scope === "builtin" && item.path === swarmBuiltin));
         assert.deepEqual(result.items, verified);
       }
       observations.push({ case: stage, timingsMs: timings });
@@ -155,7 +160,7 @@ export async function compareAntigravityFileSkills(output: string): Promise<void
     assert.ok(!nonGitExpected.some(item => item.name === "nongit-parent-link"));
     const nonGitResult = await antigravityRuntime.skills(installation, { cwd: nonGitCwd, env });
     assert.equal(nonGitResult.kind, "ok");
-    const nonGitVerified = nonGitExpected.filter(item => !(item.scope === "builtin" && item.path === join(home, ".gemini/antigravity-cli/builtin/skills/native_swarm/SKILL.md")));
+    const nonGitVerified = nonGitExpected.filter(item => !(item.scope === "builtin" && item.path === swarmBuiltin));
     assert.deepEqual(nonGitResult.items, nonGitVerified);
     observations.push({ case: "non-git-sibling-escape", result: nonGitResult, native: nonGitExpected });
     // The verified path still works signed out, and touches no files.

@@ -10,7 +10,7 @@ const aliases = [".agent", ".agents", "_agent", "_agents"];
 // Native root-agent mounts, not every directory extracted with the CLI.
 const builtins = ["agy-customizations", "antigravity_guide", "automation", "migrate-agent-settings", "migrate-workflows", "run-workflow"];
 export function hasAntigravityFileSkills(version: string | undefined, platform: NodeJS.Platform = process.platform): boolean {
-  return (platform === "linux" || platform === "darwin") && (version === "1.5.10" || version === "1.5.11");
+  return (platform === "linux" || platform === "darwin") && (version === "1.5.10" || version === "1.5.11" || version === "1.5.14");
 }
 async function repositoryDirectory(directory: string, signal: AbortSignal): Promise<boolean> {
   const dot = join(directory, ".git");

@@ -78,7 +78,7 @@ test.each([0, -1, Infinity, NaN])("invalid deadline is rejected before native wo
   expect(mocks.auth).not.toHaveBeenCalled(); expect(mocks.run).not.toHaveBeenCalled();
 });
 
-test.skipIf(process.platform !== "win32").each(["1.5.10", "1.5.11"])("Windows %s retains the native skill query", async version => {
+test.skipIf(process.platform !== "win32").each(["1.5.10", "1.5.11", "1.5.14"])("Windows %s retains the native skill query", async version => {
   serve([{ name: "native-only", model_invocable: true }]);
   const result = await antigravityRuntime.skills({ ...installation, version }, { env: { GEMINI_HOME: null } });
   expect(result).toMatchObject({ kind: "ok", partial: false, items: [{ name: "native-only", userInvocable: true, disableModelInvocation: false }] });

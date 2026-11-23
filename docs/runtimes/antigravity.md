@@ -739,8 +739,8 @@ Their old service conclusions do not describe the new CLI adapter.
 
 ## Independent skill discovery
 
-`skills()` reads local metadata directly for CLI **1.5.10 and 1.5.11 on Linux
-and macOS**.
+`skills()` reads local metadata directly for CLI **1.5.10, 1.5.11 and 1.5.14 on
+Linux and macOS**.
 It starts no process, performs no authentication query or network request,
 and works while signed out. The result remains `view: "discovered"`; no skill
 body is returned or executed. Windows and unverified versions retain the guarded native
@@ -772,10 +772,15 @@ A custom `GEMINI_HOME` that differs from the effective home's `.gemini` remains
 
 The [file-reader comparison](../../experiments/antigravity-file-skills/README.md)
 records native 1.5.10/1.5.11 controls for roots, manifests, YAML, plugins,
-duplicates, signed-out reads and MCP startup, plus an unresolved native builtin
-omission observed during development. The separate pinned 1.5.11 CI comparison
-remains separate from the ACP baseline. Windows CI asserts the native reader
-and signed-out guard. A Windows junction-cwd comparison exposed different
+duplicates, signed-out reads and MCP startup. On 1.5.14, two Linux x64 runs
+and one macOS arm64 run matched the metadata and ordering of all six verified
+builtins and all other covered skills across 54 comparisons. Native 1.5.14
+listed the conditional `swarm` builtin with `model_invocable: false` in every
+stage. The same Linux fixture on 1.5.11 sometimes omitted it and otherwise
+reported `model_invocable: true`. [macOS 1.5.14 comparison](https://github.com/botiverse/oar/actions/runs/45128420367/job/137538038503).
+
+The file-reader CI comparison pins 1.5.11 independently of the ACP baseline.
+Windows CI asserts the native reader and signed-out guard. A Windows junction-cwd comparison exposed different
 workspace discovery; Windows will use the file reader only after that rule
 is measured and the full comparison passes.
 
