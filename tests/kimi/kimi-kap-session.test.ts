@@ -216,11 +216,17 @@ async function captureRejected(
   }
 }
 
-test("rejects ENOENT cleanly without emitting an unhandled rejection", async () => {
+test("rejects missing command or cwd cleanly without emitting an unhandled rejection", async () => {
   const fx = useFixture();
-  const outcome = await captureRejected(async () => {
+  const missingCmd = await captureRejected(async () => {
     await kimiSession({ kind: "available", via: "executable", command: "/nonexistent/oar-kimi-kap", version: "2.7.2-botiverse.1" }, { cwd: fx.dir });
   });
-  expect(outcome.caught).toMatchObject({ code: "ENOENT" });
-  expect(outcome.unhandled).toEqual([]);
+  const missingCmdCode = missingCmd.caught instanceof Error && "code" in missingCmd.caught ? missingCmd.caught.code : undefined;
+  const missingCwd = await captureRejected(async () => {
+    await kimiSession({ kind: "available", via: "executable", command: fx.bin, version: "2.7.2-botiverse.1" }, { cwd: `${fx.dir}/missing-cwd` });
+  });
+  expect(missingCmd.caught).toBeInstanceOf(Error);
+  expect(process.platform === "win32" || missingCmdCode === "ENOENT").toBe(true);
+  expect(missingCwd.caught).toMatchObject({ code: "ENOENT" });
+  expect([missingCmd.unhandled, missingCwd.unhandled]).toEqual([[], []]);
 });
