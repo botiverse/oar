@@ -60,6 +60,7 @@ export interface KapProjectionState {
   readonly emittedTextLength: Map<string, number>;
   readonly startedToolCalls: Set<string>;
   readonly endedToolCalls: Set<string>;
+  readonly emittedCompleteToolInputs: Map<string, string>;
   readonly startedTaskIds: Set<string>;
   readonly endedTaskIds: Set<string>;
   readonly startedCompactions: Set<string>;
@@ -88,6 +89,7 @@ export function createKapProjection(rootSessionId: string): KapProjectionState {
     emittedTextLength: new Map(),
     startedToolCalls: new Set(),
     endedToolCalls: new Set(),
+    emittedCompleteToolInputs: new Map(),
     startedTaskIds: new Set(),
     endedTaskIds: new Set(),
     startedCompactions: new Set(),

@@ -115,11 +115,20 @@ function projectToolCallItem(
 ): void {
   const tool = asString(item.name) ?? "unknown";
   registerChildAgentsFromRefs(state, parentPath, itemId, item.agent_refs, subscribeAgents);
-  const input = stringifyToolInput(item.input) ?? (typeof item.input_text === "string" && item.input_text.length > 0 ? item.input_text : undefined);
+  const completeInput = stringifyToolInput(item.input);
+  const partialInputText = completeInput === undefined && typeof item.input_text === "string" && item.input_text.length > 0
+    ? item.input_text
+    : undefined;
   const emitStart = (): void => {
     if (state.startedToolCalls.has(itemId)) { return; }
     state.startedToolCalls.add(itemId);
-    events.push({ kind: "tool_call_started", callId: itemId, tool, ...(input === undefined ? {} : { input }) });
+    if (completeInput !== undefined) {
+      state.emittedCompleteToolInputs.set(itemId, completeInput);
+    }
+    events.push({ kind: "tool_call_started", callId: itemId, tool, ...(completeInput === undefined ? {} : { input: completeInput }) });
+    if (partialInputText !== undefined) {
+      events.push({ kind: "tool_call_input_delta", callId: itemId, delta: partialInputText });
+    }
   };
   if (eventType === "item.started") {
     emitStart();
@@ -127,7 +136,12 @@ function projectToolCallItem(
   }
   if (state.endedToolCalls.has(itemId)) { return; }
   state.endedToolCalls.add(itemId);
+  const wasStarted = state.startedToolCalls.has(itemId);
   emitStart();
+  if (wasStarted && completeInput !== undefined && state.emittedCompleteToolInputs.get(itemId) !== completeInput) {
+    state.emittedCompleteToolInputs.set(itemId, completeInput);
+    events.push({ kind: "tool_call_input", callId: itemId, input: completeInput });
+  }
   const content = toolContent(item.output ?? item.error);
   const result = mapToolResult(item);
   const exitCode = mapToolExitCode(asRecord(item.fields));
