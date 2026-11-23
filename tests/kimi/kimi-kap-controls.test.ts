@@ -282,3 +282,16 @@ test("clears stale pending steers without wedging when gap abort returns cancell
   await waitUntil(() => events.some((ev) => ev.kind === "text_delta" && ev.text === "reply:DRAIN_AFTER_GAP_ABORT") && session.status().value.kind === "idle", "queued turn after gap cancel_false");
   await session.dispose();
 });
+
+test("late :cancel reply after turn.ended does not leak abortRequested into the next steered turn", async () => {
+  const fx = useFixture();
+  const events: Event[] = [];
+  const session = await fx.open("2.7.2-botiverse.1", { env: { FAKE_KIMI_SCENARIO: "late_cancel_reply", FAKE_KIMI_LOG: fx.logFile } });
+  session.events((ev) => { events.push(ev); });
+  await session.prompt("HOLD_FOR_CONTROLS", { inputId: randomUUID() });
+  await waitTurnStarted(session, "first held turn before late cancel");
+  const aborted = await session.abort();
+  expect(aborted.response.body.kind).toBe("accepted");
+  const texts = await runChainedSteer({ session, fx, events, parentPromptId: randomUUID() });
+  expect(texts.indexOf("reply:QUEUED_AFTER_STEER")).toBeGreaterThan(texts.indexOf("reply:STEER_SECOND"));
+});

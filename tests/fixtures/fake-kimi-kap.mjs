@@ -216,6 +216,13 @@ function dispatchSecondaryRoute(ctx, res) {
   if (ctx.method === "POST" && ctx.url.endsWith(":compact")) { handleCompact(ctx.wsHub, res); return; }
   if (ctx.method === "POST" && ctx.url.endsWith(":cancel")) {
     if (scenario === "cancel_false") { sendOk(res, { cancelled: false }); return; }
+    if (scenario === "late_cancel_reply") {
+      ctx.state.heldPromptRelease = null;
+      const turnId = ctx.state.activeTurnId ?? `turn-${ctx.state.latestPromptId}`;
+      ctx.wsHub.broadcast({ type: "turn.ended", session_id: "kap-sess-1", agent_id: "main", event_created_at: new Date().toISOString(), turn: { turn_id: turnId, ordinal: 0, kind: "agent", status: "ended", outcome: "interrupted", end_reason: "user_cancelled", steps: [] } });
+      setTimeout(() => { sendOk(res, { cancelled: true }); }, 60);
+      return;
+    }
     sendOk(res, { cancelled: true });
     if (scenario !== "abort_hang") {
       setTimeout(() => {

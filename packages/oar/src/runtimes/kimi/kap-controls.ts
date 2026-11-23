@@ -1,22 +1,9 @@
-import type {
-  AdapterSession,
-  InputImage,
-  InputOptions,
-  InputOrigin,
-  ResponseBody,
-  SessionCapabilities,
-} from "../../contracts/session.js";
+import type { AdapterSession, InputImage, InputOptions, InputOrigin, ResponseBody, SessionCapabilities } from "../../contracts/session.js";
 import type { createAbortFallback } from "../../shared/abort-fallback.js";
 import { enqueueHeld, withdrawControl, type HeldInput } from "../../shared/held-input.js";
 import { inputImagesRefusal, withInputImages } from "../../shared/input-images.js";
 import type { SessionKernel } from "../../shared/session-kernel.js";
-import {
-  isNoActiveTurnKapError,
-  mapAbortControlError,
-  mapPromptControlError,
-  mapSteerControlError,
-  type KapEndpoint,
-} from "./kap-errors.js";
+import { isNoActiveTurnKapError, mapAbortControlError, mapPromptControlError, mapSteerControlError, type KapEndpoint } from "./kap-errors.js";
 import { buildKapContent, KapApiError, kapRequest } from "./kap-protocol.js";
 import type { KapSocket } from "./kap-socket.js";
 
@@ -141,6 +128,7 @@ export async function drainHeldInput(state: KapRuntimeState): Promise<void> {
   if (isKapSessionBusy(state) || state.held[0]?.accepted !== true) { return; }
   const entry = state.held.shift();
   if (entry === undefined) { return; }
+  state.abortRequested = false;
   state.dispatching = true;
   const inputId = entry.inputId ?? entry.request.id;
   const request = state.kernel.request("toRuntime", {
@@ -186,6 +174,7 @@ export function createKapControls(state: KapRuntimeState): Pick<
         if (isKapSessionBusy(state) || state.held.length > 0) {
           return { kind: "rejected", code: "busy", reason: "another turn is active" };
         }
+        state.abortRequested = false;
         state.prompting = true;
         try {
           const delivery = await withInputImages(KAP_SESSION_CAPABILITIES, promptOptions?.images, async (loaded) => {
@@ -277,6 +266,7 @@ export function createKapControls(state: KapRuntimeState): Pick<
         if (!hasActiveRootTurn(state) && state.pendingSteers.length === 0) {
           return { kind: "rejected", code: "no_active_turn", reason: "no active turn to abort" };
         }
+        const turnBefore = state.activeRootTurn;
         const disarm = state.abortFallback.arm();
         try {
           const url = `/sessions/${encodeURIComponent(state.sessionId)}:cancel`;
@@ -286,7 +276,10 @@ export function createKapControls(state: KapRuntimeState): Pick<
             clearStaleSteersIfIdle(state);
             return { kind: "rejected", code: "no_active_turn", reason: "Kimi reported no active turn to cancel", native: data };
           }
-          state.abortRequested = true;
+          const stillActive = turnBefore !== null
+            ? state.activeRootTurn === turnBefore
+            : (hasActiveRootTurn(state) || state.pendingSteers.length > 0);
+          if (stillActive) { state.abortRequested = true; } else { disarm(); }
           return { kind: "accepted", native: data };
         } catch (error) {
           disarm();
