@@ -1364,7 +1364,7 @@ The rules that make this a projection and not a second source of truth:
 - **Text names its message when the runtime does.** `text_delta.messageId`
   is the runtime's id of the assistant message the text is part of (codex:
   the `agentMessage` item id; claude: the API `message.id`; DSH: the native
-  `attemptId`; factory: item id; Kimi KAP: `item_id`; Cybion and Morph: their
+  `attemptId`; factory: `notification.messageId`; Kimi KAP: `item_id`; Cybion and Morph: their
   message ids), so two messages of one turn stay apart in coalescing and in
   the session view. pi, cursor and the non-KAP ACP runtimes name none, and older
   records lack it. Claude, DSH, Factory, Kimi KAP and Cybion also
