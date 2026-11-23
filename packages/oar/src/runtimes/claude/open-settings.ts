@@ -31,7 +31,11 @@ function isMissingResumeError(error: unknown): boolean {
 }
 
 function refusalFor(answer: JsonRecord | Error, option: Option, requested: string, options: SessionOptions): string | null {
-  if (answer instanceof Error) { return `${answer.message}, so ${option} ${requested} cannot be confirmed`; }
+  if (answer instanceof Error) {
+    return option === "mcpServers"
+      ? `${answer.message}, so MCP config cannot be confirmed`
+      : `${answer.message}, so ${option} ${requested} cannot be confirmed`;
+  }
   if (failedInitialization(answer)) {
     const errors = Array.isArray(answer.errors) ? answer.errors.filter((error): error is string => typeof error === "string") : [];
     return errors.join("\n") || "claude initialization failed (result/error_during_execution)";
@@ -77,6 +81,15 @@ interface OpenSettings {
   usageBaseline(): Promise<ClaudeUsageBaseline>;
   /** A resumed or forked session's id as claude reports it (`get_status`, fork-identity.ts); rejects and stops the process unless it is `expected`. */
   confirmSessionId(expected: string, options: SessionOptions): Promise<void>;
+}
+
+async function releaseMcpConfig(child: ClaudeProcess): Promise<void> {
+  if (child.releaseMcpConfig === undefined) { return; }
+  try { child.releaseMcpConfig(); } catch (error) {
+    child.kill();
+    await child.exited;
+    throw error;
+  }
 }
 
 /** Bounded native readbacks at open, consumed before the ordinary projection stream. */
@@ -201,7 +214,7 @@ export function claudeOpenSettings(child: ClaudeProcess, limits: ClaudeOpenLimit
         if (init === "serviceTier") { await confirm("initialize", init, options, capture); }
         if (init === undefined && capture !== undefined) { await confirm("initialize", "modelRequests", options, capture); }
         if (init === undefined && capture === undefined && child.mcpConfigFile === true) { await confirm("initialize", "mcpServers", options, capture); }
-        child.releaseMcpConfig?.();
+        await releaseMcpConfig(child);
       } finally {
         deadline.stop();
         opening = false;

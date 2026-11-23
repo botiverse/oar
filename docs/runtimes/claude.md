@@ -134,8 +134,9 @@ same answer, and requested `effort` is read back afterward. Next, `get_status`
 confirms that Claude's `Session ID` row matches `sessionId` (rejecting a
 saved `--name` title match that opened another UUID), and `get_usage` reads
 its [token baseline](#token-totals), each within a 30-second wall-clock bound;
-the usage answer never fails the open. Fresh opens without either setting
-keep the immediate post-spawn path; no fresh open sends `get_usage`.
+the usage answer never fails the open. Fresh opens without those readbacks,
+`modelRequests`, or a non-FIFO `mcpServers` handoff keep the immediate
+post-spawn path; no fresh open sends `get_usage`.
 
 A missing resume ID reports `result/error_during_execution` before answering
 `initialize`, then exits. When `errors[0]` starts with
