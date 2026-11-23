@@ -29,7 +29,7 @@ lastModelRequest?(): Promise<ModelRequest | null>;
 export interface ModelRequest {
   /** Approximately when the runtime built the request (ISO 8601), not when OAR read it; the runtime's row says what it is read from. */
   readonly at: string;
-  /** The schema of `body`: `anthropic.messages`, `openai.responses`, `openai.chat` or `google.generate_content`. */
+  /** Provider request schema, for example `anthropic.messages`, `openai.responses`, or `openai.chat`. */
   readonly format: string;
   /** The request as the runtime recorded it, the whole context of that call; absent when the runtime withheld it whole or did not capture it (`withheld` says which). Not byte-identical to the wire: see `withheld` and the runtime's row. */
   readonly body?: unknown;

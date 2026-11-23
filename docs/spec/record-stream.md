@@ -33,7 +33,7 @@ on every instance returned by `withPlacement()`. It does not declare sharing
 support; the adapter checks that separately at open. Pi's and Cursor's
 subprocess modes declare `process`; Pi's SDK, Cursor's default in-process
 mode and Pi Durable declare `in_process`.
-Morph and undeclared custom adapters report `null`.
+Cybion, Morph and undeclared custom adapters report `null`.
 
 A host that wants no process sharing chooses by this declaration:
 
@@ -647,8 +647,10 @@ Further rules:
   Consumers that finalize per-turn summaries at `turn_ended` therefore observe
   the turn's complete closing-frame events and usage before closing it. Across
   frames, a runtime can still send a late report after `turn_ended` (such as a
-  Kimi or Antigravity `usage_update`, or a Qwen or Factory context reply that arrives after its
-  bounded wait); OAR records that frame where it arrives, folds it into
+  Kimi ACP fallback or Antigravity `usage_update`, or a Qwen or Factory context
+  reply that arrives after its bounded wait; Kimi KAP emits cumulative `usage`
+  before `turn_ended` plus WebSocket `context` frames); OAR records that frame
+  where it arrives, folds it into
   `usage()` and `contextUsage()`, and does not attach it to the already-closed
   turn.
 - **A turn's completion frame may be boundedly deferred to read current context.**
@@ -746,10 +748,10 @@ Further rules:
   background tasks retain their own lifecycles.
   `exitCode` follows the same rule for the process status of a command the
   runtime ran: present only when the runtime reported one (codex, grok,
-  antigravity, cursor, pi), `null` when it reported an exit without a number
-  (a signal), absent otherwise (claude, pi-durable, whose 1.5 conversation
-  views carry no exit code, and a tool that runs no command). pi reports a
-  signal as 128 plus its number, never `null`.
+  kimi KAP, antigravity, cursor, pi, morph), `null` when it reported an exit
+  without a number (a signal), absent otherwise (claude, factory, cybion,
+  pi-durable, whose 1.5 conversation views carry no exit code, and a tool that
+  runs no command). pi reports a signal as 128 plus its number, never `null`.
 - **Applied file changes come from the runtime.** `tool_call_ended.fileChanges`
   lists paths and their native change kinds (`added`, `modified`, `deleted`
   or `unknown`). A move can include its destination in `moveTo`. OAR leaves
@@ -828,7 +830,8 @@ interface FrameBody {
 //   {kind: failed, failure: quota, reason, status?, resetsAt?, rateLimitType?} |
 //   {kind: failed, failure: <any other FailureClass>, reason, status?}
 // structuredOutput is the native value, present only on completed turns
-// when reported by Claude or Grok, never parsed from Codex text. OAR does
+// when reported natively by the runtime (currently Claude, Grok, Qoder, and
+// Qwen projections), never parsed from Codex text. OAR does
 // not validate it. Missing differs from null. The same outcome is returned
 // by promptAndWait/awaitTurnEnd and retained by status and the session view.
 // `events` is a LIST because one frame can say several things (a claude
@@ -933,7 +936,7 @@ protocol fields. Older readers may ignore the additive field.
 
 ### Adapter-held queue records
 
-Kimi, Grok, OpenCode, Antigravity, CodeBuddy and Devin use the shared ACP driver.
+Kimi (ACP fallback), Grok, OpenCode, Antigravity, CodeBuddy and Devin use the shared ACP driver; Kimi (KAP) uses its own adapter-held queue.
 Pi SDK/RPC, Claude, Qoder, Qwen, Cursor and Factory use the same ownership records.
 A queue accepted with
 `queued: "adapter"` is still held by OAR. At
@@ -1021,7 +1024,8 @@ or sent with `deliver` (send now): a new attempt, read by the ordinary
 rules ([conversation](conversation.md#withdrawing-held-input)).
 
 `withdraw` exists where OAR holds the queue: claude, qoder, qwen, pi, cursor,
-factory, kimi, grok, antigravity, codebuddy, devin and opencode. pi-durable's queue is native, and its `withdraw`
+factory, kimi (KAP and ACP fallback), grok, antigravity, codebuddy, devin,
+opencode, and community adapters cybion and morph. pi-durable's queue is native, and its `withdraw`
 aborts the input's native submission before it runs (`submission.abort()`).
 dsh's queue is native too, and its `withdraw` is the native `inbox.remove`, answered
 from native state. codex holds its queue natively, and its `thread/queue/delete` is
@@ -1077,6 +1081,7 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   `inputId` means the runtime started its turn for that input; absent means
   unknown. Claude and Qoder map `command_lifecycle started` for prompt-like
   writes (including queue drains) to `turn_active { inputId: command_uuid }`.
+  Kimi KAP emits `turn_active` from WebSocket `turn.started`.
   A prompted turn can have both `turn_started` (the request) and
   `turn_active` (the native start).
 - `input_queued { inputId }`: the runtime holds this input and has not started
@@ -1112,8 +1117,10 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   nothing. If both fields are present, replace first, then append. Pi
   `tool_execution_update` uses `output` (the whole partial result as JSON),
   as do non-terminal ACP updates for known calls carrying `rawOutput` and
-  Pi Durable's reconstructed, bounded output window. ACP `content` is not
-  progress output: Kimi streams arguments there while `in_progress`. Codex `item/commandExecution/outputDelta` uses
+  Pi Durable's reconstructed, bounded output window. Kimi KAP projects
+  `item.delta` (`field: "output"`) into `outputDelta` and `item.updated`
+  (`set.output`) into `output`. ACP `content` is not
+  progress output: Kimi ACP fallback streams arguments there while `in_progress`. Codex `item/commandExecution/outputDelta` uses
   `outputDelta`, with `callId` equal to the item id. Records retain each
   native chunk, never an ever-growing cumulative string. `SessionView`
   applies these operations within the call's session/agent lane, accepts
@@ -1122,16 +1129,19 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   independent `shell-output-delta` has no tool call id, so stays native
   ([boundary and probe](../runtimes/cursor.md)).
 - `tool_call_input`: arguments reported after the call started. ACP (grok,
-  kimi, opencode, antigravity) a `tool_call_update` for a call that has not
+  kimi ACP fallback, opencode, antigravity) a `tool_call_update` for a call that has not
   ended, carrying a `rawInput` that differs from the input last read for
-  it: opencode's arguments (the opening frame has `{cwd}` or `{}`), kimi's
+  it: opencode's arguments (the opening frame has `{cwd}` or `{}`), kimi ACP's
   full `rawInput` after its streamed `content` chunks, grok's update adding
-  `is_background` and `variant` to `{command, description}`. Claude's
+  `is_background` and `variant` to `{command, description}`. Kimi KAP emits it
+  on `item.updated` `set.input`, Factory emits it on `tool_call` updates for
+  already-started `callId`s, and Claude's
   completed `assistant.tool_use` emits it if the partial stream already
   started that call. In every case it holds a complete replacement.
 - `tool_call_input_delta`: append-only argument text: Claude's
   `input_json_delta.partial_json`, attributed by block index to its tool-use
-  id within the agent's current message, and DSH's `tool-call-delta`
+  id within the agent's current message, Kimi KAP's `item.delta`
+  (`field: "input_text"`), and DSH's `tool-call-delta`
   `argumentsDelta` chunks. Each record keeps only its fragment,
   not an ever-growing input. It may be incomplete JSON; it is separate from
   both complete `tool_call_input` and tool output `tool_call_progress`.
@@ -1168,7 +1178,9 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   summary status `running` (no trigger); Claude and Qoder `system/status compacting`
   (no trigger); OpenCode v2 `opencode/compaction.status: started`, with native
   reason and `messageId` as `compactionId`; DSH `compaction/start`, with its
-  native `compactionId` (no trigger). Claude can repeat the status during a slow
+  native `compactionId` (no trigger); Kimi KAP `item.started` (`type: "system"`,
+  `kind: "compaction"`, keeping `item_id` as `compactionId`); and community
+  Morph `context_compaction_start`. Claude can repeat the status during a slow
   summary. Those updates are one start for that agent.
 - `compaction_ended`: pi `compaction_end` (`aborted` → aborted, an
   `errorMessage` → failed with that reason, else completed; `trigger` as
@@ -1196,7 +1208,11 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   native `error` as reason, else completed, keeping its `compactionId`.
   Factory's `session_compacted` supplies completed without a request id
   or trigger. Its correlated RPC answer settles manual compaction. Factory has
-  no projected start. An
+  no projected start. Kimi KAP `item.ended` (`type: "system"`,
+  `kind: "compaction"`) supplies completed/aborted/failed with `compactionId`
+  and `trigger` (`manual` or `auto`). Community Morph maps
+  `context_compaction_done` to completed and `context_compaction_failed` to
+  failed. An
   ended compaction starts no work: `statusOf` keeps an idle agent idle, and
   only moves an already-running ordinary agent to `waiting_model`. Which
   `compactionId`, `responseTo` or `requestId` can settle a manual operation
@@ -1215,7 +1231,8 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   Pi and Pi Durable report `auto_retry_start`, and Pi also reports
   `summarization_retry_scheduled`. Codex reports an error with
   `willRetry: true`, which OAR counts within the turn. Factory reports
-  `llm_retry` with its native attempt and reason. The community Morph
+  `llm_retry` with its native attempt and reason, and Kimi KAP projects
+  `turn.updated` `retry` frames. The community Morph
   adapter reads its own retry notice.
 - `task_started` / `task_updated` / `task_ended`: work the runtime tracks
   beside the turn that started it. claude `system/task_started`,
@@ -1264,22 +1281,30 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   other producers retain their `nativeType`. No background flag is inferred.
   Native job `completed` / `failed` map directly and `killed` maps to stopped;
   unknown outcomes and copied history owned by another session stay raw.
-  DSH does not provide `stopTask` ([mapping and completion boundaries](../runtimes/dsh.md#root-completion-and-background-work)).
-  Pi, cursor, factory and the other ACP adapters report no task events. `tasksOf`
+  DSH exposes `stopTask(taskId)` for explicitly backgrounded shell jobs
+  ([mapping and completion boundaries](../runtimes/dsh.md#root-completion-and-background-work)).
+  Kimi KAP (`>= 2.7.2-botiverse.1`) projects `task` WebSocket frames to
+  `task_started` (`subagent` → agent, `shell` → shell, else other, with
+  `toolCallId` and `background: detached`), `task_updated`, and `task_ended`
+  (`summary: result_summary`, `killed` → stopped), and exposes `stopTask(taskId)`
+  via WebSocket `task.stop`.
+  Pi, cursor, factory and the ACP fallback/other ACP adapters report no task events. `tasksOf`
   folds them into one row per task, including endings inferred from runtime
   exit as described below.
 - `effort`: the reasoning-effort level the runtime reports in effect, in its
   own spelling. codex: the `thread/start` / `thread/resume` reply's
   `reasoningEffort` and `thread/settings/updated`; factory: `reasoningEffort`
-  in droid's `settings_updated`; ACP (grok, kimi, devin; opencode
-  and antigravity CLI 1.5.0 where the model has the option): the
+  in droid's `settings_updated`; Kimi KAP: `agent` frame `thinking`; ACP (grok,
+  kimi ACP fallback, devin; opencode and antigravity CLI 1.5.0 where the model
+  has the option): the
   current value of the config option in ACP's `thought_level` category, in
   a handshake answer or a `config_option_update`; pi: `thinkingLevel` on
   `pi/session_opened` and pi's `thinking_level_changed`; cursor: the
   reasoning parameter in the SDK's model selection at open and in each
   run's answer, which the SDK passes through unchecked (codex's case: OAR
   checks the level against the model's menu first); DSH: `reasoningEffort`
-  in its request header and model configuration. claude never: its
+  in its request header and model configuration; Cybion: `thread.effort` on
+  `thread/opened`. claude never: its
   stream names no level, and its one report (`get_settings`) is read at open
   but not recorded, since it also dumps the user's merged settings. A
   requested `SessionOptions.effort` is never an event of its own: what the
@@ -1339,10 +1364,11 @@ The rules that make this a projection and not a second source of truth:
 - **Text names its message when the runtime does.** `text_delta.messageId`
   is the runtime's id of the assistant message the text is part of (codex:
   the `agentMessage` item id; claude: the API `message.id`; DSH: the native
-  `attemptId`), so two messages of one turn stay apart in coalescing and in
-  the session view. pi, cursor and the ACP runtimes name none, and older
-  records lack it. Claude also
-  names streamed `reasoning` with `messageId`; coalescing keeps readable
+  `attemptId`; factory: `notification.messageId`; Kimi KAP: `item_id`; Cybion and Morph: their
+  message ids), so two messages of one turn stay apart in coalescing and in
+  the session view. pi, cursor and the non-KAP ACP runtimes name none, and older
+  records lack it. Claude, DSH, Factory, Kimi KAP and Cybion also
+  name streamed `reasoning` with `messageId`; coalescing keeps readable
   reasoning from different API messages separate.
 - **Text phase is native metadata.** `text_delta.phase` is an optional string
   reported by the runtime, currently Codex's `agentMessage.phase`. A delta

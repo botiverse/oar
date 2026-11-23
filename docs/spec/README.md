@@ -46,7 +46,7 @@ usage *derivation* (cumulative/epoch/boundary views are consumer business).
 | [attribution.md](attribution.md) | How do records self-attribute? Why is attribution a field, not a channel? How is usage exposed? |
 | [session-graph-and-cursor.md](session-graph-and-cursor.md) | What goes in the session graph, and how does resumable reading work? |
 | [runtime-matrix.md](runtime-matrix.md) | Which attribution tier does each shipped adapter declare, on what native evidence, and what are adapters forbidden to do? |
-| [model-request.md](model-request.md) | (Designed) What the model was sent: opting in, refusal, main-loop scope, and why it is read rather than recorded |
+| [model-request.md](model-request.md) | What the model was sent: opting in (`SessionOptions.modelRequests`), refusal, main-loop scope, and why it is read rather than recorded (Claude `>= 2.1.274` and Pi SDK; refused elsewhere) |
 | [conversation.md](conversation.md) | Input identity, native user messages and replayable conversation projection |
 | [subagents.md](subagents.md) | Child sessions as subagents: spawn, reports, follow-ups, delivery into a parent, limits, and `oar mcp` |
 | [inventory.md](inventory.md) | Independent skills, commands, MCP and tool queries, cwd defaults, coverage and failure semantics |
@@ -69,7 +69,7 @@ follow the TypeScript contracts.
 Implemented by every adapter (claude, codex, pi, pi-durable, grok, kimi,
 opencode, cursor, antigravity, qwen, qoder, codebuddy, dsh, factory, devin), pinned by the shared
 behavior suite (`sea-trial/cases/session.ts`, which CI runs on the mock, the
-claude, codex, pi (SDK and RPC), pi-durable, qwen, kimi, grok, opencode (v1),
+claude, codex, pi (SDK and RPC), pi-durable, qwen, kimi, grok, opencode (v1 and v2),
 codebuddy, dsh, factory and antigravity (pinned `agy`) aimock backends and the native
 qoder backend, and which runs on any installed runtime with `OAR_TEST=<id>`).
 `experiments/live-contract.ts` checks the same contract on a real login; each
@@ -151,9 +151,9 @@ they appear:
    `Runtime.resumedSessionOptions` declares measured supplied/omitted option
    behavior on resume
    ([resume semantics](runtime-matrix.md#resumed-session-options));
-   `SessionCapabilities` declares queue durability, the attribution tier and
-   image input. Which further facts deserve a declaration (a remote
-   environment, for one) stays open.
+   `SessionCapabilities` declares queue durability, the attribution tier,
+   image input and, when known, native memory state (`nativeMemory`). Which
+   further facts deserve a declaration (a remote environment, for one) stays open.
 
 ## Legend
 

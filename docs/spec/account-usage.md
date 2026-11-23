@@ -12,9 +12,12 @@ Antigravity, Claude, Codex and Grok run their native usage queries in that
 environment; Antigravity answers `unsupported_auth_storage` for a `GEMINI_HOME`
 other than its default. Kimi runs its provider CLI with the overlay, and Kimi
 and Factory resolve credential paths (`KIMI_CODE_HOME` and its home-directory
-fallback; droid's `FACTORY_HOME_OVERRIDE` and `FACTORY_API_KEY`) from the same
-map. Kimi uses a native Web usage query where native credential locking is
-available, and direct HTTP otherwise; Factory uses direct HTTP. Both retain
+fallback; droid's `FACTORY_HOME_OVERRIDE`, `HOME` / `USERPROFILE` fallback,
+`FACTORY_API_KEY`, `FACTORY_DISABLE_KEYRING`, `FACTORY_API_BASE_URL`, and
+`FACTORY_API_BASE_URL_EU`) from the same map. Kimi uses a native Web usage
+query where native credential locking is available (disabled on POSIX when
+`KIMI_DISABLE_OAUTH_LOCK=1`), and direct HTTP otherwise; Factory uses direct
+HTTP. Both retain
 the restriction on actual changes
 (setting or deletion) to `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY`
 (including their lowercase forms), `NODE_EXTRA_CA_CERTS`, `SSL_CERT_FILE`,
@@ -41,7 +44,7 @@ runtime exposes no display name:
 
 | Runtime | Readers | Source | Native display name |
 | --- | --- | --- | --- |
-| antigravity | `authStatus`, `accountUsage` | ACP `_meta.antigravity.tier.name` (e.g. `Google AI Ultra`) | yes |
+| antigravity | `authStatus`, `login`, `accountUsage` | ACP `_meta.antigravity.tier.name` (e.g. `Google AI Ultra`) | yes |
 | claude | `authStatus`, `login`, `accountUsage` | `oauthAccount.planDisplayName` in `.claude.json` (read-only, validated against Claude's native regex and matched to the signed-in email or `orgId`), else `subscriptionType` / `subscription_type` | yes (falls back to native code) |
 | codex | `login`, `accountUsage` | `account/read` `account.planType` and `account/rateLimits/read` `planType` | no (native code only) |
 | devin | `authStatus` | `devin auth status` `Account:` `Plan:` display text | yes |
@@ -411,7 +414,8 @@ Factory account usage is droid's own usage screen's `GET
 droid would use, read as stored and never refreshed: `FACTORY_API_KEY`, else
 droid's keyfile login; a keyring-sealed login is `unsupported_auth_storage`.
 `rateLimited` is a full Standard window with no Extra Usage to continue on.
-The answer's shape is unverified on a real account; droid has no limit
+Live `/api/billing/limits` shape and projections are verified on `droid 1.17.2`
+under both `FACTORY_API_KEY` and OAuth `device-pairing`; droid has no limit
 resets ([mapping](../runtimes/factory.md#account-usage-and-limit-resets)).
 
 Claude account usage delegates to its native stream-json `get_usage` request
