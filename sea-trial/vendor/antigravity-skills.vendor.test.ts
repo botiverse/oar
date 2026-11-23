@@ -6,6 +6,7 @@ import { dirname, join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, test } from "vitest";
 import { antigravityRuntime } from "../../packages/oar/src/runtimes/antigravity/index.js";
+import { hasAntigravityFileSkills } from "../../packages/oar/src/runtimes/antigravity/skill-files.js";
 import { runExecutable } from "../../packages/oar/src/shared/executable/index.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 import { nativeRows } from "../../packages/oar/src/shared/inventory.js";
@@ -62,7 +63,7 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("Antigravity nati
       expect(rows.some(row => row.name === "oar-hidden")).toBe(false);
       const result = await antigravityRuntime.skills(installation, { cwd: f.cwd, env: overlay({ ...f.nativeEnv, AGY_CLI_DISABLE_AUTO_UPDATE: "false" }) });
       assert.equal(result.kind, "ok", JSON.stringify(result));
-      const local = (process.platform === "linux" || process.platform === "darwin") && (installation.version === "1.5.10" || installation.version === "1.5.11");
+      const local = hasAntigravityFileSkills(installation.version);
       // The versioned file reader declares partial and omits only this unverified builtin mount.
       // Match every other native row exactly, including local skills named swarm.
       const verifiedRows = local ? rows.filter(row => !(row.builtin === true && row.path === join(f.home, ".gemini/antigravity-cli/builtin/skills/native_swarm/SKILL.md"))) : rows;
@@ -109,7 +110,7 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("Antigravity nati
       await rm(join(f.home, ".gemini"), { recursive: true, force: true });
       const env = overlay(f.nativeEnv); delete env.GEMINI_API_KEY; env.GEMINI_API_KEY = null;
       const result = await antigravityRuntime.skills(installation, { cwd: f.cwd, env });
-      const local = (process.platform === "linux" || process.platform === "darwin") && (installation.version === "1.5.10" || installation.version === "1.5.11");
+      const local = hasAntigravityFileSkills(installation.version);
       if (local) { expect(result).toMatchObject({ kind: "ok", view: "discovered", partial: true, items: [] }); }
       else { expect(result).toEqual({ kind: "unavailable", code: "not_authenticated", reason: "Sign in to Antigravity to read its skills." }); }
       expect(f.raw).toHaveLength(0);

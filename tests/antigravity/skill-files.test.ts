@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({ auth: vi.fn(), run: vi.fn() }));
 vi.mock("../../packages/oar/src/runtimes/antigravity/auth.js", async original => ({ ...await original<object>(), readAntigravityAuthStatus: mocks.auth }));
 vi.mock("../../packages/oar/src/shared/executable/index.js", async original => ({ ...await original<object>(), runExecutable: mocks.run }));
 const fileTest = test.skipIf(process.platform !== "linux" && process.platform !== "darwin");
+const verifiedVersions = ["1.5.10", "1.5.11", "1.5.14"];
 const homes: string[] = [];
 const installation = { kind: "available", via: "executable", command: "unused-agy", version: "1.5.11" } as const;
 async function file(path: string, contents: string): Promise<void> { await mkdir(dirname(path), { recursive: true }); await writeFile(path, contents); }
@@ -25,7 +26,7 @@ async function fixture(): Promise<{ home: string; cwd: string; env: Record<strin
 }
 afterEach(async () => { await Promise.all(homes.splice(0).map(async home => rm(home, { recursive: true, force: true }))); vi.resetAllMocks(); });
 
-fileTest.each(["1.5.10", "1.5.11"])("%s reads signed-out files without spawning, authentication or builtin initialization", async version => {
+fileTest.each(verifiedVersions)("%s reads signed-out files without spawning, authentication or builtin initialization", async version => {
   const f = await fixture();
   await skill(join(f.cwd, ".agents/skills/local"), "local", "description: Visible metadata\ndisable-model-invocation: true\n");
   const result = await antigravityRuntime.skills({ ...installation, version }, f);
@@ -48,7 +49,7 @@ fileTest.each(["1.5.10", "1.5.11"])("%s reads signed-out files without spawning,
   expect(mocks.auth).not.toHaveBeenCalled(); expect(mocks.run).not.toHaveBeenCalled();
 });
 
-fileTest.each(["1.5.10", "1.5.11"])("%s omits the uncertain swarm builtin and marks even materialized inventories partial", async version => {
+fileTest.each(verifiedVersions)("%s omits the uncertain swarm builtin and marks even materialized inventories partial", async version => {
   const f = await fixture();
   for (const name of ["agy-customizations", "antigravity_guide", "automation", "migrate-agent-settings", "migrate-workflows", "run-workflow", "native_swarm"]) {
     await skill(join(f.home, ".gemini/antigravity-cli/builtin/skills", name), name === "native_swarm" ? "swarm" : name);
@@ -130,7 +131,7 @@ test.each([
   expect(result === null ? null : { ...result.item, path: undefined }).toEqual(expected === null ? null : { ...expected, path: undefined });
 });
 
-fileTest.each(["1.5.10", "1.5.11"])("%s preserves native paths through cwd, skill and manifest directory links", async version => {
+fileTest.each(verifiedVersions)("%s preserves native paths through cwd, skill and manifest directory links", async version => {
   const f = await fixture(); const repo = dirname(f.cwd);
   const alias = join(f.home, "cwd-alias"); await symlink(f.cwd, alias, "junction");
   const homeAlias = join(f.home, "home-alias"); await symlink(f.home, homeAlias, "junction");
@@ -166,9 +167,11 @@ test("verified local reader preserves custom state refusal", async () => {
   expect(mocks.auth).not.toHaveBeenCalled(); expect(mocks.run).not.toHaveBeenCalled();
 });
 
-// The differential evidence only verifies these two operating systems and versions.
 test.each(["linux", "darwin", "win32", "freebsd"] as const)("%s admits only a verified file reader", platform => {
-  for (const version of [undefined, "1.5.0", "1.5.10", "1.5.11", "1.5.12"]) {
-    expect(hasAntigravityFileSkills(version, platform)).toBe((platform === "linux" || platform === "darwin") && (version === "1.5.10" || version === "1.5.11"));
+  for (const version of verifiedVersions) {
+    expect(hasAntigravityFileSkills(version, platform)).toBe(platform === "linux" || platform === "darwin");
+  }
+  for (const version of [undefined, "1.5.0", "1.5.12", "1.5.13", "1.5.14-rc.1", "1.5.15"]) {
+    expect(hasAntigravityFileSkills(version, platform)).toBe(false);
   }
 });
