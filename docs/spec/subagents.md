@@ -125,8 +125,10 @@ it. Only native parent `subAgentActivity` reports change the task row.
 
 Grok child `session/cancel` did not stop the child in the native control,
 so Grok has no `stopTask`. Qwen reports native task lifecycle but no verified
-host single-task control. DSH reports its jobs as task events and has no
-`stopTask` member. The model's `task_stop` tool is not such a host
+host single-task control. DSH exposes `stopTask(taskId)` (`jobs.kill` and
+`jobs.wait`) for this session's explicitly backgrounded shell jobs. Kimi KAP
+(`>= 2.7.2-botiverse.1`) exposes `stopTask(taskId)` over WebSocket `task.stop`
+(the ACP fallback has no `stopTask`). The model's `task_stop` tool is not such a host
 control. [Native controls and limits](../../experiments/task-controls/README.md).
 
 ## Limits and policy

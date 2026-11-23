@@ -111,14 +111,17 @@ adapter-held queue, including the exceptions below:
 | Qoder | Matching `command_lifecycle completed/cancelled`, with or without an ordinary result |
 | Cursor | The returned run's native terminal result, after the bounded stream drain |
 | DSH | The matching `compact` command answer or error. Completion also requires matching start and end markers |
+| Kimi (KAP) | Matching WS `compaction_ended` (`trigger` undefined or `manual`) |
 
 DSH, Factory, Grok, OpenCode and Qoder compact requests carry
 `settledBy: "native_response"`; their terminal frames carry the exact
 `responseTo` request id. Earlier `turn_ended` and `compaction_ended` events
-remain in place but do not release these operations. Other runtimes use the
+remain in place but do not release these operations. Other runtimes (including
+Kimi KAP, which calls `POST /sessions/{id}:compact` and settles on WS
+`compaction_ended`) use the
 terminal records above. With no adapter-held input, a synchronous observer
 of the release record can submit another prompt when status is idle. ACP, Pi
-SDK/RPC, Claude, Qoder, Qwen, Cursor and Factory held inputs instead keep status at
+SDK/RPC, Claude, Kimi (KAP), Qoder, Qwen, Cursor and Factory held inputs instead keep status at
 `running / waiting_model` until their dispatch or withdrawal. The accepted
 `queued: "adapter"` response and carrying prompt request expose this
 reservation in the stream, including the interval before native start or
@@ -147,7 +150,7 @@ native input identities without inference; see the
 [identity projection](record-stream.md).
 
 While compaction remains unresolved, a new `prompt`, `steer`, or `compact`
-returns `rejected` / `busy`. Claude, Pi, Grok, Factory, Qoder, Cursor and OpenCode v2
+returns `rejected` / `busy`. Claude, Pi, Grok, Kimi (KAP), Factory, Qoder, Cursor and OpenCode v2
 retain `queue()` input in the OAR queue and drain it after native completion; Codex and DSH refuse new
 queue input `busy` because its native queue could start another turn during
 compaction. A submitted but not yet started input also prevents compact.
@@ -178,7 +181,8 @@ its unit regressions use a controlled SDK stand-in.
 | Claude stream-json | Supported, idle only. Same-process `initialize.commands` must identify built-in `compact` with no non-builtin entry of that name; command lifecycle, manual `compact_boundary`, and matching result identify completion. Source changes before the boundary fail the operation. A native compaction failure overrides a successful ordinary result. |
 | Codex app-server | Supported, idle only. `thread/compact/start` accepts; the root turn's started/completed `contextCompaction` item and matching completed turn prove completion. Local compaction tested; ChatGPT-login remote compaction has source evidence only, no live test. |
 | Pi SDK / RPC | Supported, idle only. Native `compact()` / RPC `compact`, manual start/end with native failure/cancellation preserved. |
-| Kimi | Unsupported: ACP has no structural completion signal for this operation; text is insufficient. |
+| Kimi (KAP) | Supported on botiverse `>= 2.7.2-botiverse.1`, idle only. Calls `POST /sessions/{id}:compact` and settles on WebSocket `compaction_ended` (`trigger` absent or `manual`). OAR-held `queue()` input stays in the OAR queue during compaction. |
+| Kimi (ACP fallback) | Unsupported: ACP has no structural completion signal for this operation; text is insufficient. |
 | Qwen | Unsupported: stream-json lacks structural completion evidence and a user command can replace `/compress`. |
 | Antigravity | Unsupported: the `agy` CLI advertises `/compact`, but no structured completion and attribution contract is verified. |
 | CodeBuddy | Unsupported: the dedicated method in published types is refused by the CLI; slash-command completion/provenance is not established. |

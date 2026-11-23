@@ -146,9 +146,11 @@ Native echoes (`user_message.input`) remain text only.
   native item ID and turn ID are retained. Item completion does not create a
   second user message event. DSH's `user/message` also uses this evidence;
   its native message id is the input ID
-  ([DSH mapping](../runtimes/dsh.md)), as is Factory's user `create_message`
+  ([DSH mapping](../runtimes/dsh.md)), as are Factory's user `create_message`
   under the `messageId` OAR sent
-  ([Factory mapping](../runtimes/factory.md#prompting-steering-queueing-and-abort)).
+  ([Factory mapping](../runtimes/factory.md#prompting-steering-queueing-and-abort))
+  and Kimi KAP's `item.started` / `item.ended` `user_message` carrying
+  `inputId` (`prompt_ids[0]`), `nativeMessageId` (`item_id`), and `turnId`.
 - `conversation`: Pi's user `message_start`, and cursor's
   `user-message-appended` for a delivered steer. There is no proven native
   request association, so `inputId` is absent. Template expansion and
@@ -156,7 +158,7 @@ Native echoes (`user_message.input`) remain text only.
 
 No evidence kind promises model consumption or semantic effect. Request
 acceptance and native observation are independent facts. The ACP runtimes
-(grok, kimi, antigravity, opencode, codebuddy, devin) carry logical input identity only; no native
+(grok, kimi ACP fallback, antigravity, opencode, codebuddy, devin) carry logical input identity only; no native
 message correlation has been verified for them. Raw payloads remain
 unmodified on frames. OAR never adds markers to a user's input text to
 correlate it, and never derives a universal "consumed" event from turn
@@ -243,7 +245,8 @@ it enters the transcript, according to the input rules above.
 
 Tools, notices and text or reasoning without a `messageId` keep their
 existing stream order and lane-switch sections. Without an ID (including
-Pi and ACP text), interleaved lanes can still fragment a message. Redacted
+Pi and ACP text other than runtimes such as Kimi KAP that set `messageId` on
+text and reasoning), interleaved lanes can still fragment a message. Redacted
 and empty reasoning remain separate lifecycle-only parts; they neither
 replace readable reasoning nor invent text. This grouping changes only the
 view: the records and flat events retain their original order.

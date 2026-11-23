@@ -106,9 +106,14 @@ already show the degeneration (adapter red lines in
   yet. Their `childTokenUsage` on the parent's turn end is added to the
   session total, not the root's entry
   ([factory](../runtimes/factory.md#usage-and-context)).
-- kimi (ACP): opaque; an internal graph exists, but the default ACP server
-  subscribes only to the main agent. The protocol honestly marks root only;
-  fabricating a child graph from display text is forbidden. [src]
+- kimi (KAP, `>= 2.7.2-botiverse.1` / `>= 2.7.3`): attributed (#2); when
+  supported by the installed CLI, OAR opens native KAP instead of ACP,
+  subscribes dynamically to child agents on WebSocket (`subscribeAgents`), and
+  maps `agent_id` to `agentPath` using `item.agent_refs` and
+  `task.child_agent_id` / `parent_tool_call_id` ([kimi](../runtimes/kimi.md)). [src]
+- kimi (ACP fallback): opaque; an internal graph exists, but the default ACP
+  server subscribes only to the main agent. The protocol honestly marks root
+  only; fabricating a child graph from display text is forbidden. [src]
 - opencode v1 (ACP): opaque; a `task` subagent runs in a child session of its
   own, but `opencode acp` forwards only its own sessions' parts, so the
   parent's `task` tool call is all that arrives. [src] opencode 1.18.34
@@ -126,8 +131,10 @@ already show the degeneration (adapter red lines in
   attribution on the record. Unbounded recursion is also why `agentPath` is
   an array: a single `parent` field cannot hold the lineage.
   [src: wire/types.py:242; vis/api/sessions.py:28-42]
-- kimi-code (native KAP): agent graph key = `(session_id, agent_id)`;
-  every frame carries `agent_id`. [src]
+- kimi-code (native KAP): native wire graph key is `(session_id, agent_id)`,
+  with every frame carrying `agent_id`; shipped OAR KAP resolves each child
+  `agent_id` via `item.agent_refs` or `task.child_agent_id` +
+  `parent_tool_call_id` into `agentPath` and subscribes to child agents dynamically. [src]
 - ACP's attribution gap: zero hits for `parent*` / `subagent*` / `child*`
   across four schemas. In org Discussion #690 real clients can only guess
   parent/child from `_meta` / `rawInput`; spec-repo draft PR #855 offers a
@@ -146,8 +153,8 @@ session ([record-stream.md](record-stream.md#the-rules)).
 
 **Full-spectrum principle:** the protocol supports opaque (#1) →
 attribution (#2) → nested-session (#3). oar carries only the structure the
-runtime exposes and never fabricates (kimi stays opaque; `agentPath` stays
-at root). Vendor escape hatches (grok's `_x.ai/*`) are per-runtime
+runtime exposes and never fabricates (Kimi ACP fallback stays opaque and keeps
+`agentPath` at root; Kimi KAP subscribes to children and populates `agentPath`). Vendor escape hatches (grok's `_x.ai/*`) are per-runtime
 capabilities declared explicitly on the oar side, not protocol guarantees.
 [acp]
 
@@ -231,7 +238,7 @@ envelope. [sym][src]
 External (protocol surface):
   session total:              input 45_231 / output 8_120   ← guaranteed correct, usable as-is;
                                                               null until the runtime has reported any
-                                                              (never a guessed zero: kimi's ACP surface
+                                                              (never a guessed zero: kimi's ACP fallback
                                                               carries context fullness only)
   optional per-agent split:   root  30_100 / 6_050
                               a1    10_131 / 1_070          ← deduplicated
@@ -316,7 +323,8 @@ without `input` changing under existing consumers
 | factory | `agent_turn_completed.tokenUsage.cacheReadTokens` | `tokenUsage.cacheCreationTokens` | both added into `input` (droid reports them beside `inputTokens`); per-turn counts summed since open ([factory](../runtimes/factory.md#usage-and-context)) |
 | antigravity | `cachedReadTokens` | observed `cachedWriteTokens: 0` | each prompt contributes `totalTokens - outputTokens` input; nonzero writes are unverified ([native controls](../../experiments/antigravity-prompt-usage/README.md)) |
 | opencode v2 from 2.0.22 | `cachedReadTokens` | `cachedWriteTokens` | each is added to native input; root prompt usage sums the turn's model calls |
-| kimi, opencode v1 and v2 before 2.0.22, codebuddy | absent | absent | no token totals reported, `usage().total` stays null |
+| kimi (KAP) | `input_cache_read` on `turn.updated` `step.usage` / `turn.ended` `turn.usage` | `input_cache_creation` on `step.usage` / `turn.usage` | both added into `input` alongside `input_other`, accumulated per `agent_id` after subtracting step sums from `turn.usage` (`reasoning` remains absent) [src] |
+| kimi (ACP fallback), opencode v1 and v2 before 2.0.22, codebuddy | absent | absent | no token totals reported, `usage().total` stays null |
 | devin | absent | absent | no usage ledger mapped; live authenticated turns are unverified ([devin](../runtimes/devin.md#verification-and-open-gaps)) |
 
 Codex fills `cachedInputTokens` and `cacheWriteInputTokens` from the

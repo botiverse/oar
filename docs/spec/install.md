@@ -177,7 +177,7 @@ method and stays on the line.
 | qwen | `curl -fsSL https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen-standalone.sh \| bash -s -- --method standalone --no-modify-path` | [qwenlm.github.io/qwen-code-docs](https://qwenlm.github.io/qwen-code-docs/en/users/quickstart/) | `$QWEN_INSTALL_BIN_DIR` (default `~/.local/bin`) and `$QWEN_INSTALL_LIB_DIR` (default `~/.local/lib/qwen-code`) |
 | qoder | `curl -fsSL https://qoder.com/install \| bash -s -- --skip-path` | [docs.qoder.com/cli/troubleshoot-install](https://docs.qoder.com/cli/troubleshoot-install) | `~/.local/bin` and `~/.qoder` |
 | antigravity | `curl -fsSL https://antigravity.google/cli/install.sh \| bash` | [antigravity.google/docs/cli](https://antigravity.google/docs/cli) | `~/.local/bin/agy`; on Windows the vendor's PowerShell command is returned for manual installation |
-| pi | no `install`: bundled with oar | | |
+| pi | no `install`: optional dependencies of oar (`@earendil-works/pi-ai`, `@earendil-works/pi-coding-agent`) | | |
 | pi-durable | no `install`: `@earendil-works/pi-durable` is the host's to install | | |
 | cursor | no `install`: `@cursor/sdk` is the host's to install | | |
 
