@@ -8,7 +8,7 @@ import { describe, expect, test, vi } from "vitest";
 import { reportedProcess, alive, fixtureIdentityPath } from "../../tests/fixtures/process-tree.js";
 import { versionAtLeast } from "../../packages/oar/src/shared/update.js";
 import { sessionEnvironment } from "../../packages/oar/src/shared/environment.js";
-import { readExecutableVersion, spawnLineProcess } from "../../packages/oar/src/shared/executable/index.js";
+import { spawnLineProcess } from "../../packages/oar/src/shared/executable/index.js";
 import { asRecord, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 import { kimiRuntime } from "../../packages/oar/src/runtimes/kimi/index.js";
 
@@ -137,8 +137,8 @@ describe.skipIf(!["kimi-skills", "kimi-login"].includes(process.env.OAR_TEST ?? 
       assert.equal(typeof user.id, "string");
       const created: unknown[] = [];
       const deleted: string[] = [];
-      const version = await readExecutableVersion(command, 30_000, undefined, sessionEnvironment(f.env));
-      assert.ok(version !== undefined && /^\d+\.\d+\.\d+$/u.test(version), "Workspace control requires the native version");
+      const { server_version: version } = await control.query("/meta");
+      assert.ok(typeof version === "string" && /^\d+\.\d+\.\d+$/u.test(version), "Kimi Web /meta must report the CLI version");
       const mode = versionAtLeast(version, "2.6.2") ? "fresh" : "reuse";
       const nativeFetch = globalThis.fetch;
       vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
