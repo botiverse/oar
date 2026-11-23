@@ -212,13 +212,13 @@ test("omits plan when initialize does not advertise tier or authenticate refuses
 
 test("kills a stalled ACP tier probe at its short deadline and omits plan", async () => {
   const stalled = fakeAccountAgy({ persistedMethod: "oauth-personal", authMode: "stall" });
-  const startClock = holdFixtureDeadline();
+  const waitForFixture = holdFixtureDeadline();
   const plan = readAntigravityPlan(stalled.installation.command, { HOME: stalled.dir, USERPROFILE: stalled.dir }, { timeoutMs: 400 });
-  const ready = await eventually(stalled.ready, 10_000);
+  await waitForFixture(plan, async () => {
+    expect(await eventually(stalled.ready, 10_000), "authenticate published its process identity").toBe(true);
+  });
   const started = performance.now();
-  startClock();
   expect(await plan).toBeUndefined();
-  expect(ready, "authenticate published its process identity").toBe(true);
   expect(performance.now() - started).toBeLessThan(2000);
   expect(await gone(stalled.acpPid())).toBe(true);
 });

@@ -194,11 +194,13 @@ test.skipIf(!posix)("a command with no deadline whose root exits leaving a holde
 test.skipIf(!posix)("a timed-out command whose holder OAR may not signal (EPERM) settles instead of waiting for it", async () => {
   vi.stubEnv("OAR_KILL_GRACE_MS", "200");
   const pids = path.join(scratchDir(), "pids");
-  const startClock = holdFixtureDeadline();
+  const waitForFixture = holdFixtureDeadline();
   const pending = runExecutable("sh", ["-c", `sleep 60 & ${reportShellChild} > "$OAR_TEST_PIDS"; cat > /dev/null`], { timeoutMs: 1500, env: { ...process.env, OAR_TEST_PIDS: pids } });
-  const { holder, root } = await recordedPids(pids);
-  holderOutOfReach(() => root, () => holder.pid);
-  startClock();
+  const holder = await waitForFixture(pending, async () => {
+    const pidsRead = await recordedPids(pids);
+    holderOutOfReach(() => pidsRead.root, () => pidsRead.holder.pid);
+    return pidsRead.holder;
+  });
   const result = await within(pending);
   expect(result === HUNG ? result : { ok: result.ok, timeoutMs: result.diagnostics?.timeoutMs, holders: result.diagnostics?.cleanup?.heldPipes?.holders })
     .toEqual({ ok: false, timeoutMs: 1500, holders: [holder.pid] });
@@ -209,10 +211,9 @@ test.skipIf(!posix)("a stopped command's wait for its pipes starts at the SIGKIL
   // Each cleanup read takes longer than the kill grace plus the limit, as on a loaded machine.
   seams.cleanupReadDelayMs = PIPE_CLOSE_MS + 500;
   const pids = path.join(scratchDir(), "pids");
-  const startClock = holdFixtureDeadline();
+  const waitForFixture = holdFixtureDeadline();
   const pending = runExecutable("sh", ["-c", `(trap "" TERM; exec sleep 60) & ${reportShellChild} > "$OAR_TEST_PIDS"; exec sleep 60`], { timeoutMs: 300, env: { ...process.env, OAR_TEST_PIDS: pids } });
-  const { holder } = await recordedPids(pids);
-  startClock();
+  const { holder } = await waitForFixture(pending, async () => recordedPids(pids));
   const result = await within(pending, 20_000);
   expect(result === HUNG ? result : { ok: result.ok, timeoutMs: result.diagnostics?.timeoutMs, cleanup: result.diagnostics?.cleanup }).toEqual({ ok: false, timeoutMs: 300, cleanup: undefined });
   expect(await gone(holder)).toBe(true);

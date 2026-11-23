@@ -6,11 +6,17 @@ import path from "node:path";
 import { expect, test } from "vitest";
 import { acceptedPiVersions, checkPiManifestConsistency, satisfiesPublishedRange } from "./fixtures/clean-install-pins.js";
 
+function fixtureEnvironment(directory: string): NodeJS.ProcessEnv {
+  const inherited = Object.entries(process.env).filter(([key]) => !/^(?:temp|tmp|tmpdir|runner_temp|npm_config_cache)$/iu.test(key));
+  return { ...Object.fromEntries(inherited), TEMP: directory, TMP: directory, TMPDIR: directory, RUNNER_TEMP: directory,
+    npm_config_cache: path.join(directory, "cache") };
+}
+
 test("CI candidate scripts preserve failures and install only the frozen local fixture", async () => {
   const directory = mkdtempSync(path.join(tmpdir(), "oar-ci-"));
   try {
     const result = await runExecutable(process.execPath, ["--test", "--test-reporter=tap", ".github/scripts/runtime-ci.test.mjs"], {
-      timeoutMs: 90_000, env: { ...process.env, TEMP: directory, TMP: directory, TMPDIR: directory, npm_config_cache: path.join(directory, "cache") },
+      timeoutMs: 90_000, env: fixtureEnvironment(directory),
     });
     if (!result.ok) {
       const reports = globSync("oar-runtime install-test-*/reports/*.json", { cwd: directory });

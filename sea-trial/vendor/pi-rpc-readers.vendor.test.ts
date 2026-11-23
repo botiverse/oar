@@ -107,14 +107,14 @@ else { const file = ${JSON.stringify(pidFile)}; writeFileSync(file + ".tmp", JSO
     const runtime = createPiRuntime({ execution: "subprocess", command: process.execPath, args: guardedFixtureArgs("--import", import.meta.resolve("tsx"), script) });
     try {
       const options = { cwd: f.cwd, env: f.env, timeoutMs: 8000 };
-      const startClock = holdFixtureDeadline();
+      const waitForFixture = holdFixtureDeadline();
       const outcome = reader === "models"
         ? expect(runtime.listModels(installed, options)).rejects.toThrow("Pi RPC model listing timed out")
         : expect(runtime.commands(installed, options)).resolves.toMatchObject({ kind: "unavailable", code: "timeout" });
-      const ready = await eventually(() => existsSync(pidFile), 15_000);
-      startClock();
+      await waitForFixture(outcome, async () => {
+        expect(await eventually(() => existsSync(pidFile), 15_000), stage).toBe(true);
+      });
       await outcome;
-      expect(ready, stage).toBe(true);
       const child = children(pidFile)[0];
       assert.ok(child !== undefined);
       // Timeout begins the same bounded native shutdown as a session dispose.

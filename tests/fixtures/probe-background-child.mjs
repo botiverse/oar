@@ -11,11 +11,19 @@ process.on("SIGTERM", () => {});
 process.send("ready");
 setTimeout(() => { process.exit(0); }, 60_000);
 `], { stdio: ["ignore", process.env.OAR_FIXTURE_CLOSED_PIPES === "1" ? "ignore" : "inherit", process.env.OAR_FIXTURE_CLOSED_PIPES === "1" ? "ignore" : "inherit", "ipc"] });
-grandchild.once("message", () => {
+function publishTree() {
   const file = process.env.OAR_FIXTURE_PIDS;
-  if (file === undefined) { throw new Error("missing pid file"); }
-  writeFileSync(`${file}.tmp`, JSON.stringify({ agent: captureProcess(process.pid), grandchild: captureProcess(grandchild.pid) }));
-  renameSync(`${file}.tmp`, file);
+  try {
+    if (file === undefined) { throw new Error("missing pid file"); }
+    writeFileSync(`${file}.tmp`, JSON.stringify({ agent: captureProcess(process.pid), grandchild: captureProcess(grandchild.pid) }));
+    renameSync(`${file}.tmp`, file);
+  } catch (error) {
+    grandchild.kill("SIGKILL");
+    throw error;
+  }
+}
+grandchild.once("message", () => {
+  publishTree();
   const flood = process.env.OAR_FIXTURE_FLOOD;
   if (flood === "stdout" || flood === "stderr") {
     process[flood].write("x".repeat(2 * 1024 * 1024 + 1));

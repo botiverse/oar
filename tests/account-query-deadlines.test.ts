@@ -93,11 +93,11 @@ test.skipIf(process.platform === "win32")("login/logout's internal status reader
   vi.stubEnv("OAR_KILL_GRACE_MS", String(GRACE));
   await withTreeProbe({ ignoreSigterm: true }, async (probe) => {
     const command = fakeAgentBinary(probe.dir, [script]);
-    const startClock = holdFixtureDeadline();
+    const waitForFixture = holdFixtureDeadline();
     const result = readCodexAuthStatus({ kind: "available", via: "executable", command }, {
       timeoutMs: 1000, env: { ...probe.env, OAR_QUERY_REQUESTS: path.join(probe.dir, "requests") },
     });
-    const tree = await probe.tree().finally(startClock);
+    const tree = await waitForFixture(result, async () => probe.tree());
     const started = performance.now();
     expect(await result).toMatchObject({ kind: "unknown" });
     expect(performance.now() - started).toBeGreaterThanOrEqual(1000 + GRACE - 50);
@@ -110,10 +110,10 @@ test.skipIf(process.platform === "win32").each(["authenticate", "logout"] as con
   vi.stubEnv("OAR_KILL_GRACE_MS", String(GRACE));
   await withTreeProbe({ ignoreSigterm: true, detachTool: true }, async probe => {
     const command = fakeAgentBinary(probe.dir, [script]);
-    const startClock = holdFixtureDeadline();
+    const waitForFixture = holdFixtureDeadline();
     const result = queryKimiAuth(command, method, { timeoutMs: 1000, joinCleanup: method === "authenticate",
       env: { ...probe.env, OAR_QUERY_STAGE: method, OAR_QUERY_REQUESTS: path.join(probe.dir, "requests") } });
-    const tree = await probe.tree().finally(startClock);
+    const tree = await waitForFixture(result, async () => probe.tree());
     const started = performance.now();
     expect(await result).toBe("timed_out");
     expect(performance.now() - started).toBeGreaterThanOrEqual(1000 + GRACE - 50);

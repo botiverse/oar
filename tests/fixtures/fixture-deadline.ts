@@ -1,23 +1,41 @@
 import assert from "node:assert/strict";
-import { eventually } from "./process-tree.js";
 import { onTestFinished, vi } from "vitest";
+import { eventually } from "./process-tree.js";
 
-/** Let a real child publish its identity before starting the caller's deadline.
- * Readiness polling uses node:timers/promises and performance.now(). Once
- * released, both the original timeout and subsequent cleanup timers tick.
+/** Hold the caller's deadline during real child startup. Always release it
+ * when readiness settles. On a failed setup, join the operation before the
+ * error can reach test teardown and discard its timers.
  */
-export function holdFixtureDeadline(): () => void {
-  vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
-  onTestFinished(() => { vi.useRealTimers(); });
-  return () => { vi.setTimerTickMode("interval"); };
+export function holdFixtureDeadline(hold = true) {
+  if (hold) {
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+    onTestFinished(() => { vi.useRealTimers(); });
+  }
+  // oxlint-disable-next-line max-statements -- Release the clock and join the same operation on every readiness failure.
+  return async function waitForFixture<T>(pending: Promise<unknown>, ready: () => Promise<T>, controller?: AbortController): Promise<T> {
+    const finished = Promise.allSettled([pending]);
+    let prepared = false;
+    try {
+      const value = await ready();
+      prepared = true;
+      return value;
+    } finally {
+      if (hold) { vi.setTimerTickMode("interval"); }
+      if (!prepared) {
+        controller?.abort();
+        await finished;
+        // A probe may return when its pipes close, before its force-kill timer.
+        if (hold) { await vi.runOnlyPendingTimersAsync(); }
+      }
+    }
+  };
 }
 
-/** Join the operation even when its fixture fails to reach the intended stage. */
 export async function withFixtureDeadline<T>(ready: () => boolean, operation: () => Promise<T>): Promise<T> {
-  const startClock = holdFixtureDeadline();
-  const [outcome, readiness] = await Promise.allSettled([operation(), eventually(ready, 10_000).finally(startClock)]);
-  if (readiness.status === "rejected") { throw readiness.reason; }
-  assert.ok(readiness.value, "The fixture never published readiness");
-  if (outcome.status === "rejected") { throw outcome.reason; }
-  return outcome.value;
+  const waitForFixture = holdFixtureDeadline();
+  const pending = operation();
+  await waitForFixture(pending, async () => {
+    assert.ok(await eventually(ready, 10_000), "The fixture never published readiness");
+  });
+  return pending;
 }

@@ -40,22 +40,28 @@ test("query deadline includes pipes held after the query root exits", async () =
     const { writeProcessReport } = require(${JSON.stringify(identityPath)});
     const { spawn } = require("node:child_process");
     const tool = spawn(process.execPath, ["-e", "setTimeout(() => {}, 60000)"], { stdio: ["ignore", 1, "ignore"], detached: true });
-    writeProcessReport(process.argv[1] + ".root", process.pid);
-    writeProcessReport(process.argv[1], tool.pid);
+    try {
+      writeProcessReport(process.argv[1] + ".root", process.pid);
+      writeProcessReport(process.argv[1], tool.pid);
+    } catch (error) {
+      tool.kill("SIGKILL");
+      throw error;
+    }
     process.exit(0);
   `;
 
   try {
-    const startClock = holdFixtureDeadline();
+    const waitForFixture = holdFixtureDeadline();
     const pending = Promise.allSettled([processTableCommand(process.execPath, ["-e", source, file])]);
-    const ready = await eventually(() => existsSync(file), 10_000);
-    const root = ready ? readFileSync(`${file}.root`, "utf8") : undefined;
-    const exited = root !== undefined && await gone(reportedProcess(JSON.parse(root)));
+    await waitForFixture(pending, async () => {
+      expect(await eventually(() => existsSync(file), 10_000), "The child published its identity").toBe(true);
+      const root = readFileSync(`${file}.root`, "utf8");
+      const rootIdentity = reportedProcess(JSON.parse(root));
+      expect(await gone(rootIdentity), "The root exited while its child held stdout").toBe(true);
+    });
     const started = performance.now();
-    startClock();
     const [result] = await pending;
     const failure = result.status === "rejected" ? processTableFailure(result.reason, "ps", 1) : result.value;
-    expect(exited, "The root exited while its child held stdout").toBe(true);
     expect(failure).toEqual({ ok: false, source: "ps", elapsedMs: 1, reason: "timeout", code: "ETIMEDOUT", timeoutMs: 5000 });
     expect(performance.now() - started).toBeLessThan(10_000);
   } finally {

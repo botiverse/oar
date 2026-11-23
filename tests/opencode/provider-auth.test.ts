@@ -185,14 +185,14 @@ test("a 401 from serve is an authentication failure at once, not a timeout", asy
 test("startup and readiness share one timeoutMs: a late listen leaves readiness only the rest", async () => {
   vi.stubEnv("OAR_KILL_GRACE_MS", "3000");
   const { create, fake } = await opencodeAuthFixture({ listenDelayMs: 1200, hangPlugin: true });
-  const startClock = holdFixtureDeadline();
+  const waitForFixture = holdFixtureDeadline();
   const pending = rejectionOf(create({ timeoutMs: 2000 }));
-  const ready = await eventually(() => fake.read().serverPid !== undefined, 10_000);
+  await waitForFixture(pending, async () => {
+    expect(await eventually(() => fake.read().serverPid !== undefined, 10_000), "The server published its identity").toBe(true);
+  });
   const started = performance.now();
-  startClock();
   const error = await pending;
   const elapsed = performance.now() - started;
-  expect(ready).toBe(true);
   expect(error).toMatchObject({ kind: "timed_out" });
   // A full timeoutMs for the hanging read would end after about 3.2 s.
   expect(elapsed, `ended after ${String(elapsed)} ms`).toBeLessThan(2800);
