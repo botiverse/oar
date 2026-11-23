@@ -225,9 +225,9 @@ The same factory object accepts `execution`, `command`, `args`,
 `--approve` by default and `--no-approve` for `projectTrusted: false`. These are
 per-process overrides, not persistent trust grants; trust and package policy
 are the same as on the SDK path
-([project trust](#project-trust-and-package-installation)). The child receives the session environment, including removals, so provider
-variables and MCP children are isolated from the host. This is broader than
-the SDK's bash/MCP-only env overlay. OAR passes `--no-mcp` and supplies
+([project trust](#project-trust-and-package-installation)). The child receives the session environment, including removals, so
+provider variables and MCP children are isolated from the host. This is broader
+than the SDK's bash/MCP-only env overlay. OAR passes `--no-mcp` and supplies
 session MCP servers through a small native extension, materialized from bundled
 source into a private directory. Instead of writing MCP configuration or
 credentials to disk or command-line arguments, the extension requests the
@@ -1022,7 +1022,6 @@ Both the bundled in-process SDK and Pi RPC accept stdio environment values and
 HTTP headers. On Pi RPC, the startup extension fetches the session's MCP
 configuration once over the private fd 3 pipe before user extensions run,
 keeping MCP credentials out of private files and process arguments.
-[Native measurements](../../experiments/mcp-credential-admission/README.md).
 
 `SessionOptions.mcpServers` uses pi's own MCP support as the pi CLI runs it
 ([mapping](../../packages/oar/src/runtimes/pi/mcp.ts),
