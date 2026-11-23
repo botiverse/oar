@@ -94,6 +94,23 @@ count stays zero. Nonzero cache writes have no verified accounting on this
 path. Context updates remain independent of these totals.
 [Native counts, local controls and replay](../../experiments/antigravity-prompt-usage/README.md).
 
+## Background commands and subagents in CLI 1.5.15
+
+With the real CLI on Linux and a scripted Gemini provider, a 70-second
+non-daemon `run_command` kept both its tool call and `session/prompt` open
+until the command finished. A 70-second `invoke_subagent` also kept the
+root prompt open, but its launch tool completed after about 55 ms. After a
+title update, ACP sent no frames for 69.23 seconds in the command case and
+69.37 seconds in the subagent case. Neither wait produced a heartbeat or a
+task lifecycle update. OAR continued to report the root turn as running
+after the subagent launch tool closed.
+
+Each root receipt counted the three root model replies (660 tokens total).
+The child used another 517 tokens, which the root receipt excluded. With
+`IsDaemon: true`, a seven-second command returned `end_turn` after 0.59
+seconds. Its tool completion and subsequent model output arrived while OAR
+was idle. [Upstream background-task report](https://github.com/google-antigravity/antigravity-cli/issues/1698).
+
 ## Unsolicited activity in CLI 1.5.10 and 1.5.11
 
 [Isolated local-provider controls](../../experiments/antigravity-active-turns/README.md)
@@ -230,6 +247,12 @@ session but cannot infer that the old history is gone. Session inventory is
 not exposed as a public query. Concurrent controllers for the same id and
 continuing in-flight work across processes remain unverified.
 
+On 1.5.15, native `session/load` returned `-32002` for a missing UUID and
+`session/resume` returned `-32603` for the same UUID. Both methods reopened
+a saved session. Sessions closed before their first prompt were absent from
+`session/list` but could also be reopened. OAR therefore retains the cwd
+check and reports `ResumeCwdError` with reason `not_listed` for an unlisted id.
+
 ### Prompt, steering, queueing, and abort
 
 `prompt()` accepts once the RPC is sent, or rejects `busy` while an active
@@ -279,6 +302,13 @@ lost when their owning OAR process exits.
 to completion. The common ACP fallback terminates the owned process when
 native cancellation does not settle within ten seconds. The behavior suite
 checks cancellation and disposal with the CLI/local provider.
+
+On 1.5.15, cancelling a running shell command produced a `failed` update for
+the same tool call before the prompt returned `stopReason: "cancelled"`.
+OAR emitted a failed `tool_call_ended` followed by an aborted `turn_ended`.
+A failed `read_file` supplied the missing-file error in both `rawOutput`
+and `content`. A shell command that printed nothing and exited with code 23
+had native tool status `completed` and `rawOutput.exit_code: 23`.
 
 On Linux with 1.5.9, a slow foreground `du` stopped on cancellation, but a
 command already moved to the background survived an accepted abort even
@@ -739,7 +769,7 @@ Their old service conclusions do not describe the new CLI adapter.
 
 ## Independent skill discovery
 
-`skills()` reads local metadata directly for CLI **1.5.10, 1.5.11 and 1.5.14 on
+`skills()` reads local metadata directly for CLI **1.5.10, 1.5.11, 1.5.14 and 1.5.15 on
 Linux and macOS**.
 It starts no process, performs no authentication query or network request,
 and works while signed out. The result remains `view: "discovered"`; no skill
@@ -778,6 +808,12 @@ builtins and all other covered skills across 54 comparisons. Native 1.5.14
 listed the conditional `swarm` builtin with `model_invocable: false` in every
 stage. The same Linux fixture on 1.5.11 sometimes omitted it and otherwise
 reported `model_invocable: true`. [macOS 1.5.14 comparison](https://github.com/botiverse/oar/actions/runs/45128420367/job/137538038503).
+
+On 1.5.15, Linux x64 and macOS arm64 each matched all native rows covered
+by the reader in 18 comparisons. Both platforms had the same six builtin
+mounts, directory precedence and invocation flags. Native listed the
+conditional `swarm` builtin as user-invocable only in all six stages. The
+file reader worked while signed out and launched neither fixture MCP server.
 
 The file-reader CI comparison pins 1.5.11 independently of the ACP baseline.
 Windows CI asserts the native reader and signed-out guard. A Windows junction-cwd comparison exposed different
