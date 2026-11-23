@@ -222,7 +222,7 @@
       "evidence": "https://github.com/botiverse/oar/actions/runs/44091499481"
     },
     "antigravity-aimock": {
-      "version": "1.5.11",
+      "version": "1.5.14",
       "command": "agy",
       "env": "OAR_ANTIGRAVITY_BIN",
       "platforms": [
@@ -233,26 +233,26 @@
       "suite": "acp",
       "policy": "accepted",
       "purpose": "Official native ACP CLI",
-      "evidence": "https://github.com/botiverse/oar/pull/952",
+      "evidence": "https://github.com/botiverse/oar/actions/runs/45125855663",
       "archives": {
         "Linux-X64": {
-          "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.11-6132547114106880/linux-x64/cli_linux_x64.tar.gz",
-          "sha512": "dad3c015e8964fcdc1639b13b7152f4cb84cb1bde385707e2bcdf095d6f1831f4f6521199aec499cc052f9e99906b7fdbc52c273df064d5cb7c84b068ba3ce50",
+          "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.14-5302690847260672/linux-x64/cli_linux_x64.tar.gz",
+          "sha512": "83311d3f354567612dc16c1ae2ea9b503d6f6833aa4e138d39aa229da3f3bb99b0e4d7cca0bce4796b0060d6a51d8113eb7449ed5dc0e7900bf217107ea5bff9",
           "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json"
         },
         "macOS-ARM64": {
-          "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.11-6132547114106880/darwin-arm/cli_mac_arm64.tar.gz",
-          "sha512": "1b2c8e1f832e1be9b257c24e4ac75c9029771fef5af9b529ea295fff1aa5b9d3e1e5447200a76ac8a775889aa8399210716f188f84242b3c34a2e9a8a3c2cc7d",
+          "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.14-5302690847260672/darwin-arm/cli_mac_arm64.tar.gz",
+          "sha512": "26830fd46bfb9200d073cf3e71bf94b707552557b4380ec01afd6e99f3a2b030e65422dab1867f77318078692defc859a7547d17ec4b0b1e9369f13c9c3caea6",
           "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/darwin_arm64.json"
         },
         "macOS-X64": {
-          "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.11-6132547114106880/darwin-x64/cli_mac_x64.tar.gz",
-          "sha512": "ff1f625c2efcff03d2131e3e9dc67bb5d1974b67810706f80ad34317c83769486388226352f1a34ede54fad43f5941220ea9beddefc8b27419023c6e9aa4682c",
+          "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.14-5302690847260672/darwin-x64/cli_mac_x64.tar.gz",
+          "sha512": "1b6a1fc6dbe46ba6d9d0405d1b6095189f35ebfc4c3c33ceb1fd1b6d0c9fd702b52ac10b64b8b52aed0d8d71ae02c5df3cffd5e3e3d37549c2daffcce2a853c7",
           "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/darwin_amd64.json"
         },
         "Windows-X64": {
-          "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.11-6132547114106880/windows-x64/cli_windows_x64.exe",
-          "sha512": "7de2a90b3a351c5c1d089b50a773d4fc455062870fa62fc4d50ee2779d7b9f1b630a7025c31163671f6c82ae0426aeda838f98f67270a50fdd2c7de2f2d7eb3f",
+          "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.14-5302690847260672/windows-x64/cli_windows_x64.exe",
+          "sha512": "785548b23242ec9112759bb4b525d94a3d4d2e9868e5cedb9ea34e5ce01dbb00abf5de66c41d8f4903e8a4379445f685483f999ece91867bfbd9d4812760d835",
           "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/windows_amd64.json"
         }
       }

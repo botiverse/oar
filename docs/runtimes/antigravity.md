@@ -491,8 +491,7 @@ unverified wait or retry; the existing vendor regression remains intact.
 Repeated fresh-process controls on 1.5.10 and 1.5.11 did not reproduce the
 defect on Linux, macOS or Windows ([readiness runs](https://github.com/botiverse/oar/pull/952)).
 Non-reproduction does not establish a native fix; [#871](https://github.com/botiverse/oar/issues/871)
-remains open. CI now uses 1.5.11 for the ACP baseline without adding a readiness
-wait or retry. See the [failure timeline and controls](../../experiments/antigravity-mcp-readiness/README.md).
+remains open. The 1.5.11 baseline introduced no readiness wait or retry. See the [failure timeline and controls](../../experiments/antigravity-mcp-readiness/README.md).
 
 **A separate macOS 1.5.0 collision can select the user server.** Both MCP
 calls completed, but the same-name session echo returned the user server's
@@ -747,7 +746,7 @@ never rewrites the host process environment.
 The [migration report](../../experiments/antigravity-cli-acp-2026-11-05.md)
 links repeatable native controls and the runtime-specific vendor tests.
 The local behavior suite covers prompt, steer, queue, cancellation, resume,
-models, images and disposal as applicable. Required CI (`ci.yml`) installs the pinned CLI 1.5.11 archive on Linux,
+models, images and disposal as applicable. Required CI (`ci.yml`) installs the pinned CLI 1.5.14 archive on Linux,
 verifies its SHA-512, and runs the behavior and vendor suites with an isolated
 home and local provider; daily `platform-matrix.yml` runs the same install and
 suites on macOS and Windows.
