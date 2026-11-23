@@ -5,6 +5,7 @@ import path from "node:path";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import { codexLogout } from "../../packages/oar/src/runtimes/codex/logout.js";
 import { fakeLoginCli, reportedIdentity, type FakeCli } from "../fixtures/login-fixtures.js";
+import { withFixtureDeadline } from "../fixtures/fixture-deadline.js";
 import { gone } from "../fixtures/process-tree.js";
 
 let dir = "";
@@ -65,7 +66,8 @@ test("codex's failure is rejected in its words; a status still logged in is stil
 
 test("past the deadline the logout is stopped with everything it started (its tree on Windows)", async () => {
   const fake = fakeCodex({ logoutMode: "hang" });
-  expect(await codexLogout(installation(fake), { timeoutMs: 1000 })).toMatchInlineSnapshot(`
+  expect(await withFixtureDeadline(() => fake.read().workerPid !== undefined,
+    async () => codexLogout(installation(fake), { timeoutMs: 1000 }))).toMatchInlineSnapshot(`
     {
       "detail": "codex logout did not finish within 1000 ms",
       "kind": "failed",

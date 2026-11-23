@@ -7,10 +7,17 @@ import { codebuddyLogin } from "../../packages/oar/src/runtimes/codebuddy/login.
 import { codebuddyAuthStatus, readCodebuddyAuthStatus, projectCodebuddyAuthStatus } from "../../packages/oar/src/runtimes/codebuddy/auth-status.js";
 import { codebuddyLogout } from "../../packages/oar/src/runtimes/codebuddy/logout.js";
 import { allLoginsExited, fakeLoginCli, reportedLogins } from "../fixtures/login-fixtures.js";
+import { withFixtureDeadline } from "../fixtures/fixture-deadline.js";
+// oxlint-disable-next-line import/max-dependencies -- Login interaction recording and the real child deadline share this fixture.
 import { recordedInteraction } from "../fixtures/login-interaction.js";
 
 // oxlint-disable-next-line import/no-namespace, import/max-dependencies -- Record the real cleanup reads without making an extra request during login.
 import * as processTables from "../../packages/oar/src/shared/executable/process-table-async.js";
+
+function fakeRequestsReached(fake: ReturnType<typeof fakeLoginCli>, count: number): boolean {
+  const { requests } = fake.read();
+  return Array.isArray(requests) && requests.length >= count;
+}
 
 const directories: string[] = [];
 beforeEach(() => { vi.stubEnv("CODEBUDDY_API_KEY", undefined); });
@@ -111,12 +118,14 @@ it("redacts known account identity from native control errors", async () => {
 
 it.each(["timeout", "native-timeout"])("%s settles as timed_out and stops the login process", async (mode) => {
   const { fake, installation } = await fixture(mode);
-  const result = await codebuddyLogin(installation, recordedInteraction([]), { timeoutMs: 1500 });
+  const result = await withFixtureDeadline(() => fakeRequestsReached(fake, 2),
+    async () => codebuddyLogin(installation, recordedInteraction([]), { timeoutMs: 1500 }));
+  expect(reportedLogins(fake)).toHaveLength(1);
   expect(result).toMatchObject({ kind: "failed", reason: "timed_out" });
   expect(fake.read().loggedIn).toBe(false);
   expect(allLoginsExited(fake)).toBe(true);
   expect(JSON.stringify(result)).not.toContain("synthetic-private-codebuddy-access-token");
-}, 5000);
+});
 
 it("native cancellation is not mislabeled as a timeout or denial", async () => {
   const { installation } = await fixture("native-cancelled");
@@ -189,7 +198,9 @@ it("a silent confirmation shares the whole login deadline and cannot contradict 
     return result;
   });
   try {
-    expect(await codebuddyLogin(installation, recordedInteraction([]), { timeoutMs: 1500 })).toEqual({ kind: "logged_in" });
+    const result = await withFixtureDeadline(() => fakeRequestsReached(fake, 3),
+      async () => codebuddyLogin(installation, recordedInteraction([]), { timeoutMs: 1500 }));
+    expect(result).toEqual({ kind: "logged_in" });
     const logins = reportedLogins(fake);
     expect(logins).toHaveLength(2);
     const after = await observe();
@@ -202,7 +213,7 @@ it("a silent confirmation shares the whole login deadline and cannot contradict 
     }
   } finally { capture.mockRestore(); }
   expect(fake.read().loggedIn).toBe(true);
-}, 10_000);
+});
 
 it("logout is CodeBuddy's stream-json logout, confirmed by initialize.account", async () => {
   const { fake, installation } = await fixture("success", true);

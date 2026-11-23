@@ -1,3 +1,4 @@
+import { withFixtureDeadline } from "./fixtures/fixture-deadline.js";
 import guardedFixtureArgs from "./fixtures/guard-processes.js";
 import assert from "node:assert/strict";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -14,6 +15,7 @@ import {
   type InstallHost,
   type ScriptInstallMethod,
 } from "../packages/oar/src/shared/install.js";
+// oxlint-disable-next-line import/max-dependencies -- The installer test checks both the resulting installation and its worker identity.
 import { executableInstallation } from "../packages/oar/src/shared/installation.js";
 
 let dir = "";
@@ -161,8 +163,8 @@ test("an installer that prompts reads end of input instead of waiting", async ()
 
 test.skipIf(process.platform === "win32")("a timed out installer is stopped with everything it started", async () => {
   const fake = fakeInstall("hangs", "hang");
-  // Long enough for the fake installer to start its worker on a loaded machine.
-  const result = await planInstaller(fake.probe, fake.plan)({ timeoutMs: 5000 });
+  const result = await withFixtureDeadline(() => fake.read().workerPid !== undefined,
+    async () => planInstaller(fake.probe, fake.plan)({ timeoutMs: 5000 }));
   assert.ok(result.kind === "failed");
   assert.equal(result.exitCode, null);
   assert.match(result.output, /stopped the installer after 5000 ms/u);

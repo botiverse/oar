@@ -1,3 +1,4 @@
+import { holdFixtureDeadline } from "./fixtures/fixture-deadline.js";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { afterEach, expect, test, vi } from "vitest";
@@ -31,6 +32,7 @@ test.skipIf(process.platform === "win32").each(["exited", "running", "cancelled"
     vi.stubEnv("OAR_KILL_GRACE_MS", "100");
     // oxlint-disable-next-line max-statements -- Keep timeout evidence and descendant cleanup in the same real-process observation.
     await withTreeProbe({ ignoreSigterm: false }, async (probe) => {
+      const startClock = mode === "cancelled" ? undefined : holdFixtureDeadline();
       const controller = new AbortController();
       const result = runExecutable(process.execPath, [fixture], {
         env: { ...process.env, ...probe.env, OAR_FIXTURE_EARLY_EXIT: mode === "running" ? "0" : "1" },
@@ -39,6 +41,7 @@ test.skipIf(process.platform === "win32").each(["exited", "running", "cancelled"
       });
       const tree = await probe.tree();
       if (mode !== "running") { expect(await gone(tree.agent)).toBe(true); }
+      startClock?.();
       if (mode === "cancelled") { controller.abort(); }
       const bounded = await Promise.race([result, delay(5000).then(() => null)]);
       expect(bounded).toMatchObject({ ok: false, exitCode: null, diagnostics: mode === "cancelled"
@@ -56,6 +59,7 @@ test.skipIf(process.platform === "win32").each(["timeout", "cancelled"])(
   async (mode) => {
     vi.stubEnv("OAR_KILL_GRACE_MS", "100");
     await withTreeProbe({ ignoreSigterm: false }, async (probe) => {
+      const startClock = mode === "cancelled" ? undefined : holdFixtureDeadline();
       const controller = new AbortController();
       const result = runExecutable(process.execPath, [fixture], {
         env: { ...process.env, ...probe.env, OAR_FIXTURE_CLOSED_PIPES: "1" },
@@ -63,6 +67,7 @@ test.skipIf(process.platform === "win32").each(["timeout", "cancelled"])(
         signal: controller.signal,
       });
       const tree = await probe.tree();
+      startClock?.();
       if (mode === "cancelled") { controller.abort(); }
       expect(await result).toMatchObject({ ok: false, exitCode: null });
       expect(await gone(tree.agent)).toBe(true);

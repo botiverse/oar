@@ -11,6 +11,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { createPiRuntime, type SessionOptions } from "../../packages/oar/src/index.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 import { killGraceMs } from "../../packages/oar/src/shared/executable/index.js";
+import { holdFixtureDeadline } from "../../tests/fixtures/fixture-deadline.js";
 import { eventually, gone } from "../../tests/fixtures/process-tree.js";
 
 const identityModule = new URL("../../tests/fixtures/process-tree.ts", import.meta.url).href;
@@ -99,19 +100,21 @@ describe.skipIf(process.env.OAR_TEST !== "pi-rpc-aimock")("native Pi RPC readers
     const f = await fixture();
     const pidFile = path.join(f.root, "stalled.json"), script = path.join(f.root, "stalled-pi.mjs");
     const { PI_AI_VERSION } = await import("@earendil-works/pi-ai");
-    await writeFile(script, `import { writeFileSync } from "node:fs";
+    await writeFile(script, `import { renameSync, writeFileSync } from "node:fs";
 import { captureProcess } from ${JSON.stringify(identityModule)};
 if (process.argv.includes("--version") && ${JSON.stringify(stage)} !== "version") { console.log(${JSON.stringify(PI_AI_VERSION)}); }
-else { writeFileSync(${JSON.stringify(pidFile)}, JSON.stringify({ ...captureProcess(process.pid), directory: process.env.OAR_PI_RPC_DIRECTORY })); setInterval(() => {}, 1000); }`);
+else { const file = ${JSON.stringify(pidFile)}; writeFileSync(file + ".tmp", JSON.stringify({ ...captureProcess(process.pid), directory: process.env.OAR_PI_RPC_DIRECTORY })); renameSync(file + ".tmp", file); setInterval(() => {}, 1000); }`);
     const runtime = createPiRuntime({ execution: "subprocess", command: process.execPath, args: guardedFixtureArgs("--import", import.meta.resolve("tsx"), script) });
     try {
       const options = { cwd: f.cwd, env: f.env, timeoutMs: 8000 };
-      if (reader === "models") {
-        await expect(runtime.listModels(installed, options)).rejects.toThrow("Pi RPC model listing timed out");
-      } else {
-        const result = await runtime.commands(installed, options);
-        expect(result).toMatchObject({ kind: "unavailable", code: "timeout" });
-      }
+      const startClock = holdFixtureDeadline();
+      const outcome = reader === "models"
+        ? expect(runtime.listModels(installed, options)).rejects.toThrow("Pi RPC model listing timed out")
+        : expect(runtime.commands(installed, options)).resolves.toMatchObject({ kind: "unavailable", code: "timeout" });
+      const ready = await eventually(() => existsSync(pidFile), 15_000);
+      startClock();
+      await outcome;
+      expect(ready, stage).toBe(true);
       const child = children(pidFile)[0];
       assert.ok(child !== undefined);
       // Timeout begins the same bounded native shutdown as a session dispose.

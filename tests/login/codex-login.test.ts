@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, expect, test, vi } from "vi
 import { codexAuthStatus, codexLogin, projectCodexLoginStatus } from "../../packages/oar/src/runtimes/codex/login.js";
 import { fakeLoginCli, reportedIdentity, type FakeCli } from "../fixtures/login-fixtures.js";
 import { recordedInteraction } from "../fixtures/login-interaction.js";
+import { withFixtureDeadline } from "../fixtures/fixture-deadline.js";
 import { gone } from "../fixtures/process-tree.js";
 
 let dir = "";
@@ -196,7 +197,8 @@ test("a command that cannot be spawned fails at once", async () => {
 
 test("past the deadline the app-server is stopped with everything it started", async () => {
   const fake = fakeCodex({ mode: "hang" });
-  const result = await codexLogin(installation(fake), recordedInteraction([]), { timeoutMs: 1000 });
+  const result = await withFixtureDeadline(() => fake.read().workerPid !== undefined,
+    async () => codexLogin(installation(fake), recordedInteraction([]), { timeoutMs: 1000 }));
   assert.deepEqual(result, { kind: "failed", reason: "timed_out", detail: "no sign-in within 1000 ms" });
   assert.ok(await gone(reportedIdentity(fake, "pid")), "the app-server outlived the deadline");
   assert.ok(await gone(reportedIdentity(fake, "workerPid")), "a process the app-server started outlived the deadline");
