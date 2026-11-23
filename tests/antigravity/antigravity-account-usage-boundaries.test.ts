@@ -2,12 +2,12 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { antigravityAccountUsage, projectAntigravityUsage } from "../../packages/oar/src/runtimes/antigravity/account-usage.js";
-import { fakeAgentBinary, gone, reportedProcess } from "../fixtures/process-tree.js";
+import { eventually, fakeAgentBinary, gone, reportedProcess } from "../fixtures/process-tree.js";
 
 const dirs: string[] = [];
-afterEach(() => { for (const dir of dirs.splice(0)) { rmSync(dir, { recursive: true, force: true }); } });
+afterEach(() => { vi.useRealTimers(); for (const dir of dirs.splice(0)) { rmSync(dir, { recursive: true, force: true }); } });
 const payload = (remaining: number, window = "5h") => ({
   status: "SUCCESS", command: { name: "usage", data: { groups: [{ name: "Gemini Models", buckets: [{ id: "test", name: "Five hour", window, remaining_fraction: remaining }] }] } },
 });
@@ -49,14 +49,16 @@ function fakeAgy(mode: "unknown" | "logged_out" | "logged_in", stall?: "models" 
   writeFileSync(script, [
     'import { appendFileSync } from "node:fs";',
     `appendFileSync(${JSON.stringify(calls)}, process.argv.slice(2).join(" ") + String.fromCharCode(10));`,
-    `if (${JSON.stringify(stall)} === (process.argv[2] === "models" ? "models" : "usage")) { const { captureProcess } = await import(${JSON.stringify(new URL("../fixtures/process-tree.ts", import.meta.url).href)}); appendFileSync(${JSON.stringify(pid)}, JSON.stringify(captureProcess(process.pid))); await new Promise(() => setInterval(() => {}, 1000)); }`,
+    `if (${JSON.stringify(stall)} === (process.argv[2] === "models" ? "models" : "usage")) { const { writeProcessReport } = await import(${JSON.stringify(new URL("../fixtures/process-tree.ts", import.meta.url).href)}); writeProcessReport(${JSON.stringify(pid)}, process.pid); await new Promise(() => setInterval(() => {}, 1000)); }`,
     `if (process.argv[2] === "models") { process.stderr.write(${JSON.stringify(mode === "logged_out" ? "Please sign in to view available models" : "unavailable")}); process.exit(${String(MODELS_EXIT[mode])}); }`,
     `process.stdout.write(${JSON.stringify(reply)});`,
   ].join("\n"));
   return {
     installation: { kind: "available", via: "executable", command: fakeAgentBinary(dir, [script]), version: "1.5.7" } as const,
     env: { HOME: dir, USERPROFILE: dir },
-    calls: () => existsSync(calls) ? readFileSync(calls, "utf8").trim().split("\n") : [], pid: () => reportedProcess(JSON.parse(readFileSync(pid, "utf8"))),
+    calls: () => existsSync(calls) ? readFileSync(calls, "utf8").trim().split("\n") : [],
+    ready: () => existsSync(pid),
+    pid: () => reportedProcess(JSON.parse(readFileSync(pid, "utf8"))),
   };
 }
 
@@ -78,11 +80,25 @@ test("successful auth preflight dispatches exactly one usage query", async () =>
   expect(fake.calls()).toEqual(["models", "-p /usage --output-format json"]);
 });
 
+const timeoutMs = 500;
+function fireUsageDeadline(): number {
+  const deadlineAt = performance.now();
+  vi.advanceTimersByTime(timeoutMs);
+  vi.useRealTimers();
+  return deadlineAt;
+}
+
 test.each(["models", "usage"] as const)("the overall deadline bounds a stalled %s process", async stage => {
   const fake = fakeAgy("logged_in", stage);
-  const started = performance.now();
-  await expect(antigravityAccountUsage(fake.installation, { env: fake.env, timeoutMs: 500 })).rejects.toThrow(/timed out/u);
-  expect(performance.now() - started).toBeLessThan(1500);
+  // Start the real fixture before firing the caller's deadline. A cold Windows
+  // process may need longer than the whole 500 ms budget to publish its identity.
+  vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+  const result = Promise.allSettled([antigravityAccountUsage(fake.installation, { env: fake.env, timeoutMs })]);
+  const ready = await eventually(fake.ready, 10_000);
+  const deadlineAt = fireUsageDeadline();
+  expect(await result).toHaveProperty([0, "reason", "message"], expect.stringMatching(/timed out/u));
+  expect(performance.now() - deadlineAt).toBeLessThan(1000);
+  expect(ready, `The stalled ${stage} process must publish its identity`).toBe(true);
   expect(await gone(fake.pid())).toBe(true);
   expect(fake.calls()).toEqual(stage === "models" ? ["models"] : ["models", "-p /usage --output-format json"]);
 });
