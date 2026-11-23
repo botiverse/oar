@@ -9,6 +9,7 @@ export function grokTaskViews(method: string, params: JsonRecord): TaskEventBody
   if (update === null || typeof taskId !== "string" || taskId === "") { return []; }
   if (update.sessionUpdate === "subagent_spawned") {
     return [{ kind: "task_started", taskId, taskType: "agent",
+      ...(typeof update.model === "string" && update.model.length > 0 ? { model: update.model } : {}),
       ...(typeof update.subagent_type === "string" ? { nativeType: update.subagent_type } : {}),
       ...(typeof update.description === "string" ? { description: update.description } : {}),
       ...(typeof update.child_session_id === "string" ? { childSessionId: update.child_session_id } : {}),

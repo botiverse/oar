@@ -822,7 +822,7 @@ interface FrameBody {
 //   compaction_started {compactionId?, trigger?} |
 //   compaction_ended {outcome: completed | aborted | failed, compactionId?, requestId?, trigger?, reason?} |
 //   retry {attempt, maxAttempts?, delayMs?, reason?} |
-//   task_started {taskId, taskType, nativeType?, description?, toolCallId?, childSessionId?, background?, ambient?} |
+//   task_started {taskId, taskType, nativeType?, description?, toolCallId?, childSessionId?, model?, background?, ambient?} |
 //   task_updated {taskId, status?, background?, description?, error?} |   // status: pending | running | paused | completed | failed | stopped
 //   task_ended {taskId, status: completed | failed | stopped, summary?, output?, outputFile?}
 // TurnOutcome: {kind: completed, structuredOutput?: unknown} | {kind: aborted} | FailedTurn, tagged by `failure`:
@@ -1234,6 +1234,12 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   `llm_retry` with its native attempt and reason, and Kimi KAP projects
   `turn.updated` `retry` frames. The community Morph
   adapter reads its own retry notice.
+- `task_started.model?: string` is the resolved child model on the native
+  start frame (Codex or Grok). This is a creation-time observation. Later
+  child-scoped `model` events update the host's selection. Both replay and
+  live delivery preserve the parent's envelope on the task start and the
+  child's envelope on its model reports. See [child model attribution](attribution.md#associating-a-task-with-its-child-model).
+
 - `task_started` / `task_updated` / `task_ended`: work the runtime tracks
   beside the turn that started it. claude `system/task_started`,
   `task_updated` (its `patch`) and `task_notification` [env 2.1.284]:

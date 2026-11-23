@@ -1170,6 +1170,12 @@ See [reader environments](../spec/orientation.md#environment).
 
 ## Native task control
 
+In a scripted Grok 1.0.92 foreground spawn, the parent
+`_x.ai/session_notification` carried `subagent_spawned.model` and
+`child_session_id`. OAR exposes the selected model as `task_started.model`
+on that parent frame. The child's text and usage frames in this run supplied
+no separate model selection. [Native effective model at spawn](https://github.com/xai-org/grok-build/blob/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-shell/src/agent/subagent/handle_request.rs#L1049-L1063)
+
 The parent's `_x.ai/session_notification` stream reports
 `subagent_spawned` and `subagent_finished`; OAR maps these to `task_started`
 (type agent) and `task_ended` (completed, failed or stopped), keyed by

@@ -76,6 +76,29 @@ seq=91  ✓ frame  path=["a1"]   tool_call {id:"call_1", …}
           ([],"call_1"). See hard spot 1 in runtime-matrix.md
 ```
 
+## Associating a task with its child model
+
+A host can display the child's model as soon as the runtime identifies it.
+Seed the task with `task_started.model` when the native start reports a
+resolved child model. Otherwise the initial value is unknown. Apply each
+attributed `model` event in record order to fill or replace that value.
+The two forms of attribution use different joins:
+
+- **Child session.** Match `event.sessionId === task.childSessionId` and
+  `event.agentPath.length === 0`. DSH's parent `subagent/catalog` identifies
+  the child session. Its model is on the child's `subagent/descriptor` and
+  subsequent `request/header` frames.
+- **Same session.** Match the task's session ID and the exact path
+  `[...task.agentPath, task.toolCallId ?? task.taskId]`. The final segment
+  identifies the spawning call (or the task when the call ID is absent).
+  Comparing the prefix keeps sibling and nested calls in their own scope.
+
+Keep observations keyed by session and path if a child frame arrives before
+the task is linked. Missing fields leave the selection unknown until a source
+reports it. Root selection comes from the root session's own empty path.
+A tool's requested model, a parent default and a token ledger are separate
+observations.
+
 ## The attribution spectrum: a protocol responsibility, not app-layer improvisation
 
 If attribution is not in the protocol, every app reimplements parent
@@ -86,9 +109,9 @@ already show the degeneration (adapter red lines in
 - claude: `parent_tool_use_id` (linkage) → `agentPath`; the session total
   is `result.modelUsage` (every model call, subagents and compaction
   included), the root's entry the main loop's `result.usage`, and the
-  subagents' spend unattributed: only a subagent's first `assistant` frame
-  carries `parent_tool_use_id`, its usage the stream-start value. [sym]
-  [env 2.1.292]
+  subagents' spend unattributed. In the 2.1.292 usage recording, its first
+  child assistant frame carried the stream-start usage. In 2.1.330 multiple
+  assistant blocks carried the same spawning call ID and model. [env]
 - codex: child threads → derived child sessions, with per-thread usage.
   [env]
 - grok (ACP): nested sessions; child has its own sessionId + per-child

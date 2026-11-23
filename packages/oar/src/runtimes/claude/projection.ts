@@ -125,6 +125,7 @@ function assistantAnchor(previous: string | null, message: JsonRecord): string |
 
 export const claudeProjectionProfile: StreamJsonProjectionProfile<ClaudeProjectionState> = {
   name: "claude",
+  childAssistantModel: true,
   compactingStatus: true,
   duplicateReason: "claude ignored the input: its inputId was already used in this session",
   isAssistantError: claudeSyntheticAssistant,

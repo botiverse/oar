@@ -52,3 +52,21 @@ test("actual wait_agent items preserve the native operation and explicit null pr
     { kind: "tool_call_started", tool: "collabAgentToolCall", callId: "audit_wait", input: '{"tool":"wait","prompt":null}' },
   ]);
 });
+
+test("Codex parent creation and child thread readback keep their native envelopes", () => {
+  let state = initialCodexProjection(ROOT);
+  const item = { type: "subAgentActivity", kind: "started", id: "spawn", agentThreadId: "child", agentPath: "/root/worker", model: "created" };
+  const replay = (method: string, params: Record<string, unknown>) => {
+    const next = foldCodexNotification(state, method, params);
+    ({ state } = next);
+    return next.commands.flatMap(command => command.kind === "frame" ? [[command.sessionId ?? ROOT, command.body.events]] : []);
+  };
+  expect(replay("thread/started", { thread: { id: ROOT, model: "already-in-open" } })).toEqual([[ROOT, []]]);
+  expect(replay("item/completed", { threadId: ROOT, item })).toEqual([[ROOT, [
+    { kind: "task_started", taskId: "child", childSessionId: "child", taskType: "agent", nativeType: "subAgent", description: "/root/worker", toolCallId: "spawn", background: true, model: "created" },
+  ]]]);
+  expect(replay("thread/started", { thread: { id: "child", model: "selected", reasoningEffort: "medium" } })).toEqual([["child", [{ kind: "model", model: "selected" }, { kind: "effort", effort: "medium" }]]]);
+  expect(replay("thread/settings/updated", { threadId: "child", threadSettings: { model: "later" } })).toEqual([["child", [{ kind: "model", model: "later" }]]]);
+  expect(replay("thread/started", { thread: { id: "sibling", modelProvider: "unresolved" } })).toEqual([["sibling", []]]);
+  expect(replay("thread/started", { threadId: "legacy" })).toEqual([["legacy", []]]);
+});

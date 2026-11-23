@@ -565,6 +565,13 @@ installation fallbacks use the supplied home directory on each call. See
 
 ## Native task control
 
+Qoder's published agent SDK 1.0.60 allows an optional `message.model` on
+assistant frames with a `parent_tool_use_id`. The retained task capture
+establishes the task lifecycle but does not establish a resolved model on a
+child assistant frame. A 1.1.95 local fake-response run ended with a synthetic
+error before the Task call started. OAR leaves the child selection unknown.
+[SDK assistant schema](https://unpkg.com/@qoder-ai/qoder-agent-sdk@1.0.60/dist/protocol/messages.d.ts) · [Recorded task control](../../experiments/task-controls/evidence/qoder-1.1.83.json)
+
 Qoder 1.1.83 emits `system/task_started`, `task_updated.patch`, changed
 `task_progress.description`, and `task_notification`. OAR projects the three
 existing task events, reads `local_agent` as agent and `killed` as stopped,

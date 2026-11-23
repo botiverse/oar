@@ -30,6 +30,8 @@ export type TaskEventBody =
       readonly description?: string;
       readonly toolCallId?: string;
       readonly childSessionId?: string;
+      /** Resolved child model reported by the native task start. Later child model events supersede it. */
+      readonly model?: string;
       /** True when the task runs without holding the call that started it. */
       readonly background?: boolean;
       readonly ambient?: boolean;

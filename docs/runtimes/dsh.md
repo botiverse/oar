@@ -190,6 +190,14 @@ a retry, so no `retry` event is read.
 
 ### Children
 
+The child's version 3 `subagent/descriptor` can report `agentProvider`,
+`agentModel` and `agentReasoningEffort` immediately. A measured child
+reported `deepseek-official/deepseek-flash` and `high` at sequence 0.
+Its `request/header` at sequence 12 confirmed both. OAR emits changes to
+model and effort independently under that child session ID. The descriptor's
+`provider: "spawn"` describes its origin. The parent catalog supplies the
+relationship and carries no model.
+
 `capabilities.attribution` is `nested`. Child session frames carry the child's own
 `sessionId`; the parent's durable `subagent/catalog` names the child and is the
 only lineage edge (`session_linked`, `via: "tool_call"`), which `graph()` holds.

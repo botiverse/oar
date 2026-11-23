@@ -3,7 +3,7 @@ import { asRecord, type JsonRecord } from "../json.js";
 import { streamJsonDuplicateInput, streamJsonInitialized, streamJsonInputLifecycle } from "./input-lifecycle.js";
 import { streamJsonContent, streamJsonToolResults, contentBlocks } from "./content.js";
 import type { StreamJsonProjectionState } from "./state.js";
-import type { StreamJsonProjectionProfile } from "./profile.js";
+import type { StreamJsonProjectionProfile, StreamJsonUpdate } from "./profile.js";
 
 export type ProjectionCommand =
   | { readonly kind: "frame"; readonly body: FrameBody; readonly agentPath: readonly string[] }
@@ -46,6 +46,15 @@ function rememberToolUses<S extends StreamJsonProjectionState>(state: S, message
   return { ...state, agents };
 }
 
+function childModel<S extends StreamJsonProjectionState>(state: S, path: readonly string[], model: unknown): StreamJsonUpdate<S> {
+  const key = JSON.stringify(path);
+  if (typeof model !== "string" || model.length === 0 || state.childModels.get(key) === model) {
+    return { state, events: [] };
+  }
+  return { state: { ...state, childModels: new Map(state.childModels).set(key, model) },
+    events: [{ kind: "model" as const, model }] };
+}
+
 function frameType(message: JsonRecord): string {
   const type = typeof message.type === "string" ? message.type : "unknown";
   return typeof message.subtype === "string" ? `${type}/${message.subtype}` : type;
@@ -74,7 +83,10 @@ export function foldStreamJsonStdout<S extends StreamJsonProjectionState>(
       }
       const content = streamJsonContent(state.partials, message, agentPath, profile.assistantAfterMessageStop, profile.partialMessageIds, profile.assistantFollowsBlockStop);
       const next = rememberToolUses({ ...state, partials: content.partials }, message, agentPath);
-      return event({ events: content.events }, message.type === "assistant" ? profile.assistant(next, message, agentPath) : next);
+      if (message.type !== "assistant") { return event({ events: content.events }, next); }
+      const selection = profile.childAssistantModel === true && agentPath.length > 0
+        ? childModel(next, agentPath, asRecord(message.message)?.model) : { state: next, events: [] };
+      return event({ events: [...selection.events, ...content.events] }, profile.assistant(selection.state, message, agentPath));
     }
     case "user": {
       const views = [...streamJsonToolResults(message)];
@@ -104,9 +116,10 @@ export function foldStreamJsonStdout<S extends StreamJsonProjectionState>(
       }
       if (message.subtype === "init") {
         const initialized = streamJsonInitialized(state, agentPath.length === 0, profile.commandLifecycle !== false);
-        return event({ events: [...initialized.events,
-          ...(typeof message.model === "string" ? [{ kind: "model" as const, model: message.model }] : []),
-          ...profile.init(message)] }, initialized.state);
+        const selection = profile.childAssistantModel === true && agentPath.length > 0
+          ? childModel(initialized.state, agentPath, message.model)
+          : { state: initialized.state, events: typeof message.model === "string" ? [{ kind: "model" as const, model: message.model }] : [] };
+        return event({ events: [...initialized.events, ...selection.events, ...profile.init(message)] }, selection.state);
       }
       const next = profile.system(state, message, agentPath);
       if (profile.compactingStatus === true && message.subtype === "status") {

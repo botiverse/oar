@@ -20,6 +20,8 @@ export interface StreamJsonProjectionProfile<S extends StreamJsonProjectionState
   readonly compactingStatus?: boolean;
   /** Keep the streamed prefix when a dialect emits its full assistant after message_stop. */
   readonly assistantAfterMessageStop?: boolean;
+  /** The child's assistant message reports the model that produced it. */
+  readonly childAssistantModel?: boolean;
   /** False when native partial events omit message_start and the API message id. */
   readonly partialMessageIds?: boolean;
   /** The next single-block assistant is the completed block's snapshot, even with a new id. */

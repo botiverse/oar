@@ -2,7 +2,7 @@ import type { RuntimeEventBody } from "../../contracts/session.js";
 import { asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
 import type { RecordAt } from "../../shared/session-kernel.js";
 import { projectContextUsage, projectRetryUpdate, projectStepUsage } from "./kap-failures.js";
-import { projectItemEvents, recordChildAgent, registerChildAgentsFromRefs } from "./kap-items.js";
+import { projectItemEvents, recordTaskAgent, registerChildAgentsFromRefs } from "./kap-items.js";
 import {
   asString,
   asStringArray,
@@ -57,12 +57,10 @@ function projectTaskListFrame(
   subscribeAgents: string[],
 ): void {
   for (const task of asRecordList(rawFrame.tasks)) {
-    const childAgentId = asString(task.child_agent_id);
-    const parentToolCallId = asString(task.parent_tool_call_id);
-    recordChildAgent(state, agentPath, parentToolCallId ?? childAgentId ?? "task", childAgentId, subscribeAgents);
-    if (agentId !== "main") { continue; }
     const taskId = asString(task.task_id);
-    if (taskId !== undefined && asString(task.status) === "ended") {
+    if (taskId === undefined) { continue; }
+    recordTaskAgent(state, agentPath, task, taskId, subscribeAgents);
+    if (agentId === "main" && asString(task.status) === "ended") {
       state.startedTaskIds.add(taskId);
       state.endedTaskIds.add(taskId);
     }

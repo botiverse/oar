@@ -324,3 +324,25 @@ test("model and effort are read from the native request header, never from what 
 test("a self-referencing DSH catalog keeps the native frame without a child link", () => {
   expect(eventsOf([durable("subagent/catalog", { childId: "root" })])).toEqual([]);
 });
+
+test("a child descriptor and later request headers report model and effort changes per session", () => {
+  const descriptor = { version: 3, mode: "continuable", provider: "spawn", agentProvider: "deepseek-official", agentModel: "deepseek-flash", agentReasoningEffort: "high" };
+  const child = { sessionId: "child" };
+  const config = { provider: "deepseek-official", model: "deepseek-flash", reasoningEffort: "high", maxTokens: 256_000 };
+  const { frames } = replay([
+    durable("subagent/catalog", { childId: "child" }),
+    durable("subagent/descriptor", descriptor, child),
+    durable("request/header", { header: { config } }, child),
+    durable("request/header", { header: { config: { reasoningEffort: "low" } } }, child),
+    durable("subagent/descriptor", descriptor, { sessionId: "sibling" }),
+    durable("request/header", { header: { config: { ...config, model: "other", reasoningEffort: "low" } } }, child),
+    durable("subagent/descriptor", descriptor, child),
+    durable("subagent/descriptor", { provider: "spawn", agentModel: "missing-provider" }, { sessionId: "another" }),
+  ], "root");
+  const started = [{ kind: "model", model: "deepseek-official/deepseek-flash" }, { kind: "effort", effort: "high" }];
+  expect(frames.map(f => [f.sessionId, f.body.events])).toEqual([
+    [undefined, [{ kind: "session_linked", parent: "root", child: "child", via: "tool_call" }]],
+    ["child", started], ["child", []], ["child", [{ kind: "effort", effort: "low" }]], ["sibling", started],
+    ["child", [{ kind: "model", model: "deepseek-official/other" }]], ["child", []], ["another", []],
+  ]);
+});

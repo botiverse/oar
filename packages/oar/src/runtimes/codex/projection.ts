@@ -124,21 +124,14 @@ function toolViews(method: string, item: JsonRecord | null): RuntimeEventBody[] 
   return [codexToolEnd(item, itemId)];
 }
 
-/**
- * `thread/settings/updated` is codex's own report of the thread's settings
- * after a change ([env] 0.155.1: pushed when a turn/start carries an `effort`
- * or `model` override, "for this turn and subsequent turns"):
- * `threadSettings.model` and `threadSettings.effort` (null: no explicit
- * level) are the model and effort now in effect.
- */
-function settingsViews(params: JsonRecord): RuntimeEventBody[] {
-  const settings = asRecord(params.threadSettings);
-  const events: RuntimeEventBody[] = [...codexServiceTierEvents(settings)];
-  if (typeof settings?.model === "string" && settings.model.length > 0) {
-    events.push({ kind: "model", model: settings.model });
+/** Effective selection from thread/started or thread/settings/updated. A null effort means the model default. */
+function modelAndEffort(model: unknown, effort: unknown): RuntimeEventBody[] {
+  const events: RuntimeEventBody[] = [];
+  if (typeof model === "string" && model.length > 0) {
+    events.push({ kind: "model", model });
   }
-  if (typeof settings?.effort === "string" && settings.effort.length > 0) {
-    events.push({ kind: "effort", effort: settings.effort });
+  if (typeof effort === "string" && effort.length > 0) {
+    events.push({ kind: "effort", effort });
   }
   return events;
 }
@@ -194,6 +187,11 @@ function viewsFor(state: CodexProjectionState, reporter: string, method: string,
       if (typeof params.threadId !== "string" || params.threadId.length === 0 || typeof params.name !== "string" || params.name.length === 0) { return []; }
       return codexMcpStartup(params.name, params.status);
     }
+    case "thread/started": {
+      const thread = asRecord(params.thread);
+      if (reporter === state.rootThreadId || thread?.id !== reporter) { return []; }
+      return modelAndEffort(thread.model, thread.reasoningEffort);
+    }
     case "thread/goal/updated":
     case "thread/goal/cleared":
       return codexGoalEvents(method, params);
@@ -243,8 +241,10 @@ function viewsFor(state: CodexProjectionState, reporter: string, method: string,
     }
     case "thread/tokenUsage/updated":
       return codexUsageViews(params, reporter === state.rootThreadId ? baselineTokens(state.tokenBaseline) : noTokens);
-    case "thread/settings/updated":
-      return settingsViews(params);
+    case "thread/settings/updated": {
+      const settings = asRecord(params.threadSettings);
+      return [...codexServiceTierEvents(settings), ...modelAndEffort(settings?.model, settings?.effort)];
+    }
     default:
       return [];
   }
@@ -256,7 +256,8 @@ export function foldCodexNotification(
   method: string,
   params: JsonRecord,
 ): { readonly state: CodexProjectionState; readonly commands: readonly ProjectionCommand[] } {
-  const threadId = typeof params.threadId === "string" ? params.threadId : previous.rootThreadId;
+  const reported = method === "thread/started" ? (asRecord(params.thread)?.id ?? params.threadId) : params.threadId;
+  const threadId = typeof reported === "string" && reported.length > 0 ? reported : previous.rootThreadId;
   // Before the views: a re-reported total is read against itself (zero).
   const tokenBaseline = threadId === previous.rootThreadId ? nextTokenBaseline(previous.tokenBaseline, method, params) : previous.tokenBaseline;
   const input = threadId === previous.rootThreadId ? foldCodexInputs(previous.inputs, method, params) : { inputs: previous.inputs, events: [] };

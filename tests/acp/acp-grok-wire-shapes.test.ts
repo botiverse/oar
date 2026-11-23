@@ -146,7 +146,7 @@ test("a grok child session gets its graph edge from the vendor session_notificat
   }
   assert.equal(Object.hasOwn(session, "stopTask"), false);
   assert.deepEqual(lifecycle.flatMap(record => record.kind === "frame" ? record.body.events.filter(event => event.kind.startsWith("task_")) : []), [
-    { kind: "task_started", taskId: "fake-child-grok", taskType: "agent", nativeType: "general-purpose", description: "Echo", childSessionId: "fake-child-grok" },
+    { kind: "task_started", taskId: "fake-child-grok", taskType: "agent", nativeType: "general-purpose", description: "Echo", childSessionId: "fake-child-grok", model: "fixture-model-x" },
     { kind: "task_ended", taskId: "fake-child-grok", status: "completed", output: "child-says-hi" },
   ]);
   const [spawned] = lifecycle;

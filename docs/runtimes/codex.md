@@ -706,6 +706,15 @@ or translate these controls into text commands for other runtimes.
 
 ### Observation, children, and history
 
+Codex 0.171.0 reported the resolved child model on the parent's
+`subAgentActivity` creation item. Its completed item produces
+`task_started.model`. In the scripted spawn, the child emitted
+`turn/started` with no model and no child `thread/started` arrived. When
+the latter notification does arrive, its `thread.id` scopes its optional
+`model` and `reasoningEffort`; subsequent `thread/settings/updated` reports
+the current selection. The root open reply already supplies root selection.
+The collaboration tool's input model describes a request. [Codex creation item](https://github.com/openai/codex/blob/ccf9be8cc458bd6b8336fe84d68d8893f2691a5e/codex-rs/app-server-protocol/src/protocol/v2/item.rs#L484-L494)
+
 **Mapped:** native thread read/list operations expose stored state, and
 resume can return history; OAR exposes none of those and does not hydrate the
 stream from the resume or fork result (`thread/fork` is mapped as
