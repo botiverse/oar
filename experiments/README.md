@@ -46,6 +46,7 @@
 
 - [Kimi first Web startup](kimi-web-startup/README.md): native first-token race, readiness gate, warm bypass and reader deadlines; [upstream #5035](https://github.com/MoonshotAI/kimi-code/issues/5035).
 
+- [Runtime version check: 2026-11-22](runtime-version-checks/2026-11-22.md) covers Qwen 0.28.4, Factory 1.17.2, Antigravity skill discovery and the Windows platform shards.
 - [Runtime version check: 2026-11-21](runtime-version-checks/2026-11-21.md): Pi candidate failures before the upgrade, the packed-host recheck and Qwen 0.28.3.
 - [Runtime version check: 2026-11-20](runtime-version-checks/2026-11-20.md): frozen candidates, the Claude 2.1.330 local login timeout, Pi 1.6.0 and all 106 failed CI jobs.
 
