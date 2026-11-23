@@ -11,6 +11,7 @@ import { enqueueHeld, withdrawControl, type HeldInput } from "../../shared/held-
 import { inputImagesRefusal, withInputImages } from "../../shared/input-images.js";
 import type { SessionKernel } from "../../shared/session-kernel.js";
 import {
+  isNoActiveTurnKapError,
   mapAbortControlError,
   mapPromptControlError,
   mapSteerControlError,
@@ -61,13 +62,7 @@ export interface KapRuntimeState {
 }
 
 export function isKapTurnBusy(state: KapRuntimeState): boolean {
-  return (
-    state.activeRootTurn !== null ||
-    state.awaitingTurnStart ||
-    state.pendingSteers.length > 0 ||
-    state.prompting ||
-    state.dispatching
-  );
+  return state.activeRootTurn !== null || state.awaitingTurnStart || state.pendingSteers.length > 0 || state.prompting || state.dispatching;
 }
 
 export function isKapSessionBusy(state: KapRuntimeState): boolean {
@@ -105,6 +100,13 @@ function optionalInputFields(opts?: {
     ...(opts?.images === undefined ? {} : { images: opts.images }),
     ...(opts?.origin === undefined ? {} : { origin: opts.origin }),
   };
+}
+
+function clearStaleSteersIfIdle(state: KapRuntimeState): void {
+  if (!hasActiveRootTurn(state) && state.pendingSteers.length > 0) {
+    state.pendingSteers.length = 0;
+    maybeScheduleDrain(state);
+  }
 }
 
 function removePendingSteer(list: PendingKapSteer[], target: PendingKapSteer | null): void {
@@ -272,19 +274,23 @@ export function createKapControls(state: KapRuntimeState): Pick<
     abort: async () => {
       const result = await state.kernel.control({ kind: "abort" }, async () => {
         if (state.socket.closed()) { return WS_CLOSED_REJECTION; }
-        if (!hasActiveRootTurn(state)) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn to abort" }; }
+        if (!hasActiveRootTurn(state) && state.pendingSteers.length === 0) {
+          return { kind: "rejected", code: "no_active_turn", reason: "no active turn to abort" };
+        }
         const disarm = state.abortFallback.arm();
         try {
           const url = `/sessions/${encodeURIComponent(state.sessionId)}:cancel`;
           const data = await kapRequest(state.endpoint.origin, state.endpoint.token, url, { method: "POST", body: {}, timeoutMs: 15_000 });
           if (data.cancelled === false) {
             disarm();
+            clearStaleSteersIfIdle(state);
             return { kind: "rejected", code: "no_active_turn", reason: "Kimi reported no active turn to cancel", native: data };
           }
           state.abortRequested = true;
           return { kind: "accepted", native: data };
         } catch (error) {
           disarm();
+          if (error instanceof KapApiError && isNoActiveTurnKapError(error)) { clearStaleSteersIfIdle(state); }
           return mapAbortControlError(error);
         }
       });
