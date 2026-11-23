@@ -99,14 +99,22 @@ describe.skipIf(process.env.OAR_TEST !== "pi-rpc-aimock")("native Pi RPC readers
   test.each([{ stage: "version", reader: "commands" }, { stage: "query", reader: "commands" }, { stage: "query", reader: "models" }])("$reader deadline kills a stalled $stage process and removes any private directory", async ({ stage, reader }) => {
     const f = await fixture();
     const pidFile = path.join(f.root, "stalled.json"), script = path.join(f.root, "stalled-pi.mjs");
+    const eofFile = path.join(f.root, "stdin-ended");
     const { PI_AI_VERSION } = await import("@earendil-works/pi-ai");
     await writeFile(script, `import { renameSync, writeFileSync } from "node:fs";
 import { captureProcess } from ${JSON.stringify(identityModule)};
 if (process.argv.includes("--version") && ${JSON.stringify(stage)} !== "version") { console.log(${JSON.stringify(PI_AI_VERSION)}); }
-else { const file = ${JSON.stringify(pidFile)}; writeFileSync(file + ".tmp", JSON.stringify({ ...captureProcess(process.pid), directory: process.env.OAR_PI_RPC_DIRECTORY })); renameSync(file + ".tmp", file); setInterval(() => {}, 1000); }`);
+else {
+  const file = ${JSON.stringify(pidFile)};
+  writeFileSync(file + ".tmp", JSON.stringify({ ...captureProcess(process.pid), directory: process.env.OAR_PI_RPC_DIRECTORY }));
+  process.stdin.once("end", () => writeFileSync(${JSON.stringify(eofFile)}, "")).resume();
+  renameSync(file + ".tmp", file);
+  setInterval(() => {}, 1000);
+}`);
     const runtime = createPiRuntime({ execution: "subprocess", command: process.execPath, args: guardedFixtureArgs("--import", import.meta.resolve("tsx"), script) });
     try {
-      const options = { cwd: f.cwd, env: f.env, timeoutMs: 8000 };
+      vi.stubEnv("OAR_KILL_GRACE_MS", undefined);
+      const options = { cwd: f.cwd, env: f.env, timeoutMs: 500 };
       const waitForFixture = holdFixtureDeadline();
       const outcome = reader === "models"
         ? expect(runtime.listModels(installed, options)).rejects.toThrow("Pi RPC model listing timed out")
@@ -114,7 +122,14 @@ else { const file = ${JSON.stringify(pidFile)}; writeFileSync(file + ".tmp", JSO
       await waitForFixture(outcome, async () => {
         expect(await eventually(() => existsSync(pidFile), 15_000), stage).toBe(true);
       });
+      vi.advanceTimersByTime(options.timeoutMs);
       await outcome;
+      if (stage === "query") {
+        // The RPC child ignores EOF. Its receipt proves the native capture finished
+        // and OAR armed the force-kill timer before we advance the shutdown grace.
+        expect(await eventually(() => existsSync(eofFile), 10_000), "Pi RPC child did not receive stdin EOF").toBe(true);
+        vi.advanceTimersByTime(killGraceMs());
+      }
       const child = children(pidFile)[0];
       assert.ok(child !== undefined);
       // Timeout begins the same bounded native shutdown as a session dispose.
