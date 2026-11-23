@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { dailyShards } from "./ci-select.mjs";
+import { formatError } from "./runtime-common.mjs";
 import { installRuntime } from "./runtime-install.mjs";
 
 const baselineFile = path.resolve(import.meta.dirname, "../runtime-versions.json");
@@ -117,7 +118,7 @@ async function runEntry(entry, osName) {
       if (vendorCode !== 0) { failed = true; }
     }
   } catch (error) {
-    process.stderr.write(`${entry.backend} failed: ${error instanceof Error ? error.message : String(error)}\n`);
+    process.stderr.write(`${entry.backend} failed: ${formatError(error)}\n`);
     failed = true;
   } finally {
     process.stdout.write("::endgroup::\n");

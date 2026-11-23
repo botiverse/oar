@@ -5,7 +5,7 @@ import { createRequire } from "node:module";
 import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { baselineFile, downloadVerified, jsonResponse, nativeVersion, npmSpec, packageDist, readManifest, registryUrl, runtimePin } from "./runtime-common.mjs";
+import { baselineFile, downloadVerified, errorCauseCode, formatError, jsonResponse, nativeVersion, npmSpec, packageDist, readManifest, registryUrl, runtimePin } from "./runtime-common.mjs";
 
 const require = createRequire(new URL("../../packages/oar/package.json", import.meta.url));
 const spawnSync = require("cross-spawn").sync;
@@ -129,7 +129,9 @@ export async function installRuntime(key, file = baselineFile, options = {}) {
     report.status = "verified";
     return report;
   } catch (error) {
-    report.error = error.message;
+    report.error = formatError(error);
+    const cause = errorCauseCode(error);
+    if (cause) report.errorCause = cause;
     throw error;
   } finally {
     report.endedAt = new Date().toISOString();
@@ -144,7 +146,7 @@ if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === imp
     const report = await installRuntime(key, candidate ?? baselineFile);
     process.stdout.write(`Verified ${key} ${report.actualVersion}; manifest ${report.manifestSha256}\n`);
   } catch (error) {
-    process.stderr.write(`Runtime installation failed: ${error.message}\n`);
+    process.stderr.write(`Runtime installation failed: ${formatError(error)}\n`);
     process.exitCode = 1;
   }
 }

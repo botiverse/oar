@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire, findPackageJSON } from "node:module";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { downloadVerified, exactVersion, readManifest } from "./runtime-common.mjs";
+import { downloadVerified, errorCauseCode, exactVersion, formatError, readManifest } from "./runtime-common.mjs";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const require = createRequire(new URL("../../packages/oar/package.json", import.meta.url));
@@ -75,7 +75,9 @@ if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === imp
     }
     report.status = "verified";
   } catch (error) {
-    report.error = error.message;
+    report.error = formatError(error);
+    const cause = errorCauseCode(error);
+    if (cause) report.errorCause = cause;
     throw error;
   } finally { save(); }
 }
