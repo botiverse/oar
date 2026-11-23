@@ -103,6 +103,8 @@ export async function startKimiKapProcess(
   const args = ["web", "--json", "--host", "127.0.0.1", "--port", "0", ...(launchArgs ?? [])];
   const child = spawnLineProcess(command, args, { cwd, env, killTree: true, inheritStderr: false });
   const result = Promise.withResolvers<KapProcessStart>();
+  // Observe readiness rejection if spawning or early exit settles before `await result.promise`.
+  void (async (): Promise<void> => { try { await result.promise; } catch { /* Caller observes spawn or readiness error. */ } })();
   let settled = false;
   const finishOk = (value: KapProcessStart): void => {
     if (settled) { return; }
@@ -145,6 +147,8 @@ export async function startKimiKapProcess(
     }
     return outcome;
   } catch (error) {
+    settled = true;
+    clearTimeout(timer);
     child.kill();
     await child.exited;
     throw error;

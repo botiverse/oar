@@ -6,7 +6,8 @@ import { RuntimeFailureError } from "../../packages/oar/src/contracts/runtime-fa
 import { SessionNotFoundError } from "../../packages/oar/src/contracts/session-not-found-error.js";
 import { SessionUnavailableError } from "../../packages/oar/src/contracts/session-unavailable-error.js";
 import type { Event, RawEvent, Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
-import { createKapTestFixture, finishAndDispose, randomUUID, waitTurnStarted, waitUntil, type KapTestFixture } from "../fixtures/kimi-kap-support.js";
+import { kimiSession } from "../../packages/oar/src/runtimes/kimi/session.js";
+import { createKapTestFixture, finishAndDispose, randomUUID, sleepMs, waitTurnStarted, waitUntil, type KapTestFixture } from "../fixtures/kimi-kap-support.js";
 
 const cleanups: (() => void)[] = [];
 
@@ -189,4 +190,43 @@ test("rejects idle abort and cancels active turn on abort", async () => {
   const activeAbort = await session.abort();
   expect(activeAbort.response.body.kind).toBe("accepted");
   await finishAndDispose(session, "abort turn");
+});
+
+async function settledError(run: () => Promise<void>): Promise<unknown> {
+  try {
+    await run();
+    return undefined;
+  } catch (error: unknown) {
+    return error;
+  }
+}
+
+async function captureRejected(
+  run: () => Promise<void>,
+): Promise<{ readonly caught: unknown; readonly unhandled: readonly unknown[] }> {
+  const unhandled: unknown[] = [];
+  const onRejected = (reason: unknown): void => { unhandled.push(reason); };
+  process.on("unhandledRejection", onRejected);
+  try {
+    const caught = await settledError(run);
+    await sleepMs(0);
+    return { caught, unhandled };
+  } finally {
+    process.off("unhandledRejection", onRejected);
+  }
+}
+
+test("rejects missing command or cwd cleanly without emitting an unhandled rejection", async () => {
+  const fx = useFixture();
+  const missingCmd = await captureRejected(async () => {
+    await kimiSession({ kind: "available", via: "executable", command: "/nonexistent/oar-kimi-kap", version: "2.7.2-botiverse.1" }, { cwd: fx.dir });
+  });
+  const missingCmdCode = missingCmd.caught instanceof Error && "code" in missingCmd.caught ? missingCmd.caught.code : undefined;
+  const missingCwd = await captureRejected(async () => {
+    await kimiSession({ kind: "available", via: "executable", command: fx.bin, version: "2.7.2-botiverse.1" }, { cwd: `${fx.dir}/missing-cwd` });
+  });
+  expect(missingCmd.caught).toBeInstanceOf(Error);
+  expect(process.platform === "win32" || missingCmdCode === "ENOENT").toBe(true);
+  expect(missingCwd.caught).toMatchObject({ code: "ENOENT" });
+  expect([missingCmd.unhandled, missingCwd.unhandled]).toEqual([[], []]);
 });
