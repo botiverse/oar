@@ -321,8 +321,9 @@ Qoder 1.1.92 returns from the signed-out branch of `status --output json` before
 
 ## Evidence and limits
 
-Required CI pins `@qoder-ai/qodercli@1.1.81` on Linux, macOS and Windows, so
-the complete required execution suite covers versions only through 1.1.81.
+CI pins `@qoder-ai/qodercli@1.1.81` (required Linux `ci.yml` plus daily macOS
+and Windows `platform-matrix.yml`), so the complete pinned execution suite covers
+versions only through 1.1.81.
 From 1.1.82, the native replay path no longer drives the suite's scripted
 inference, so a model-catalog compatibility fix alone cannot restore these
 checks. Assertions and timeouts remain unchanged. Lift the pin only after

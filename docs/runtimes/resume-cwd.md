@@ -50,7 +50,7 @@ The root and portable entries export the same class and the
 | `cwd_unreported` | The id was listed without a non-empty string cwd. |
 | `listing_unavailable` | No `session/list` capability, a malformed page, or an invalid or repeating pagination cursor prevented confirmation. |
 
-Kimi, OpenCode v1/v2 (including background-child sessions), Antigravity and
+Kimi (ACP fallback), OpenCode v1/v2 (including background-child sessions), Antigravity and
 Devin require a positive native `session/list` entry with a non-empty saved
 cwd before sending resume/load, even when the requested cwd appears unchanged
 ([resume-cwd.ts](../../packages/oar/src/shared/acp/resume-cwd.ts)). Native
@@ -73,11 +73,13 @@ header-read errors also retain their existing classifications.
 Factory (droid 1.12.1) reads the saved directory from the `load_session`
 answer: a different one produces `ResumeCwdError` with `reason: "other_cwd"`
 ([Factory](factory.md)). An unknown id is `SessionNotFoundError` (`-32004`).
+Kimi KAP reads the saved directory from `GET /sessions/{id}` and throws
+`ResumeCwdError` with `reason: "other_cwd"` on mismatch without calling `session/list`.
 Devin (`devin 3000.12.57`, 2026-11-13) records the session's `cwd` in
 `session/list`, which the guard above reads (profile
 `resumeKeepsSessionCwd: true`); cross-directory shell execution was not run
 without an authenticated model turn.
-Not measured here: qwen, qoder, codebuddy, dsh, pi-durable, and runtimes whose session
+Not measured here: qwen, qoder, codebuddy, dsh, pi-durable, cybion (remote Threads transmit no cwd), and runtimes whose session
 store the host moved by hand.
 
 The directory comparison shared by these ACP adapters, DSH and Factory

@@ -90,7 +90,8 @@ change gets riskier, and finish with the commit gate.
 
 ### Unit: is the pure logic right?
 
-`tests/**/*.test.ts` (per-runtime subdirectories included), run by `pnpm test`
+`tests/**/*.test.ts` (per-runtime subdirectories included; `tests/community/**` requires
+`OAR_COMMUNITY_TESTS=1` or `pnpm run check`), run by `pnpm test`
 (vitest). Seconds, no vendor binaries. The inner loop for shared mechanisms:
 folds, resolvers, process plumbing. Use virtual time via `vi.useFakeTimers`
 (mock `Date` too when clocks matter).
@@ -284,11 +285,12 @@ is authoritative). The `behavior`, `acp-behavior` and
 Pi RPC jobs are chosen by [`.github/scripts/ci-select.mjs`](../.github/scripts/ci-select.mjs):
 a pull request runs the backends its changed files can reach on Linux, plus
 Windows OpenCode v2 (`opencode-v2-aimock`) when OpenCode is reached
-(a runtime's own directory or its vendor tests reach that runtime; shared code,
-contracts, the behavior harness, CI or anything unrecognized reach all of them;
-docs, Markdown, tests other than `tests/fixtures/`, the CLI and apps reach
-none; `experiments/` code reaches all, because vendor tests and the behavior
-harness import its probes). A push to main and a dispatch run all Linux
+(a runtime's own directory or its vendor tests reach that runtime; `packages/oar/src/shared/acp/`
+reaches the ACP backends plus `qwen-aimock`; other shared code, contracts,
+community runtimes, the behavior harness, CI or anything unrecognized reach all of
+them; docs, Markdown, `assets/`, `packages/oar/assets/`, `.stamp/`, tests other
+than `tests/fixtures/`, the CLI and apps reach none; `experiments/` code reaches
+all, because vendor tests and the behavior harness import its probes). A push to main and a dispatch run all Linux
 backends plus the Windows jobs that caught platform-only product failures in
 the 50-run audit (Windows `check-windows` including `opencode-cleanup/skills`,
 Windows `dsh-aimock`, Windows `codex-aimock`, and Windows `pi-rpc-windows`
@@ -368,15 +370,21 @@ newer push or dispatch on the same ref cancels any in-progress or queued
   provider requests go to local scripted responses using a synthetic key.
 - `clean-install`: `pnpm run clean-install -- --mode=gate`
   ([`tests/clean-install.ts`](../tests/clean-install.ts)) on Linux. Both
-  packages are packed and `npm install`ed into an empty project: without the
-  optional peers, the root entry and the `browser`, `capabilities`, `forms`, `observe`,
-  `kernel`, `brands`, `testing`, `agents` and `agents/report` entries must
-  load and type-check, OAR must probe every built-in runtime, and the line
-  that adds cursor must fail the host's compile; with the SDK added, cursor
-  loads. With the Pi Durable
-  peers added, a pi-durable session opens and its entry bundles for a
-  browser. The CLI, installed after the host's SDK is removed again, lists
-  cursor's models through the SDK it depends on itself. It needs the npm
+  packages are packed and `npm install`ed into empty host projects: first a
+  slim host (`--omit=optional`, no Pi packages or peers) verifies default
+  runtimes probe without throwing (`pi` and `pi-rpc` report
+  `dependency_missing`), the tested exported entries (root, `browser`,
+  `capabilities`, `forms`, `observe`, `kernel`, `brands`, `testing`, `agents`,
+  `agents/report`, and `runtimes/pi`) type-check, and adding the Pi Durable
+  peers lets `pi-durable` open without
+  `@earendil-works/pi-coding-agent`; next a default host (`npm install`, with Pi
+  `optionalDependencies`) verifies `pi` and `pi-rpc` probe `available`,
+  `browser`, `forms`, `capabilities`, `observe`, `agents/report` and
+  `runtimes/pi`/`qwen` probes pass, adding cursor without `@cursor/sdk` fails
+  the host's compile, adding Pi Durable peers opens a `pi-durable` session and
+  bundles for a browser, and adding `@cursor/sdk` makes cursor load. Finally,
+  the CLI installed into the slim host (`--omit=optional`) lists both `cursor`
+  and `pi` models through the direct dependencies it brings itself. It needs the npm
   registry. The temporary host's root overrides hold the Pi family and undici
   at the accepted workspace versions, derived from `package.json` and the
   installed lockfile graph. The check refuses a baseline outside OAR's
@@ -589,6 +597,11 @@ per-case concurrency, assertions and deadlines.
    ([capabilities](design/capabilities.md#a-runtimes-own-settings)).
    A runtime with host-owned execution/storage, such as pi-durable, stays out
    of the default and CLI registries; test it with its configured fixture.
+   Community runtimes instead live under `packages/oar/src/community/<id>/`,
+   export their constructor from `packages/oar/src/community/index.ts`
+   (`@botiverse/oar/community`), stay out of `defaultRuntimes`, and keep unit
+   tests under `tests/community/<id>/` (run with `OAR_COMMUNITY_TESTS=1` or
+   `pnpm run check`; omitted from `pnpm run lint`).
 5. **Make the behavior suite pass unchanged.** `OAR_TEST=<id> pnpm sea-trial`
    against your real local installation. The cases in `sea-trial/cases/` are
    the contract: make the runtime pass them, don't loosen them to fit. A case

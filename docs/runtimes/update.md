@@ -89,14 +89,15 @@ reads `droid update --check` and `upgrade` runs `droid update`
 `upgrade` because `devin update` prompts without a `--yes` flag
 ([Devin](devin.md#process-ownership-installation-and-update-checks)).
 
-**pi and cursor.** In process through their SDKs: the pi SDK is a
-[dependency of OAR](../../packages/oar/package.json), and `@cursor/sdk` an optional peer dependency that the host installs and hands to `createCursorRuntime` (the oar
-CLI depends on it). Both installations are `via: "bundled"`; neither runtime
+**pi and cursor.** In process through their SDKs: the Pi SDK packages are
+[optional dependencies of OAR](../../packages/oar/package.json) (and direct dependencies of the oar CLI), and `@cursor/sdk` an optional peer dependency that the host installs and hands to `createCursorRuntime` (the oar
+CLI depends on it). Both in-process installations are `via: "bundled"`; neither runtime
 has `checkUpdate` or `upgrade`, so `oar upgrade` reports each as bundled with
 oar and moving with the oar version.
 Pi's optional RPC process (`createPiRuntime({ execution: "subprocess" })`)
-launches the bundled package's RPC entry, or a host command that must report
-the same version, so it moves with the oar version too
+launches the bundled package's RPC entry (which must match the bundled version)
+or an explicit host command (checked against stable `>= 1.4.0`, `PI_RPC_MINIMUM_VERSION`,
+still requiring the host Pi packages)
 ([pi](pi.md#optional-native-rpc-process)).
 
 ## oar runs

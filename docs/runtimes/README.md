@@ -29,7 +29,7 @@ Pi Durable SDKs before selecting live probes.
 | [Devin](devin.md) | `devin acp`, native CLI (`3000.12.57` probed) | `bypass` mode selection, synchronous `session/set_config_option` model/effort, `session/list` resume-cwd guard, `WINDSURF_API_KEY` status boundary, `distribution` update markers |
 | [Factory Droid](factory.md) | `droid exec` stream-jsonrpc; sign-in on droid's own ACP entry | Native steering drained into the running turn, interrupt drops by RPC id, model/effort readback against silent fallback, custom models for login-free tests |
 | [Grok](grok.md) | `grok agent stdio`, ACP plus vendor extensions | Shared-placement refusal, independent child sessions, client execution, context versus billing |
-| [Kimi](kimi.md) | TypeScript kimi-code's `kimi acp` | Session/agent/turn distinctions, native KAP versus ACP visibility, completion and compaction |
+| [Kimi](kimi.md) | `kimi web --json` (KAP) on `>= 2.7.2-botiverse.1` / `>= 2.7.3` candidates with `kimi acp` fallback | Session/agent/turn distinctions, native KAP versus ACP visibility, completion and compaction |
 | [Mister Morph](morph.md) | **Community runtime** (`@botiverse/oar/community`); Console Runtime API over loopback HTTP + WebSocket | Topic as session, snapshot stream versus authoritative task query, steer by submission, attached versus started Console |
 | [OpenCode](opencode.md) | `opencode acp`, ACP | Installed v1/v2 line selection, native steering differences, child attribution, model queries and prompt-option limits |
 | [Pi](pi.md) | Embedded `@earendil-works/pi-coding-agent` SDK, or its optional native RPC process | Agent run versus internal turns, history tree, session replacement, extension-dependent capabilities |

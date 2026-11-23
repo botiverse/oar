@@ -1899,9 +1899,11 @@ Session's `usage()` ([replay](../../tests/replay/codex-resume.test.ts),
 [resume](../../tests/codex/codex-session-resume-model.test.ts)). [Vendor
 tests](../../sea-trial/vendor/codex.vendor.test.ts) use the real app-server
 with a scripted provider for tools, errors, instructions, usage shape, a
-resumed Session's `usage()` and verbatim stream order. [CI](../../.github/workflows/ci.yml) runs that backend
-on three operating systems with an unpinned CLI; configuration does not prove
-a release passed.
+resumed Session's `usage()` and verbatim stream order.
+CI runs that backend with `@openai/codex` pinned in
+[runtime-versions.json](../../.github/runtime-versions.json) (`ci.yml` on Linux,
+plus Windows on main pushes, and daily `platform-matrix.yml` on macOS);
+configuration does not prove a release passed.
 
 Open gaps:
 

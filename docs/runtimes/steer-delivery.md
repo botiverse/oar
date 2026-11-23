@@ -18,7 +18,7 @@ the echo correlates with the input. The implemented API (`inputId`,
 | Pi SDK 0.84.2 | `AgentSession.steer()` queues the input; `accepted` | `queue_update`, then user `message_start` / `message_end`; the next provider request contains the steer | No request ID in the observed native user message. Timestamp and text are not a safe universal correlation key; the SDK expands templates/skills, so even text equality is not guaranteed |
 | Grok 1.0.77 | `_x.ai/interject {sessionId, text, interjectionId: inputId}`; OAR accepts a successful RPC. Grok returned `{status: "queued"}` on the `_x.ai/interject` frame | `_x.ai/session/interjection` echoes text and `interjectionId` at once. The running turn takes it at its next safe point (after a tool batch, before a model call, before the turn returns): the next provider request contains it, and the original prompt answers once. One that misses the turn runs as Grok's own `interject-fallback-*` turn ([probe](../../experiments/grok-interject/README.md)) | The echo carries `interjectionId`; the drain itself has no live signal, so consumption is not reported |
 | Antigravity CLI 1.5.0 | Another `session/prompt` on the active session; `accepted` after dispatch | The next provider request contains the steer inside the same tool loop. The original prompt answers early; only the newest prompt answer ends the OAR turn ([control](../../experiments/antigravity-cli-acp-2026-11-05.md)) | The control acceptance alone is not proof of provider consumption; no native per-input correlation is claimed |
-| Kimi Code 0.42.0 | From source: no ACP steer method, so the session has no `steer`; `steerOrQueue` and `deliver` queue in the adapter-held queue | No native steer mapping on the selected ACP transport | Do not show queued input as successfully steered |
+| Kimi Code 0.42.0 (ACP fallback) | From source: no ACP steer method, so the session has no `steer`; `steerOrQueue` and `deliver` queue in the adapter-held queue | No native steer mapping on the selected ACP transport | Do not show queued input as successfully steered |
 | Cursor `@cursor/sdk` 1.4.0 | `run.steer(text)`; `accepted` for `complete_delivered` or `{ outcome: "queued" }`, with `native.ack` naming that outcome; `revert_to_followup` is rejected `runtime_refused` | A `user-message-appended` update for local delivery (native 1.4.0, 2026-11-16); queued means the SDK owns a follow-up, whose cloud run OAR does not observe | Text only, no id. Delivered and queued transfer ownership; only delivered establishes same-turn delivery ([Cursor evidence](../../experiments/cursor-sdk-1.4/README.md)) |
 
 Qwen, CodeBuddy and Devin sessions, and OpenCode v2 sessions whose
@@ -32,7 +32,12 @@ text; an aborted turn keeps an accepted steer for the next prompt
 DSH's `steer` (present only when its native method inventory advertises it)
 and Factory's (a second `droid.add_user_message`, drained into the running
 turn) were not probed here; see [DSH](dsh.md#oar-mapping) and
-[Factory](factory.md#prompting-steering-queueing-and-abort).
+[Factory](factory.md#prompting-steering-queueing-and-abort). Kimi KAP builds
+(`>= 2.7.2-botiverse.1` and confirmed `>= 2.7.3`) expose `steer` via
+`POST /sessions/{id}/steer` (while ACP fallback keeps no `steer`), and
+community runtime Cybion steers into the active Thread via
+`POST /v1/threads/{id}/inputs`; see [Kimi](kimi.md#high-level-mapping-to-oar)
+and [Cybion](cybion.md#high-level-mapping-to-oar).
 
 The Codex, Claude and Pi probes ran real installed harnesses against a
 **scripted local model endpoint**, not real accounts, each sending exactly one

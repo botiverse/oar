@@ -149,10 +149,12 @@ version:
   `manualCompaction`, `compactionEvents`, and `appendSystemPrompt` refusal)
   unknown until open-time `/api/v1/meta` negotiation succeeds or falls back to
   ACP.
-- **ACP fallback (`<= 2.7.2-botiverse.0` or missing `/meta` capabilities):**
+- **Non-KAP builds (`<= 2.7.2-botiverse.0`):**
   declares `taskEventTypes: []`, `steer: false`, `stopTask: false`,
   `manualCompaction: { kind: "unsupported" }`, and refuses
-  `appendSystemPrompt`.
+  `appendSystemPrompt`. (Unpatched `>= 2.7.3` binaries that fall back to ACP at
+  open keep the unknown pre-open declaration above and expose ACP session
+  members after open.)
 
 ### KAP transport selection and session mapping (2.7.2-botiverse.1+)
 
@@ -185,9 +187,10 @@ version:
    parent turn, while `user_message.prompt_ids` carries the steer prompt ID) or
    the turn aborts or fails. Manual `compact()` delegates to shared
    `manualCompaction`, driving queue admission from `compaction.busy()`, draining
-   held input from its `released` hook, and rejecting compaction or `steer()`
-   with `busy` while manual compaction is unresolved or a turn, awaiting
-   prompt, steer, or queued input is active.
+   held input from its `released` hook, rejecting compaction with `busy` while
+   manual compaction or a turn, awaiting prompt, steer, or queued input is
+   active, and rejecting `steer()` with `busy` while manual compaction is
+   unresolved (an active root turn is required for `steer()`).
 4. **Unexpected WS closure and shutdown:** When the event WebSocket drops
    unexpectedly, controls (`prompt`, `steer`, `queue`, `abort`, `stopTask`,
    `compact`) immediately reject with `runtime_exited`, held input is dropped,
@@ -380,10 +383,11 @@ after cancellation and a failed outcome otherwise. If the process has
 exited, its exit response settles the turn
 ([test](../../tests/acp/acp-session.test.ts)).
 
-**Steer (KAP vs ACP):** native KAP provides `POST /sessions/{id}/steer`, so on
-KAP builds (`>= 2.7.2-botiverse.1` or `>= 2.7.3`) `sessionCapabilities().steer`
-is `true` and `session.steer()` runs mid-turn without tearing down the active
-session. ACP fallback (`kimi acp`) exposes no steer RPC, so on ACP builds the
+**Steer (KAP vs ACP):** native KAP provides `POST /sessions/{id}/steer`, so
+opened KAP sessions run `session.steer()` mid-turn without tearing down the
+active session (`sessionCapabilities(installation).steer` is pre-declared `true`
+on `>= 2.7.2-botiverse.1` and omitted before open on `>= 2.7.3`). ACP fallback
+(`kimi acp`) exposes no steer RPC, so on ACP builds the
 session has no `steer` member and `steerOrQueue()` / default `deliver()` queue
 until the active turn ends (`kimi-steer-or-queue.ts` on kimi 0.42.0 and 2.0.0).
 Idle delivery prompts immediately. `deliver(input, { when: "interrupt", ... })`
@@ -582,8 +586,11 @@ running session are absent ([native surfaces](live-configure.md)).
 
 On **ACP fallback** builds (`<= 2.7.2-botiverse.0` or missing KAP
 capabilities), `session()` refuses `systemPrompt` and `appendSystemPrompt`
-with an `UnsupportedOptionError`, declared before open in
-`kimiRuntime.refusedSessionOptions` ([options](../../packages/oar/src/runtimes/kimi/options.ts)),
+with an `UnsupportedOptionError` (`systemPrompt` is declared in
+`kimiRuntime.refusedSessionOptions`, and `appendSystemPrompt` in
+`sessionCapabilities(installation).refusedSessionOptions` on
+`<= 2.7.2-botiverse.0`;
+[options](../../packages/oar/src/runtimes/kimi/options.ts)),
 because `kimi acp` has no per-session
 instruction input through its protocol or launcher
 ([refused session options](../spec/runtime-matrix.md#refused-session-options)).
@@ -635,11 +642,13 @@ system prompt). Per-agent usage remains unexposed.
 
 **Compaction (KAP vs ACP):** native agent compaction exists. On **ACP
 fallback**, [`/compact` dispatches a background task](https://github.com/MoonshotAI/kimi-code/blob/f9ca33376/packages/acp-server/src/builtin-commands.ts#L100-L110)
-without exposing a typed compact RPC, so `manualCompaction` is declared
-`unsupported` and ACP sessions carry no `compaction_started` /
-`compaction_ended` events. On **KAP** builds (`>= 2.7.2-botiverse.1` or
-`>= 2.7.3`), `kimiRuntime.sessionCapabilities().manualCompaction` is
-`{ kind: "supported", activeTurn: "reject" }` backed by
+without exposing a typed compact RPC, so
+`sessionCapabilities(installation).manualCompaction` is declared `unsupported` on
+`<= 2.7.2-botiverse.0` and ACP sessions carry no `compaction_started` /
+`compaction_ended` events. On **KAP** builds, `>= 2.7.2-botiverse.1`
+pre-declares `manualCompaction` as `{ kind: "supported", activeTurn: "reject" }`
+in `sessionCapabilities(installation)` while `>= 2.7.3` omits it until
+`/api/v1/meta` confirms KAP; in both cases `session.compact()` is backed by
 `POST /sessions/{id}:compact` and settled by WebSocket `compaction_started` /
 `compaction_ended` events (`trigger: "manual"`).
 
@@ -999,8 +1008,9 @@ The [native OAuth regression](../../sea-trial/vendor/kimi-login.vendor.test.ts)
 runs Kimi against a local OAuth/model server with isolated storage. It checks
 browser-command execution both permitted and suppressed, native model and
 credential writes, status without login, logout, cancellation and a failure
-after the credential write. Linux passed on 2026-10-28; macOS and Windows
-evidence comes from the same test in the three-platform CI check job. These
+after the credential write. Linux passed on 2026-10-28 (`check-native` in
+`ci.yml`); macOS (`macos-check`) and Windows (`windows-native`) run the same
+test daily in `platform-matrix.yml`. These
 tests use synthetic credentials. The browser helper must be gone after login;
 its exit is checked from the surviving test process because native Kimi can
 exit before its own browser callback runs
@@ -1051,10 +1061,12 @@ held before the turn end).
 [Wire-shape tests](../../tests/acp/acp-kimi-wire-shapes.test.ts) pin the
 0.42.0 tool frames (title-only opening, late `rawInput` as `tool_call_input`, terminal-reference
 completion, the Agent report) and the dispose-after-death answer.
-[Snapshot tests](../../tests/acp/acp-vendor-snapshot.test.ts) bind login and
-yolo selection to the recorded 0.38.0 schema. The
-[session behavior CI matrix](../../.github/workflows/ci.yml) pins Kimi 2.6.3
-on Linux and macOS, using a local scripted provider. Windows runs the same
+[Login tests](../../tests/login/kimi-login.test.ts) check ACP login
+(`methodId: "login"`), and [app-request tests](../../tests/app-requests.test.ts)
+classify the recorded 0.38.0 prompt requests. CI pins Kimi 2.6.3 using a local
+scripted provider: [ci.yml](../../.github/workflows/ci.yml) runs `kimi-aimock`
+on Linux, and daily [platform-matrix.yml](../../.github/workflows/platform-matrix.yml)
+runs it on macOS. Windows runs the same
 suites after main pushes in the separate
 [ACP observation workflow](../../.github/workflows/acp-windows.yml), because
 startup or MCP timeouts remain intermittent and unexplained. The shared
@@ -1090,10 +1102,17 @@ Evidence and verification limits: [tool-denial audit](../../experiments/disallow
 
 ## Launch arguments
 
-`SessionOptions.launchArgs` go after `acp`. `kimi acp` reads only its own options there (`--login`, `--region`) and exits on any other (2.1.1); the root command's options, placed before `acp`, do not reach the ACP server either, so kimi currently has no useful launch argument. OAR passes them unchecked and never records them; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
+On KAP candidates (`>= 2.7.2-botiverse.1` or `>= 2.7.3`), `SessionOptions.launchArgs`
+go after `web --json --host 127.0.0.1 --port 0`, and managed flags (`--json`,
+`--host`, `--port`, `--open`, `--no-open`, `--socket`, `--remote-control`,
+`--rc`, `--dangerous-bypass-auth`, `--allow-remote-shutdown`,
+`--debug-endpoints`, `--managed-by`) are rejected before spawn. On `kimi acp`
+fallback, `SessionOptions.launchArgs` go after `acp`. `kimi acp` reads only its own options there (`--login`, `--region`) and exits on any other (2.1.1); the root command's options, placed before `acp`, do not reach the ACP server either, so kimi ACP fallback has no useful launch argument. OAR passes them unchecked and never records them; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
 
 ## Additional directories
 
+On KAP, `SessionOptions.additionalDirectories` registers extra directories
+through `POST /workspaces` at session creation; on ACP fallback,
 `SessionOptions.additionalDirectories` goes to ACP
 `session/new.additionalDirectories` only when initialize advertises that
 session capability. Paths resolve against cwd. The provider request of a
