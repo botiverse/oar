@@ -25,12 +25,16 @@ increments, not a promise to add every feature listed.
 - Capabilities as types ([capabilities](capabilities.md)): absent members for
   missing operations, `UnsupportedOptionError` for refused options
   (`ResumeCwdError` when a resume cannot honor or confirm its directory),
-  `ModelConfirmationError` when opening cannot confirm the requested model, and
-  declarations only for pre-action decisions; native payload reachability and
-  read-backs.
+  `ModelConfirmationError` when opening cannot confirm the requested model,
+  synchronous `installedSessionCapabilities(runtime, installation)` via
+  `@botiverse/oar/capabilities`, declared credentials (`Runtime.credentials`),
+  and native payload reachability and read-backs.
 - Runtimes whose SDK or engine the host installs and hands over
-  (`createCursorRuntime`, `createPiDurableRuntime`), one package entry per
-  runtime (`@botiverse/oar/runtimes/<id>`) so a host loads only what it uses,
+  (`createCursorRuntime`, plus `createPiDurableRuntime` under
+  `@botiverse/oar/pi-durable`), community runtimes under
+  `@botiverse/oar/community` (`createMorphRuntime`, `createCybionRuntime`),
+  optional Pi SDK installation in `@botiverse/oar`, one package entry per
+  built-in runtime (`@botiverse/oar/runtimes/<id>`) so a host loads only what it uses,
   and a clean-install check of the published packages.
 - Placement as a declared runtime choice ([system](system.md#placement)):
   `Runtime.execution`, Pi through its own RPC process
@@ -41,17 +45,22 @@ increments, not a promise to add every feature listed.
   shared placement today.
 - Interrupt delivery for runtimes without steer
   (`deliver(input, { when: "interrupt", maxWaitMs, merge })`), sessions that
-  skip user-level configuration (`userConfiguration: "exclude"`), and login,
+  skip user-level configuration (`userConfiguration: "exclude"`), background
+  memory control (`nativeMemoryDefault`, `SessionCapabilities.nativeMemory`),
+  session-log upload control (`SessionOptions.sessionLogUpload`), and login,
   logout and status in the environment a session uses (`env`,
   `userShellEnvironment()`).
-- Native controls with attributable results: manual compaction
+- Native controls and read-backs with attributable results: manual compaction
   (`Session.compact`, `Runtime.manualCompaction`), single-task stop
   (`Session.stopTask`), account limit resets (`Runtime.redeemLimitReset`; claude's through its
   interactive UI with `Runtime.inspectLimitResets`),
   ending an aborted turn's processes (`endTurnProcessesOnAbort`), measured
-  resume timing (`Runtime.resumedSessionOptions`) and bounded retention by
-  eliding old frame content (`retainedBytes`)
-  ([decisions](decisions.md)).
+  resume timing (`Runtime.resumedSessionOptions`), bounded retention by
+  eliding old frame content (`retainedBytes`), attributed latest model
+  request (`SessionOptions.modelRequests: "latest"`, `Session.lastModelRequest`),
+  native persisted file location (`Session.nativeSessionFile`), and one-shot
+  forked questions (`Runtime.sideQuestion`)
+  ([decisions](decisions.md), [model-request](../spec/model-request.md)).
 - Mock, aimock, vendor, experiment and live validation layers, with voyage
   logs as durable evidence.
 - Bounded `orient()` snapshots with local, account and models depths, explicit
@@ -62,19 +71,21 @@ increments, not a promise to add every feature listed.
 
 ### 1. Make actions self-describing
 
-**Shipped for controls:** a rejected control carries a typed `code` beside the
-prose `reason` (`busy`, `no_active_turn`, `not_queued`, `unsupported`,
-`runtime_exited`, `disposed`, `runtime_refused`, `error`); `Session.status()` is a query whose
+**Shipped:** a rejected control carries a typed `code` beside the prose
+`reason` (`aborted`, `busy`, `no_active_turn`, `not_queued`, `unsupported`,
+`runtime_exited`, `session_released`, `disposed`, `runtime_refused`,
+`session_not_found`, `error`); `Session.status()` is a query whose
 `busy` matches its `running`; `awaitIdle` and `promptAndWait` (with
-`timeoutMs` and `signal`) write the wait, abort and settle sequence once. The
-caller that forced it was the arena app, which matched `reason === "busy"` and
-polled. Spec: [record-stream.md](../spec/record-stream.md); regression:
+`timeoutMs` and `signal`) write the wait, abort and settle sequence once;
+`TurnOutcome` `failed` carries `FailureClass` (with `credential`, `status`,
+`resetsAt` and `rateLimitType` where the runtime says them) and `failureAdvice`
+turns a class into a retry policy. Spec: [record-stream.md](../spec/record-stream.md),
+[runtime-matrix.md](../spec/runtime-matrix.md#failure-evidence); regression:
 `tests/turns.test.ts`; sea-trial: `session.single-active-turn`.
 
-**Open:** a runtime's own failure prose in `TurnOutcome.failed`
-(`FailureClass`, with `credential`, `status` and `resetsAt` where the runtime
-says them, is the only category today; `failureAdvice` turns it into a retry
-policy).
+**Open:** runtimes whose failure prose carries no structured classification
+still land in `unknown` (or lack structured resets such as `rate_limited`
+backoffs).
 
 **Acceptance:** a caller can choose retry, queue, hand off or stop without
 parsing prose; rejected input is provably caller-owned.
