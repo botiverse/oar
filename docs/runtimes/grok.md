@@ -368,7 +368,7 @@ is an `exited` response, classified by the folds as described below. Around each
 `_x.ai/interject {sessionId, text, interjectionId: inputId}` (with `content`
 blocks when images travel) and answers `accepted` on a successful native RPC reply.
 Grok reported `{result: {status: "queued"}}` in the control. OAR does not
-require that status value. A 15-second timeout rejects with `error` and
+require that status value. A 30-second timeout rejects with `error` and
 leaves delivery unconfirmed. The successful reply is a frame `_x.ai/interject` with
 `responseTo` the steer request. An RPC error is a frame
 `_x.ai/interject/error` and the steer is rejected `runtime_refused`. With no

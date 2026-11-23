@@ -182,3 +182,18 @@ test("sessionLoadTimeoutMs overrides session/load without changing ordinary requ
 test.each(["session/new", "authenticate"])("sessionLoadTimeoutMs leaves %s at requestTimeoutMs", async (method) => {
   await expectTimeoutAt({ startSession: acpSession(customProfile), heldMethod: method }, 15_000, method);
 });
+
+const defaultProfile: AcpSessionProfile = {
+  args: ["acp"],
+  capabilities: { queue: { durable: false }, attribution: "opaque" },
+  selectAuthMethod: () => "login",
+};
+
+test("default ACP profile gives session/load 60 seconds while session/new keeps 15 seconds", async () => {
+  await expectTimeoutAt({ startSession: acpSession(defaultProfile), heldMethod: "session/load" }, 60_000, "session/load");
+  await expectTimeoutAt({ startSession: acpSession(defaultProfile), heldMethod: "session/new" }, 15_000, "session/new");
+});
+
+test("unset sessionLoadTimeoutMs expands to requestTimeoutMs when requestTimeoutMs exceeds 60 seconds", async () => {
+  await expectTimeoutAt({ startSession: acpSession({ ...defaultProfile, requestTimeoutMs: 90_000 }), heldMethod: "session/load" }, 90_000, "session/load");
+});
