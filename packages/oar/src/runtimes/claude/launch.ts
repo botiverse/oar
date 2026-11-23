@@ -25,7 +25,12 @@ import { claudePromptFiles } from "./prompt-files.js";
  */
 
 /** The process a claude session drives. */
-export type ClaudeProcess = LineProcess;
+export type ClaudeProcess = LineProcess & {
+  /** Non-FIFO fallback file only: true when `--mcp-config` is a regular file awaiting startup readback before deletion. */
+  readonly mcpConfigFile?: boolean;
+  /** Release a non-FIFO `--mcp-config` file once Claude has completed its startup handshake. */
+  readonly releaseMcpConfig?: () => void;
+};
 
 /**
  * The session identity flags: a new session under OAR's id, a resume of
@@ -121,7 +126,9 @@ export async function launchClaude(command: string, sessionId: string, options: 
     });
     mcpConfig?.start();
     await child.spawned;
-    return child;
+    return Object.assign(child, mcpConfig?.kind === "file"
+      ? { mcpConfigFile: true as const, releaseMcpConfig: () => { mcpConfig.releaseAfterRead(); } }
+      : {});
   } catch (error) {
     child?.kill();
     mcpConfig?.end();

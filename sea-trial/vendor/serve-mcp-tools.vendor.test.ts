@@ -82,7 +82,7 @@ for (const backend of backends) {
       }, 10_000).unref() : undefined;
       try {
         const opening = runtimeUnderTest(backend.runtime, env.env, env.cwd).startSession({ mcpServers: [served.server] });
-        if (backend.id === "pi-rpc-aimock" || (backend.id === "claude-aimock" && process.platform === "win32")) {
+        if (backend.id === "pi-rpc-aimock") {
           await expect(opening).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "mcpServers" });
           return;
         }

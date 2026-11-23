@@ -68,7 +68,7 @@ test("the declarations say which options each runtime refuses", () => {
   const refused = Object.fromEntries(allRuntimes.list().map((runtime) => [runtime.id, Object.keys(runtime.refusedSessionOptions ?? {}).toSorted()]));
   assert.deepEqual(refused, {
     antigravity: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "sessionLogUpload", "systemPrompt", "userConfiguration"],
-    claude: ["endTurnProcessesOnAbort", "goals", ...(process.platform === "win32" ? ["mcpServerCredentials"] : []), "nativeMemoryDefault", "sessionLogUpload"],
+    claude: ["endTurnProcessesOnAbort", "goals", "nativeMemoryDefault", "sessionLogUpload"],
     codebuddy: ["additionalDirectories", "appendSystemPrompt", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "sessionLogUpload", "userConfiguration"],
     codex: ["modelRequests", "nativeMemoryDefault", "sessionLogUpload", "userConfiguration"],
     cursor: ["appendSystemPrompt", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "partialUserConfiguration", "serviceTier", "sessionLogUpload", "systemPrompt"],
@@ -118,7 +118,7 @@ test("entries without credentials are no mcpServerCredentials given, and every r
     }, runtime.id);
   }
   const refusing = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions?.mcpServers !== undefined || runtime.refusedSessionOptions?.mcpServerCredentials !== undefined);
-  expect(refusing.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", ...(process.platform === "win32" ? ["claude"] : []), "cursor", "devin", "dsh"]);
+  expect(refusing.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", "cursor", "devin", "dsh"]);
 });
 
 // Some runtimes drop a server so named without a word (#395): every runtime

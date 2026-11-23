@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, lstatSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { open, readFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -113,7 +113,7 @@ test("a resume passes them again: claude remembers no --mcp-config", async () =>
   await session.dispose();
 });
 
-test("claude exiting before it reads the config removes it too", async () => {
+test.skipIf(!fifos)("claude exiting before it reads the config removes it too", async () => {
   const fake = fakeLineProcess();
   spawnLineProcess.mockReturnValue(fake);
   const session = await claudeSession(installation, { cwd: "/work", mcpServers: [{ name: "plain", command: "echo" }] });
@@ -139,12 +139,44 @@ test.skipIf(!fifos)("claude exiting in the middle of reading: the handoff stops 
   expect(existsSync(path.dirname(config))).toBe(false);
 });
 
-test("credentialed entries fail before spawn when no FIFO can be created", async () => {
+async function runNoFifoSession(answer: (child: FakeLineProcess, requestId: unknown) => void) {
+  const seen = { config: "", existed: false, mode: 0, contents: "" };
   vi.stubEnv("PATH", "");
-  try {
-    await expect(claudeSession(installation, { cwd: "/work", mcpServers: servers })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "mcpServers" });
-    expect(spawnLineProcess).not.toHaveBeenCalled();
-  } finally { vi.unstubAllEnvs(); }
+  spawnLineProcess.mockReturnValue(fakeLineProcess((text, child) => {
+    const request = asRecord(JSON.parse(text));
+    if (asRecord(request?.request)?.subtype !== "initialize") { return; }
+    const config = spawned().config ?? "";
+    seen.config = config;
+    seen.existed = existsSync(config);
+    seen.mode = seen.existed ? lstatSync(config).mode & 0o777 : 0;
+    seen.contents = seen.existed ? readFileSync(config, "utf8") : "";
+    answer(child, request?.request_id);
+  }));
+  try { return { seen, session: await claudeSession(installation, { cwd: "/work", mcpServers: servers }) }; }
+  finally { vi.unstubAllEnvs(); }
+}
+
+test("credentialed entries use a 0600 file deleted right after initialize when no FIFO can be created", async () => {
+  const { seen, session } = await runNoFifoSession((child, requestId) => {
+    child.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: requestId, response: {} } })}\n`);
+  });
+  expect(spawned().argv).not.toContain("--strict-mcp-config");
+  expect([STDIO_TOKEN, HEADER].filter((secret) => JSON.stringify(spawned().argv).includes(secret))).toEqual([]);
+  expect({ existed: seen.existed, mode: seen.mode }).toEqual({ existed: true, mode: process.platform === "win32" ? seen.mode : 0o600 });
+  expect(JSON.parse(seen.contents)).toMatchObject({ mcpServers: { echo: { env: { OAR_ECHO_TOKEN: STDIO_TOKEN } }, remote: { headers: { Authorization: HEADER } } } });
+  expect(existsSync(path.dirname(seen.config))).toBe(false);
+  await session.dispose();
+});
+
+test("non-FIFO file fallback rejects and removes file and directory when claude exits before initialize", async () => {
+  let configDir = "";
+  const failing = runNoFifoSession((child) => {
+    configDir = path.dirname(spawned().config ?? "");
+    child.end(1);
+  });
+  await expect(failing).rejects.toThrow(/exited.*initialize/u);
+  expect(configDir).not.toBe("");
+  expect(existsSync(configDir)).toBe(false);
 });
 
 test("no servers, or an empty list, pass no --mcp-config", async () => {
