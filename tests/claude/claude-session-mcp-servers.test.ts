@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
-import { existsSync, lstatSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { open, readFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { afterEach, expect, test, vi } from "vitest";
-import type { McpServer } from "../../packages/oar/src/contracts/session.js";
+import type { McpServer, SessionOptions } from "../../packages/oar/src/contracts/session.js";
 import { claudeSession } from "../../packages/oar/src/runtimes/claude/session.js";
-import { asRecord } from "../../packages/oar/src/shared/json.js";
+import { asRecord, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 import { fakeLineProcess, type FakeLineProcess } from "../fixtures/fake-line-process.js";
 
 const spawnLineProcess = vi.hoisted(() => vi.fn<(command: string, args: readonly string[]) => FakeLineProcess>());
@@ -113,7 +113,7 @@ test("a resume passes them again: claude remembers no --mcp-config", async () =>
   await session.dispose();
 });
 
-test("claude exiting before it reads the config removes it too", async () => {
+test.skipIf(!fifos)("claude exiting before it reads the config removes it too", async () => {
   const fake = fakeLineProcess();
   spawnLineProcess.mockReturnValue(fake);
   const session = await claudeSession(installation, { cwd: "/work", mcpServers: [{ name: "plain", command: "echo" }] });
@@ -139,12 +139,82 @@ test.skipIf(!fifos)("claude exiting in the middle of reading: the handoff stops 
   expect(existsSync(path.dirname(config))).toBe(false);
 });
 
-test("credentialed entries fail before spawn when no FIFO can be created", async () => {
+function recordSeenInit(seen: { config: string; existed: boolean; isFile: boolean; mode: number; contents: string; inits: number }): void {
+  seen.inits += 1;
+  const config = spawned().config ?? "";
+  seen.config = config;
+  seen.existed = existsSync(config);
+  seen.isFile = seen.existed && lstatSync(config).isFile();
+  seen.mode = seen.existed ? lstatSync(config).mode & 0o777 : 0;
+  seen.contents = seen.existed ? readFileSync(config, "utf8") : "";
+}
+
+async function runNoFifoSession(
+  answer: (child: FakeLineProcess, request: JsonRecord) => void,
+  extra: Partial<SessionOptions> = {},
+) {
+  const seen = { config: "", existed: false, isFile: false, mode: 0, contents: "", inits: 0 };
   vi.stubEnv("PATH", "");
-  try {
-    await expect(claudeSession(installation, { cwd: "/work", mcpServers: servers })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "mcpServers" });
-    expect(spawnLineProcess).not.toHaveBeenCalled();
-  } finally { vi.unstubAllEnvs(); }
+  spawnLineProcess.mockReturnValue(fakeLineProcess((text, child) => {
+    const request = asRecord(JSON.parse(text));
+    if (request === null) { return; }
+    if (asRecord(request.request)?.subtype === "initialize") { recordSeenInit(seen); }
+    answer(child, request);
+  }));
+  try { return { seen, session: await claudeSession(installation, { cwd: "/work", mcpServers: servers, ...extra }) }; }
+  finally { vi.unstubAllEnvs(); }
+}
+
+test("credentialed entries use a 0600 file deleted right after initialize when no FIFO can be created", async () => {
+  const { seen, session } = await runNoFifoSession((child, request) => {
+    child.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request.request_id, response: {} } })}\n`);
+  });
+  expect(spawned().argv).not.toContain("--strict-mcp-config");
+  expect([STDIO_TOKEN, HEADER].filter((secret) => JSON.stringify(spawned().argv).includes(secret))).toEqual([]);
+  expect({ existed: seen.existed, isFile: seen.isFile, mode: seen.mode, inits: seen.inits }).toEqual({ existed: true, isFile: true, mode: process.platform === "win32" ? seen.mode : 0o600, inits: 1 });
+  expect(JSON.parse(seen.contents)).toMatchObject({ mcpServers: { echo: { env: { OAR_ECHO_TOKEN: STDIO_TOKEN } }, remote: { headers: { Authorization: HEADER } } } });
+  expect(existsSync(path.dirname(seen.config))).toBe(false);
+  await session.dispose();
+});
+
+test("non-FIFO file fallback rejects and removes file and directory when claude exits before initialize", async () => {
+  let configDir = "";
+  const failing = runNoFifoSession((child) => {
+    configDir = path.dirname(spawned().config ?? "");
+    child.end(1);
+  });
+  await expect(failing).rejects.toThrow(/exited.*initialize/u);
+  expect(configDir).not.toBe("");
+  expect(existsSync(configDir)).toBe(false);
+});
+
+test("non-FIFO initialize error refuses open with redacted error and removes the private directory", async () => {
+  let configDir = "";
+  const failing = runNoFifoSession((child, request) => {
+    configDir = path.dirname(spawned().config ?? "");
+    child.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "error", request_id: request.request_id, error: `bad mcp ${STDIO_TOKEN}` } })}\n`);
+  });
+  const caughtFailure: unknown = await failing.catch((error: unknown) => error);
+  assert.ok(caughtFailure instanceof Error);
+  expect(caughtFailure.message).toContain("claude could not initialize MCP config (bad mcp [redacted])");
+  expect(JSON.stringify(caughtFailure)).not.toContain(STDIO_TOKEN);
+  expect(existsSync(configDir)).toBe(false);
+});
+
+const combinedResponses: Readonly<Record<string, JsonRecord>> = {
+  get_settings: { applied: { effort: "high" } },
+  get_status: { sections: [{ title: "Session", rows: [{ label: "Session ID", value: "claude-session-1" }] }] },
+  initialize: { fast_mode_state: "on" },
+};
+
+test("non-FIFO handoff with resume, effort, and serviceTier runs initialize once and removes the file before dispose", async () => {
+  const { seen, session } = await runNoFifoSession((child, request) => {
+    const raw = asRecord(request.request)?.subtype;
+    const response = typeof raw === "string" ? (combinedResponses[raw] ?? {}) : {};
+    child.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request.request_id, response } })}\n`);
+  }, { resume: "claude-session-1", effort: "high", serviceTier: "fast" });
+  expect({ isFile: seen.isFile, inits: seen.inits, gone: !existsSync(path.dirname(seen.config)) }).toEqual({ isFile: true, inits: 1, gone: true });
+  await session.dispose();
 });
 
 test("no servers, or an empty list, pass no --mcp-config", async () => {

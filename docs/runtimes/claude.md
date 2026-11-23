@@ -134,8 +134,9 @@ same answer, and requested `effort` is read back afterward. Next, `get_status`
 confirms that Claude's `Session ID` row matches `sessionId` (rejecting a
 saved `--name` title match that opened another UUID), and `get_usage` reads
 its [token baseline](#token-totals), each within a 30-second wall-clock bound;
-the usage answer never fails the open. Fresh opens without either setting
-keep the immediate post-spawn path; no fresh open sends `get_usage`.
+the usage answer never fails the open. Fresh opens without those readbacks,
+`modelRequests`, or a non-FIFO `mcpServers` handoff keep the immediate
+post-spawn path; no fresh open sends `get_usage`.
 
 A missing resume ID reports `result/error_during_execution` before answering
 `initialize`, then exits. When `errors[0]` starts with
@@ -1134,9 +1135,11 @@ temporary directory, a fresh 0700 directory
   initializes again after a 404 both got their credentials with the path
   gone. A [vendor test](../../sea-trial/vendor/claude-mcp-config.vendor.test.ts)
   checks all three on every claude CI installs.
-- **Regular-file fallback.** Windows declares `mcpServerCredentials` refused.
-  POSIX also refuses credentialed entries if FIFO creation fails. Credential-free
-  entries may use a 0600 file removed on process exit.
+- **Regular-file fallback.** On platforms without FIFOs (Windows, or when
+  `mkfifo` is unavailable), OAR writes a 0600 `mcp.json` inside the same
+  0700 private temporary directory and deletes the file and directory as soon
+  as `initialize` completes (before the first prompt), and at the latest on
+  process exit.
 - **A host that ends without disposing.** On its `exit` event
   (`process.exit()`, an uncaught exception) oar removes what is left. A
   signal or SIGKILL fires none: a file stays until the next claude session

@@ -1042,7 +1042,7 @@ in [user configuration](#user-configuration).
 | factory | `serviceTier`, `outputSchema`, `name`, `additionalDirectories`, `disallowedTools`, `userConfiguration: "exclude"` | no tier; structured output, session titles and tool denials not yet verified; no extra-directory or user-configuration exclusion channel ([mapping](../runtimes/factory.md#session-options)) |
 | qoder | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
 | codex | `userConfiguration: "exclude"`; `endTurnProcessesOnAbort: true` only with shared placement | temporary clean homes break shared history paths after cleanup ([evidence](../runtimes/codex.md#user-configuration)); a shared app-server's process table does not say which session's turn started a process |
-| claude | `goals: true`, `endTurnProcessesOnAbort: true`, `mcpServerCredentials` on Windows | no structured native goal controls on the chosen transport; other value-specific refusals are described on its runtime page. Regular-file MCP startup on Windows has no verified point at which the file can be removed before the first turn. [Isolation measurements](../../experiments/mcp-credential-admission/README.md) |
+| claude | `goals: true`, `endTurnProcessesOnAbort: true` | no structured native goal controls on the chosen transport; other value-specific refusals are described on its runtime page ([Isolation measurements](../../experiments/mcp-credential-admission/README.md)) |
 
 `mcpServers` is refused until a runtime's channel is shown to make its agent
 call an attached server's tool, with the evidence on its runtime page
@@ -1050,7 +1050,7 @@ call an attached server's tool, with the evidence on its runtime page
 
 | runtime | channel | stdio | http | resume | a name the user's config also has |
 |---|---|---|---|---|---|
-| claude | `--mcp-config <path>`: a 0600 FIFO removed once claude has read it (a regular file is allowed only for credential-free entries); strict host-only configuration when user configuration is excluded | yes | yes | the flag again | the session's server replaces the user's for that process ([claude](../runtimes/claude.md#session-mcp-servers)) |
+| claude | `--mcp-config <path>`: a 0600 FIFO removed once claude has read it (or, where FIFOs are unavailable such as Windows, a 0600 file inside a 0700 dir deleted right after `initialize`); strict host-only configuration when user configuration is excluded | yes | yes | the flag again | the session's server replaces the user's for that process ([claude](../runtimes/claude.md#session-mcp-servers)) |
 | codex | `config.mcp_servers` on `thread/start` and `thread/resume` | yes | yes | the override again | merged into the user's entry field by field; oar's `command` / `url`, `args` and `enabled = true` win ([codex](../runtimes/codex.md#session-mcp-servers)) |
 | cursor | credential-free entries through the SDK's `mcpServers` on `Agent.create` and `Agent.resume` | yes | yes | the record again | not re-checked live; against a stand-in backend the inline entry won ([cursor](../runtimes/cursor.md#session-mcp-servers)) |
 | grok | ACP `mcpServers` on `session/new` and `session/resume`; the model reaches the tools through grok's `use_tool` | yes | yes | the param again | the session's replaces the user's `config.toml` entry; the user's others stay ([grok](../runtimes/grok.md#session-mcp-servers)) |
@@ -1234,8 +1234,8 @@ them from a streamable HTTP MCP server inside the host process, on
 `127.0.0.1` behind a random bearer token, and returns `close()` and an `mcpServers`
 entry containing the HTTP URL, authorization header, name and
 `origin: "serveMcpTools"`. Codex and Grok use the origin to wait for native
-startup during open. Claude on POSIX, Codex, Pi SDK, Grok, Kimi, OpenCode,
-CodeBuddy, Factory, Qwen and Qoder accept the entry. Cursor, Devin, Pi RPC, Claude on Windows and Antigravity
+startup during open. Claude, Codex, Pi SDK, Grok, Kimi, OpenCode,
+CodeBuddy, Factory, Qwen and Qoder accept the entry. Cursor, Devin, Pi RPC and Antigravity
 refuse an entry with `headers` (`mcpServerCredentials`). Pi Durable refuses `mcpServers`,
 and DSH accepts only stdio command/args.
 A host tells before opening:

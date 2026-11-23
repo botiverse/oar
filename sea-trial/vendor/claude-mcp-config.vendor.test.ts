@@ -11,17 +11,18 @@ const claudeSession = claudeRuntime.session;
 
 /*
  * The probe for every claude CI installs (it installs the latest): oar hands
- * a session's mcpServers to claude through a FIFO it removes once claude has
- * read it (packages/oar/src/runtimes/claude/mcp-config.ts). That holds only
- * while claude opens the path once, at startup, waits for a writer that comes
- * after it, and keeps the config in memory. When this fails, the handoff needs
- * a new design: a session must never lose its servers silently.
+ * a session's mcpServers to claude through a FIFO on POSIX (removed once claude
+ * reads it) or a 0600 file on non-FIFO platforms (removed right after
+ * initialize; packages/oar/src/runtimes/claude/mcp-config.ts). That holds only
+ * while claude opens the path once, at startup, waits for a FIFO writer that
+ * comes after it on POSIX, and keeps the config in memory. When this fails,
+ * the handoff needs a new design: a session must never lose its servers silently.
  */
 
 describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude --mcp-config handoff", () => {
   const runtime = defineRuntime({ id: "claude-aimock", session: claudeSession, installation: claudeInstallation });
 
-  test.skipIf(process.platform === "win32")("claude reads the config once, at startup: it is gone before the first prompt, and a stdio server claude restarts and an http one it initializes again still get their credentials", async () => {
+  test("claude reads the config once, at startup: it is gone before the first prompt, and a stdio server claude restarts and an http one it initializes again still get their credentials", async () => {
     // --once: the stdio server exits after one call and answers nothing more; the http one answers 404 to the session it made a call in.
     const http = await startHttpEcho(["--once"]);
     const env = await startClaudeAimock((mock) => {
@@ -38,9 +39,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude --mcp-config h
     try {
       const mcpServers = [stdioEcho("echo", STDIO_TOKEN, ["--once"]), { name: "remote", type: "http" as const, url: http.url, headers: { Authorization: HTTP_AUTHORIZATION } }];
       const session = await runtimeUnderTest(runtime, env.env).startSession({ mcpServers });
-      if (process.platform !== "win32") {
-        expect(await claudeConfigsGone(30_000)).toEqual([]);
-      }
+      expect(await claudeConfigsGone(30_000)).toEqual([]);
       expect(await structuralToolRound(session, env.mock, "please call each echo twice")).toMatchInlineSnapshot(`
         [
           "request:prompt",

@@ -21,6 +21,7 @@ import { privateTempDir, sweepPrivateTempDirs, type PrivateTempDir } from "./pri
 
 /** How an MCP config reaches one child process: `path`, `start()` once spawned, `releaseAfterRead()` after startup handshake (file fallback only; FIFO removes itself after feeding), and `end()` on exit or launch failure (idempotent). */
 export interface McpConfigHandoff {
+  readonly kind: "fifo" | "file";
   readonly path: string;
   start(): void;
   releaseAfterRead(): void;
@@ -96,6 +97,7 @@ function fifoHandoff(file: string, content: string, directory: PrivateTempDir): 
     }
   };
   return {
+    kind: "fifo",
     path: file,
     start: () => {
       // A failed feed (child closed its end early) leaves the runtime to report
@@ -142,6 +144,7 @@ export async function handOverMcpConfigFile(prefix: string, content: string, fil
     directory.remove();
   };
   return {
+    kind: "file",
     path: file,
     start: () => {
       // Non-FIFO platforms read the 0600 file; callers remove it via releaseAfterRead() or end().

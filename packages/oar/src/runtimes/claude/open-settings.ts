@@ -17,7 +17,7 @@ import { claudeForkIdRefusal, claudeStatusRequest } from "./fork-identity.js";
 import { ClaudeOpenDeadline, claudeOpenLimits, type ClaudeOpenLimits } from "./open-deadline.js";
 
 type Method = "get_settings" | "initialize" | "get_usage" | "get_status";
-type Option = "effort" | "serviceTier" | "resume" | "modelRequests";
+type Option = "effort" | "serviceTier" | "resume" | "modelRequests" | "mcpServers";
 
 function failedInitialization(message: JsonRecord): boolean {
   return message.type === "result" && message.subtype === "error_during_execution";
@@ -31,7 +31,11 @@ function isMissingResumeError(error: unknown): boolean {
 }
 
 function refusalFor(answer: JsonRecord | Error, option: Option, requested: string, options: SessionOptions): string | null {
-  if (answer instanceof Error) { return `${answer.message}, so ${option} ${requested} cannot be confirmed`; }
+  if (answer instanceof Error) {
+    return option === "mcpServers"
+      ? `${answer.message}, so MCP config cannot be confirmed`
+      : `${answer.message}, so ${option} ${requested} cannot be confirmed`;
+  }
   if (failedInitialization(answer)) {
     const errors = Array.isArray(answer.errors) ? answer.errors.filter((error): error is string => typeof error === "string") : [];
     return errors.join("\n") || "claude initialization failed (result/error_during_execution)";
@@ -41,9 +45,11 @@ function refusalFor(answer: JsonRecord | Error, option: Option, requested: strin
   if (option === "serviceTier") { return claudeServiceTierRefusal(requested, answer); }
   const response = asRecord(answer.response);
   if (response?.subtype !== "success") {
-    return `claude could not resume ${requested} (initialize: ${typeof response?.error === "string" ? response.error : "no success answer"})`;
+    return option === "mcpServers"
+      ? `claude could not initialize MCP config (${typeof response?.error === "string" ? response.error : "no success answer"})`
+      : `claude could not resume ${requested} (initialize: ${typeof response?.error === "string" ? response.error : "no success answer"})`;
   }
-  return options.serviceTier === undefined ? null : claudeServiceTierRefusal(options.serviceTier, answer);
+  return options.serviceTier === undefined || option === "mcpServers" ? null : claudeServiceTierRefusal(options.serviceTier, answer);
 }
 
 /** Successful readbacks contain private configuration or account details, never error diagnostics. */
@@ -77,6 +83,15 @@ interface OpenSettings {
   confirmSessionId(expected: string, options: SessionOptions): Promise<void>;
 }
 
+async function releaseMcpConfig(child: ClaudeProcess): Promise<void> {
+  if (child.releaseMcpConfig === undefined) { return; }
+  try { child.releaseMcpConfig(); } catch (error) {
+    child.kill();
+    await child.exited;
+    throw error;
+  }
+}
+
 /** Bounded native readbacks at open, consumed before the ordinary projection stream. */
 export function claudeOpenSettings(child: ClaudeProcess, limits: ClaudeOpenLimits = claudeOpenLimits): OpenSettings {
   const deadline = new ClaudeOpenDeadline(limits);
@@ -86,7 +101,7 @@ export function claudeOpenSettings(child: ClaudeProcess, limits: ClaudeOpenLimit
   let opening = true;
   const exitError = (method: Method): Error => new Error(`claude exited (code ${String(lifetime.code)}) before answering ${method}`);
   const confirm = async (method: Method, option: Option, options: SessionOptions, capture?: ClaudeModelRequests): Promise<void> => {
-    const requested = options[option];
+    const requested = option === "mcpServers" ? "mcpServers" : options[option];
     if (requested === undefined) { return; }
     const { redact } = sessionCredentialRedactor(options);
     const { promise, resolve } = Promise.withResolvers<JsonRecord | Error>();
@@ -198,6 +213,8 @@ export function claudeOpenSettings(child: ClaudeProcess, limits: ClaudeOpenLimit
         if (settings !== undefined) { await confirm("get_settings", settings, options, capture); }
         if (init === "serviceTier") { await confirm("initialize", init, options, capture); }
         if (init === undefined && capture !== undefined) { await confirm("initialize", "modelRequests", options, capture); }
+        if (init === undefined && capture === undefined && child.mcpConfigFile === true) { await confirm("initialize", "mcpServers", options, capture); }
+        await releaseMcpConfig(child);
       } finally {
         deadline.stop();
         opening = false;
