@@ -1,0 +1,870 @@
+{
+  "window": {
+    "fromExclusive": "2026-11-21T21:07:59Z",
+    "throughInclusive": "2026-11-22T21:07:59Z",
+    "selection": "Run creation time, one-second precision. Outcomes read November 23."
+  },
+  "oarCommit": "3edc3cbfcb1789b3163ba3dd3299b749e44bce51",
+  "inventory": {
+    "checkedAt": "2026-11-23T02:10:48.740Z",
+    "platform": "linux-x64",
+    "node": "v24.19.0",
+    "script": "experiments/runtime-versions.ts",
+    "results": [
+      {
+        "runtime": "antigravity",
+        "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json",
+        "latest": "1.5.14",
+        "installed": "1.5.14",
+        "installation": "available",
+        "status": "current"
+      },
+      {
+        "runtime": "claude",
+        "source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest",
+        "latest": "2.1.330",
+        "installed": "2.1.292",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "codex",
+        "source": "https://registry.npmjs.org/@openai/codex/latest",
+        "latest": "0.171.0",
+        "installed": "0.170.0",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "cursor",
+        "source": "https://registry.npmjs.org/@cursor/sdk/latest",
+        "latest": "1.4.2",
+        "installed": "1.4.1",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "dsh",
+        "source": "https://registry.npmjs.org/@deepseek-ai/dsh/latest",
+        "latest": "0.2.2-rc.5",
+        "installed": null,
+        "installation": "not_found",
+        "status": "unavailable"
+      },
+      {
+        "runtime": "factory",
+        "source": "https://registry.npmjs.org/droid/latest",
+        "latest": "1.17.2",
+        "installed": null,
+        "installation": "not_found",
+        "status": "unavailable"
+      },
+      {
+        "runtime": "grok",
+        "source": "https://x.ai/cli/stable",
+        "latest": "1.0.92",
+        "installed": "1.0.92",
+        "installation": "available",
+        "status": "current"
+      },
+      {
+        "runtime": "kimi",
+        "source": "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest",
+        "latest": "2.7.2",
+        "installed": "2.1.1",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "opencode",
+        "line": "v1",
+        "source": "https://registry.npmjs.org/opencode-ai/latest",
+        "latest": "1.19.6",
+        "installed": "1.18.30",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "opencode",
+        "line": "v2",
+        "source": "https://registry.npmjs.org/@opencode/cli/latest",
+        "latest": "2.3.2",
+        "installed": "1.18.30",
+        "installation": "available",
+        "status": "other_release_line"
+      },
+      {
+        "runtime": "codebuddy",
+        "source": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest",
+        "latest": "2.185.0",
+        "installed": "2.173.0",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "qoder",
+        "source": "https://registry.npmjs.org/@qoder-ai/qodercli/latest",
+        "latest": "1.1.95",
+        "installed": "1.1.78",
+        "installation": "available",
+        "status": "different",
+        "candidateProbe": "no_offline_replay_requires_real_account"
+      },
+      {
+        "runtime": "qwen",
+        "source": "https://registry.npmjs.org/@qwen-code/qwen-code/latest",
+        "latest": "0.28.4",
+        "installed": "0.26.0",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "pi",
+        "source": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/latest",
+        "latest": "1.6.0",
+        "installed": "1.6.0",
+        "installation": "available",
+        "status": "current"
+      },
+      {
+        "runtime": "pi-durable",
+        "source": "https://registry.npmjs.org/@earendil-works/pi-durable/latest",
+        "latest": "1.6.0",
+        "installed": "1.6.0",
+        "installation": "host_supplied",
+        "status": "current"
+      }
+    ]
+  },
+  "registryPublications": {
+    "@qwen-code/qwen-code": {
+      "version": "0.28.4",
+      "publishedAt": "2026-11-22T12:28:27.738Z"
+    },
+    "droid": {
+      "version": "1.17.2",
+      "publishedAt": "2026-11-22T03:08:44.190Z"
+    }
+  },
+  "scheduled": {
+    "run": "https://github.com/botiverse/oar/actions/runs/44993977193",
+    "head": "f0e41bf8917a19dc57b5c25fb2dbc80cb2758e51",
+    "generatedAt": "2026-11-22T06:30:00.853Z",
+    "baselineSha256": "29a519a73d8d3fc925dbd730aa3df49de7a31aa908d9e183df0717d75cea4ce0",
+    "cli": {
+      "claude-aimock": "2.1.330",
+      "codex-aimock": "0.171.0",
+      "qwen-aimock": "0.28.3",
+      "factory-aimock": "1.17.2",
+      "kimi-aimock": "2.7.2",
+      "grok-aimock": "1.0.92",
+      "codebuddy-aimock": "2.185.0",
+      "opencode-aimock": "1.19.6",
+      "opencode-cleanup": "2.3.2",
+      "kimi-login": "2.7.2",
+      "kimi-skills": "2.7.2",
+      "antigravity-aimock": "1.5.14"
+    },
+    "sdk": {
+      "cursor": {
+        "@cursor/sdk": "1.4.2"
+      },
+      "pi": {
+        "@earendil-works/pi-coding-agent": "1.6.0",
+        "undici": "8.12.4",
+        "@earendil-works/pi-ai": "1.6.0",
+        "@earendil-works/pi-durable": "1.6.0",
+        "@earendil-works/chord": "1.6.0"
+      }
+    },
+    "excluded": [
+      {
+        "key": "qoder-native",
+        "policy": "replay",
+        "version": "1.1.81"
+      },
+      {
+        "key": "dsh-aimock",
+        "policy": "minimum",
+        "version": "0.2.1-rc.5"
+      },
+      {
+        "key": "grok-long-initialize",
+        "policy": "historical",
+        "version": "1.0.70"
+      },
+      {
+        "key": "pi-rpc-minimum",
+        "policy": "minimum",
+        "version": "1.4.0"
+      }
+    ]
+  },
+  "current": {
+    "generatedAt": "2026-11-23T02:10:24.992Z",
+    "baselineSha256": "29a519a73d8d3fc925dbd730aa3df49de7a31aa908d9e183df0717d75cea4ce0",
+    "cli": {
+      "claude-aimock": "2.1.330",
+      "codex-aimock": "0.171.0",
+      "qwen-aimock": "0.28.4",
+      "factory-aimock": "1.17.2",
+      "kimi-aimock": "2.7.2",
+      "grok-aimock": "1.0.92",
+      "codebuddy-aimock": "2.185.0",
+      "opencode-aimock": "1.19.6",
+      "opencode-cleanup": "2.3.2",
+      "kimi-login": "2.7.2",
+      "kimi-skills": "2.7.2",
+      "antigravity-aimock": "1.5.14"
+    },
+    "sdk": {
+      "cursor": {
+        "@cursor/sdk": "1.4.2"
+      },
+      "pi": {
+        "@earendil-works/pi-coding-agent": "1.6.0",
+        "undici": "8.12.4",
+        "@earendil-works/pi-ai": "1.6.0",
+        "@earendil-works/pi-durable": "1.6.0",
+        "@earendil-works/chord": "1.6.0"
+      }
+    },
+    "excluded": [
+      {
+        "key": "qoder-native",
+        "policy": "replay",
+        "version": "1.1.81"
+      },
+      {
+        "key": "dsh-aimock",
+        "policy": "minimum",
+        "version": "0.2.1-rc.5"
+      },
+      {
+        "key": "grok-long-initialize",
+        "policy": "historical",
+        "version": "1.0.70"
+      },
+      {
+        "key": "pi-rpc-minimum",
+        "policy": "minimum",
+        "version": "1.4.0"
+      }
+    ]
+  },
+  "ci": {
+    "workflows": {
+      "ci.yml": {
+        "runs": 35,
+        "attempts": 40,
+        "uniqueJobs": 947,
+        "outcomes": {
+          "success": 844,
+          "skipped": 33,
+          "failure": 7,
+          "cancelled": 63
+        },
+        "zeroJobAttempts": []
+      },
+      "acp-windows.yml": {
+        "runs": 13,
+        "attempts": 13,
+        "uniqueJobs": 39,
+        "outcomes": {
+          "success": 25,
+          "skipped": 13,
+          "failure": 1
+        },
+        "zeroJobAttempts": []
+      },
+      "runtime-latest.yml": {
+        "runs": 1,
+        "attempts": 1,
+        "uniqueJobs": 42,
+        "outcomes": {
+          "success": 39,
+          "failure": 3
+        },
+        "zeroJobAttempts": []
+      },
+      "platform-matrix.yml": {
+        "runs": 1,
+        "attempts": 1,
+        "uniqueJobs": 7,
+        "outcomes": {
+          "success": 5,
+          "failure": 2
+        },
+        "zeroJobAttempts": []
+      }
+    },
+    "failedJobs": [
+      {
+        "workflow": "platform-matrix.yml",
+        "run": 44980528308,
+        "attempt": 1,
+        "head": "f0e41bf8917a19dc57b5c25fb2dbc80cb2758e51",
+        "job": 137079829875,
+        "name": "shards (windows-behavior-2, windows-latest)",
+        "failedSteps": [
+          "Run shard windows-behavior-2"
+        ],
+        "observation": "Windows verified Claude, Qwen and OpenCode v1 installations. Their test commands could not find pnpm.",
+        "attemptOutcomes": {
+          "1": "failure"
+        },
+        "url": "https://github.com/botiverse/oar/actions/runs/44980528308/job/137079829875",
+        "logSha256": "deb10fc34b9dbfd5d7ecda992c9e0d9eb3690d6c1fb1b92983e0a61c3d89f0ff"
+      },
+      {
+        "workflow": "platform-matrix.yml",
+        "run": 44980528308,
+        "attempt": 1,
+        "head": "f0e41bf8917a19dc57b5c25fb2dbc80cb2758e51",
+        "job": 137079829884,
+        "name": "shards (windows-behavior-1, windows-latest)",
+        "failedSteps": [
+          "Run shard windows-behavior-1"
+        ],
+        "observation": "Windows verified Qoder and OpenCode v2 installations. Their test commands could not find pnpm.",
+        "attemptOutcomes": {
+          "1": "failure"
+        },
+        "url": "https://github.com/botiverse/oar/actions/runs/44980528308/job/137079829884",
+        "logSha256": "8368b22b83e9ca4b6976a888983d0b4fc586fc8003a29b3682ce2f5262402508"
+      },
+      {
+        "workflow": "runtime-latest.yml",
+        "run": 44993977193,
+        "attempt": 1,
+        "head": "f0e41bf8917a19dc57b5c25fb2dbc80cb2758e51",
+        "job": 137120986293,
+        "name": "native (antigravity-aimock, windows-latest, acp)",
+        "failedSteps": [
+          "Native ACP vendor contracts"
+        ],
+        "observation": "Both Antigravity skill tests counted the bundled conversations skill as saved history.",
+        "attemptOutcomes": {
+          "1": "failure"
+        },
+        "url": "https://github.com/botiverse/oar/actions/runs/44993977193/job/137120986293",
+        "logSha256": "cc43f59427a637969f4ba93d0f40544570a28c4c6c51a4acd6f9de3a313b46ac"
+      },
+      {
+        "workflow": "runtime-latest.yml",
+        "run": 44993977193,
+        "attempt": 1,
+        "head": "f0e41bf8917a19dc57b5c25fb2dbc80cb2758e51",
+        "job": 137120986365,
+        "name": "native (antigravity-aimock, ubuntu-latest, acp)",
+        "failedSteps": [
+          "Native ACP vendor contracts"
+        ],
+        "observation": "Both Antigravity skill tests counted the bundled conversations skill as saved history.",
+        "attemptOutcomes": {
+          "1": "failure"
+        },
+        "url": "https://github.com/botiverse/oar/actions/runs/44993977193/job/137120986365",
+        "logSha256": "f3c114918d9820b4e96f14e250c16f3d9ad074930f2226d52309be319cf17348"
+      },
+      {
+        "workflow": "runtime-latest.yml",
+        "run": 44993977193,
+        "attempt": 1,
+        "head": "f0e41bf8917a19dc57b5c25fb2dbc80cb2758e51",
+        "job": 137120986425,
+        "name": "native (antigravity-aimock, macos-latest, acp)",
+        "failedSteps": [
+          "Native ACP vendor contracts"
+        ],
+        "observation": "Both Antigravity skill tests counted the bundled conversations skill as saved history.",
+        "attemptOutcomes": {
+          "1": "failure"
+        },
+        "url": "https://github.com/botiverse/oar/actions/runs/44993977193/job/137120986425",
+        "logSha256": "6a6679aa4f1ebae2c76f7868f01b9afc000dbac0170b5f904d444ca79efae81c"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 45018042444,
+        "attempt": 1,
+        "head": "d6973006e0b3f231e02614a9de6462cbf281efbd",
+        "job": 137194566729,
+        "name": "behavior (ubuntu-latest, dsh-aimock)",
+        "failedSteps": [
+          "Run pnpm run sea-trial"
+        ],
+        "observation": "DSH rejected cordis.yml during the queued follow-up case because the profile was not a top-level array.",
+        "attemptOutcomes": {
+          "1": "failure"
+        },
+        "url": "https://github.com/botiverse/oar/actions/runs/45018042444/job/137194566729",
+        "logSha256": "9f819a37042a507ac324542d91f7659af5523b68abad1da69f38fc33fea20c34"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 45019369501,
+        "attempt": 1,
+        "head": "a359016a1598d7831937e05123bf49298d2be1ca",
+        "job": 137198632320,
+        "name": "check-windows (2)",
+        "failedSteps": [
+          "Windows unit tests (shard 2/2)"
+        ],
+        "observation": "Windows rmdir returned EBUSY during cleanup of the Claude skills deadline fixture.",
+        "attemptOutcomes": {
+          "1": "failure",
+          "2": "success"
+        },
+        "url": "https://github.com/botiverse/oar/actions/runs/45019369501/job/137198632320",
+        "logSha256": "5dfd60319443bd3a857a2702d557979a9d53927b37dc0bcef8d3e1b5d39e77dc"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 45022013151,
+        "attempt": 1,
+        "head": "6674345538e7aea1f063e19e74936458ba62b615",
+        "job": 137206795449,
+        "name": "check-windows (1)",
+        "failedSteps": [
+          "Windows unit tests (shard 1/2)"
+        ],
+        "observation": "The temporary Windows fixture-lock observer exited unsuccessfully while comparing directory owners.",
+        "attemptOutcomes": {
+          "1": "failure"
+        },
+        "url": "https://github.com/botiverse/oar/actions/runs/45022013151/job/137206795449",
+        "logSha256": "5b1e9e482837c06cc2db548c278943f4c6f4489ff05c52d90e133a9a56a74ff7"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 45022338981,
+        "attempt": 1,
+        "head": "11a4e487cadcc4cd9389e68f813a949b024f55c1",
+        "job": 137207828131,
+        "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+        "failedSteps": [
+          "Run pnpm run sea-trial"
+        ],
+        "observation": "Windows OpenCode v2 exited with code 1 in session.effort-never-substituted.",
+        "attemptOutcomes": {
+          "1": "failure",
+          "2": "success"
+        },
+        "url": "https://github.com/botiverse/oar/actions/runs/45022338981/job/137207828131",
+        "logSha256": "070f7762400db84c59cc93e6b8cfd7bf9a04a0bd2ff5239b5da1f74b6e7a4512"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 45023289657,
+        "attempt": 1,
+        "head": "6eeb2b87909b80ecff26c080ff42f07080554768",
+        "job": 137210791907,
+        "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+        "failedSteps": [
+          "Run pnpm run sea-trial"
+        ],
+        "observation": "Windows OpenCode v2 exited with code 1 in session.dispose-is-recorded.",
+        "attemptOutcomes": {
+          "1": "failure",
+          "2": "success"
+        },
+        "url": "https://github.com/botiverse/oar/actions/runs/45023289657/job/137210791907",
+        "logSha256": "a94fefb3d0e5ceb8bc6c1611411e9ed3bfb1ccafb4a9d6853e7157085052930c"
+      },
+      {
+        "workflow": "acp-windows.yml",
+        "run": 45023523538,
+        "attempt": 1,
+        "head": "4185dc8407cb635963d0922c82644cfaed8a0248",
+        "job": 137211406142,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "failedSteps": [
+          "Measure Grok ACP launch paths"
+        ],
+        "observation": "Grok 1.0.70 node-launcher timed out after 15 seconds. Its diagnostic reported a surviving owned process after cleanup.",
+        "attemptOutcomes": {
+          "1": "failure"
+        },
+        "url": "https://github.com/botiverse/oar/actions/runs/45023523538/job/137211406142",
+        "logSha256": "8dea93a4327374b13bff0950926b2eff33029cfb42260229fba3d6c5d21c3ca7"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 45024110869,
+        "attempt": 1,
+        "head": "8625074399c437afcb7492bd8ac92009b375f060",
+        "job": 137213294595,
+        "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+        "failedSteps": [
+          "Run pnpm run sea-trial"
+        ],
+        "observation": "Windows OpenCode v2 exited with code 1 in session.effort-never-substituted.",
+        "attemptOutcomes": {
+          "1": "failure",
+          "2": "success"
+        },
+        "url": "https://github.com/botiverse/oar/actions/runs/45024110869/job/137213294595",
+        "logSha256": "89e621d3d1e15f9f4b32e36be1e76e55e327fa3a723658123dc492009160074a"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 45032927539,
+        "attempt": 1,
+        "head": "628864aa266c8034c468578163e542de5c7e0520",
+        "job": 137240281224,
+        "name": "check-windows (2)",
+        "failedSteps": [
+          "Windows unit tests (shard 2/2)"
+        ],
+        "observation": "The stalled Antigravity plan fixture failed to open acp.pid on Windows (ENOENT).",
+        "attemptOutcomes": {
+          "1": "failure",
+          "2": "success"
+        },
+        "url": "https://github.com/botiverse/oar/actions/runs/45032927539/job/137240281224",
+        "logSha256": "321bbb3eb41f6611a0a3464f407f400d70ad17dd6e573e890c41c176d49c4d73"
+      }
+    ]
+  },
+  "controls": {
+    "platform": "linux-x64",
+    "provider": "local scripted",
+    "cases": [
+      {
+        "name": "factory-native",
+        "version": "1.17.2",
+        "exitCode": 0,
+        "timedOut": false,
+        "logSha256": "a957982f350e4c85d0a81431e6cafa83aa4e539d5ca36ae5e833c2f5d741a624"
+      },
+      {
+        "name": "qwen-behavior",
+        "version": "0.28.4",
+        "exitCode": 0,
+        "timedOut": false,
+        "logSha256": "44395cad91d7ba1d7bd15579909b1612f797b5ced651cecc9ab8b8264f5fb071",
+        "passed": 17,
+        "skipped": 3
+      },
+      {
+        "name": "qwen-vendor",
+        "version": "0.28.4",
+        "exitCode": 0,
+        "timedOut": false,
+        "logSha256": "3ef3a03f2a1a2baa31b4650c89ef70b1d20d49afa9c0381e2d9794f65c76a395",
+        "passed": 27,
+        "skipped": 577
+      },
+      {
+        "name": "factory-behavior",
+        "version": "1.17.2",
+        "exitCode": 0,
+        "timedOut": false,
+        "logSha256": "94d636f73cd2861fb5ef8d78cf50e3a618eb87e8cc26635fe19738a2fd0bcf80",
+        "passed": 20,
+        "skipped": 0
+      },
+      {
+        "name": "factory-vendor",
+        "version": "1.17.2",
+        "exitCode": 0,
+        "timedOut": false,
+        "logSha256": "6d31c9fa3c1aba02d4650cf1c5b9b0cfb751c4c256ec6ecb84844c4a6ab20bf9",
+        "passed": 13,
+        "skipped": 591
+      },
+      {
+        "name": "antigravity-behavior",
+        "version": "1.5.14",
+        "exitCode": 0,
+        "timedOut": false,
+        "logSha256": "e7e0d7f94a07ea1b5cc89f430f86c7cfa6e77eeaca303c73a6926be0982504b7",
+        "passed": 18,
+        "skipped": 2
+      },
+      {
+        "name": "antigravity-vendor",
+        "version": "1.5.14",
+        "exitCode": 0,
+        "timedOut": false,
+        "logSha256": "6c7af9d0043f009ce5e76c4dea3918ac8a9a43c3b9e67669c9ec417d5ae38804",
+        "passed": 19,
+        "skipped": 585
+      },
+      {
+        "name": "qwen-plain",
+        "version": "0.28.4",
+        "exitCode": 0,
+        "timedOut": false,
+        "logSha256": "fc02f64073e88d969e5555b2877f1b4e74267667c9b4e6ae8c5145c8495738f8"
+      },
+      {
+        "name": "qwen-reply-blocks",
+        "version": "0.28.4",
+        "exitCode": 0,
+        "timedOut": false,
+        "logSha256": "28497c362896a8f46e6c166f736d84abfa5d84903569bd6adabfefe8a1b66a67"
+      },
+      {
+        "name": "qwen-tools",
+        "version": "0.28.4",
+        "exitCode": 0,
+        "timedOut": false,
+        "logSha256": "9af5d61d4cc51630f4ad1e48e164e824442e31b13649f4851acb789969e98701"
+      },
+      {
+        "name": "qwen-lock",
+        "version": "0.28.4",
+        "exitCode": 0,
+        "timedOut": false,
+        "logSha256": "746dbc44549c9f50f98eb1b2e597932c8452816756d80733c11cbc9e990b22b5"
+      }
+    ],
+    "qwenNative": [
+      {
+        "scenario": "plain",
+        "observations": [
+          {
+            "resume": false,
+            "results": {
+              "first": {
+                "subtype": "success",
+                "isError": false
+              },
+              "second": {
+                "subtype": "success",
+                "isError": false
+              },
+              "interrupted": {
+                "subtype": "error_during_execution",
+                "isError": true
+              },
+              "afterAbort": {
+                "subtype": "success",
+                "isError": false
+              }
+            }
+          },
+          {
+            "resume": true,
+            "results": {
+              "first": {
+                "subtype": "success",
+                "isError": false
+              },
+              "second": {
+                "subtype": "success",
+                "isError": false
+              },
+              "interrupted": {
+                "subtype": "error_during_execution",
+                "isError": true
+              },
+              "afterAbort": {
+                "subtype": "success",
+                "isError": false
+              }
+            }
+          }
+        ],
+        "sha256": {
+          "fresh.wire.jsonl": "df266259872214f932a3ed1a2a314b8d0079863dcbc8b14a5f392c6dd762e766",
+          "resume.wire.jsonl": "ce68ca99b2cc9f2b72126de77d03cdeb4368ce974dda62616115234aa96b97bd",
+          "provider.json": "117a6321ebbbe2e16d8fb050aea1a4c7d4c4b5f6ddef0de586bf60662f826b45"
+        }
+      },
+      {
+        "scenario": "reply-blocks",
+        "observations": [
+          {
+            "resume": false,
+            "results": {
+              "first": {
+                "subtype": "success",
+                "isError": false
+              },
+              "second": {
+                "subtype": "success",
+                "isError": false
+              },
+              "interrupted": {
+                "subtype": "error_during_execution",
+                "isError": true
+              },
+              "afterAbort": {
+                "subtype": "success",
+                "isError": false
+              }
+            }
+          },
+          {
+            "resume": true,
+            "results": {
+              "first": {
+                "subtype": "success",
+                "isError": false
+              },
+              "second": {
+                "subtype": "success",
+                "isError": false
+              },
+              "interrupted": {
+                "subtype": "error_during_execution",
+                "isError": true
+              },
+              "afterAbort": {
+                "subtype": "success",
+                "isError": false
+              }
+            }
+          }
+        ],
+        "sha256": {
+          "fresh.wire.jsonl": "0ce093f83985192f04052e27f2b39534b042a92df45cef7c43317ccb974f1739",
+          "resume.wire.jsonl": "28243ddc07891b64164a6cccdba752b3b950fe81937c3ce6585d5b181ead7fc4",
+          "provider.json": "6f5c4670ca25d80a5e7c18a27552d65f8a41d16b8908e2193c5a01b81ea6a77d"
+        }
+      },
+      {
+        "scenario": "tools",
+        "observations": [
+          {
+            "resume": false,
+            "results": {
+              "mcp": {
+                "subtype": "success",
+                "isError": false
+              },
+              "first": {
+                "subtype": "success",
+                "isError": false
+              },
+              "second": {
+                "subtype": "success",
+                "isError": false
+              },
+              "interrupted": {
+                "subtype": "error_during_execution",
+                "isError": true
+              },
+              "afterAbort": {
+                "subtype": "success",
+                "isError": false
+              }
+            }
+          },
+          {
+            "resume": true,
+            "results": {
+              "mcp": {
+                "subtype": "success",
+                "isError": false
+              },
+              "first": {
+                "subtype": "success",
+                "isError": false
+              },
+              "second": {
+                "subtype": "success",
+                "isError": false
+              },
+              "interrupted": {
+                "subtype": "error_during_execution",
+                "isError": true
+              },
+              "afterAbort": {
+                "subtype": "success",
+                "isError": false
+              }
+            }
+          }
+        ],
+        "sha256": {
+          "fresh.wire.jsonl": "149d0b1a5492f8d97efe5223add969c548262d6811f01621236655f2e4d545df",
+          "resume.wire.jsonl": "a4873ea791f935c31416bf1a79cbab3dee5436d2b438c4929764703b7faa24ba",
+          "provider.json": "e296177b05d9571ce89e11184b188f1b10b4d12ab388fc928e7d766b4de0ace0"
+        }
+      }
+    ],
+    "qwenLock": [
+      {
+        "phase": "warm-home initialize with held lock",
+        "elapsedMs": 4064,
+        "requests": 0
+      },
+      {
+        "phase": "first prompt blocked after initialize",
+        "lockHeld": true,
+        "requests": 0
+      },
+      {
+        "phase": "first prompt after releasing lock",
+        "outcome": "completed"
+      },
+      {
+        "phase": "ordinary later prompt with held lock",
+        "outcome": "completed"
+      }
+    ],
+    "qwenAuthSources": {
+      "version": "0.28.4",
+      "presets": [
+        "BAILIAN_CODING_PLAN_API_KEY",
+        "BAILIAN_TOKEN_PLAN_API_KEY",
+        "DASHSCOPE_API_KEY",
+        "DEEPSEEK_API_KEY",
+        "IDEALAB_API_KEY",
+        "MINIMAX_API_KEY",
+        "MODELSCOPE_API_KEY",
+        "MOONSHOT_API_KEY",
+        "OPENROUTER_API_KEY",
+        "QWENCLOUD_API_KEY",
+        "QWENCLOUD_TOKEN_PLAN_API_KEY",
+        "REQUESTY_API_KEY",
+        "XAI_API_KEY",
+        "ZAI_API_KEY"
+      ],
+      "preflight": [
+        "ANTHROPIC_API_KEY",
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY",
+        "OPENAI_API_KEY"
+      ],
+      "missingFromOar": []
+    },
+    "factoryScenarios": [
+      "compaction",
+      "interrupt",
+      "models-and-effort",
+      "permissions",
+      "resume",
+      "steer"
+    ],
+    "factorySteer": {
+      "addUserMessageReply": {},
+      "turnEnds": [
+        "first"
+      ],
+      "steerQueuedAs": "end_of_turn",
+      "steerEchoed": true,
+      "lastProviderRequestHasSteer": true,
+      "endReason": "completed"
+    }
+  },
+  "dsh": {
+    "previousHead": "2e39e70496aa02986ca6a820c5d497e816b69d7e",
+    "currentHead": "4b399c39a6d1479cd84ca591b4d7c88e24d38a96",
+    "changedFilesInOarPatchAndExperimentalPackages": {
+      "packages/experimental/subagent-oar/package.json": [
+        "6fe5aadb7cb18ba8e6d90183147fd0c499b415d9",
+        "c1c4c2cf1fb86a84335042ec578b45831689f8e8"
+      ],
+      "packages/experimental/tool-subagent-oar/package.json": [
+        "cc2aa1d2a6b6be7a026f1ea62c2279774d39addf",
+        "287bd698b2ac05eb7037f319a12d9babbe48d937"
+      ]
+    },
+    "oarPatchBlob": "d2c671a3e233f33534ec4df90bb4f98067d7c47f"
+  }
+}
