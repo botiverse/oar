@@ -247,7 +247,10 @@ export function projectKapFrame(
     if (itemId !== undefined && set !== null && (frameTurnId === undefined || !state.historicalTurnIds.has(frameTurnId))) {
       registerChildAgentsFromRefs(state, agentPath, itemId, set.agent_refs, subscribeAgents);
       const inputStr = stringifyToolInput(set.input);
-      if (inputStr !== undefined) { events.push({ kind: "tool_call_input", callId: itemId, input: inputStr }); }
+      if (inputStr !== undefined) {
+        state.emittedCompleteToolInputs.set(itemId, inputStr);
+        events.push({ kind: "tool_call_input", callId: itemId, input: inputStr });
+      }
       const output = asString(set.output);
       if (output !== undefined) { events.push({ kind: "tool_call_progress", callId: itemId, output }); }
     }

@@ -1,6 +1,8 @@
 import { expect, test } from "vitest";
+import type { Frame } from "../../packages/oar/src/contracts/session.js";
+import { viewOf } from "../../packages/oar/src/observe/session-view.js";
 import { kimiRuntime } from "../../packages/oar/src/runtimes/kimi/index.js";
-import { createKapProjection, kapFailedTurn, projectKapFrame } from "../../packages/oar/src/runtimes/kimi/kap-projection.js";
+import { createKapProjection, kapFailedTurn, projectKapFrame, type KapProjectionState } from "../../packages/oar/src/runtimes/kimi/kap-projection.js";
 import type { JsonRecord } from "../../packages/oar/src/shared/json.js";
 
 const DEFAULT_OPTS = { manualCompactionActive: false };
@@ -208,4 +210,78 @@ test("a live spawning call refines an initial KAP task-list fallback", () => {
   const bound = projectKapFrame(state, { type: "task", agent_id: "main", ...task, parent_tool_call_id: "native-call" }, DEFAULT_OPTS);
   expect(bound.body.events[0]).toMatchObject({ kind: "task_started", toolCallId: "native-call" });
   expect(projectKapFrame(state, meta, DEFAULT_OPTS)).toMatchObject({ at: { agentPath: ["native-call"] }, body: { events: [{ kind: "model", model: "m" }] } });
+});
+
+function projectToRecord(state: KapProjectionState, raw: JsonRecord, seq: number): Frame {
+  const projected = projectKapFrame(state, raw, DEFAULT_OPTS);
+  return {
+    kind: "frame",
+    seq,
+    sessionId: "sess-tool",
+    agentPath: projected.at.agentPath ?? [],
+    ...(projected.at.spanId === undefined ? {} : { spanId: projected.at.spanId }),
+    receivedAt: seq,
+    body: projected.body,
+  };
+}
+
+function firstToolPart(records: readonly Frame[]): { readonly input: string | undefined; readonly inputPartial: boolean | undefined } | undefined {
+  for (const message of viewOf(records, "sess-tool").messages) {
+    if (message.kind === "turn" || message.kind === "activity") {
+      for (const section of message.sections) {
+        const part = section.parts.find((item) => item.kind === "tool");
+        if (part?.kind === "tool") { return { input: part.input, inputPartial: part.inputPartial }; }
+      }
+    }
+  }
+  return undefined;
+}
+
+test("projects partial item.started input_text as delta and deduplicates item.ended after item.updated", () => {
+  const state = createKapProjection("sess-tool");
+  const records: Frame[] = [
+    projectToRecord(state, { type: "turn.started", agent_id: "main", turn: { turn_id: "t-1", kind: "agent", status: "running" } }, 1),
+    projectToRecord(state, { type: "item.started", agent_id: "main", turn_id: "t-1", item: { type: "tool_call", item_id: "c-1", name: "Read", stage: "input", input_text: "{\"path\":\"/tmp/" } }, 2),
+  ];
+  expect(records[1]?.body.events).toEqual([
+    { kind: "tool_call_started", callId: "c-1", tool: "Read" },
+    { kind: "tool_call_input_delta", callId: "c-1", delta: "{\"path\":\"/tmp/" },
+  ]);
+  expect(firstToolPart(records)).toEqual({ input: "{\"path\":\"/tmp/", inputPartial: true });
+  records.push(
+    projectToRecord(state, { type: "item.delta", agent_id: "main", turn_id: "t-1", item_id: "c-1", field: "input_text", delta: "a.txt\"}" }, 3),
+    projectToRecord(state, { type: "item.updated", agent_id: "main", turn_id: "t-1", item_id: "c-1", set: { input: { path: "/tmp/a.txt" } } }, 4),
+    projectToRecord(state, { type: "item.ended", agent_id: "main", turn_id: "t-1", item: { type: "tool_call", item_id: "c-1", name: "Read", input: { path: "/tmp/a.txt" }, outcome: "completed", output: "ok" } }, 5),
+  );
+  expect(records[4]?.body.events).toEqual([{ kind: "tool_call_ended", callId: "c-1", content: [{ type: "text", text: "ok" }], result: "ok" }]);
+  expect(firstToolPart(records)).toEqual({ input: "{\"path\":\"/tmp/a.txt\"}", inputPartial: undefined });
+});
+
+test("emits complete tool_call_input on item.ended when item.updated was absent", () => {
+  const state = createKapProjection("sess-tool");
+  const records: Frame[] = [
+    projectToRecord(state, { type: "turn.started", agent_id: "main", turn: { turn_id: "t-1", kind: "agent", status: "running" } }, 1),
+    projectToRecord(state, { type: "item.started", agent_id: "main", turn_id: "t-1", item: { type: "tool_call", item_id: "c-2", name: "Bash", stage: "input", input_text: "{\"command\":\"echo " } }, 2),
+    projectToRecord(state, { type: "item.delta", agent_id: "main", turn_id: "t-1", item_id: "c-2", field: "input_text", delta: "hi\"}" }, 3),
+    projectToRecord(state, { type: "item.ended", agent_id: "main", turn_id: "t-1", item: { type: "tool_call", item_id: "c-2", name: "Bash", input: { command: "echo hi" }, outcome: "completed", output: "hi" } }, 4),
+  ];
+  expect(records[3]?.body.events).toEqual([
+    { kind: "tool_call_input", callId: "c-2", input: "{\"command\":\"echo hi\"}" },
+    { kind: "tool_call_ended", callId: "c-2", content: [{ type: "text", text: "hi" }], result: "ok" },
+  ]);
+  expect(firstToolPart(records)).toEqual({ input: "{\"command\":\"echo hi\"}", inputPartial: undefined });
+});
+
+test("emits complete tool_call_input on item.ended when item.started omitted input and input_text", () => {
+  const state = createKapProjection("sess-tool");
+  const records: Frame[] = [
+    projectToRecord(state, { type: "turn.started", agent_id: "main", turn: { turn_id: "t-1", kind: "agent", status: "running" } }, 1),
+    projectToRecord(state, { type: "item.started", agent_id: "main", turn_id: "t-1", item: { type: "tool_call", item_id: "c-3", name: "Bash" } }, 2),
+    projectToRecord(state, { type: "item.ended", agent_id: "main", turn_id: "t-1", item: { type: "tool_call", item_id: "c-3", name: "Bash", input: { command: "pwd" }, outcome: "completed", output: "/tmp" } }, 3),
+  ];
+  expect(records[2]?.body.events).toEqual([
+    { kind: "tool_call_input", callId: "c-3", input: "{\"command\":\"pwd\"}" },
+    { kind: "tool_call_ended", callId: "c-3", content: [{ type: "text", text: "/tmp" }], result: "ok" },
+  ]);
+  expect(firstToolPart(records)).toEqual({ input: "{\"command\":\"pwd\"}", inputPartial: undefined });
 });
