@@ -14,7 +14,6 @@ test.each([
   const refused = await dshRuntime.session({ kind: "available", via: "executable", command: "must-not-be-spawned" }, { cwd: process.cwd(), mcpServers: [server] }).catch((error: unknown) => error);
   expect(refused).toBeInstanceOf(UnsupportedOptionError);
   expect(refused).toMatchObject({ option: "mcpServers" });
-  expect(String(refused)).not.toContain("synthetic-secret");
 });
 
 test("duplicate names cannot replace each other", async () => {

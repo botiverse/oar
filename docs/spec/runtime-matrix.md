@@ -185,7 +185,7 @@ and the opened session stays authoritative.
 | codex | true | true | true | `["stdio", "http"]` ([mcp-servers.vendor.test.ts](../../sea-trial/vendor/mcp-servers.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` on `>= 0.151.0`; absent on older or unreadable versions | true from 0.160.1, absent on older or unreadable versions | true from 0.169.0, absent on older or unreadable versions | absent |
 | cursor | true (an individual steer can still be rejected: `unsupported` with images, `runtime_refused` when the run cannot take it, as above) | true | false | `["stdio", "http"]` ([cursor-mcp.ts](../../experiments/cursor-mcp.ts)) | `{ tokens: true, contextWindow: false }` | absent | absent | absent |
 | devin | false | absent: advertised by `initialize` | false | absent: handshake-dependent and unverified in CI | absent: live turns unverified | absent | absent | absent |
-| dsh | absent: the bridge reports the agent's methods at open | absent: the selected model and native attachment store determine image support | true | `["stdio", "http"]` ([dsh-mcp.vendor.test.ts](../../sea-trial/vendor/dsh-mcp.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | true from 0.2.2-alpha.2, false below 0.2.2-alpha.2, absent on unreadable versions | absent |
+| dsh | absent: the bridge reports the agent's methods at open | absent: the selected model and native attachment store determine image support | true | `["stdio", "http"]` ([stdio](../../sea-trial/vendor/dsh-mcp.vendor.test.ts), [credentialed stdio and HTTP](../../sea-trial/vendor/dsh-mcp-credentials.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | true from 0.2.2-alpha.2, false below 0.2.2-alpha.2, absent on unreadable versions | absent |
 | factory | true | true | false | absent: HTTP MCP tool invocation unverified (only stdio is exercised in [factory.vendor.test.ts](../../sea-trial/vendor/factory.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | absent | absent |
 | grok | true | true | false | `["stdio", "http"]` on `>= 1.0.46` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: false }` | absent | absent | absent |
 | kimi | true on botiverse `>= 2.7.2-botiverse.1` (KAP); false on unreadable versions or `< 2.7.3` non-botiverse (ACP fallback); absent on upstream `>= 2.7.3` (probe-dependent) | absent before open (true on botiverse KAP `>= 2.7.2-botiverse.1`) | true on botiverse KAP `>= 2.7.2-botiverse.1`; false on unreadable versions or `< 2.7.3` non-botiverse (ACP fallback); absent on upstream `>= 2.7.3` (probe-dependent) | `["stdio", "http"]` on `>= 2.1.1` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: true }` (except models whose catalog entry has no size) | absent | absent | absent |
@@ -1079,7 +1079,10 @@ no record holds a credential. The recordings are
 
 DSH command/args controls, including startup failure and child cleanup, are in
 [`dsh-mcp.vendor.test.ts`](../../sea-trial/vendor/dsh-mcp.vendor.test.ts).
-HTTP and nonempty MCP env/headers remain refused, pending a persistence audit.
+The [credentialed transport test](../../sea-trial/vendor/dsh-mcp-credentials.vendor.test.ts)
+calls a stdio tool and a bearer-authenticated HTTP tool on the first turn. The
+[Linux audit](../../experiments/mcp-credential-admission/README.md#dsh-bridge-stdin)
+covers credential isolation and persistence on both tested DSH versions.
 
 CodeBuddy's credentialed stdio/HTTP invocation and post-exit persistence audit
 are in [`codebuddy.vendor.test.ts`](../../sea-trial/vendor/codebuddy.vendor.test.ts).

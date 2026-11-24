@@ -364,13 +364,15 @@ fails: [structured output](https://github.com/botiverse/oar/blob/main/docs/spec/
 
 `SessionOptions.mcpServers` attaches MCP servers (stdio `{name, command,
 args?, env?}` or streamable HTTP `{name, type: "http", url, headers?}`) to
-one session, on top of the runtime's own, through each runtime's own channel
-(claude reads them from a 0600 FIFO that never puts them on a disk, or a
-0600 temporary file deleted right after `initialize` on Windows); pi-durable, morph and cybion refuse `mcpServers`, and dsh takes
-stdio `command` and `args` only. Give them again on `resume`. Their `env` and
-`headers` values never appear in a record or an error; antigravity, dsh, cursor,
-devin and cybion refuse an
-entry carrying them (declared as `mcpServerCredentials`; leave such entries out). Every runtime refuses the
+one session alongside the runtime's configured servers. Supply the entries
+again on `resume`. Claude reads them from a 0600 FIFO or, on Windows, a
+0600 temporary file deleted immediately after `initialize`. DSH receives
+stdio entries with `env` and HTTP entries with `headers` through bridge stdin.
+
+The `pi-durable`, `morph` and `cybion` runtimes refuse `mcpServers`.
+OAR keeps entry `env` and `headers` values out of records and errors.
+Antigravity, Cursor, Devin and Cybion declare `mcpServerCredentials` when
+refusing entries that carry these values. Every runtime refuses the
 names `__proto__`, `__defineGetter__`, `__defineSetter__`, `__lookupGetter__`
 and `__lookupSetter__` (`option: "mcpServers"`), which some runtimes drop
 without a word. See the
