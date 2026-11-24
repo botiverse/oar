@@ -50,7 +50,7 @@ function refusalMessage(reason: string | undefined, key: RefusableSessionOption)
 
 test("every declared refusal is what session() rejects with", async () => {
   const declaring = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions !== undefined);
-  assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "claude", "codebuddy", "codex", "cursor", "devin", "dsh", "factory", "grok", "kimi", "opencode", "pi", "qoder", "qwen"]);
+  assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "claude", "codebuddy", "codex", "cursor", "devin", "dsh", "factory", "grok", "hermes", "kimi", "opencode", "pi", "qoder", "qwen"]);
   for (const runtime of declaring) {
     const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "partialUserConfiguration", "goals", "endTurnProcessesOnAbort", "fork", "nativeMemoryDefault", "sessionLogUpload"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
     for (const key of keys) {
@@ -76,6 +76,7 @@ test("the declarations say which options each runtime refuses", () => {
     dsh: ["endTurnProcessesOnAbort", "fork", "launchArgs", "modelRequests", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
     factory: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "sessionLogUpload", "userConfiguration"],
     grok: ["additionalDirectories", "disallowedTools", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "serviceTier", "sessionLogUpload", "userConfiguration"],
+    hermes: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "goals", "launchArgs", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "sessionLogUpload", "systemPrompt", "userConfiguration"],
     kimi: ["disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "sessionLogUpload", "systemPrompt", "userConfiguration"],
     opencode: ["disallowedTools", "endTurnProcessesOnAbort", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "sessionLogUpload", "userConfiguration"],
     pi: ["additionalDirectories", "endTurnProcessesOnAbort", "fork", "goals", "launchArgs", "nativeMemoryDefault", "outputSchema", "serviceTier", "sessionLogUpload", "userConfiguration"],
@@ -118,14 +119,14 @@ test("entries without credentials are no mcpServerCredentials given, and every r
     }, runtime.id);
   }
   const refusing = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions?.mcpServers !== undefined || runtime.refusedSessionOptions?.mcpServerCredentials !== undefined);
-  expect(refusing.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", "cursor", "devin"]);
+  expect(refusing.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", "cursor", "devin", "hermes"]);
 });
 
 // Some runtimes drop a server so named without a word (#395): every runtime
 // that takes mcpServers refuses the names before anything starts.
 test.each(["__proto__", "__defineGetter__", "__defineSetter__", "__lookupGetter__", "__lookupSetter__"])("a reserved MCP server name is refused before anything starts: %s", async (name) => {
   const taking = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions?.mcpServers === undefined);
-  expect(taking.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", "claude", "codebuddy", "codex", "cursor", "devin", "dsh", "factory", "grok", "kimi", "opencode", "pi", "qoder", "qwen"]);
+  expect(taking.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", "claude", "codebuddy", "codex", "cursor", "devin", "dsh", "factory", "grok", "hermes", "kimi", "opencode", "pi", "qoder", "qwen"]);
   for (const runtime of taking) {
     // oxlint-disable-next-line no-await-in-loop -- one open at a time keeps the failure attributable.
     await expect(runtime.session(nowhere(runtime.id), { cwd: "/tmp", mcpServers: [{ name, command: "/nonexistent/oar-probe" }] }), runtime.id).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "mcpServers", message: `mcpServers name ${JSON.stringify(name)} is reserved: some runtimes drop a server so named without a word` });
@@ -190,7 +191,7 @@ test("declared user configuration refusals apply to category lists", () => {
 
 test("claude, codex and opencode can take fork, and they refuse one without resume or with a blank anchor before anything starts", async () => {
   const taking = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions?.fork === undefined);
-  expect(taking.map((runtime) => runtime.id).toSorted()).toEqual(["claude", "codex", "opencode"]);
+  expect(taking.map((runtime) => runtime.id).toSorted()).toEqual(["claude", "codex", "hermes", "opencode"]);
   for (const runtime of taking) {
     // oxlint-disable-next-line no-await-in-loop -- one open at a time keeps the failure attributable.
     await expect(runtime.session(nowhere(runtime.id), { cwd: "/tmp", fork: {} }), runtime.id).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "fork", message: "fork copies the saved session resume names; give resume with the source session id" });

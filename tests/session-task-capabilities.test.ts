@@ -29,7 +29,7 @@ describe("native task records and child output", () => {
     expect(declaration?.subagentResults).toEqual(results);
   });
 
-  it.each(["antigravity", "codebuddy", "cursor", "devin", "factory", "pi"])("%s explicitly has no native task projection", id => {
+  it.each(["antigravity", "codebuddy", "cursor", "devin", "factory", "hermes", "pi"])("%s explicitly has no native task projection", id => {
     expect(allRuntimes.require(id).sessionCapabilities?.(executable()).taskEventTypes).toEqual([]);
   });
 });

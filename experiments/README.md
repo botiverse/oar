@@ -1,5 +1,7 @@
 # experiments
 
+- [Hermes ACP first contact](hermes-acp/README.md) records the real `hermes acp` gateway viewer against a scripted provider: protocol 1, one completed turn, config-selector model/effort readback and a missing-resume `SessionNotFoundError`.
+
 - [Kimi 2.7.2 KAP wire contract](kimi-kap-wire/README.md) follows session creation through model selection, tool calls, usage, cancellation, compaction and child-agent completion.
 
 - [The next request after an interrupted turn](abort-aftermath/README.md) compares model-visible history after stopping a stream or a running tool.

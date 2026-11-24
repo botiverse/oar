@@ -28,6 +28,7 @@ calls, resume semantics, and what each adapter still does not carry.
 | antigravity (ACP) | `opaque` | legacy `start_subagent` output stays on root ([env] agy_acp_server 1.2.1); native CLI child attribution is unverified. On CLI 1.5.9, a background command completed after `end_turn` without forwarding its completion or later model reply during a 12-second observation ([known gaps](../runtimes/antigravity.md#known-gaps-in-cli-159), upstream [#1461](https://github.com/google-antigravity/antigravity-cli/issues/1461)) |
 | codebuddy (ACP) | `opaque` | standard updates and known vendor notifications are retained; no verified child mapping is inferred ([mapping](../runtimes/codebuddy.md)) |
 | devin (ACP) | `opaque` | standard ACP updates are retained; no verified child identity mapping is inferred ([mapping](../runtimes/devin.md)) |
+| hermes (ACP) | `opaque` | the gateway viewer forwards standard updates; child/subagent identity mapping is unverified ([mapping](../runtimes/hermes.md)) |
 | kimi (KAP, `>= 2.7.2-botiverse.1` / `>= 2.7.3`) | `attributed` | subscribes dynamically to child agents on WebSocket and resolves `agent_id` to `agentPath` via `item.agent_refs` or `task.child_agent_id` + `parent_tool_call_id` ([mapping](../runtimes/kimi.md)) |
 | kimi (ACP fallback) | `opaque` | `kimi acp` subscribes to the main agent only; the adapter records what arrives and fabricates nothing |
 | opencode v1 (ACP) | `opaque` | `opencode acp` forwards only its own sessions' parts; a `task` subagent runs in a child session whose frames never reach the transport, so only the parent's tool call shows ([src] opencode 1.18.34 `acp/event.ts`) |
@@ -48,6 +49,7 @@ calls, resume semantics, and what each adapter still does not carry.
 | antigravity (ACP) | opaque (#1); CLI child attribution unverified | `start_subagent` tool card only; child id only as a `toolCallId` prefix | no usage reported for any session ([env]) | nothing fabricated | ACP `sessionId` | [native/current mapping](../runtimes/antigravity.md) |
 | codebuddy (ACP) | child identity mapping unverified | nothing inferred | context reports only; token ledger unknown | no inferred child edges | ACP session ID | [mapping](../runtimes/codebuddy.md) |
 | devin (ACP) | child identity mapping unverified | nothing inferred | no usage ledger mapped | no inferred child edges | ACP `sessionId`; saved cwd required | [mapping](../runtimes/devin.md) |
+| hermes (ACP) | child identity mapping unverified | nothing inferred | no per-turn ledger mapped (the prompt reply is session-cumulative) | no inferred child edges | ACP `sessionId`; the gateway moves the session to the requested cwd | [mapping](../runtimes/hermes.md) |
 | kimi (KAP) | native agent graph (#2) over WebSocket (`agent_id`, dynamic child subscription) | `item.agent_refs`, `task.child_agent_id` + `parent_tool_call_id` | per-`agent_id` totals from `turn.updated` `step.usage` and `turn.ended` `turn.usage` | `agentPath` (not in graph) | HTTP `GET /sessions/{id}` + `POST /sessions/{id}:resume` | [native/current mapping](../runtimes/kimi.md) |
 | kimi (ACP fallback) | opaque (#1): default subscribes main agent only | root `Agent` tool card only | no typed child usage exposed | nothing fabricated from display text | ACP `sessionId` | [native/current mapping](../runtimes/kimi.md) |
 | opencode v1 (ACP) | opaque (#1): child sessions not forwarded | root `task` tool card only | no child usage exposed | nothing fabricated | ACP `sessionId` (opencode `ses_` id) | [native/current mapping](../runtimes/opencode.md) |
@@ -85,7 +87,7 @@ refer to files elsewhere. Host options retain their existing refusals, so
 | Cursor SDK | Explicit empty `local.settingSources` and `local.sandboxOptions.enabled: false`; SDK login and native store remain. Project layers are also absent under exclusion. |
 | Codex | Refused: the temporary-home workaround leaves shared history indexes pointing at paths deleted during cleanup. |
 | Kimi | Refused: native atomic writes replace the workspace-index symlink and split the workspace catalog. |
-| Pi, Pi Durable, Grok, OpenCode v1/v2, Qwen, Qoder, Antigravity, CodeBuddy, Devin, Factory | Refused: no verified separation preserving login and history. |
+| Pi, Pi Durable, Grok, OpenCode v1/v2, Qwen, Qoder, Antigravity, CodeBuddy, Devin, Factory, Hermes | Refused: no verified separation preserving login and history. |
 | DSH | Refused: no verified exclusion that keeps its provider routes. |
 
 A refusal is `UnsupportedOptionError("userConfiguration", reason)` before
@@ -155,6 +157,7 @@ before that `prompt` decides, so adapter-held sessions refuse the `prompt` as
 | grok (ACP) | yes: `_x.ai/interject`, taken into the running turn at its next safe point without cancelling it; one that misses the turn runs as Grok's own ([mapping](../runtimes/grok.md#prompting-steering-queuing-and-cancellation)) | yes | no |
 | codebuddy (ACP) | absent: no verified injection interface | yes | no |
 | devin (ACP) | absent: no verified injection interface | yes | no |
+| hermes (ACP) | absent: no verified injection interface; queued input is held by OAR | yes | no |
 | kimi (KAP) | yes (`POST /sessions/{id}/steer`) | yes, while held | no |
 | kimi (ACP fallback) | no | yes | no |
 | antigravity (CLI ACP) | yes | yes | no |
@@ -185,6 +188,7 @@ and the opened session stays authoritative.
 | codex | true | true | true | `["stdio", "http"]` ([mcp-servers.vendor.test.ts](../../sea-trial/vendor/mcp-servers.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` on `>= 0.151.0`; absent on older or unreadable versions | true from 0.160.1, absent on older or unreadable versions | true from 0.169.0, absent on older or unreadable versions | absent |
 | cursor | true (an individual steer can still be rejected: `unsupported` with images, `runtime_refused` when the run cannot take it, as above) | true | false | `["stdio", "http"]` ([cursor-mcp.ts](../../experiments/cursor-mcp.ts)) | `{ tokens: true, contextWindow: false }` | absent | absent | absent |
 | devin | false | absent: advertised by `initialize` | false | absent: handshake-dependent and unverified in CI | absent: live turns unverified | absent | absent | absent |
+| hermes | false | absent: advertised by `initialize` (true at open on the probed build) | false | `["stdio"]` (HTTP refused: no advertised `mcpCapabilities.http`; credentialed entries refused) | `{ tokens: true, contextWindow: true }` | absent | absent | absent |
 | dsh | absent: the bridge reports the agent's methods at open | absent: the selected model and native attachment store determine image support | true | `["stdio", "http"]` ([stdio](../../sea-trial/vendor/dsh-mcp.vendor.test.ts), [credentialed stdio and HTTP](../../sea-trial/vendor/dsh-mcp-credentials.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | true from 0.2.2-alpha.2, false below 0.2.2-alpha.2, absent on unreadable versions | absent |
 | factory | true | true | false | absent: HTTP MCP tool invocation unverified (only stdio is exercised in [factory.vendor.test.ts](../../sea-trial/vendor/factory.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | absent | absent |
 | grok | true | true | false | `["stdio", "http"]` on `>= 1.0.46` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: false }` | absent | absent | absent |
@@ -354,7 +358,7 @@ that starts a parent and a child process ([report](../../experiments/runtime-res
 | grok 1.0.70 (ACP) | keeps running: native cancel and close leave the terminals grok created through the host | `dispose()` releases every terminal OAR hosted for the session, or [`endTurnProcessesOnAbort`](#ending-a-turns-processes-on-abort) stops the aborted turn's |
 | kimi 2.3.3, opencode 1.19.5 and 2.2.0, antigravity 1.4.3 (ACP) | stopped within 2 s of the cancel | |
 | antigravity 1.5.9 (ACP, Linux 2026-11-17) | foreground `du` stopped; already-backgrounded `du` survived the native cancelled turn; after ordinary turn end, abort returns `no_active_turn` | `dispose()` cleared all observed native and shell process groups ([report](../../experiments/antigravity-disk-scan/README.md)); natural completion is independent of abort |
-| claude, codebuddy, devin, dsh, factory, qwen, qoder, pi (RPC) | not measured | `dispose()`: OAR owns the process |
+| claude, codebuddy, devin, dsh, factory, hermes, qwen, qoder, pi (RPC) | not measured | `dispose()`: OAR owns the process |
 | pi (in process), cursor (in process) | not measured | they run in the host process: `dispose()` ends the SDK session; whether its commands stop is not measured |
 | cursor (subprocess mode) | not measured | `dispose()` stops the session's child, its process group and the descendants found by parent pid (POSIX), plus on Linux every process that kept the child's environment marker, such as a finished command's background job (tested on Linux); a process that cleared the marker, or on macOS one reparented away from the child, is not reached; Windows: `taskkill /T` on its tree, not run ([execution modes](../runtimes/cursor.md#execution-modes)) |
 | pi-durable | not measured | the host owns the harness: `dispose()` ends observation only |
@@ -578,7 +582,7 @@ regard to case. For example, `env: { ANTHROPIC_API_KEY: null,
 ANTHROPIC_BASE_URL: "https://provider.example" }` removes an inherited key
 while selecting the session's provider endpoint.
 
-Claude, codex, devin, dsh, factory, grok, kimi, opencode, antigravity, codebuddy, qwen and qoder
+Claude, codex, devin, dsh, factory, grok, hermes, kimi, opencode, antigravity, codebuddy, qwen and qoder
 apply the overlay to their runtime process and its tool children; ACP client-hosted terminals receive it
 too. OpenCode's prompt preparation queries use the same environment. Pi
 applies it to its Bash tool's children, not its in-process provider. Cursor in
@@ -633,6 +637,7 @@ in CI. Keys belong in `SessionOptions.env` or the runtime's own config, never in
 | pi-durable | the host's own `Harness` | `models.setProvider(createProvider({ baseUrl, ... }))` |
 | cursor | none | Cursor's SDK talks to Cursor's own backend only |
 | devin | none | Devin CLI exposes no configurable OpenAI or Anthropic base URL |
+| hermes | `$HERMES_HOME/config.yaml` | `model.provider`, `model.base_url`, `model.api_key`, `model.default`; a `custom` provider points at any OpenAI-compatible endpoint, or a named `providers.<id>` entry |
 
 ## Disallowed tools
 
@@ -655,7 +660,7 @@ tool event), each pinned by its vendor tests. Antigravity CLI 1.5.0 ignores
 | dsh | agent-scoped native `tools.restrict({ deny })`, on new and resumed opens | unknown, scope-only and reserved transport names; creation-hook shadowing; children have separate scopes ([boundaries](../runtimes/dsh.md#session-name-and-tool-denial)) |
 | factory | Refused at open: droid's `disabledToolIds` is not yet verified against these names | `UnsupportedOptionError`, declared in `refusedSessionOptions` |
 | qwen, qoder, codebuddy | native `--exclude-tools` (qwen), `--disallowed-tools` (qoder) and `--disallowedTools` (codebuddy, on new and resumed opens) | nothing: OAR passes the names unvalidated and matching is native ([qwen](../runtimes/qwen.md), [codebuddy](../runtimes/codebuddy.md)) |
-| grok, kimi, opencode, antigravity, devin, pi-durable | none through the selected OAR transport | every non-empty list, declared in `Runtime.refusedSessionOptions` |
+| grok, hermes, kimi, opencode, antigravity, devin, pi-durable | none through the selected OAR transport | every non-empty list, declared in `Runtime.refusedSessionOptions` |
 
 Value-specific refusals identify the offending names. They are not listed
 as an always-refused option on codex or cursor. The native
@@ -719,6 +724,7 @@ again on resume.
 | grok | `agent --always-approve --no-leader`, the host's arguments, `stdio`: `agent` takes its options before `stdio` |
 | kimi (KAP) | `web --json --host 127.0.0.1 --port 0`, then host's `launchArgs` (refuses managed KAP flags) |
 | kimi (ACP fallback), opencode, devin | after `acp` |
+| hermes | refused: `hermes acp` accepts only its own flags and OAR has not verified arbitrary launch arguments |
 | antigravity, codebuddy | after OAR's own arguments |
 | qwen | after OAR's own flags, before `--include-directories` and `--exclude-tools` |
 | dsh | refused: a later native overlay can disable OAR's bridge; effective composition has no verified guard ([evidence](../runtimes/dsh.md#launcher-arguments)) |
@@ -760,7 +766,7 @@ imitate a missing native channel. Unsupported runtimes refuse even `{}`.
 | claude | `--json-schema` for the process, including queued and spontaneous turns | A successful native `result.structured_output` is passed unchanged to `turn_ended.outcome.structuredOutput`. Exhausted validation retries fail the turn. |
 | codex | `turn/start.outputSchema` on every OAR prompt; steer retains the active turn's setting | Native text only, including text that violates the schema when the provider does not enforce it. No `structuredOutput` is synthesized. Provider schema refusals remain failed turns. |
 | grok | `session/prompt._meta.outputSchema` on prompt and held queue drain; a steer (`_x.ai/interject`) carries none and joins its turn under that turn's schema | Native `_meta.structuredOutput` becomes the completed outcome's value; `_meta.structuredOutputError` fails the turn even when native `stopReason` is `end_turn`. |
-| cursor, devin, dsh, factory, kimi, opencode (both lines), antigravity, codebuddy, qwen, qoder, pi, pi-durable | Refused at open; no verified final-output schema channel through these adapters | `UnsupportedOptionError`, declared in `refusedSessionOptions`. |
+| cursor, devin, dsh, factory, hermes, kimi, opencode (both lines), antigravity, codebuddy, qwen, qoder, pi, pi-durable | Refused at open; no verified final-output schema channel through these adapters | `UnsupportedOptionError`, declared in `refusedSessionOptions`. |
 
 **Codex's native queue cannot carry a schema**, so `queue()` returns
 `rejected: unsupported` when `outputSchema` is set. Send a new prompt after
@@ -805,7 +811,7 @@ runtime and is not guaranteed by this option.
 | qwen | `--include-directories` | Pass the list again for the new process. |
 | qoder | `--add-dir` | Pass the list again for the new process. |
 | dsh | Linux and macOS from 0.2.2-rc.3 register each path on the session in its existing sandbox policy. Earlier releases and Windows refuse. | Each resume registers only the paths supplied for that session. |
-| opencode v1, grok, antigravity, codebuddy, devin, factory, pi, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
+| opencode v1, grok, antigravity, codebuddy, devin, factory, hermes, pi, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
 
 The unconditional refusals are declared in `Runtime.refusedSessionOptions`.
 Kimi's resume restriction and OpenCode's release-line restriction are checked
@@ -831,7 +837,7 @@ nothing. A blank name, or one with a NUL character, is refused with
 | codex | `thread/name/set` once the thread is open | Set only when the `thread/resume` reply shows no name. |
 | pi | a `session_info` entry, as pi's own `--name` writes it | Set only when the session never had one, so a name the user cleared stays cleared. |
 | dsh | native `sessionTitle.rename` after opening checks | Preserve any native title; set only when none exists. |
-| cursor, devin, factory, kimi, grok, antigravity, opencode, codebuddy, qwen, qoder, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
+| cursor, devin, factory, hermes, kimi, grok, antigravity, opencode, codebuddy, qwen, qoder, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
 
 Evidence: [`experiments/codex-session-name.ts`](../../experiments/codex-session-name.ts)
 (codex 0.162.0) and the vendor tests
@@ -1031,6 +1037,7 @@ in [user configuration](#user-configuration).
 | cursor | `mcpServerCredentials`, `systemPrompt`, `appendSystemPrompt`, `env` (in process only), `launchArgs`, `serviceTier`, `outputSchema`, `name` | the SDK's local agent fails a run given a system prompt and has no append; in process it runs in the host process with no environment or command line of its own; in subprocess mode `env` is its child's ([execution modes](../runtimes/cursor.md#execution-modes)). Credential isolation on SDK 1.4.1 is unverified in both modes. [Isolation measurements](../../experiments/mcp-credential-admission/README.md) |
 | codebuddy | `appendSystemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified private prompt-append input; replacement uses a private file ([mapping](../runtimes/codebuddy.md)) |
 | devin | `mcpServerCredentials`, `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | `devin acp` has no verified prompt or tool-denial channel, and `initialize` advertises `sessionCapabilities.additionalDirectories` without verified primary-cwd and tool scoping ([mapping](../runtimes/devin.md)). Existing storage evidence covers only its SQLite database. [Isolation measurements](../../experiments/mcp-credential-admission/README.md) |
+| hermes | `mcpServerCredentials`, `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | the gateway viewer exposes no prompt, tool-denial or arbitrary launch-argument channel, and `additionalDirectories` is not advertised. An editor MCP entry with `env` or `headers` is refused because daemon persistence is unverified ([mapping](../runtimes/hermes.md)) |
 | kimi | `systemPrompt`, `disallowedTools`, `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` (and `appendSystemPrompt` conditionally on ACP fallback) | KAP sends `append_system_prompt` on `POST /sessions` and `:resume`; ACP fallback (`< 2.7.3` non-botiverse) refuses `appendSystemPrompt` via `sessionCapabilities` and lacks session prompt/agent-profile or tool-denylist overrides ([audit](../runtimes/kimi.md#models-instructions-and-context)) |
 | antigravity | `disallowedTools`, `systemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `mcpServerCredentials`, `userConfiguration: "exclude"` | the CLI adapter has no verified system prompt replacement channel (append is supported) ([audit](../runtimes/antigravity.md#models-instructions-and-context)); it would store an entry's `env` and `headers` values in plain text in its conversation database ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
 | grok | `disallowedTools`, `serviceTier`, `additionalDirectories`, `name`, `userConfiguration: "exclude"` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay |
@@ -1056,6 +1063,7 @@ call an attached server's tool, with the evidence on its runtime page
 | grok | ACP `mcpServers` on `session/new` and `session/resume`; the model reaches the tools through grok's `use_tool` | yes | yes | the param again | the session's replaces the user's `config.toml` entry; the user's others stay ([grok](../runtimes/grok.md#session-mcp-servers)) |
 | codebuddy | ACP `mcpServers` on `session/new` and `session/load` | yes | yes | the param again | conflict precedence unverified; credentialed new/resumed calls and no native HOME persistence verified ([mapping](../runtimes/codebuddy.md)) |
 | devin | credential-free ACP `mcpServers` on `session/new` and `session/load` | yes | yes | the param again | conflict precedence unverified; HTTP/stdio env and credentials are not persisted in `~/.local/share/devin` SQLite ([devin](../runtimes/devin.md#session-mcp-servers)) |
+| hermes | ACP `mcpServers` on `session/new` and `session/resume`; the gateway freezes the editor tool list per session | yes | no: `initialize` advertises no `mcpCapabilities.http` | the param again | unverified; a changed editor list applies from the next turn ([hermes](../runtimes/hermes.md)) |
 | kimi | `mcp_servers` on `POST /sessions` and `POST /sessions/{id}:resume` (KAP), or ACP `mcpServers` on `session/new` and `session/resume` (ACP fallback) | yes | yes | the param again | the session's replaces the user's `mcp.json` entry; the user's others stay ([kimi](../runtimes/kimi.md#session-mcp-servers)) |
 | opencode | ACP `mcpServers` on `session/new` and `session/resume`, held by that opencode process | yes | yes | the param again | the session's replaces the user's `mcp` entry for that process (a session server that fails to start removes it); the user's others stay ([opencode](../runtimes/opencode.md#session-mcp-servers)) |
 | antigravity | ACP `mcpServers` on `session/new` and `session/resume`; CLI worker mode exposes direct `mcp_<server>_<tool>` calls (user-configured servers remain lazy via `call_mcp_tool`). An entry with `env` or `headers` is refused (`mcpServerCredentials`, above) | yes | yes | the param again | the session's replaces the user's `mcp_config.json` entry; the user's others stay ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
@@ -1199,6 +1207,7 @@ this declaration; that is separate from changing the system prompt.
 | Qoder | Immediate (1.1.78 request-construction evidence) | Untested | No resume entries; [details](../runtimes/qoder.md#oar-mapping) |
 | DSH, both prompt options | Immediate | Native default | Declared; 0.2.1-rc.5 and 0.2.2-rc.1, Linux with local providers. Literal scoped registration; native children use their own defaults. Compaction unmeasured ([evidence](../runtimes/dsh.md#system-prompts)) |
 | Devin | Both refused | Refused | No resume entries; both prompt options are refused at open |
+| Hermes | Both refused | Refused | No resume entries; both prompt options are refused at open |
 | Factory | Refused on resume (`load_session` takes no prompt) | Refused on resume | No resume entries; new sessions take both ([details](../runtimes/factory.md#session-options)) |
 | CodeBuddy | Replacement reapplied; append refused | Replacement omission untested | No resume entries |
 
@@ -1238,8 +1247,8 @@ them from a streamable HTTP MCP server inside the host process, on
 entry containing the HTTP URL, authorization header, name and
 `origin: "serveMcpTools"`. Codex and Grok use the origin to wait for native
 startup during open. Claude, Codex, Pi SDK, Pi RPC, Grok, Kimi, OpenCode,
-CodeBuddy, DSH, Factory, Qwen and Qoder accept the entry. Cursor, Devin and Antigravity
-refuse an entry with `headers` (`mcpServerCredentials`). Pi Durable refuses `mcpServers`.
+CodeBuddy, DSH, Factory, Qwen and Qoder accept the entry. Cursor, Devin, Antigravity
+and Hermes refuse an entry with `headers` (`mcpServerCredentials`). Pi Durable refuses `mcpServers`.
 A host tells before opening:
 served tools attach unless `refusedSessionOptions` declares `mcpServers` or
 `mcpServerCredentials`. The runtime must reach the host's loopback address,
@@ -1306,7 +1315,7 @@ notification:
 |---|---|---|
 | `full` | pi, opencode (both lines) | offers the new set: added tools appear, removed ones disappear (opencode 2.x: a system update) |
 | `additions` | claude | adds new tools; removed tools' already loaded schemas remain offered, though search withdraws their names and calls fail as unknown tools ([2.1.304 evidence](../../experiments/runtime-version-checks/2026-10-20.md#claude-21304)) |
-| `none` | codex, kimi, grok, antigravity CLI | keeps the opening set; the client never lists again (grok's `use_tool` answers "Tool not found" for an added tool) |
+| `none` | codex, hermes, kimi, grok, antigravity CLI | keeps the opening set; the client never lists again (grok's `use_tool` answers "Tool not found" for an added tool; Hermes applies a changed editor list from the next turn) |
 
 pi-durable takes no `mcpServers` and declares nothing; codebuddy, cursor,
 devin, dsh, factory, qwen and qoder take it but are unmeasured, so they declare nothing either. The
@@ -1340,7 +1349,7 @@ deadline (at least `requestTimeoutMs` when unset;
 `AcpSessionProfile.sessionLoadTimeoutMs` can override it, independent of
 `requestTimeoutMs` and `sessionStartTimeoutMs`). Existing profile overrides remain:
 Antigravity, CodeBuddy, Devin, Grok, Kimi and OpenCode use 30 seconds for
-ordinary bounded requests; Kimi gives `session/new` and `session/resume`
+ordinary bounded requests; Hermes uses 60 seconds because the gateway connects to its daemon and mounts the session; Kimi gives `session/new` and `session/resume`
 630 seconds for native SessionStart hooks. Each phase gets its own budget,
 so a slow initialize does not consume authentication or session creation
 time; post-open readiness checks (such as Grok's served-MCP discovery
@@ -1399,6 +1408,7 @@ existing types and causes; OAR never starts a replacement conversation.
 | claude | During resume, before the `initialize` answer, `result/error_during_execution` with `errors[0]` starting `No conversation found with session ID` or reporting `is not a UUID and does not match any session title` | The active Claude configuration; exact prose is the last resort. |
 | codex | `thread/resume` JSON-RPC error `-32600` with message starting `no rollout found for thread id` | The active Codex storage/configuration; exact prose is the last resort. |
 | devin | `session/load` JSON-RPC error `-32016` with `data["cognition.ai/errorKind"] === "session_not_found"` | Only after `session/list` confirms the saved cwd; an unlisted id hits the prior `ResumeCwdError` with reason `not_listed`. |
+| hermes | ACP error `-32603` with `data.details === "not_found"` (the gateway `session.info` refusal) | The active `HERMES_HOME` gateway and its persisted sessions; the adapter never starts a replacement. |
 | kimi (KAP) | HTTP `404` or KAP code `40401` on `GET /sessions/{id}` or `POST /sessions/{id}:resume` | The active Kimi installation/workspace scope. |
 | cybion (community) | HTTP `404` on `GET /v1/threads/{id}` | The Cybion account scope for that thread id. |
 
@@ -1558,6 +1568,7 @@ policy refusal at open (`shared/acp/failure.ts`, `cursor/failure.ts`,
 - DSH: [`runtimes/dsh/projection.ts`](../../packages/oar/src/runtimes/dsh/projection.ts), [observations](../runtimes/dsh.md#records)
 - Factory: [`runtimes/factory/projection.ts`](../../packages/oar/src/runtimes/factory/projection.ts), [observations](../runtimes/factory.md#failures)
 - Grok: [`runtimes/grok/failure.ts`](../../packages/oar/src/runtimes/grok/failure.ts), [observations](../runtimes/grok.md#failures)
+- Hermes: shared ACP failure mapping, [observations](../runtimes/hermes.md#failures)
 - Kimi: KAP ([`runtimes/kimi/kap-failures.ts`](../../packages/oar/src/runtimes/kimi/kap-failures.ts), [`runtimes/kimi/kap-errors.ts`](../../packages/oar/src/runtimes/kimi/kap-errors.ts)) and shared ACP (`shared/acp/failure.ts`), [observations](../runtimes/kimi.md#failures)
 - OpenCode: [`runtimes/opencode/failure.ts`](../../packages/oar/src/runtimes/opencode/failure.ts), [observations](../runtimes/opencode.md#failures)
 - Pi / Pi Durable: [`runtimes/pi/failure.ts`](../../packages/oar/src/runtimes/pi/failure.ts), [`runtimes/pi-durable/projection.ts`](../../packages/oar/src/runtimes/pi-durable/projection.ts), [observations](../runtimes/pi.md#failures)
