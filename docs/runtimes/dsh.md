@@ -269,8 +269,8 @@ report links those results; its manual Claude/Codex comparisons are Linux only.
 ## Session options
 
 Supported: `cwd`, `resume`, `env`, `model` as `provider/model` (a bare name is
-refused at open: it has no route), `effort` as `reasoningEffort`, and stdio
-`mcpServers` with command/args ([MCP details](#session-mcp-servers)), `name`,
+refused at open: it has no route), `effort` as `reasoningEffort`, and per-session
+stdio or streamable HTTP `mcpServers` ([MCP details](#session-mcp-servers)), `name`,
 `disallowedTools` ([native title and tool boundaries](#session-name-and-tool-denial)),
 `systemPrompt` and `appendSystemPrompt` ([prompt boundaries](#system-prompts)),
 `goals: true` ([native goals](#native-goals)), and `sessionLogUpload: "off"`
@@ -282,7 +282,7 @@ session in `SessionOptions.env`: nobody sits at an approval prompt, and native r
 tools run and the native `permission/preset` frame is recorded.
 
 Refused with `UnsupportedOptionError` until an effective native mapping is verified:
-`fork`, `mcpServerCredentials`, `launchArgs`, `serviceTier`, `outputSchema`,
+`fork`, `launchArgs`, `serviceTier`, `outputSchema`,
 `userConfiguration: "exclude"`, `endTurnProcessesOnAbort: true`
 ([`options.ts`](../../packages/oar/src/runtimes/dsh/options.ts)). The opened session reports image support when its selected model advertises
 image input and DSH mounts a matching attachment store. Images are saved as
@@ -586,35 +586,31 @@ it. DSH's shell tool there is `pwsh`, not `bash`.
 
 ## Session MCP servers
 
-`SessionOptions.mcpServers` accepts stdio `command` and `args`. OAR adds one
-native `@deepseek-ai/dsh-mcp-client` loader row per server to its private
-invocation patch. Each OAR session owns that process, so these rows do not
-modify the user's profile or attach to another OAR session. `cwd` is the
-session directory; arguments go directly to the native transport, without a
-shell. Tools have native names such as `mcp__echo__echo`.
+OAR sends each session's MCP configurations over the bridge's stdin before
+opening the native agent. Stdio servers receive `command`, literal `args`,
+the session working directory and the entry's `env`. Streamable HTTP servers
+receive `url` and `headers`, including the bearer header used by
+`serveMcpTools`. The launch patch contains only bridge and profile settings.
 
-Native loading is verified before open: `loader.await()` alone settles even
-when an individual plugin failed. The bridge then finds each requested row
-through `loader.entries()`, awaits its fiber and requires native ACTIVE state.
-A missing method, failed server or inactive plugin refuses the open. The check
-uses native `FiberState.ACTIVE = 2`, measured by the linked MCP probe and covered
-by the latest-version vendor probe. If DSH changes that enum, MCP opens are
-refused until the mapping is updated. Existing
-user-configured servers remain; a namespace collision fails native activation
-instead of replacing the user's server. Names must match the native
-`[A-Za-z0-9_-]{1,32}` constraint; OAR refuses other names without renaming them.
+The bridge resolves the installed `@deepseek-ai/dsh-mcp-client` through the
+native loader and mounts each instance in memory with `ctx.plugin()`. It
+awaits each plugin fiber and requires native ACTIVE state (2) before opening
+the session. A missing method, failed connection or inactive plugin refuses
+the open. Each OAR session owns a separate DSH process. User-configured
+servers remain available, and a namespace collision fails native activation.
+Names must match DSH's `[A-Za-z0-9_-]{1,32}` constraint. A server named
+`echo` providing an `echo` tool registers it as `mcp__echo__echo`.
 
 Supply the entries again on resume. A resumed process without them has no
 current tools from those entries, even though conversation history retains
 previous tool results. Native disposal and OAR's process owner close the MCP
 children. Failed startup also cleans up children that already started.
 
-HTTP entries and nonempty `env` or `headers` are refused before launch.
-`refusedSessionOptions.mcpServerCredentials` declares the credential refusal:
-DSH's persistence of those values has not been audited. This does not claim
-that DSH itself lacks these transports or configuration fields. Empty `env`
-is allowed. Persistence of command/args has not been audited either. Do not
-move tokens into `args`; this path is not a credential channel.
+The [Linux audit](../../experiments/mcp-credential-admission/README.md#dsh-bridge-stdin)
+covers stdio and HTTP credential delivery, ordinary shell isolation, native
+logging, file and process samples on `0.2.1-rc.5` and `0.2.2-rc.5`. Use
+the transport's credential fields for secrets. Command arguments are visible
+to the operating system.
 
 [Native probe and regressions](../../experiments/dsh-mcp/README.md) cover
 loopback model calls, process identity/cwd/arguments, simultaneous sessions,

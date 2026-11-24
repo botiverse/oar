@@ -8,7 +8,6 @@ import { DSH_MINIMUM_VERSION } from "./version.js";
 export const dshRefusedSessionOptions: RefusedSessionOptions = {
   modelRequests: "This adapter has no verified capture of the root agent's provider request",
   fork: "OAR has not verified a native DSH fork that opens a copy of a saved session under a new id, cut after a chosen turn",
-  mcpServerCredentials: "DSH MCP env and header persistence has not been audited; only stdio command and args are supported",
   launchArgs: "DSH overlays can disable the OAR bridge; arbitrary launch overlays have no verified final-composition check",
   serviceTier: "DSH has no verified per-session service-tier setting and readback",
   outputSchema: "DSH has no verified final-output schema channel",

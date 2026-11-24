@@ -20,7 +20,7 @@ export const dshRuntime = defineRuntime({
       ...(semverAtLeast(version, "0.2.2-rc.5") ? { subagentResults: { background: "child_text" } } : {}),
       compactionEvents: { started: true, ended: true },
       contextUsage: { tokens: true, contextWindow: true },
-      mcpTransports: ["stdio"],
+      mcpTransports: ["stdio", "http"],
       stopTask: true,
       refusedSessionOptions: { ...dshDirectoryRefusal(version), ...dshSessionLogUploadRefusal(version) },
     };

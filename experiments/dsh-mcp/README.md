@@ -3,6 +3,8 @@
 Issue #646, task #184. Linux x64, 2026-11-06, real DSH with a scripted loopback
 model. No account, remote model or ACP exchange is involved.
 
+For the November 24 stdin handoff and credential audit, see [DSH bridge stdin](../mcp-credential-admission/README.md#dsh-bridge-stdin).
+
 The existing OAR-owned DSH process can load native `dsh-mcp-client` plugins
 through its invocation patch. An initial probe attached an echo server through
 a native profile row, then the session option used the same native loader in

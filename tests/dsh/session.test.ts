@@ -38,8 +38,8 @@ const failure = async (env: Readonly<Record<string, string>>, options: Parameter
 const frameTypes = (session: Session): readonly string[] => session.records().flatMap((record) => record.kind === "frame" ? [record.body.type] : []);
 
 describe("the bridge source", () => {
-  test("imports no DSH package, in code or text", () => {
-    expect(dshBridgeSource).not.toContain("@deepseek-ai/");
+  test("uses the native loader for DSH packages", () => {
+    expect(dshBridgeSource).not.toMatch(/(?:from\s+|(?<!\.)import\s*\()["']@deepseek-ai\//u);
     expect(dshBridgeSource).not.toContain("release");
     expect(dshBridgeSource).not.toContain("oar_probe_echo");
   });
@@ -266,7 +266,9 @@ test("a line that is no command gets a protocol error frame, and the bridge keep
     child.write(`${JSON.stringify({ id: "3", method: "constructor" })}\n`);
     child.write(`${JSON.stringify({ id: "2", method: "dispose" })}\n`);
     await until("response");
-    expect(frames.filter((frame) => frame.type === "protocol-error").map((frame) => frame.line)).toEqual(["not json", JSON.stringify({ id: "1", method: "no-such-method" }), JSON.stringify({ id: "3", method: "constructor" })]);
+    const errors = frames.filter((frame) => frame.type === "protocol-error");
+    expect(errors).toHaveLength(3);
+    expect(JSON.stringify(errors)).not.toMatch(/not json|no-such-method|constructor/u);
     expect(frames.find((frame) => frame.type === "response")).toEqual({ type: "response", id: "2", result: {} });
   } finally {
     child.kill();

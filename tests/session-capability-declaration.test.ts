@@ -150,7 +150,7 @@ describe("SessionCapabilityDeclaration.mcpTransports", () => {
     for (const id of ["antigravity", "claude", "codebuddy", "codex", "grok", "kimi", "opencode", "pi", "qoder", "qwen"]) {
       expect(byId.get(id), id).toEqual(["stdio", "http"]);
     }
-    expect(byId.get("dsh")).toEqual(["stdio"]);
+    expect(byId.get("dsh")).toEqual(["stdio", "http"]);
     expect(byId.get("devin")).toBeUndefined();
     expect(byId.get("factory")).toBeUndefined();
   });
