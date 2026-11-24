@@ -1,7 +1,7 @@
 /* oxlint-disable import/max-dependencies -- Native observation needs copied SDK discovery, import resolution, offline transport and fixture reports. */
 // Test-only observer. The installed SDK is never changed and no loader logic is replaced.
 import { copiedSdkImports } from "./copied-sdk-imports.js";
-import { copiedSdkBundle } from "./copied-sdk-bundle.js";
+import { copiedSdkBundle, cursorSkillsContextFactory } from "./copied-sdk-bundle.js";
 import { asRecord, parseJson } from "../../../packages/oar/src/shared/json.js";
 import type { createAgentPlatform } from "@cursor/sdk";
 import assert from "node:assert/strict";
@@ -28,8 +28,9 @@ const imports = copiedSdkImports(sdkEntry, copy);
 process.stderr.write(`${JSON.stringify({ kind: "sdk_observer_bootstrap", sdkEntry, copy })}\n`);
 const anchor = "const P={cursorRulesService:C,getAgentSkills:e=>E.getAllAgentSkills(e),subagentsService:x};return P";
 const { file: bundle, source: original } = await copiedSdkBundle(join(copy, "dist", "esm"), anchor);
-const observation = ";globalThis.oarNativeSkills=()=>E.getAllAgentSkills((0,y.q6)())";
-await writeFile(bundle, original.replace(anchor, anchor.replace(";return P", `${observation};return P`)));
+const factory = cursorSkillsContextFactory(original, anchor);
+const observation = `globalThis.oarNativeSkills=()=>E.getAllAgentSkills(${factory});`;
+await writeFile(bundle, original.replace(anchor, () => observation + anchor));
 let blockedConnections = 0;
 Socket.prototype.connect = function connect(): never { blockedConnections++; throw new Error("Offline native skill probe"); };
 globalThis.fetch = async (): Promise<never> => { blockedConnections++; await Promise.resolve(); throw new Error("Offline native skill probe"); };
