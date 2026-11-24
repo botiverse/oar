@@ -1,7 +1,7 @@
 // oxlint-disable -- A stand-in executable, deliberately untyped like the services it fakes.
 // A stand-in `dsh`: it loads the real bridge text OAR wrote, from the --patch row
 // OAR wrote, over fake injected services. FAKE_DSH_MODE selects the fault.
-import { readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 
 const mode = process.env.FAKE_DSH_MODE ?? "ok";
 if (process.argv.includes("--help")) {
@@ -164,7 +164,8 @@ const sessionLogEntry = missing.has("session-log-deepseek") ? [] : [{
 }];
 const loader = {
   await: async () => { if (mode === "barrier-fails") { throw new Error("barrier failed"); } },
-  ...(mode === "no-mcp-method" || mode === "no-loader-entries" ? {} : {
+  ...(mode === "no-mcp-method" ? {} : { import: async () => ({}), unwrapExports: value => value }),
+  ...(mode === "no-loader-entries" ? {} : {
     entries: () => [
       ...patch[1].insert.map(options => ({ options, fiber: { state: mode === "mcp-inactive" ? 0 : 2, await: async () => {} } })),
       ...sessionLogEntry,
@@ -172,6 +173,15 @@ const loader = {
   }),
 };
 const ctx = {
+  plugin: (_plugin, config) => {
+    if (process.env.FAKE_DSH_MCP_RECEIPT) {
+      const launch = [JSON.stringify(patch), ...process.argv, ...Object.values(process.env)];
+      const values = Object.values(config.env ?? config.headers ?? {});
+      const isolated = values.length === 1 && launch.every(field => !field.includes(values[0]));
+      appendFileSync(process.env.FAKE_DSH_MCP_RECEIPT, config.transport + ":" + isolated + "\n");
+    }
+    return { ctx: { fiber: { state: mode === "mcp-inactive" ? 0 : 2, await: async () => {} } } };
+  },
   get: (name) => name === "loader" ? (mode === "no-loader" ? undefined : loader) : services[name],
   on,
   effect: () => {},

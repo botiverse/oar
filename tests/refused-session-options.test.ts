@@ -73,7 +73,7 @@ test("the declarations say which options each runtime refuses", () => {
     codex: ["modelRequests", "nativeMemoryDefault", "sessionLogUpload", "userConfiguration"],
     cursor: ["appendSystemPrompt", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "partialUserConfiguration", "serviceTier", "sessionLogUpload", "systemPrompt"],
     devin: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "sessionLogUpload", "systemPrompt", "userConfiguration"],
-    dsh: ["endTurnProcessesOnAbort", "fork", "launchArgs", "mcpServerCredentials", "modelRequests", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
+    dsh: ["endTurnProcessesOnAbort", "fork", "launchArgs", "modelRequests", "nativeMemoryDefault", "outputSchema", "serviceTier", "userConfiguration"],
     factory: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "sessionLogUpload", "userConfiguration"],
     grok: ["additionalDirectories", "disallowedTools", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "serviceTier", "sessionLogUpload", "userConfiguration"],
     kimi: ["disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "outputSchema", "serviceTier", "sessionLogUpload", "systemPrompt", "userConfiguration"],
@@ -118,7 +118,7 @@ test("entries without credentials are no mcpServerCredentials given, and every r
     }, runtime.id);
   }
   const refusing = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions?.mcpServers !== undefined || runtime.refusedSessionOptions?.mcpServerCredentials !== undefined);
-  expect(refusing.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", "cursor", "devin", "dsh"]);
+  expect(refusing.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", "cursor", "devin"]);
 });
 
 // Some runtimes drop a server so named without a word (#395): every runtime

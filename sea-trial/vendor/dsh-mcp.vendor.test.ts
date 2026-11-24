@@ -10,7 +10,7 @@ import { lastInput } from "./support/dsh-provider.js";
 import { openTrace, record } from "../harness/trace.js";
 
 describe.skipIf(!dshEnabled)("DSH session MCP", () => {
-  test("native tools call through the invocation overlay, stay isolated, and must be supplied again on resume", async () => {
+  test("native tools call through the session bridge, stay isolated, and must be supplied again on resume", async () => {
     openTrace("dsh-session-mcp");
     await withDshFixture(mcpReply, async ({ aimock, open, provider }) => {
       const patch = path.join(aimock.home, "cordis.patch.yml");

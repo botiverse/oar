@@ -185,7 +185,7 @@ and the opened session stays authoritative.
 | codex | true | true | true | `["stdio", "http"]` ([mcp-servers.vendor.test.ts](../../sea-trial/vendor/mcp-servers.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` on `>= 0.151.0`; absent on older or unreadable versions | true from 0.160.1, absent on older or unreadable versions | true from 0.169.0, absent on older or unreadable versions | absent |
 | cursor | true (an individual steer can still be rejected: `unsupported` with images, `runtime_refused` when the run cannot take it, as above) | true | false | `["stdio", "http"]` ([cursor-mcp.ts](../../experiments/cursor-mcp.ts)) | `{ tokens: true, contextWindow: false }` | absent | absent | absent |
 | devin | false | absent: advertised by `initialize` | false | absent: handshake-dependent and unverified in CI | absent: live turns unverified | absent | absent | absent |
-| dsh | absent: the bridge reports the agent's methods at open | absent: the selected model and native attachment store determine image support | true | `["stdio"]` ([dsh-mcp.vendor.test.ts](../../sea-trial/vendor/dsh-mcp.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | true from 0.2.2-alpha.2, false below 0.2.2-alpha.2, absent on unreadable versions | absent |
+| dsh | absent: the bridge reports the agent's methods at open | absent: the selected model and native attachment store determine image support | true | `["stdio", "http"]` ([stdio](../../sea-trial/vendor/dsh-mcp.vendor.test.ts), [credentialed stdio and HTTP](../../sea-trial/vendor/dsh-mcp-credentials.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | true from 0.2.2-alpha.2, false below 0.2.2-alpha.2, absent on unreadable versions | absent |
 | factory | true | true | false | absent: HTTP MCP tool invocation unverified (only stdio is exercised in [factory.vendor.test.ts](../../sea-trial/vendor/factory.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | absent | absent |
 | grok | true | true | false | `["stdio", "http"]` on `>= 1.0.46` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: false }` | absent | absent | absent |
 | kimi | true on botiverse `>= 2.7.2-botiverse.1` (KAP); false on unreadable versions or `< 2.7.3` non-botiverse (ACP fallback); absent on upstream `>= 2.7.3` (probe-dependent) | absent before open (true on botiverse KAP `>= 2.7.2-botiverse.1`) | true on botiverse KAP `>= 2.7.2-botiverse.1`; false on unreadable versions or `< 2.7.3` non-botiverse (ACP fallback); absent on upstream `>= 2.7.3` (probe-dependent) | `["stdio", "http"]` on `>= 2.1.1` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: true }` (except models whose catalog entry has no size) | absent | absent | absent |
@@ -1038,7 +1038,7 @@ in [user configuration](#user-configuration).
 | pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping |
 | pi | `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `userConfiguration: "exclude"` | it runs in the host process through its SDK, with no command line. Subprocess mode delivers startup config (including MCP server credentials) once over the private fd 3 pipe at startup instead of writing it to disk ([pi](../runtimes/pi.md#optional-native-rpc-process)). |
 | qwen | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
-| dsh | `mcpServerCredentials`, `launchArgs`, `serviceTier`, `outputSchema`, `userConfiguration: "exclude"` | MCP credentials have no verified persistence boundary; launcher overlays can disable the bridge; root `agentOptions.outputSchema` is ignored while the native child API supports it; the other options remain unverified through the bridge ([mapping](../runtimes/dsh.md#session-options)) |
+| dsh | `launchArgs`, `serviceTier`, `outputSchema`, `userConfiguration: "exclude"` | Launcher overlays can disable the bridge; root `agentOptions.outputSchema` is ignored while the native child API supports it; the other options remain unverified through the bridge ([mapping](../runtimes/dsh.md#session-options)) |
 | factory | `serviceTier`, `outputSchema`, `name`, `additionalDirectories`, `disallowedTools`, `userConfiguration: "exclude"` | no tier; structured output, session titles and tool denials not yet verified; no extra-directory or user-configuration exclusion channel ([mapping](../runtimes/factory.md#session-options)) |
 | qoder | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
 | codex | `userConfiguration: "exclude"`; `endTurnProcessesOnAbort: true` only with shared placement | temporary clean homes break shared history paths after cleanup ([evidence](../runtimes/codex.md#user-configuration)); a shared app-server's process table does not say which session's turn started a process |
@@ -1061,7 +1061,7 @@ call an attached server's tool, with the evidence on its runtime page
 | antigravity | ACP `mcpServers` on `session/new` and `session/resume`; CLI worker mode exposes direct `mcp_<server>_<tool>` calls (user-configured servers remain lazy via `call_mcp_tool`). An entry with `env` or `headers` is refused (`mcpServerCredentials`, above) | yes | yes | the param again | the session's replaces the user's `mcp_config.json` entry; the user's others stay ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
 | qwen | per-session `initialize.mcpServers` (stdio command/args/env, HTTP `httpUrl`/headers) | yes | yes | the entries again | see [qwen](../runtimes/qwen.md) |
 | qoder | `--mcp-config <path>`: a 0600 FIFO removed once Qoder has read it (on Windows, a 0600 file removed once `initialize` completes) | yes | yes | the flag again | see [qoder](../runtimes/qoder.md) |
-| dsh | private invocation patch loads native MCP client plugins, checked active before open | command/args only | refused | supply entries again; omitted entries are absent | a native namespace collision refuses open ([dsh](../runtimes/dsh.md#session-mcp-servers)) |
+| dsh | bridge stdin carries in-memory native MCP plugin configurations, checked active before open | yes | yes | supply entries again; omitted entries are absent | a native namespace collision refuses open ([dsh](../runtimes/dsh.md#session-mcp-servers)) |
 | factory | `mcpServers` on `initialize_session` and `load_session` (stdio `env` as a record, http `headers` as name/value pairs); droid offers the tools as `<server>___<tool>` | yes | yes | the param again | not measured ([factory](../runtimes/factory.md#session-mcp-servers)) |
 | pi | in process: `pi.registerMcpServer` inline extension; subprocess: one-time fd 3 pipe delivery to `pi.registerMcpServer`; tools declared directly | yes | yes | registered again | oar's pi loads no `mcp.json`; a name another extension registered fails the open ([pi](../runtimes/pi.md#session-mcp-servers)) |
 
@@ -1079,7 +1079,10 @@ no record holds a credential. The recordings are
 
 DSH command/args controls, including startup failure and child cleanup, are in
 [`dsh-mcp.vendor.test.ts`](../../sea-trial/vendor/dsh-mcp.vendor.test.ts).
-HTTP and nonempty MCP env/headers remain refused, pending a persistence audit.
+The [credentialed transport test](../../sea-trial/vendor/dsh-mcp-credentials.vendor.test.ts)
+calls a stdio tool and a bearer-authenticated HTTP tool on the first turn. The
+[Linux audit](../../experiments/mcp-credential-admission/README.md#dsh-bridge-stdin)
+covers credential isolation and persistence on both tested DSH versions.
 
 CodeBuddy's credentialed stdio/HTTP invocation and post-exit persistence audit
 are in [`codebuddy.vendor.test.ts`](../../sea-trial/vendor/codebuddy.vendor.test.ts).
@@ -1235,9 +1238,8 @@ them from a streamable HTTP MCP server inside the host process, on
 entry containing the HTTP URL, authorization header, name and
 `origin: "serveMcpTools"`. Codex and Grok use the origin to wait for native
 startup during open. Claude, Codex, Pi SDK, Pi RPC, Grok, Kimi, OpenCode,
-CodeBuddy, Factory, Qwen and Qoder accept the entry. Cursor, Devin and Antigravity
-refuse an entry with `headers` (`mcpServerCredentials`). Pi Durable refuses `mcpServers`,
-and DSH accepts only stdio command/args.
+CodeBuddy, DSH, Factory, Qwen and Qoder accept the entry. Cursor, Devin and Antigravity
+refuse an entry with `headers` (`mcpServerCredentials`). Pi Durable refuses `mcpServers`.
 A host tells before opening:
 served tools attach unless `refusedSessionOptions` declares `mcpServers` or
 `mcpServerCredentials`. The runtime must reach the host's loopback address,

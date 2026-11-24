@@ -4,7 +4,6 @@ import { pathToFileURL } from "node:url";
 import type { SessionOptions } from "../../contracts/session.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
-import type { JsonRecord } from "../../shared/json.js";
 import { privateTempDir, type PrivateTempDir } from "../../shared/private-temp.js";
 import { dshBridgeSource } from "./bridge.js";
 import { acquireDshProfile, type DshProfileWait } from "./profile-startup.js";
@@ -29,7 +28,6 @@ const SESSION_LOG_PLUGIN_ID = "session-log-deepseek";
 const SESSION_LOG_PLUGIN_NAME = "@deepseek-ai/dsh-session-log-deepseek";
 
 export interface DshLaunchOptions {
-  readonly mcpRows?: readonly JsonRecord[];
   readonly disableSessionLogUpload?: boolean;
   readonly signal?: AbortSignal;
   readonly profileWait?: DshProfileWait;
@@ -41,20 +39,17 @@ export interface DshLaunchOptions {
  * message is exchanged. The overlay is an invocation layer: it edits no user file.
  */
 export async function launchDsh(command: string, cwd: string, env: NodeJS.ProcessEnv, options: DshLaunchOptions = {}): Promise<LaunchedDsh> {
-  const { mcpRows = [], disableSessionLogUpload = false, signal } = options;
+  const { disableSessionLogUpload = false, signal } = options;
   const directory = await privateTempDir("oar-dsh-");
   let release: (() => void) | undefined = undefined;
   try {
     const bridge = path.join(directory.path, "bridge.mjs");
     const patch = path.join(directory.path, "patch.json");
     await writeFile(bridge, dshBridgeSource, { mode: 0o600, flag: "wx" });
-    const bridgeConfig = {
-      mcpEntries: mcpRows.map((row) => row.id),
-      ...(disableSessionLogUpload ? { sessionLogPlugin: { id: SESSION_LOG_PLUGIN_ID, name: SESSION_LOG_PLUGIN_NAME } } : {}),
-    };
+    const bridgeConfig = disableSessionLogUpload ? { sessionLogPlugin: { id: SESSION_LOG_PLUGIN_ID, name: SESSION_LOG_PLUGIN_NAME } } : {};
     const patchRows: readonly unknown[] = [
       { id: "acp", disabled: true },
-      { insert: [...mcpRows, { id: "oar-dsh-bridge", name: pathToFileURL(bridge).href, config: bridgeConfig }] },
+      { insert: [{ id: "oar-dsh-bridge", name: pathToFileURL(bridge).href, config: bridgeConfig }] },
       ...(disableSessionLogUpload ? [{ id: SESSION_LOG_PLUGIN_ID, name: SESSION_LOG_PLUGIN_NAME, config: { enabled: false } }] : []),
     ];
     await writeFile(patch, JSON.stringify(patchRows), { mode: 0o600, flag: "wx" });

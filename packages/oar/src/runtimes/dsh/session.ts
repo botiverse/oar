@@ -24,7 +24,7 @@ import { DshCommandError, dshControl, isDshExitedError, type DshControl } from "
 import { dshEnvironment, launchDsh } from "./launch.js";
 import { isBackgroundShellJob } from "./jobs.js";
 import { dshGoalControl } from "./goal.js";
-import { dshMcpRows } from "./mcp.js";
+import { dshMcpConfigs } from "./mcp.js";
 import { dshAgentOptions, dshDirectoryRefusal, dshRefusedSessionOptions, dshSessionLogUploadRefusal, dshSupportsNativeSessionFile, type DshAgentOptions } from "./options.js";
 import { dshOpenedFrame, foldDsh, initialDshProjection } from "./projection.js";
 
@@ -98,12 +98,12 @@ const inputFields = (text: string, inputId: string | undefined, images: readonly
   ...(images.length === 0 ? {} : { images: images.map(({ data, mediaType }) => ({ data, mediaType })) }),
 });
 
-async function open(command: string, options: SessionOptions, env: NodeJS.ProcessEnv, credentials: SessionCredentials, mcpRows: readonly JsonRecord[], supportsSessionFile: boolean): Promise<Session> {
+async function open(command: string, options: SessionOptions, env: NodeJS.ProcessEnv, credentials: SessionCredentials, mcpConfigs: readonly JsonRecord[], supportsSessionFile: boolean): Promise<Session> {
   const sessionId = options.resume ?? randomUUID();
   const agentOptions = dshAgentOptions(options);
   const kernel = credentials.kernel(sessionId);
   let projection = initialDshProjection(sessionId);
-  const { child, directory, profileLoaded } = await launchDsh(command, options.cwd, env, { mcpRows, disableSessionLogUpload: options.sessionLogUpload === "off" });
+  const { child, directory, profileLoaded } = await launchDsh(command, options.cwd, env, { disableSessionLogUpload: options.sessionLogUpload === "off" });
   const fallback = createAbortFallback(() => { child.kill(); });
   let exited = false;
   let hasSessionFileStat = false;
@@ -143,6 +143,7 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
   let opened: JsonRecord = {};
   try {
     await control.ready;
+    if (mcpConfigs.length > 0) { await control.request("mountMcp", { servers: mcpConfigs }, OPEN_TIMEOUT_MS); }
     if (options.goals === true) { await control.request("goalConfirm"); }
     if (options.resume === undefined) { opened = await control.request("open", { ...fields, cwd: options.cwd }, OPEN_TIMEOUT_MS); }
     else {
@@ -256,7 +257,7 @@ export const dshSession: StartSession = withSessionCredentials(async (installati
   checkSessionName(options);
   // Checked before spawning anything: both refusals name what they refuse.
   dshAgentOptions(options);
-  const mcpRows = dshMcpRows(options.mcpServers, options.cwd);
+  const mcpConfigs = dshMcpConfigs(options.mcpServers, options.cwd);
   if (installation.via !== "executable") { throw new Error("DSH requires its executable installation"); }
   const env = dshEnvironment(options.env);
   // A floor refusal names the real version, before anything starts.
@@ -266,5 +267,5 @@ export const dshSession: StartSession = withSessionCredentials(async (installati
   if (refusal !== null) { throw new RuntimeFailureError("invalid_request", refusal); }
   refuseSessionOptions(dshDirectoryRefusal(version), options);
   const directories = resolvedAdditionalDirectories(options);
-  return open(installation.command, directories.length === 0 ? options : { ...options, additionalDirectories: directories }, env, credentials, mcpRows, dshSupportsNativeSessionFile(version) === true);
+  return open(installation.command, directories.length === 0 ? options : { ...options, additionalDirectories: directories }, env, credentials, mcpConfigs, dshSupportsNativeSessionFile(version) === true);
 });

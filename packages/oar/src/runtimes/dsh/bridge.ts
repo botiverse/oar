@@ -7,16 +7,11 @@ import { dshPromptSource } from "./bridge-prompt.js";
 export const DSH_BRIDGE_PROTOCOL = 1;
 
 /**
- * The plugin DSH loads into its own process. It reaches DSH only through the
- * services the running process injects, so it imports no DSH package (a package
- * outside a profile cannot resolve them, and `tests/dsh/session.test.ts` greps
- * this text). Kept as source so a single-file host can write it to a private
- * directory without its own source tree. The vendor suite runs this exact text.
+ * The plugin DSH loads into its own process. It uses the services the running process
+ * injects, including its loader for the installed MCP client. A single-file host
+ * writes this source to a private directory. The vendor suite runs the same text.
  *
- * Frames on stdout: private `profile-loaded`, then `ready`, followed by `native` and `response` frames; `startup-error`
- * when the loader barrier fails (never an empty inventory); `protocol-error` for
- * a line that is not a command. A `native` frame carries the runtime's payload
- * unchanged, with only routing fields beside it.
+ * Native stdout frames carry the runtime payload unchanged alongside its routing fields.
  */
 export const dshBridgeSource = String.raw`import { randomUUID } from "node:crypto";
 import { createInterface } from "node:readline";
@@ -73,16 +68,6 @@ export function apply(ctx, config) {
   void (async () => {
     try {
       await loader.await();
-      // The tree barrier uses allSettled. Each requested plugin must also
-      // report successful activation, or a missing server would be ignored.
-      for (const id of config?.mcpEntries ?? []) {
-        requireMethod(loader, "entries", "session MCP");
-        const fiber = [...loader.entries()].find((entry) => entry.options?.id === id)?.fiber;
-        requireMethod(fiber, "await", "session MCP");
-        await fiber.await();
-        // Cordis FiberState.ACTIVE is 2 in the native protocol we probe.
-        if (fiber.state !== 2) { throw refusal("mcp_inactive", "Requested MCP plugin is not active (native state " + fiber.state + ")", "session MCP"); }
-      }
       if (config?.sessionLogPlugin !== undefined) {
         const plugin = config.sessionLogPlugin;
         requireMethod(loader, "entries", "sessionLogUpload");
@@ -169,6 +154,20 @@ ${dshPromptSource}  const configureSession = (agent, request) => {
 
 ${dshGoalSource}
   const commands = {
+    async mountMcp(request) {
+      const loader = ctx.get("loader");
+      requireMethod(loader, "import", "session MCP");
+      requireMethod(loader, "unwrapExports", "session MCP");
+      requireMethod(ctx, "plugin", "session MCP");
+      const plugin = loader.unwrapExports(await loader.import("@deepseek-ai/dsh-mcp-client"));
+      for (const server of request.servers) {
+        const fiber = ctx.plugin(plugin, server)?.ctx?.fiber;
+        requireMethod(fiber, "await", "session MCP");
+        await fiber.await();
+        if (fiber.state !== 2) { throw refusal("mcp_inactive", "Requested MCP plugin is not active (native state " + fiber.state + ")", "session MCP"); }
+      }
+      return {};
+    },
     ...goalCommands,
     ...sessionControls,
     name(request) {
@@ -287,9 +286,9 @@ ${dshGoalSource}
   async function receive(line) {
     let request = null;
     try { request = JSON.parse(line); }
-    catch (error) { write({ type: "protocol-error", error: structured(error), line }); return; }
+    catch { write({ type: "protocol-error", error: { message: "Invalid command JSON" } }); return; }
     if (request === null || typeof request !== "object" || typeof request.id !== "string" || !Object.hasOwn(commands, request.method)) {
-      write({ type: "protocol-error", error: { message: "Expected a command with an id and a known method" }, line });
+      write({ type: "protocol-error", error: { message: "Expected a command with an id and a known method" } });
       return;
     }
     try { write({ type: "response", id: request.id, result: await commands[request.method](request) }); }

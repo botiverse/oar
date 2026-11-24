@@ -31,7 +31,7 @@ and the [bundled SDK dependencies](../../packages/oar/package.json).
 | Pi RPC | 1.5.2 | Process configuration | Both values were present in one file at open and after the turn. Disposal removed it. RPC now refuses credentialed entries before launch. |
 | Qoder | 1.1.81 | Startup FIFO on Linux | Passed. The file fallback is released after native initialization. |
 | Qwen | 0.27.4 | ACP session request | Passed. |
-| Antigravity and DSH | 1.5.11 and 0.2.1-rc.5 | Credential-free entries | Both already refuse credentials. |
+| Antigravity and DSH | 1.5.11 and 0.2.1-rc.5 | Credential-free entries | Both refused credentials at the time. See the DSH follow-up below. |
 | Pi Durable, Cybion and Morph | Adapter declarations | No per-session attachment | All three already refuse session MCP servers. |
 
 Hosts using `serveMcpTools` supply a bearer header on every entry. Managed
@@ -46,3 +46,32 @@ The CodeBuddy ordinary-tool receipt came from a second run after the first
 shell command could not start. The [refusal tests](../../tests/refused-session-options.test.ts)
 check that public declarations agree with session admission. Empty environment
 and header maps remain usable.
+
+## DSH bridge stdin
+
+On November 24, 2026, Linux probes used separate synthetic credentials on
+`0.2.1-rc.5` and `0.2.2-rc.5`. The bridge mounted both native plugins in
+memory. On both versions, a local stdio tool and a loopback HTTP tool
+returned the expected results on the first turn. A separate check found no HTTP
+marker in the stdio server environment and no stdio marker in the HTTP
+request headers. The ordinary shell received
+neither credential. UTF-8 and UTF-16LE scans of the isolated directories
+(including the launch patch and native session history) found neither value
+after open, after the turn or after disposal. Both argv samples, OAR records
+and scripted provider requests were also clean. The file and process sampling
+limits above apply.
+
+A missing stdio executable and an HTTP 503 at initialization each refused
+open. An HTTP 503 during a tool call produced a tool error after successful
+initialization. A test-only Cordis exporter inspected the logger arguments
+during these cases, including error objects and their causes. On
+`0.2.2-rc.5`, the plugin also calls `ctx.logger.warn(error)` when a connection
+status listener throws. An ordinary stdio disconnect exercised that branch
+with a listener throwing a fixed test error. It logged the listener's error.
+Neither marker appeared in the captured arguments. OAR installs no such
+listener. The test servers returned fixed errors and kept their credentials
+out of tool output.
+
+[Sample counts](dsh-bridge.json) and the [served-tool regression](../../sea-trial/vendor/dsh-mcp-credentials.vendor.test.ts)
+cover the two transports. The regression uses OAR's own `serveMcpTools`
+server with its generated bearer header.
