@@ -10,6 +10,10 @@
  * unreadable refuses the whole input), so a custom runtime keeps them too.
  * `withdrawHeld` is the decision behind `withdraw` for a runtime that holds
  * its own queue: remove the held entry for an `inputId`, or `not_queued`.
+ * `createAppRequestAnswers` is the host-answered approval round-trip: a
+ * runtime that can write a native reply registers its `toApp` requests there,
+ * and correlation, ownership, the unanswered policy, teardown and the
+ * recorded `answered` response come with it (docs/spec/app-requests.md).
  */
 export { createSessionKernel } from "./shared/session-kernel.js";
 export type { RecordAt, SessionKernel } from "./shared/session-kernel.js";
@@ -18,3 +22,5 @@ export { inputImagesRefusal, withInputImages } from "./shared/input-images.js";
 export type { LoadedImage } from "./shared/input-images.js";
 export { withdrawHeld } from "./shared/held-input.js";
 export type { HeldInput } from "./shared/held-input.js";
+export { createAppRequestAnswers } from "./shared/app-request-answers.js";
+export type { AppRequestAnsweringOptions, AppRequestAnswers, AppRequestDelivery } from "./shared/app-request-answers.js";

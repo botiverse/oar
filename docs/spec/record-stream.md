@@ -850,11 +850,13 @@ interface RequestRecord extends RecordEnvelope {
 interface ResponseRecord extends RecordEnvelope {
   kind: "response";
   requestId: string;            // empty for a spontaneous exit
-  body: ResponseBody;           // opened {placement} | accepted {native?, queued?: "adapter"} | rejected {code, reason, native?} | answered {native} | cleanup {result: completed {signalled?} | failed {reason, signalled?}} | released {reason, nativeTurnMayContinue:true, workStartedAfterCleanupMayContinue:true} | exited {code, reason?}
+  body: ResponseBody;           // opened {placement} | accepted {native?, queued?: "adapter"} | rejected {code, reason, native?} | answered {native, by?: "host"} | cleanup {result: completed {signalled?} | failed {reason, signalled?}} | released {reason, nativeTurnMayContinue:true, workStartedAfterCleanupMayContinue:true} | exited {code, reason?}
 }
 // accepted/rejected: control answers only "taken over or not".
 // answered: oar's own reply to a toApp request (the automatic permission
-// grant): an outcome the runtime did not say.
+// grant, or its unanswered policy): an outcome the runtime did not say.
+// `by: "host"` marks a reply a host supplied through Session.answer; the
+// others are oar's decision (docs/spec/app-requests.md).
 // opened: actual placement, answering the host's open request.
 // cleanup: completed | failed {reason}, answering an abort fallback or dispose,
 // or an abort of a session with endTurnProcessesOnAbort (signalled: see below).
@@ -1340,8 +1342,10 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   requested choice, kept separate from these reported facts.
 - `app_request` / `app_answered`: any adapter that records `toApp` requests
   (claude `control_request`, codex server requests, ACP permission and
-  terminal requests) and, for `app_answered`, one whose automatic reply is
-  recorded (the ACP adapters); `type` is the runtime's method or subtype.
+  terminal requests) and, for `app_answered`, one whose reply is recorded
+  (the ACP adapters, or a host-answered approval); `type` is the runtime's
+  method or subtype, and `by: "host"` marks a reply a host supplied through
+  `Session.answer` ([app requests](app-requests.md)).
   `appRequestText(type, body)` reads the words of the ask off the recorded
   body (what a question asks, the tool or command an approval is for), and is
   undefined where OAR does not know where they are.

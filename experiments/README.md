@@ -1,6 +1,7 @@
 # experiments
 
 - [Hermes ACP first contact](hermes-acp/README.md) records the real `hermes acp` gateway viewer against a scripted provider: protocol 1, one completed turn, config-selector model/effort readback and a missing-resume `SessionNotFoundError`.
+- [Host-answered approvals](app-request-answering/README.md) ships the provider-independent `Session.answer` round-trip and records, per runtime, the native evidence still missing before any adapter hands an approval to a host.
 
 - [Kimi 2.7.2 KAP wire contract](kimi-kap-wire/README.md) follows session creation through model selection, tool calls, usage, cancellation, compaction and child-agent completion.
 

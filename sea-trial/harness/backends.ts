@@ -93,7 +93,7 @@ export async function selectBackend(target: string): Promise<Backend> {
         runtime: defineRuntime({
           id: "mock",
           session: startMockSession,
-          sessionCapabilities: () => ({ steer: true, images: true }),
+          sessionCapabilities: () => ({ steer: true, images: true, answer: true }),
           installation: async () => {
             await Promise.resolve();
             return { kind: "available" as const, via: "bundled" as const };

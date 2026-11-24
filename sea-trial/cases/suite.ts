@@ -1,7 +1,9 @@
+/* oxlint-disable import/max-dependencies -- This composition root aggregates every shared trial case group. */
 import type { TrialCase } from "../harness/runner.js";
 import { accountUsageCases } from "./account-usage.js";
 import { installationCases } from "./installation.js";
 import { sessionCases } from "./session.js";
+import { sessionAnswerCases } from "./session-answer.js";
 import { sessionCapabilitiesCases } from "./session-capabilities.js";
 import { sessionDisposeCases } from "./session-dispose.js";
 import { sessionEffortCases } from "./session-effort.js";
@@ -15,6 +17,7 @@ export const trialCases: readonly TrialCase[] = [
   ...accountUsageCases,
   ...sessionCases,
   ...sessionCapabilitiesCases,
+  ...sessionAnswerCases,
   ...sessionDisposeCases,
   ...sessionEffortCases,
   ...sessionImagesCases,

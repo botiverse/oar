@@ -1,4 +1,7 @@
 import { asRecord, asRecordList, type JsonRecord } from "../shared/json.js";
+import type { AppRequestKind } from "../contracts/answer.js";
+
+export type { AppRequestKind } from "../contracts/answer.js";
 
 /**
  * What a runtime→app request asks for, read off its `type`: the `type` of an
@@ -7,7 +10,9 @@ import { asRecord, asRecordList, type JsonRecord } from "../shared/json.js";
  * differently (ACP `session/request_permission`, codex
  * `item/commandExecution/requestApproval`, claude `can_use_tool`); only OAR
  * knows the mapping, so it lives here, as `classifyTool`'s does. Pure: the
- * request record stays the source of truth.
+ * request record stays the source of truth. The kind vocabulary itself is
+ * part of the answer contract (contracts/answer.ts), so a host and an
+ * adapter read the same words.
  *
  * - `approval`: may the agent go ahead with an action (a tool call, a command, a file change)?
  * - `question`: the agent, or an MCP server through it, asks the user for input.
@@ -16,7 +21,6 @@ import { asRecord, asRecordList, type JsonRecord } from "../shared/json.js";
  *   methods), so an unrecognised type is `unknown` rather than force-fit, and a
  *   host keeps showing it.
  */
-export type AppRequestKind = "approval" | "question" | "service" | "unknown";
 
 /**
  * Type → kind. The names are distinct across runtimes, so the type alone
@@ -87,6 +91,7 @@ const TEXTS: ReadonlyMap<string, Texts> = new Map<string, Texts>([
   ["item/commandExecution/requestApproval", (body) => body.command],
   ["elicitation/create", (body) => body.message],
   ["session/request_permission", (body) => asRecord(body.toolCall)?.title],
+  ["approval", (body) => body.tool ?? body.tool_name],
 ]);
 
 /**

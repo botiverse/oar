@@ -1,4 +1,5 @@
 export type { CompactionOptions, CompactionOutcome, ManualCompaction } from "./compaction.js";
+export type { AnswerOptions, AnswerOutcome, AnswerRejectionCode, AppRequestAnswering, AppRequestDecision, AppRequestKind } from "./answer.js";
 export type { GoalControl, AdapterGoalControl, GoalSnapshot, GoalStatus, KnownGoalStatus, GoalSetOptions } from "./goal.js";
 export type { KnownPlanStepStatus, PlanEvidence, PlanSnapshot, PlanStep, PlanStepStatus } from "./plan.js";
 export type { InventoryScope, InventoryOptions, SkillEntry, CommandEntry, McpServerEntry, ToolEntry, InventoryResult, InventoryReader, RuntimeInventories } from "./inventory.js";

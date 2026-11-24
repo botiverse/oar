@@ -81,6 +81,8 @@ export function sealSession(adapterSession: AdapterSession): Session {
   const adapterStopTask = adapterSession.stopTask?.bind(adapterSession);
   const stopTask = adapterStopTask === undefined ? undefined
     : async (taskId: string): Promise<ControlOutcome> => controlOutcomeOf(await adapterStopTask(taskId));
+  // A host answer is already the reported outcome; only the receiver is bound.
+  const answer = adapterSession.answer?.bind(adapterSession);
   const abort = async (): Promise<ControlOutcome> => controlOutcomeOf(await adapterSession.abort());
   const steerOrQueue = async (input: string, options?: InputOptions): Promise<SteerOrQueueResult> => {
     const identified = identify(options);
@@ -108,6 +110,7 @@ export function sealSession(adapterSession: AdapterSession): Session {
     ...(steer === undefined ? {} : { steer }),
     queue,
     ...(withdraw === undefined ? {} : { withdraw }),
+    ...(answer === undefined ? {} : { answer }),
     ...(stopTask === undefined ? {} : { stopTask }),
     abort,
     events: (observer, options = {}) => {

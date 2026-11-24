@@ -216,8 +216,8 @@ export type ControlEventBody =
   | { readonly kind: "control_rejected"; readonly requestId: string; readonly action: ControlAction; readonly code: RejectionCode; readonly reason: string }
   /** The runtime asked the application something (a `toApp` request: approval, question, terminal). `type` is the runtime's method or subtype; the body is on the request record. */
   | { readonly kind: "app_request"; readonly requestId: string; readonly type: string }
-  /** oar answered a `toApp` request automatically (an `answered` response). */
-  | { readonly kind: "app_answered"; readonly requestId: string }
+  /** oar answered a `toApp` request (an `answered` response); `by: "host"` when a host supplied the answer through `Session.answer`, absent for oar's own automatic or policy answer. */
+  | { readonly kind: "app_answered"; readonly requestId: string; readonly by?: "host" }
   /** The runtime process exited (an `exited` response). Optional reason carries a native startup diagnostic, OAR termination or unverified descendant cleanup. */
   | { readonly kind: "exited"; readonly code: number | null; readonly reason?: string };
 
@@ -291,8 +291,8 @@ export type ResponseBody =
   | { readonly kind: "accepted"; readonly native?: unknown; readonly queued?: "adapter" }
   /** Not taken over; the caller still owns the input. `code` says why in one word; `reason` is the prose. */
   | { readonly kind: "rejected"; readonly code: RejectionCode; readonly reason: string; readonly native?: unknown; readonly failure?: FailureClass }
-  /** oar's reply to a `toApp` request (e.g. the automatic permission grant), verbatim. */
-  | { readonly kind: "answered"; readonly native: unknown }
+  /** oar's reply to a `toApp` request (e.g. the automatic permission grant), verbatim. `by: "host"` marks the reply a host supplied through `Session.answer` (docs/spec/app-requests.md); absence means oar's own answer, automatic or by policy. */
+  | { readonly kind: "answered"; readonly native: unknown; readonly by?: "host" }
   /** The runtime process exited, an outcome the runtime cannot say itself. Answers a `dispose` request when oar caused it; also recorded for an unrequested exit, pointing at no request. Optional reason carries a native startup diagnostic, OAR termination or unverified descendant cleanup. */
   | { readonly kind: "exited"; readonly code: number | null; readonly reason?: string };
 export type { ContextUsage } from "./context-usage.js";

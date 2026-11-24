@@ -70,6 +70,8 @@ export interface SessionCapabilityDeclaration {
   };
   /** Whether an opened session exposes `Session.stopTask(taskId)`. */
   readonly stopTask?: boolean;
+  /** Whether an opened session exposes `Session.answer` (`capabilities.appRequests` says what it accepts). */
+  readonly answer?: boolean;
   /** A completed native file-edit tool can report applied changes by path and kind. */
   readonly fileChanges?: boolean;
   /** Whether the session can locate its native persisted file. */
