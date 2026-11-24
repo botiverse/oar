@@ -84,7 +84,7 @@ export function createAppRequestAnswers(options: AppRequestAnsweringOptions): Ap
   const kinds: readonly AppRequestKind[] = options.kinds ?? ["approval"];
   const unanswered = options.unanswered ?? { decision: "wait" };
   const acknowledgeTimeoutMs = options.acknowledgeTimeoutMs ?? 0;
-  const capability: AppRequestAnswering = { kinds, unanswered, acknowledgeTimeoutMs };
+  const capability: AppRequestAnswering = { kinds, questions: false, unanswered, acknowledgeTimeoutMs };
   const waiting = new Map<string, Pending>();
   const settled = new Map<string, AnswerOutcome>(); // terminal outcomes, so a late answer learns why it stopped waiting
 

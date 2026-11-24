@@ -66,8 +66,17 @@ export function claudeSettingsArgs(settings: JsonRecord, launchArgs: readonly st
 }
 
 /** Keep explicit native modes noninteractive; omission preserves OAR's default bypass. */
-export function claudePermissionArgs(launchArgs: readonly string[] | undefined): readonly string[] {
+export function claudePermissionArgs(launchArgs: readonly string[] | undefined, questions?: "ask"): readonly string[] {
   const args = launchArgs ?? [];
+  if (questions === "ask") {
+    for (const arg of args) {
+      const [flag] = arg.split("=", 1);
+      if (["--permission-mode", "--permission-prompts", "--permission-prompt-tool", "--dangerously-skip-permissions"].includes(flag ?? "")) {
+        throw new UnsupportedOptionError("launchArgs", "claude questions: \"ask\" selects --permission-mode default --permission-prompt-tool stdio; remove the host permission flag");
+      }
+    }
+    return ["--permission-mode", "default", "--permission-prompt-tool", "stdio"];
+  }
   let hasMode = false;
   for (const [index, arg] of args.entries()) {
     const [flag] = arg.split("=", 1);

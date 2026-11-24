@@ -124,13 +124,15 @@ input still held by OAR can be withdrawn, edited or sent now (Commands).
 
 ## Open questions
 
-1. **Answering runtime requests.** The generic call exists:
-   `Session.answer(requestId, decision)` where `capabilities.appRequests`
-   says approvals wait for the host, and the view's `pendingRequests` already
-   names each one. No vendor adapter opts in yet, so a UI still cannot
-   present a native approval on claude, codex or ACP: they answer or record
-   by their own policy, and a UI must render `pendingRequests` without
-   offering an answer it cannot send. Adopting an adapter is per-runtime
+1. **Answering runtime requests.** The generic calls exist:
+   `Session.answer(requestId, decision)` for approvals and
+   `Session.answerQuestion(requestId, answers)` for questions, each present
+   only where `capabilities.appRequests` says that kind waits for the host;
+   the view's `pendingRequests` already names each one. No approval adopter
+   exists yet, so a UI must render approval `pendingRequests` without offering
+   an answer it cannot send. Claude questions are the one exception: with
+   `SessionOptions.questions: "ask"`, root-agent questions are answerable
+   through `answerQuestion` (never through an approval decision). Adopting an adapter is per-runtime
    work with native evidence, not a UI change; the outcome vocabulary,
    timeout and redaction rules a UI must display are in
    [the spec](../spec/app-requests.md). See also the

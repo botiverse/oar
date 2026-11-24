@@ -1,12 +1,13 @@
 # Host-answered app requests
 
-Status: the round-trip is implemented and exported (contracts/answer.ts,
-`createAppRequestAnswers` on `@botiverse/oar/kernel`), and the in-process
-mock runtime exercises it in the shared behavior suite. **No vendor adapter
-opts in yet**; each runtime's native evidence and the open questions are in
-[the experiment](../../experiments/app-request-answering/README.md). This
-page is the contract a host and an adapter may rely on today, and the rules
-a future adoption must keep.
+Status: the two round-trips are implemented and exported
+(contracts/answer.ts; `createAppRequestAnswers` and `createQuestionAnswers`
+on `@botiverse/oar/kernel`). Approvals have no vendor adopter yet. Questions
+have ONE: Claude, root agent only, through `SessionOptions.questions: "ask"`
+(verified on 2.1.309 against a scripted provider; see
+[the experiment](../../experiments/app-request-answering/README.md)). This
+page is the contract a host and an adapter may rely on today, and the rules a
+future adoption must keep.
 
 ## What this covers
 
@@ -18,21 +19,25 @@ adapter either answered such a request automatically or recorded it and left
 it open: `Session` had no way for a host to reply
 ([decision](../design/decisions.md#host-answered-approvals-through-the-record-stream-2026-11-24)).
 
-This contract adds exactly one thing: a host may answer an **approval** whose
-adapter hands it over, and OAR records the reply. It adds no second transport,
-no callback registry and no parallel event vocabulary. The request record is
-the correlation; the `answered` response is the outcome OAR observed;
+This contract adds two separate round-trips, never one decision carrying
+both: `Session.answer(requestId, decision)` answers an **approval** and
+`Session.answerQuestion(requestId, answers)` answers a **question**. Each
+refuses the other's request kind. Neither adds a second transport, a callback
+registry or a parallel event vocabulary: the request record is the
+correlation, the `answered` response is the outcome OAR observed, and
 `events()` reads the pair as `app_request` / `app_answered` as before.
 
 ## Capability and ownership
 
 Two facts say whether a session hands approvals to a host:
 
-- `SessionCapabilities.appRequests` is present, naming the `kinds` a host
-  owns, the `unanswered` policy, and the default `acknowledgeTimeoutMs`.
-- `Session.answer` is present. Its presence is the operation, as
-  `Session.steer`'s is; `SessionCapabilityDeclaration.answer` reports it
-  before open.
+- `SessionCapabilities.appRequests` is present, naming the approval `kinds`
+  a host owns, whether `questions` are host-owned, the approval `unanswered`
+  policy, and the default `acknowledgeTimeoutMs`.
+- `Session.answer` (approvals) and `Session.answerQuestion` (questions) are
+  present where that operation is; presence is the capability, as
+  `Session.steer`'s is. `SessionCapabilityDeclaration.answer` /
+  `.questions` report them before open.
 
 Both absent means nothing changed for that adapter: it answers or records
 `toApp` requests by its own policy. Ownership is never split for one request.
@@ -85,6 +90,46 @@ the reply:
 - A receipt that arrives after OAR stopped waiting changes no outcome. The
   request stays settled, so a second `answer` is `already_answered`.
 
+## Questions are their own round-trip
+
+A question is not an approval with a payload. `Session.answerQuestion` takes
+`AppQuestionAnswers` (`{ answers: { <question id>: label | label[] } }`),
+writes the runtime's native question reply, and reports a
+`QuestionAnswerOutcome` whose payload field is `answers`, never `decision`.
+`Session.answer` does not accept a question request (`not_answerable`), and a
+question answer never grants permission.
+
+What an adapter must prove before exposing it, on native evidence:
+
+1. the question actually arrives as a `toApp` request under the runtime's own
+   id, and the reply is applied to the SAME turn (the model reads the answer
+   back), not merely written;
+2. correlation is the request id: a reply naming another id answers nothing;
+3. a native withdrawal stops the wait and a late answer is ignored;
+4. a question from a child agent either carries a host-routable identity or
+   is refused by the runtime itself — OAR must not present a child question as
+   a root one.
+
+### Claude, the only verified adopter
+
+`SessionOptions.questions: "ask"` opens Claude with
+`--permission-mode default --permission-prompt-tool stdio` and exposes
+`Session.answerQuestion`; `capabilities.appRequests` is
+`{ kinds: [], questions: true, unanswered: "wait" }`, so `Session.answer` is
+absent. Claude's question tool (`AskUserQuestion`) is a `can_use_tool` control
+request whose input carries `questions`; the native reply is
+`{ behavior: "allow", updatedInput: { ...input, answers } }`, keyed by the
+question text, and Claude reads the pairs back in the same turn. Claude
+acknowledges no reply, so the recorded outcome is `unconfirmed`.
+
+The gate also routes tool APPROVALS. OAR denies each one natively
+(`behavior: "deny"`) and records the pair; this option never grants a tool
+approval, and `Session.answer` is not exposed. Claude refuses `AskUserQuestion`
+inside subagents ("not available inside subagents"), so only root-agent
+questions occur; the probe records that rather than routing a child question
+as a root one. Other runtimes refuse `questions` (`UnsupportedOptionError`)
+until their own channel is verified.
+
 ### Decision vocabulary
 
 The host supplies a runtime-independent decision, and the adapter maps it to
@@ -100,7 +145,8 @@ type AppRequestDecision =
 lasting option refuses `unsupported` rather than widening `once` or narrowing
 `always`. `reason` travels where the protocol carries a message and stays in
 the requester record otherwise. Questions and adapter-served requests are not
-covered by this decision; `answer` refuses them `not_answerable`.
+covered by this decision; `answer` refuses them `not_answerable`, and
+`answerQuestion` refuses approvals the same way.
 
 ### One answer per request
 
@@ -129,7 +175,7 @@ written, the request is settled even when the outcome is `unconfirmed` or
 
 ## Unanswered requests
 
-The session declares its policy once:
+The session declares its APPROVAL policy once:
 
 ```ts
 unanswered:
@@ -137,7 +183,10 @@ unanswered:
   | { afterMs: number; decision: AppRequestDecision };  // answer by policy
 ```
 
-`wait` is the default because OAR must not invent a human's answer. It can
+Questions have no policy answer: an unanswered question stays pending, because
+an approval decision cannot carry answers and OAR must not invent a person's
+choice. `wait` is the default for approvals too, because OAR must not invent a
+human's answer. It can
 hold the runtime's turn for as long as the runtime waits, which an embedded
 host that cannot present a request must not choose: `deny` with a deadline is
 the safe policy. A policy answer is recorded as `answered` **without**
@@ -170,7 +219,7 @@ wrote it.
 
 ## Adapter obligations
 
-An adapter that opts in must, on native evidence:
+An adapter that opts in must, on native evidence (see also the question rules above):
 
 1. stop answering the approval itself, register the request with the
    coordinator under the runtime's own id, and leave the runtime waiting;

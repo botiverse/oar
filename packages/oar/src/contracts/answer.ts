@@ -1,25 +1,25 @@
 import type { RequestRecord, ResponseRecord } from "./records.js";
 
 /**
- * Host-answered runtime→app requests: the approval/permission round-trip
- * (docs/spec/app-requests.md).
+ * Host-answered runtime→app requests (docs/spec/app-requests.md): two
+ * distinct round-trips, not one decision carrying both.
+ *
+ * - `Session.answer(requestId, AppRequestDecision)` answers an APPROVAL:
+ *   may the agent run this action?
+ * - `Session.answerQuestion(requestId, AppQuestionAnswers)` answers a
+ *   QUESTION: which option or text did the person choose?
  *
  * A runtime→app request is a record with `direction: "toApp"` and the
  * runtime's own id. An adapter that puts such a request under HOST ownership
- * stops answering it itself and exposes `Session.answer`; the host reads the
- * request off the stream, decides, and calls `answer(requestId, decision)`.
- * OAR writes the runtime-native reply, records it as the request's `answered`
- * response with `by: "host"`, and reports what it could observe: a native
- * acknowledgment (`accepted`), none (`unconfirmed`), an expired wait
- * (`timeout`), or a request that no longer waits (`aborted`). A host decision
- * OAR refused is `rejected`; callers still own nothing, because no reply was
- * written.
+ * stops answering it itself and exposes the matching method; OAR writes the
+ * runtime-native reply, records it as the request's `answered` response with
+ * `by: "host"`, and reports what it could observe: a native acknowledgment
+ * (`accepted`), none (`unconfirmed`), an expired wait (`timeout`), or a
+ * request that no longer waits (`aborted`). A host answer OAR refused is
+ * `rejected`; callers still own nothing, because no reply was written.
  *
- * What this is not: a second protocol beside the records. Correlation is the
- * request record's `id`; the outcome is read off the pair exactly as
- * `ControlOutcome` is, and the recorded native reply stays the source of
- * truth. Adapters that keep answering automatically (today: every vendor
- * adapter) expose no `answer` and keep their existing `answered` records.
+ * An approval decision never carries answers, and a question answer never
+ * grants permission. Each method refuses the other's request kind.
  */
 
 /**
@@ -53,7 +53,16 @@ export type AppRequestDecision =
   /** Do not go ahead. `reason` is shown to the agent where the protocol carries a message; otherwise it stays in the record only. */
   | { readonly decision: "deny"; readonly reason?: string };
 
-/** Bounds one `Session.answer` call. Neither cancels work the runtime already began. */
+/**
+ * A host's answer to ONE host-owned question request: per question id (the
+ * runtime's key, claude's question text), the chosen option label(s) or free
+ * text. It answers a question; it is not an approval and grants nothing.
+ */
+export interface AppQuestionAnswers {
+  readonly answers: Readonly<Record<string, string | readonly string[]>>;
+}
+
+/** Bounds one `Session.answer` / `Session.answerQuestion` call. Neither cancels work the runtime already began. */
 export interface AnswerOptions {
   /**
    * Wait at most this many milliseconds for the runtime's own acknowledgment
@@ -85,15 +94,13 @@ interface AnswerEvidence {
 
 /**
  * What `Session.answer` observed. `accepted` and `unconfirmed` both mean the
- * reply was written and recorded; they differ in whether the runtime's own
- * acknowledgment was seen (`unconfirmed` also covers a caller signal that
- * ended the wait). `timeout` means the reply was written but no
- * acknowledgment arrived within the bound, or that OAR's unanswered-request
+ * approval reply was written and recorded; they differ in whether the
+ * runtime's own acknowledgment was seen (`unconfirmed` also covers a caller
+ * signal that ended the wait). `timeout` means the reply was written but no
+ * acknowledgment arrived within the bound, or that OAR's unanswered-approval
  * policy answered in the host's place (`code: "unanswered"`). `aborted` means
- * the request stopped waiting before this answer took ownership (the runtime
- * withdrew it, the session was disposed, the runtime exited or was released,
- * or the caller's signal was already aborted). `rejected` means OAR did not
- * write anything.
+ * the request stopped waiting before this answer took ownership. `rejected`
+ * means OAR did not write anything.
  */
 export type AnswerOutcome = AnswerEvidence & (
   | { readonly kind: "accepted"; readonly decision: AppRequestDecision; readonly native: unknown }
@@ -101,7 +108,7 @@ export type AnswerOutcome = AnswerEvidence & (
   | { readonly kind: "rejected"; readonly code: AnswerRejectionCode; readonly reason: string }
   | {
       readonly kind: "timeout";
-      /** `no_native_ack`: the reply was written and no acknowledgment arrived. `unanswered`: the session's policy decided because no host answered in time. */
+      /** `no_native_ack`: the reply was written and no acknowledgment arrived. `unanswered`: the session's approval policy decided because no host answered in time. */
       readonly code: "no_native_ack" | "unanswered";
       readonly reason: string;
       readonly decision?: AppRequestDecision;
@@ -116,13 +123,37 @@ export type AnswerOutcome = AnswerEvidence & (
 );
 
 /**
+ * What `Session.answerQuestion` observed. Same evidence and fate as
+ * `AnswerOutcome`, but the host's payload is `answers`, never an approval
+ * decision. There is no policy answer for a question: `timeout` here only
+ * means a written reply's acknowledgment did not arrive.
+ */
+export type QuestionAnswerOutcome = AnswerEvidence & (
+  | { readonly kind: "accepted"; readonly answers: AppQuestionAnswers; readonly native: unknown }
+  | { readonly kind: "unconfirmed"; readonly answers: AppQuestionAnswers; readonly native: unknown }
+  | { readonly kind: "rejected"; readonly code: AnswerRejectionCode; readonly reason: string }
+  | {
+      readonly kind: "timeout";
+      readonly code: "no_native_ack";
+      readonly reason: string;
+      readonly answers?: AppQuestionAnswers;
+      readonly native?: unknown;
+    }
+  | {
+      readonly kind: "aborted";
+      readonly code: "cancelled" | "answer_aborted" | "disposed" | "runtime_exited" | "session_released";
+      readonly reason: string;
+    }
+);
+
+/**
  * Why OAR refused a host answer, as one word a host can branch on. Every
  * rejection leaves the runtime unwritten and the caller owning nothing.
  */
 export type AnswerRejectionCode =
   /** No request of this session carries this id: never recorded here, or carried over from a stream that a `resume` replaced. Request ids are native to one stream and never survive a resume. */
   | "unknown_request"
-  /** The request exists but no host may answer it: its kind is not host-answerable, or the adapter already answered it automatically. */
+  /** The request exists but this method does not cover it (an approval answer for a question, or vice versa), no host owns it, or the adapter already answered it. */
   | "not_answerable"
   /** The request already has an `answered` response (its own automatic answer, the unanswered policy, or another `answer`). */
   | "already_answered"
@@ -141,11 +172,13 @@ export type AnswerRejectionCode =
  * `Session.answer` is absent too.
  */
 export interface AppRequestAnswering {
-  /** The `AppRequestKind`s a host owns on this session; other kinds keep the adapter's own handling. */
+  /** The APPROVAL kinds a host owns through `Session.answer`; other kinds keep the adapter's own handling. */
   readonly kinds: readonly AppRequestKind[];
+  /** The session exposes `Session.answerQuestion` for question requests. There is no policy answer for a question: an unanswered one stays pending. */
+  readonly questions: boolean;
   /**
-   * What OAR answers when no host answers in time. `wait` leaves the request
-   * pending, which can hold the runtime's turn for as long as it waits; an
+   * What OAR answers when no host answers an APPROVAL in time. `wait` leaves
+   * it pending, which can hold the runtime's turn for as long as it waits; an
    * embedded host that cannot present requests should choose a decision
    * (`deny` is the safe one) and a deadline.
    */

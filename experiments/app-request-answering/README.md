@@ -1,12 +1,13 @@
-# Host-answered approvals: contract shipped, vendor adoption blocked
+# Host-answered approvals and questions
 
-**Status:** the provider-independent round-trip is implemented and tested
-(`Session.answer`, `capabilities.appRequests`,
-`@botiverse/oar/kernel`'s `createAppRequestAnswers`; contract
-[`docs/spec/app-requests.md`](../../docs/spec/app-requests.md)). **No vendor
-adapter hands an approval to a host yet.** This page records what each
-runtime's native evidence already proves, what is still missing, and why the
-adapters were not changed here.
+**Status:** both provider-independent round-trips are implemented and tested.
+**Approvals** (`Session.answer`, `createAppRequestAnswers`) have no vendor
+adopter yet. **Questions** (`Session.answerQuestion`, `createQuestionAnswers`)
+have one: Claude's root agent through `SessionOptions.questions: "ask"`,
+verified on 2.1.309 against a scripted provider. Contract:
+[`docs/spec/app-requests.md`](../../docs/spec/app-requests.md). This page
+records the native evidence, what each remaining adoption still needs, and the
+limits of the Claude question channel.
 
 ## What shipped
 
@@ -26,20 +27,60 @@ adapters were not changed here.
   written and recorded, OAR claims neither native application nor that native
   execution stopped, and a late receipt changes no outcome or duplicate
   answer (regressed in `tests/app-request-answer.test.ts`).
-- Tests: `tests/app-request-answer.test.ts` (every outcome and edge) and the
-  shared behavior case `session.answer-approval-round-trip`, which runs on
-  the in-process mock. The mock (`sea-trial/fixtures/mock-session.ts`) is the
-  reference adapter: an approval prompt registers a request, the host answer
-  is a record, an unanswered request is bounded by a deny policy, and
-  teardown withdraws it.
+- Claude questions: `SessionOptions.questions: "ask"`, `Session.answerQuestion`,
+  `SessionCapabilityDeclaration.questions`, and the Claude adapter's question
+  coordinator (`shared/app-request-questions.ts`). The option selects
+  `--permission-mode default --permission-prompt-tool stdio`; non-question
+  tool approvals are denied natively and recorded, never granted, and
+  `Session.answer` stays absent.
+- Tests: `tests/app-request-answer.test.ts` and
+  `tests/app-request-question.test.ts` (every outcome and edge),
+  `tests/claude/claude-question.test.ts` (the adapter's request/reply pair,
+  auto-denied approvals, cancellation and conflicting launch flags), the
+  shared behavior case `session.answer-approval-round-trip` on the in-process
+  mock, and `sea-trial/vendor/claude-question.vendor.test.ts` on the real
+  Claude binary + aimock (root question, answer in the same turn).
 
-No vendor adopter means no aimock/vendor test can exercise the round-trip:
-aimock scripts the model provider, not the runtime's permission protocol.
-Adding one now would assert a reply no vendor has been observed to apply.
+No APPROVAL vendor adopter means no aimock/vendor test can exercise that
+round-trip: aimock scripts the model provider, not the runtime's permission
+protocol. Adding one now would assert a reply no vendor has been observed to
+apply. Questions do have one: the Claude vendor test above runs the real
+binary and asserts the answer reaches the same turn.
+
+## Questions: Claude root agent, verified 2026-11-24
+
+`experiments/app-request-answering/question-probe.ts` drives the installed
+Claude binary (2.1.309, Darwin) against the repository's aimock provider with
+an isolated HOME/config and no account. Reproduce:
+
+```sh
+OAR_CLAUDE_BIN=/absolute/path/to/claude pnpm tsx experiments/app-request-answering/question-probe.ts
+```
+
+Selected results (synthetic data, no machine paths):
+
+| Case | Observation |
+|---|---|
+| `question-roundtrip` | `AskUserQuestion` arrives as `control_request {subtype: "can_use_tool", tool_name: "AskUserQuestion", requires_user_interaction: true, input.questions}`. The reply `{behavior: "allow", updatedInput: {...input, answers}}` made the model read `"<nonce question>"="Blue"` and `"<nonce multiselect>"="Small, Large"` in the SAME turn; result success, no permission denials. |
+| `question-wrong-request-id` | A reply naming `<id>-stale` produced no tool result within 1.5 s and did not end the turn; the reply naming the actual `request_id` completed it. Correlation is the native id, not timing. |
+| `question-cancel` | An interrupt while the question waited produced `control_cancel_request` under the same `request_id`; the turn ended `error_during_execution`; a late `control_response` added no frame. |
+| `question-no-implicit-approval` | Answering the question did NOT approve a later `Bash`; a second `can_use_tool` arrived for it, the unapproved command created no file, and a native denial let the turn complete. |
+| `question-child` | A `Task` subagent's `AskUserQuestion` is refused by Claude itself: `<tool_use_error>... AskUserQuestion is not available inside subagents ...</tool_use_error>`. No host request carried `agent_id`; the parent completed. |
+
+What OAR now sends (`claude/questions.ts`): the answer map is keyed by the
+question text and multi-select labels are joined with claude's own `", "`
+separator; the reply keeps the original input and adds `answers`. Claude
+acknowledges no reply, so the outcome is `unconfirmed`.
+
+Limits: root agent only (Claude refuses the tool in subagents); a question left
+unanswered stays pending (there is no approval-policy answer for it); Claude's
+gate also routes tool approvals, which OAR denies and records rather than
+granting. Other runtimes refuse `questions` until their own channel is
+verified.
 
 ## Native evidence, per runtime
 
-### Claude — protocol proven, interaction policy not adopted
+### Claude — approvals: protocol proven, interaction policy not adopted
 
 [claude-permissions](../claude-permissions/README.md) drove Claude 2.1.311
 against a local scripted provider. With `--permission-mode default` (or
@@ -131,7 +172,7 @@ pnpm sea-trial                 # the mock runs session.answer-approval-round-tri
 OAR_TEST=scripted pnpm sea-trial
 ```
 
-The behavior case skips on every backend whose session has no `answer`, and
-passes on the mock; that skip is the current, honest vendor state. Once an
-adapter opts in, the same case exercises it on that aimock backend without a
-new test shape.
+The approval behavior case skips on every backend whose session has no
+`answer`, and passes on the mock; that skip is the current, honest approval
+state. The question vendor test runs with
+`OAR_TEST=claude-aimock OAR_CLAUDE_BIN=/absolute/path/to/claude pnpm vitest run sea-trial/vendor/claude-question.vendor.test.ts`.

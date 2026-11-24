@@ -31,6 +31,7 @@ const given: Readonly<Record<RefusableSessionOption, Partial<SessionOptions>>> =
   nativeMemoryDefault: { nativeMemoryDefault: "off" },
   sessionLogUpload: { sessionLogUpload: "off" },
   modelRequests: { modelRequests: "latest" },
+  questions: { questions: "ask" },
 };
 
 // Declared refusals are checked before anything starts, so an installation
@@ -62,6 +63,12 @@ test("every declared refusal is what session() rejects with", async () => {
       await expect(opening, `${runtime.id} ${key}`).rejects.toMatchObject({ name: "UnsupportedOptionError", option, message: refusalMessage(runtime.refusedSessionOptions?.[key], key) });
     }
   }
+});
+
+test("a runtime without a verified question channel refuses questions", async () => {
+  const runtime = scriptedRuntime({ turn: async () => { await Promise.resolve(); } });
+  await expect(runtime.session({ kind: "available", via: "bundled" }, { cwd: "/tmp", questions: "ask" }))
+    .rejects.toMatchObject({ name: "UnsupportedOptionError", option: "questions" });
 });
 
 test("the declarations say which options each runtime refuses", () => {

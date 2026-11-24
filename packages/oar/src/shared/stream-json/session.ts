@@ -26,7 +26,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   credentials: SessionCredentials,
   profile: StreamJsonSessionProfile<S>,
 ): Promise<Session> {
-  const kernel = credentials.kernel(sessionId);
+  const kernel = profile.kernel ?? credentials.kernel(sessionId);
   const tasks = profile.stopTask === undefined ? undefined : streamJsonTaskControl(kernel, child, profile.stopTask);
   const userMessage = profile.userMessage ?? streamJsonUserMessage;
   const state: StreamJsonSessionState<S> = { child, active: null, projection: profile.initial };
@@ -123,7 +123,9 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
           break;
         }
         case "toApp":
-          streamJsonAppRequest(kernel, child, command.id, command.type, message, profile.permissionResponse);
+          if (profile.appRequest?.(command.id, command.type, message) !== true) {
+            streamJsonAppRequest(kernel, child, command.id, command.type, message, profile.permissionResponse);
+          }
           break;
         default:
           break;
@@ -280,6 +282,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     resources: child.resources,
     ...(profile.lastModelRequest === undefined ? {} : { lastModelRequest: profile.lastModelRequest }),
     ...(profile.contextBreakdown === undefined ? {} : { contextBreakdown: profile.contextBreakdown }),
+    ...(profile.answerQuestion === undefined ? {} : { answerQuestion: profile.answerQuestion }),
     dispose: async () => {
       await kernel.dispose(async () => {
         profile.disposing();

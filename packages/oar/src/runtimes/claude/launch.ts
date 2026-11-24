@@ -104,7 +104,7 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
 export async function launchClaude(command: string, sessionId: string, options: SessionOptions, capture?: string): Promise<ClaudeProcess> {
   refuseManagedLaunchArgs(options.launchArgs);
   refuseForkLaunchArgs(options.launchArgs, options.fork);
-  const permissions = claudePermissionArgs(options.launchArgs);
+  const permissions = claudePermissionArgs(options.launchArgs, options.questions);
   refuseSessionOptions(claudeRefusedSessionOptions, options);
   checkSessionName(options);
   const tierSettings = claudeServiceTierSettings(options.serviceTier);

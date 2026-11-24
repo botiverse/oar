@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- Claude composes launch, stream-json, model-request, settings and question machinery. */
 import { openClaudeModelRequests } from "./model-requests.js";
 import { claudeCompaction, CLAUDE_COMPACTION_BUSY } from "./compaction.js";
 import type { StartSession } from "../../contracts/session.js";
@@ -8,6 +9,8 @@ import { closeLineProcess } from "../../shared/executable/close.js";
 import { claudeContextBreakdownReader } from "./context-breakdown.js";
 import { launchClaude } from "./launch.js";
 import { claudeProjectionProfile, claudeUsageBaselined, initialClaudeProjection, resumedClaudeProjection } from "./projection.js";
+import { createQuestionAnswers } from "../../shared/app-request-questions.js";
+import { claudeApprovalDeny, claudeQuestion, claudeQuestionReply } from "./questions.js";
 
 /** Claude owns launch flags, private account/settings readbacks and usage baselines. */
 export const claudeSession: StartSession = withSessionCredentials(async (installation, options, credentials) => {
@@ -22,10 +25,37 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
   const readback = claudeOpenSettings(child);
   const contextBreakdown = claudeContextBreakdownReader(child);
   const compaction = claudeCompaction(child);
+  const kernel = credentials.kernel(sessionId);
+  // `questions: "ask"` turns claude's own gate on for its question tool. OAR
+  // grants NO tool approval through it: a non-question `can_use_tool` is denied
+  // natively and recorded, so a host answer here can never widen permission.
+  const questionAnswers = options.questions === "ask" ? createQuestionAnswers({
+    kernel,
+    deliver: (request, answers) => {
+      const question = claudeQuestion(request.body.kind === "native" ? request.body.native : null);
+      if (question === null) { throw new Error("the recorded request is not a claude question"); }
+      const reply = claudeQuestionReply(request.id, question, answers);
+      child.write(`${JSON.stringify(reply)}\n`);
+      return { reply };
+    },
+  }) : undefined;
   const session = await streamJsonSession(child, sessionId, credentials, {
     projection: claudeProjectionProfile,
     initial: options.resume === undefined ? initialClaudeProjection : resumedClaudeProjection,
-    capabilities: { queue: { durable: false }, attribution: "attributed", images: true },
+    kernel,
+    ...(questionAnswers === undefined ? {} : {
+      appRequest: (id: string, type: string, native: unknown): boolean => {
+        if (type !== "can_use_tool") { return false; }
+        if (claudeQuestion(native) !== null) { questionAnswers.request(id, type, native); return true; }
+        const reply = claudeApprovalDeny(id);
+        kernel.request("toApp", { kind: "native", type, native }, { id });
+        child.write(`${JSON.stringify(reply)}\n`);
+        kernel.respond(id, { kind: "answered", native: reply });
+        return true;
+      },
+      answerQuestion: questionAnswers.answer.bind(questionAnswers),
+    }),
+    capabilities: { queue: { durable: false }, attribution: "attributed", images: true, ...(questionAnswers === undefined ? {} : { appRequests: questionAnswers.capability }) },
     steer: true,
     stopTask: (taskId) => ({ subtype: "stop_task", task_id: taskId }),
     compaction: { busyReason: CLAUDE_COMPACTION_BUSY, create: compaction.create },
@@ -45,7 +75,7 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
       }
     },
     exited: (code) => { readback.exited(code); contextBreakdown.exited(); compaction.close(); },
-    disposing: () => { requests?.close(); contextBreakdown.exited(); compaction.close(); },
+    disposing: () => { requests?.close(); contextBreakdown.exited(); compaction.close(); questionAnswers?.close("disposed"); },
     contextBreakdown: contextBreakdown.read,
     close: async (active) => { if (active) { child.kill(); await child.exited; } else { await closeLineProcess(child); } },
     // Preserve Claude's existing behavior: permissions are recorded, not answered.

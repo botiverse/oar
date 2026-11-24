@@ -503,6 +503,46 @@ regression; a `question` decision vocabulary (elicitation) if a host needs
 it; and a per-request deadline stronger than the session policy if a
 long-running runtime needs one.
 
+## Claude's questions, not approvals, through the host channel (2026-11-24)
+
+**Accepted:** Claude's own question tool goes to the host through
+`SessionOptions.questions: "ask"` and `Session.answerQuestion`, using the
+separate `QuestionAnswerOutcome`/`AppQuestionAnswers` contract. An approval
+decision never carries answers and a question answer never grants permission.
+The native evidence is
+[the question probe](../../experiments/app-request-answering/question-probe.ts)
+on 2.1.309 against a scripted provider: `AskUserQuestion` is a
+`can_use_tool` request, its `updatedInput.answers` reply reaches the same
+turn, a reply naming another request id answers nothing, an interrupt sends
+`control_cancel_request` and a late answer is ignored, answering a question
+does not approve a later `Bash`, and Claude refuses the tool inside subagents.
+
+**Why this shape:** the parked approvals PR (#26) put `answer` inside
+`AppDecision`, which would make every host answer an approval-shaped payload
+and every question an approval grant. The record stream already distinguishes
+the two by what the native request asks, so the contract does too: one
+correlation, two methods, two payloads. The shared kernel machinery, the
+`answered`/`by: "host"` record and the teardown rules are reused; only the
+payload and the native writer differ.
+
+**What Claude gets:** `questions: "ask"` selects `--permission-mode default
+--permission-prompt-tool stdio`. The gate also routes tool approvals, so OAR
+denies each natively and records it; `Session.answer` stays absent, so this is
+not an approval opt-in. `capabilities.appRequests` is `{ kinds: [],
+questions: true, unanswered: "wait" }`. A host permission flag beside the
+option is refused before launch. Claude acknowledges no reply, so answers are
+`unconfirmed`.
+
+**Scope:** root agent only (Claude refuses `AskUserQuestion` in subagents, so
+there is nothing to route); no policy answer for an unanswered question; no
+other runtime exposes `questions` until its own native channel is verified, and
+`defineRuntime` refuses the option before open. Approvals remain unadopted.
+
+**What would extend it:** a runtime whose question channel survives the same
+five checks (same-turn answer, id correlation, withdrawal, no implicit
+approval, child identity); a `question` policy if a host needs a bounded
+noninteractive denial; and a child question channel if a vendor adds one.
+
 ## Control objects as the event model (2026-09-03)
 
 **Considered:** the first event model (v1), in which control objects carry

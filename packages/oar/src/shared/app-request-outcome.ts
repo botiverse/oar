@@ -1,4 +1,4 @@
-import type { AnswerOutcome, AnswerRejectionCode } from "../contracts/answer.js";
+import type { AnswerOutcome, AnswerRejectionCode, QuestionAnswerOutcome } from "../contracts/answer.js";
 import type { RequestRecord, ResponseRecord } from "../contracts/records.js";
 
 /**
@@ -32,6 +32,14 @@ export function answerRefusal(requestId: string, code: AnswerRejectionCode, reas
 }
 
 export function answerAborted(request: RequestRecord, code: Extract<AnswerOutcome, { readonly kind: "aborted" }>["code"], reason: string): AnswerOutcome {
+  return { ...correlation(request.id, request), kind: "aborted", code, reason };
+}
+
+export function questionRefusal(requestId: string, code: AnswerRejectionCode, reason: string, request?: RequestRecord, response?: ResponseRecord): QuestionAnswerOutcome {
+  return { ...correlation(requestId, request, response), kind: "rejected", code, reason };
+}
+
+export function questionAborted(request: RequestRecord, code: Extract<QuestionAnswerOutcome, { readonly kind: "aborted" }>["code"], reason: string): QuestionAnswerOutcome {
   return { ...correlation(request.id, request), kind: "aborted", code, reason };
 }
 

@@ -59,6 +59,8 @@ export interface SessionOptions {
    * so a host wanting the full history persists it. Omitted: retain everything.
    */
   readonly retainedBytes?: number;
+  /** Route the runtime's own QUESTIONS to `Session.answerQuestion` (Claude only; other runtimes refuse it). It selects Claude's permission gate, so non-question approvals are denied and recorded, never granted. Omission keeps the default bypass. */
+  readonly questions?: "ask";
   /**
    * Enable structured native goals, including any model-visible goal tools.
    * Only Codex currently supports true; other runtimes refuse it before open.
