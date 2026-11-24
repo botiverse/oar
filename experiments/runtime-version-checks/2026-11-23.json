@@ -1,0 +1,593 @@
+{
+  "localPlatform": "linux-x64",
+  "oarCommit": "865658f215f647e6ec2265b50ab645d471d8b153",
+  "openCodeSkillControl": [
+    {
+      "version": "2.3.2",
+      "stage": "ordinary",
+      "kind": "ok",
+      "partial": false,
+      "bytes": 100387,
+      "names": [
+        "OpenCode",
+        "Report",
+        "Browser",
+        "home-claude",
+        "project-claude",
+        "home-agents",
+        "project-agents",
+        "config-opencode",
+        "project-opencode"
+      ]
+    },
+    {
+      "version": "2.3.2",
+      "stage": "broken-plugin",
+      "kind": "ok",
+      "partial": true,
+      "bytes": 100387,
+      "names": [
+        "OpenCode",
+        "Report",
+        "Browser",
+        "home-claude",
+        "project-claude",
+        "home-agents",
+        "project-agents",
+        "config-opencode",
+        "project-opencode"
+      ]
+    },
+    {
+      "version": "2.4.1",
+      "stage": "ordinary",
+      "kind": "ok",
+      "partial": false,
+      "bytes": 764,
+      "names": [
+        "OpenCode",
+        "Report"
+      ]
+    },
+    {
+      "version": "2.4.1",
+      "stage": "broken-plugin",
+      "kind": "ok",
+      "partial": false,
+      "bytes": 764,
+      "names": [
+        "OpenCode",
+        "Report"
+      ]
+    }
+  ],
+  "window": {
+    "from": "2026-11-22T21:08:00Z",
+    "through": "2026-11-23T21:07:59Z",
+    "basis": "workflow run creation time; every observed attempt"
+  },
+  "inventoryAt": "2026-11-24T04:52:03.993Z",
+  "inventory": [
+    {
+      "runtime": "antigravity",
+      "version": "1.5.16",
+      "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json"
+    },
+    {
+      "runtime": "claude",
+      "version": "2.1.331",
+      "source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest"
+    },
+    {
+      "runtime": "codex",
+      "version": "0.172.0",
+      "source": "https://registry.npmjs.org/@openai/codex/latest"
+    },
+    {
+      "runtime": "cursor",
+      "version": "1.4.2",
+      "source": "https://registry.npmjs.org/@cursor/sdk/latest"
+    },
+    {
+      "runtime": "dsh",
+      "version": "0.2.2-rc.5",
+      "source": "https://registry.npmjs.org/@deepseek-ai/dsh/latest"
+    },
+    {
+      "runtime": "factory",
+      "version": "1.18.0",
+      "source": "https://registry.npmjs.org/droid/latest"
+    },
+    {
+      "runtime": "grok",
+      "version": "1.0.92",
+      "source": "https://x.ai/cli/stable"
+    },
+    {
+      "runtime": "kimi",
+      "version": "2.7.3",
+      "source": "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v1",
+      "version": "1.19.6",
+      "source": "https://registry.npmjs.org/opencode-ai/latest"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v2",
+      "version": "2.4.1",
+      "source": "https://registry.npmjs.org/@opencode/cli/latest"
+    },
+    {
+      "runtime": "codebuddy",
+      "version": "2.185.0",
+      "source": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest"
+    },
+    {
+      "runtime": "qoder",
+      "version": "1.1.96",
+      "source": "https://registry.npmjs.org/@qoder-ai/qodercli/latest"
+    },
+    {
+      "runtime": "qwen",
+      "version": "0.28.4",
+      "source": "https://registry.npmjs.org/@qwen-code/qwen-code/latest"
+    },
+    {
+      "runtime": "pi",
+      "version": "1.6.0",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/latest"
+    },
+    {
+      "runtime": "pi-durable",
+      "version": "1.6.0",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-durable/latest"
+    }
+  ],
+  "registryPublishTimes": [
+    {
+      "runtime": "claude",
+      "now": "2.1.331",
+      "published": "2026-11-23T18:36:26.468Z"
+    },
+    {
+      "runtime": "codex",
+      "now": "0.172.0",
+      "published": "2026-11-24T00:09:39.503Z"
+    },
+    {
+      "runtime": "factory",
+      "now": "1.18.0",
+      "published": "2026-11-23T20:03:54.848Z"
+    },
+    {
+      "runtime": "kimi",
+      "now": "2.7.3",
+      "published": "2026-11-23T16:38:52.044Z"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v2",
+      "now": "2.4.1",
+      "published": "2026-11-23T15:56:19.960Z"
+    },
+    {
+      "runtime": "qoder",
+      "now": "1.1.96",
+      "published": "2026-11-23T13:27:27.281Z"
+    }
+  ],
+  "frozen": {
+    "run": 45125855663,
+    "at": "2026-11-23T06:42:02.984Z",
+    "antigravityJobs": [
+      {
+        "attempt": 1,
+        "job": "native (antigravity-aimock, macos-latest, acp)",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/45125855663/job/137529983330"
+      },
+      {
+        "attempt": 1,
+        "job": "native (antigravity-aimock, windows-latest, acp)",
+        "conclusion": "failure",
+        "url": "https://github.com/botiverse/oar/actions/runs/45125855663/job/137529983404"
+      },
+      {
+        "attempt": 1,
+        "job": "native (antigravity-aimock, ubuntu-latest, acp)",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/45125855663/job/137529983520"
+      },
+      {
+        "attempt": 2,
+        "job": "native (antigravity-aimock, windows-latest, acp)",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/45125855663/job/137598948531"
+      },
+      {
+        "attempt": 2,
+        "job": "native (antigravity-aimock, ubuntu-latest, acp)",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/45125855663/job/137598951342"
+      },
+      {
+        "attempt": 2,
+        "job": "native (antigravity-aimock, macos-latest, acp)",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/45125855663/job/137598951656"
+      }
+    ],
+    "runtimes": {
+      "claude-aimock": "2.1.330",
+      "codex-aimock": "0.171.0",
+      "qwen-aimock": "0.28.4",
+      "factory-aimock": "1.17.2",
+      "kimi-aimock": "2.7.2",
+      "grok-aimock": "1.0.92",
+      "codebuddy-aimock": "2.185.0",
+      "opencode-aimock": "1.19.6",
+      "opencode-cleanup": "2.3.2",
+      "kimi-login": "2.7.2",
+      "kimi-skills": "2.7.2",
+      "antigravity-aimock": "1.5.14"
+    },
+    "sdks": {
+      "cursor": {
+        "@cursor/sdk": "1.4.2"
+      },
+      "pi": {
+        "@earendil-works/pi-coding-agent": "1.6.0",
+        "undici": "8.12.4",
+        "@earendil-works/pi-ai": "1.6.0",
+        "@earendil-works/pi-durable": "1.6.0",
+        "@earendil-works/chord": "1.6.0"
+      }
+    }
+  },
+  "updaterManifests": {
+    "linux_amd64": {
+      "version": "1.5.16",
+      "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.16-5250855658717184/linux-x64/cli_linux_x64.tar.gz",
+      "sha512": "3dee9f26e298156db673f6ce2a0f5dfed5b30006e04ceb9809c68070e7b717587b33a3da0f8bc2eda45af81a50bc8b14c82b28ae5832bcfe3e7fd49397117b31"
+    },
+    "darwin_arm64": {
+      "version": "1.5.16",
+      "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.16-5250855658717184/darwin-arm/cli_mac_arm64.tar.gz",
+      "sha512": "33f5617dc74fea606d47b2483c6d271c850c9f3c9c55b724c664c3c0d4b82100d819fbcf55714f851765f6628d4296883ac8939b4fdeb55d5e6b9ce923135d18"
+    },
+    "darwin_amd64": {
+      "version": "1.5.16",
+      "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.16-5250855658717184/darwin-x64/cli_mac_x64.tar.gz",
+      "sha512": "b3eae073ee633032e9d473cdc7725c30bdfe2e09436bc36cfb3422e7e5fa3733de9591a7f78d02362294e7bf87e345d70e5d839689e526129a6f3fc041857a05"
+    },
+    "windows_amd64": {
+      "version": "1.5.16",
+      "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.16-5250855658717184/windows-x64/cli_windows_x64.exe",
+      "sha512": "058a85911c40a0beba24d0ae4e3227ea5060388060d4746aa6b48722ff43516c16fbffe6d30e31e2c266d5b47495a7886f072cc4e0143b26eb3cd9a007578c83"
+    }
+  },
+  "nativeSkillControl": {
+    "version": "1.5.16",
+    "prompts": 0,
+    "selected": [
+      {
+        "name": "daily-collision",
+        "description": "gemini"
+      },
+      {
+        "name": "daily-global",
+        "description": "agents-only"
+      }
+    ]
+  },
+  "localProbes": [
+    {
+      "runtime": "antigravity",
+      "suite": "behavior",
+      "version": "1.5.16",
+      "backend": "antigravity-aimock",
+      "exitCode": 0,
+      "summary": "antigravity-aimock: 18 passed, 2 skipped, 0 failed"
+    },
+    {
+      "runtime": "antigravity",
+      "suite": "vendor",
+      "version": "1.5.16",
+      "backend": "antigravity-aimock",
+      "exitCode": 0,
+      "summary": "Tests  19 passed | 586 skipped (605)"
+    },
+    {
+      "runtime": "kimi",
+      "suite": "behavior",
+      "version": "2.7.3",
+      "backend": "kimi-aimock",
+      "exitCode": 0,
+      "summary": "kimi-aimock: 16 passed, 4 skipped, 0 failed"
+    },
+    {
+      "runtime": "kimi",
+      "suite": "vendor",
+      "version": "2.7.3",
+      "backend": "kimi-aimock",
+      "exitCode": 0,
+      "summary": "Tests  19 passed | 586 skipped (605)"
+    },
+    {
+      "runtime": "claude",
+      "suite": "behavior",
+      "version": "2.1.331",
+      "backend": "claude-aimock",
+      "exitCode": 0,
+      "summary": "claude-aimock: 18 passed, 2 skipped, 0 failed"
+    },
+    {
+      "runtime": "claude",
+      "suite": "vendor",
+      "version": "2.1.331",
+      "backend": "claude-aimock",
+      "exitCode": 0,
+      "summary": "Tests  107 passed | 498 skipped (605)"
+    },
+    {
+      "runtime": "factory",
+      "suite": "behavior",
+      "version": "1.18.0",
+      "backend": "factory-aimock",
+      "exitCode": 0,
+      "summary": "factory-aimock: 20 passed, 0 skipped, 0 failed"
+    },
+    {
+      "runtime": "factory",
+      "suite": "vendor",
+      "version": "1.18.0",
+      "backend": "factory-aimock",
+      "exitCode": 0,
+      "summary": "Tests  13 passed | 592 skipped (605)"
+    },
+    {
+      "runtime": "codex",
+      "suite": "behavior",
+      "version": "0.172.0",
+      "backend": "codex-aimock",
+      "exitCode": 0,
+      "summary": "codex-aimock: 17 passed, 3 skipped, 0 failed"
+    },
+    {
+      "runtime": "codex",
+      "suite": "vendor",
+      "version": "0.172.0",
+      "backend": "codex-aimock",
+      "exitCode": 0,
+      "summary": "Tests  100 passed | 505 skipped (605)"
+    },
+    {
+      "runtime": "opencode",
+      "suite": "behavior",
+      "version": "2.4.1",
+      "backend": "opencode-aimock",
+      "exitCode": 0,
+      "summary": "opencode-aimock: 18 passed, 2 skipped, 0 failed"
+    },
+    {
+      "runtime": "opencode",
+      "suite": "vendor",
+      "version": "2.4.1",
+      "backend": "opencode-aimock",
+      "exitCode": 1,
+      "summary": "Tests  2 failed | 21 passed | 582 skipped (605)"
+    },
+    {
+      "runtime": "opencode",
+      "suite": "skill reader rerun",
+      "version": "2.4.1",
+      "backend": "opencode-aimock",
+      "exitCode": 1,
+      "summary": "Tests  2 failed | 3 skipped (5)"
+    },
+    {
+      "runtime": "qoder",
+      "suite": "offline replay gate",
+      "version": "1.1.96",
+      "backend": null,
+      "exitCode": 0,
+      "summary": "offline replay unavailable; zero prompts"
+    }
+  ],
+  "workflowCounts": {
+    "ci.yml": {
+      "runs": 43,
+      "attempts": 46,
+      "uniqueJobs": 979,
+      "outcomes": {
+        "success": 867,
+        "failure": 14,
+        "skipped": 51,
+        "cancelled": 47
+      },
+      "zeroJobAttempts": []
+    },
+    "acp-windows.yml": {
+      "runs": 17,
+      "attempts": 17,
+      "uniqueJobs": 51,
+      "outcomes": {
+        "failure": 1,
+        "success": 33,
+        "skipped": 17
+      },
+      "zeroJobAttempts": []
+    },
+    "runtime-latest.yml": {
+      "runs": 1,
+      "attempts": 2,
+      "uniqueJobs": 84,
+      "outcomes": {
+        "success": 81,
+        "failure": 3
+      },
+      "zeroJobAttempts": []
+    },
+    "platform-matrix.yml": {
+      "runs": 4,
+      "attempts": 4,
+      "uniqueJobs": 21,
+      "outcomes": {
+        "success": 19,
+        "failure": 2
+      },
+      "zeroJobAttempts": [
+        {
+          "run": 45235816966,
+          "attempt": 1,
+          "conclusion": "cancelled"
+        }
+      ]
+    }
+  },
+  "failedJobs": [
+    {
+      "workflow": "platform-matrix.yml",
+      "attempt": 1,
+      "job": "shards (macos-behavior-1, macos-latest)",
+      "observation": "macOS platform shard: Claude fetch failed before its tests ran",
+      "url": "https://github.com/botiverse/oar/actions/runs/45106120342/job/137467687359"
+    },
+    {
+      "workflow": "runtime-latest.yml",
+      "attempt": 1,
+      "job": "sdk (cursor, windows-latest, cursor-skills, all)",
+      "observation": "Windows Cursor SDK unit phase: Antigravity plan probe PID file missing",
+      "url": "https://github.com/botiverse/oar/actions/runs/45125855663/job/137529982756"
+    },
+    {
+      "workflow": "runtime-latest.yml",
+      "attempt": 1,
+      "job": "native (antigravity-aimock, windows-latest, acp)",
+      "observation": "Windows Antigravity skills: oar-cli omitted from second listing",
+      "url": "https://github.com/botiverse/oar/actions/runs/45125855663/job/137529983404"
+    },
+    {
+      "workflow": "runtime-latest.yml",
+      "attempt": 2,
+      "job": "sdk (cursor, windows-latest, cursor-skills, all)",
+      "observation": "Windows Cursor SDK rerun: same Antigravity plan PID fixture failed",
+      "url": "https://github.com/botiverse/oar/actions/runs/45125855663/job/137598944627"
+    },
+    {
+      "workflow": "ci.yml",
+      "attempt": 1,
+      "job": "check-windows (2)",
+      "observation": "Windows Antigravity account usage: PID file missing after timeout",
+      "url": "https://github.com/botiverse/oar/actions/runs/45131755933/job/137548613665"
+    },
+    {
+      "workflow": "ci.yml",
+      "attempt": 1,
+      "job": "check-native",
+      "observation": "Linux Kimi skills: native version subprocess failed in workspace preservation test",
+      "url": "https://github.com/botiverse/oar/actions/runs/45135305952/job/137560195860"
+    },
+    {
+      "workflow": "ci.yml",
+      "attempt": 1,
+      "job": "check-windows (2)",
+      "observation": "Windows Antigravity plan: PID file missing at short deadline",
+      "url": "https://github.com/botiverse/oar/actions/runs/45143654896/job/137587512524"
+    },
+    {
+      "workflow": "ci.yml",
+      "attempt": 1,
+      "job": "check-windows (1)",
+      "observation": "Windows candidate script subprocess test failed its TAP assertion",
+      "url": "https://github.com/botiverse/oar/actions/runs/45143654896/job/137587512698"
+    },
+    {
+      "workflow": "ci.yml",
+      "attempt": 1,
+      "job": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+      "observation": "Windows OpenCode v2: process exited during effort control",
+      "url": "https://github.com/botiverse/oar/actions/runs/45151005918/job/137612148780"
+    },
+    {
+      "workflow": "ci.yml",
+      "attempt": 1,
+      "job": "pi-rpc-windows",
+      "observation": "Windows Pi RPC: stalled commands and models queries hit test timeout",
+      "url": "https://github.com/botiverse/oar/actions/runs/45154844654/job/137625145006"
+    },
+    {
+      "workflow": "ci.yml",
+      "attempt": 1,
+      "job": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+      "observation": "Windows OpenCode v2: process exited during multi-turn conversation",
+      "url": "https://github.com/botiverse/oar/actions/runs/45160989078/job/137646149384"
+    },
+    {
+      "workflow": "ci.yml",
+      "attempt": 1,
+      "job": "behavior (windows-latest, codex-aimock)",
+      "observation": "Windows Codex: expected MCP namespace missing after clearing the session deny list",
+      "url": "https://github.com/botiverse/oar/actions/runs/45232261187/job/137894745337"
+    },
+    {
+      "workflow": "ci.yml",
+      "attempt": 1,
+      "job": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+      "observation": "Windows OpenCode v2: process exited during effort control",
+      "url": "https://github.com/botiverse/oar/actions/runs/45235835795/job/137907276402"
+    },
+    {
+      "workflow": "ci.yml",
+      "attempt": 2,
+      "job": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+      "observation": "Windows OpenCode v2 rerun: process exited during capability declaration check",
+      "url": "https://github.com/botiverse/oar/actions/runs/45235835795/job/137911806429"
+    },
+    {
+      "workflow": "platform-matrix.yml",
+      "attempt": 1,
+      "job": "shards (windows-behavior-1, windows-latest)",
+      "observation": "Windows platform shard: OpenCode v2 exited in dispose-is-recorded",
+      "url": "https://github.com/botiverse/oar/actions/runs/45236262203/job/137909111549"
+    },
+    {
+      "workflow": "ci.yml",
+      "attempt": 1,
+      "job": "check-windows (2)",
+      "observation": "Windows OpenCode provider readiness: elapsed 3005 ms exceeded 2800 ms assertion",
+      "url": "https://github.com/botiverse/oar/actions/runs/45239290083/job/137919263651"
+    },
+    {
+      "workflow": "ci.yml",
+      "attempt": 1,
+      "job": "check-windows (2)",
+      "observation": "Windows DSH: model listing timeout omitted expected profile-lock path",
+      "url": "https://github.com/botiverse/oar/actions/runs/45244870588/job/137938874908"
+    },
+    {
+      "workflow": "acp-windows.yml",
+      "attempt": 1,
+      "job": "acp-windows (windows-latest, grok-aimock)",
+      "observation": "Windows Grok: Node launcher timed out at 15 s and diagnostic reported surviving process",
+      "url": "https://github.com/botiverse/oar/actions/runs/45244870725/job/137938874172"
+    },
+    {
+      "workflow": "ci.yml",
+      "attempt": 1,
+      "job": "check-windows (2)",
+      "observation": "Windows Kimi KAP ENOENT control: received exit-before-readiness error",
+      "url": "https://github.com/botiverse/oar/actions/runs/45264613708/job/138008097352"
+    },
+    {
+      "workflow": "ci.yml",
+      "attempt": 1,
+      "job": "check-native",
+      "observation": "Linux Kimi account orientation: CLI account usage command failed",
+      "url": "https://github.com/botiverse/oar/actions/runs/45266299321/job/138013988934"
+    }
+  ]
+}
