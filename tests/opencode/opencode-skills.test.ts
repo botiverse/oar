@@ -49,7 +49,7 @@ test("v2 reads skills only after native activation settles and omits bodies", as
 
 test.each([
   ["2.2.7", "builtin"], ["opencode v2.3.0", "builtin"],
-  ["2.2.8", undefined], ["2.3.2", undefined], ["2.4.0", undefined],
+  ["2.2.8", undefined], ["2.3.2", undefined],
   ["2.2.7-rc.1", undefined], ["2.3.0+custom", undefined], ["2.03.0", undefined],
 ] as const)("v2 builtin skill identities are verified for the exact release: %s", async (version, scope) => {
   const uris = ["skill://opencode/SKILL.md", "skill://report/SKILL.md", "skill://third-party/SKILL.md"];
@@ -125,6 +125,24 @@ test("a v2 version before the verified activation API is explicitly unsupported"
   expect(spawn).not.toHaveBeenCalled();
 });
 
+
+test.each(["2.4.0", "opencode v2.4.1", "2.10.0", "3.0.0", "10.0.0"])("skills refuse %s before launching a server", async version => {
+  const result = await opencodeRuntime.skills({ ...installation, version });
+  expect(result).toMatchObject({ kind: "unsupported", code: "version_unsupported", installedVersion: version });
+  expect(result).not.toHaveProperty("requiredVersion");
+  expect(spawn).not.toHaveBeenCalled();
+  expect(versionRun).not.toHaveBeenCalled();
+});
+
+test.each(["opencode v2.4.1", "opencode v3.0.0"])("a probed %s returns the installed version with no server launch", async version => {
+  versionRun.mockResolvedValue({ ok: true, stdout: version, stderr: "", exitCode: 0 });
+  const result = await opencodeRuntime.skills({ kind: "available", via: "executable", command: "opencode" });
+  expect(result).toMatchObject({ kind: "unsupported", code: "version_unsupported", installedVersion: version });
+  expect(result).not.toHaveProperty("requiredVersion");
+  expect(versionRun).toHaveBeenCalledOnce();
+  expect(versionRun.mock.calls[0]?.[1]).toEqual(["--version"]);
+  expect(spawn).not.toHaveBeenCalled();
+});
 
 test.each([{ payload: "not json", code: 0, reason: "OpenCode skill discovery failed (exit 0; output was not valid JSON or a skill catalog (8 bytes, truncated?))" }, { payload: "", code: 0, reason: "OpenCode skill discovery failed (exit 0; no output)" }, { payload: "[]", code: 1, reason: "OpenCode skill discovery failed (exit 1)" }])("v1 invalid output or process failure is unavailable: $code", async ({ payload, code, reason }) => {
   versionRun.mockImplementation(async (_command, _args, options) => {

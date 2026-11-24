@@ -1,0 +1,76 @@
+[
+  {
+    "version": "opencode v2.4.0",
+    "before": {
+      "plugins": 100,
+      "integrations": 334,
+      "nativeHasFixture": false,
+      "loginProvidersHasFixture": false
+    },
+    "after": {
+      "integrations": 335,
+      "nativeHasFixture": true,
+      "loginProvidersHasFixture": false
+    },
+    "reopenedHasFixture": true,
+    "events": {
+      "pending": {
+        "server.connected": 1,
+        "project.updated": 1,
+        "integration.updated": 1,
+        "provider.updated": 1,
+        "model.updated": 1,
+        "agent.updated": 1,
+        "command.updated": 1,
+        "skill.updated": 1,
+        "artifact.updated": 1,
+        "websearch.updated": 1,
+        "reference.updated": 1,
+        "plugin.updated": 1
+      },
+      "released": {
+        "provider.updated": 1,
+        "model.updated": 1,
+        "integration.updated": 1,
+        "plugin.updated": 1
+      }
+    }
+  },
+  {
+    "version": "opencode v2.4.1",
+    "before": {
+      "plugins": 100,
+      "integrations": 334,
+      "nativeHasFixture": false,
+      "loginProvidersHasFixture": false
+    },
+    "after": {
+      "integrations": 335,
+      "nativeHasFixture": true,
+      "loginProvidersHasFixture": false
+    },
+    "reopenedHasFixture": true,
+    "events": {
+      "pending": {
+        "server.connected": 1,
+        "project.updated": 1,
+        "integration.updated": 1,
+        "provider.updated": 1,
+        "model.updated": 1,
+        "agent.updated": 1,
+        "command.updated": 1,
+        "skill.updated": 1,
+        "artifact.updated": 1,
+        "websearch.updated": 1,
+        "reference.updated": 1,
+        "plugin.updated": 1
+      },
+      "released": {
+        "provider.updated": 1,
+        "model.updated": 1,
+        "integration.updated": 1,
+        "plugin.updated": 1
+      }
+    }
+  }
+]

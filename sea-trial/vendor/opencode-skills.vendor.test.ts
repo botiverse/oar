@@ -49,6 +49,12 @@ async function assertListenerClosed(port: number, child: executable.LineProcess)
   assert.equal(await portOpen(port), false, "listener accepted a connection after owned cleanup");
 }
 
+async function recordResult(major: number, mode: string, evidence: object): Promise<void> {
+  const dir = resolvePath(process.env.OAR_TRIAL_RUN_DIR ?? "oar-trial-run", "opencode-skills");
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, `${String(major)}-${mode}.json`), JSON.stringify(evidence, null, 2));
+}
+
 const enabled = ["opencode-skills", "opencode-aimock", "opencode-cleanup"].includes(process.env.OAR_TEST ?? "");
 describe.skipIf(!enabled)("OpenCode native skill discovery", () => {
   test("a listener retained past owned cleanup fails the port assertion", async () => {
@@ -76,7 +82,11 @@ describe.skipIf(!enabled)("OpenCode native skill discovery", () => {
     try {
       const version = await executable.runExecutable(command, ["--version"], { cwd: f.cwd, env: sessionEnvironment(f.env) });
       assert.ok(version.ok);
-      const major = /^(?:opencode\s+)?v?2\./u.test(version.stdout.trim()) ? 2 : 1;
+      const installedVersion = version.stdout.trim();
+      const parsed = /^(?:opencode\s+)?v?(\d+)\.(\d+)\.\d+\S*$/u.exec(installedVersion);
+      assert.ok(parsed, "Expected a native OpenCode version");
+      const major = Number(parsed[1]);
+      const minor = Number(parsed[2]);
       // v1 has no HTTP service; malformed payload/exit and timeout are covered at its process boundary in unit tests.
       if (major === 1 && mode !== "success") { context.skip("v1 has no HTTP service"); }
       if (mode === "plugin-failure") {
@@ -97,7 +107,17 @@ describe.skipIf(!enabled)("OpenCode native skill discovery", () => {
           init?.signal?.addEventListener("abort", () => { reject(new Error("Deadline")); }, { once: true });
         }));
       }
-      const result = await opencodeRuntime.skills({ kind: "available", via: "executable", command, version: version.stdout.trim() }, { cwd: f.cwd, env: f.env, timeoutMs: mode === "timeout" ? 15_000 : 30_000 });
+      const result = await opencodeRuntime.skills({ kind: "available", via: "executable", command, version: installedVersion }, { cwd: f.cwd, env: f.env, timeoutMs: mode === "timeout" ? 15_000 : 30_000 });
+      if (major > 2 || (major === 2 && minor >= 4)) {
+        expect(result).toMatchObject({ kind: "unsupported", code: "version_unsupported", installedVersion });
+        expect(result).not.toHaveProperty("requiredVersion");
+        expect(vi.mocked(nativeProcess.spawn).mock.results).toHaveLength(nativeStarts);
+        expect(children).toHaveLength(0);
+        expect(servers).toHaveLength(0);
+        expect(ports).toHaveLength(0);
+        await recordResult(major, mode, { version: installedVersion, mode, result, processesStarted: 0, listenersOpened: 0 });
+        return;
+      }
       if (mode === "success" || mode === "plugin-failure") {
         assert.ok(result.kind === "ok", JSON.stringify(result));
         expect(result.partial).toBe(mode === "plugin-failure"); expect(result.view).toBe("discovered");
@@ -146,9 +166,7 @@ describe.skipIf(!enabled)("OpenCode native skill discovery", () => {
         if (mode === "timeout") { portOpenAtRootExit = await portOpen(port); }
         await assertListenerClosed(port, child);
       }
-      const dir = resolvePath(process.env.OAR_TRIAL_RUN_DIR ?? "oar-trial-run", "opencode-skills");
-      await mkdir(dir, { recursive: true });
-      await writeFile(join(dir, `${major}-${mode}.json`), JSON.stringify({ version: version.stdout.trim(), mode, result, processesExited: true, portOpenAtRootExit, portsClosed: true }, null, 2));
+      await recordResult(major, mode, { version: installedVersion, mode, result, processesExited: true, portOpenAtRootExit, portsClosed: true });
     } finally {
       vi.restoreAllMocks();
       for (const child of children) { child.kill(); await child.exited; }

@@ -7,8 +7,10 @@ import { sessionEnvironment } from "../../shared/environment.js";
 /** Numeric comparisons ignore suffixes; version retains the full release identifier. */
 export interface OpencodeRelease { readonly major: 1 | 2; readonly minor: number; readonly patch: number; readonly version: string }
 
-/** The two independently maintained native lines share one command name. */
-export async function opencodeRelease(installation: ExecutableInstallation, options?: Pick<SessionOptions, "cwd" | "env"> & { readonly signal?: AbortSignal; readonly timeoutMs?: number }): Promise<OpencodeRelease> {
+type VersionOptions = Pick<SessionOptions, "cwd" | "env"> & { readonly signal?: AbortSignal; readonly timeoutMs?: number };
+
+/** Use the supplied native version line, probing only when it is absent. */
+export async function opencodeVersionLine(installation: ExecutableInstallation, options?: VersionOptions): Promise<string> {
   let version = installation.version;
   if (version === undefined) {
     const result = await runExecutable(installation.command, ["--version"], {
@@ -20,6 +22,12 @@ export async function opencodeRelease(installation: ExecutableInstallation, opti
     }
     version = result.stdout.trim();
   }
+  return version;
+}
+
+/** The two independently maintained native lines share one command name. */
+export async function opencodeRelease(installation: ExecutableInstallation, options?: VersionOptions): Promise<OpencodeRelease> {
+  const version = await opencodeVersionLine(installation, options);
   const release = parseOpencodeRelease(version);
   if (release !== undefined) { return release; }
   throw new Error(`Unrecognized opencode release line: ${JSON.stringify(version)}`);
@@ -27,12 +35,18 @@ export async function opencodeRelease(installation: ExecutableInstallation, opti
 
 /** Synchronous read of a `--version` line; undefined when it names neither line. */
 export function parseOpencodeRelease(version: string): OpencodeRelease | undefined {
-  const match = /^(?:opencode\s+)?v?([12])\.(\d+)\.(\d+)(\S*)$/u.exec(version.trim());
+  const release = parseOpencodeVersionLine(version);
+  return release?.major === "future" ? undefined : release;
+}
+
+/** Distinguish a newer native major from a malformed version response. */
+export function parseOpencodeVersionLine(version: string): OpencodeRelease | { readonly major: "future" } | undefined {
+  const match = /^(?:opencode\s+)?v?([1-9]\d*)\.(\d+)\.(\d+)(\S*)$/u.exec(version.trim());
   const [, major, minor, patch, suffix] = match ?? [];
   if ((major === "1" || major === "2") && minor !== undefined && patch !== undefined) {
     return { major: major === "1" ? 1 : 2, minor: Number(minor), patch: Number(patch), version: `${major}.${minor}.${patch}${suffix ?? ""}` };
   }
-  return undefined;
+  return major === undefined ? undefined : { major: "future" };
 }
 
 export async function opencodeMajor(installation: ExecutableInstallation, options?: Pick<SessionOptions, "cwd" | "env">): Promise<1 | 2> {

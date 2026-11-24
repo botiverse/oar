@@ -1,0 +1,132 @@
+[
+  {
+    "version": "opencode v2.3.2",
+    "mode": "broken",
+    "providers": 1,
+    "cold": {
+      "plugins": 95,
+      "failed": 1,
+      "skills": [
+        "Browser",
+        "OpenCode",
+        "Report",
+        "home-skill",
+        "project-skill"
+      ]
+    },
+    "settled": {
+      "plugins": 95,
+      "failed": 1,
+      "skills": [
+        "Browser",
+        "OpenCode",
+        "Report",
+        "home-skill",
+        "project-skill"
+      ]
+    },
+    "unscoped": {
+      "plugins": 0,
+      "failed": 0,
+      "skills": []
+    }
+  },
+  {
+    "version": "opencode v2.4.0",
+    "mode": "broken",
+    "providers": 0,
+    "cold": {
+      "plugins": 0,
+      "failed": 0,
+      "skills": []
+    },
+    "settled": {
+      "plugins": 101,
+      "failed": 1,
+      "skills": [
+        "Browser",
+        "OpenCode",
+        "Report",
+        "home-skill",
+        "project-skill"
+      ]
+    },
+    "unscoped": {
+      "plugins": 0,
+      "failed": 0,
+      "skills": [
+        "OpenCode",
+        "Report"
+      ]
+    }
+  },
+  {
+    "version": "opencode v2.4.1",
+    "mode": "broken",
+    "providers": 0,
+    "cold": {
+      "plugins": 0,
+      "failed": 0,
+      "skills": []
+    },
+    "settled": {
+      "plugins": 101,
+      "failed": 1,
+      "skills": [
+        "Browser",
+        "OpenCode",
+        "Report",
+        "home-skill",
+        "project-skill"
+      ]
+    },
+    "unscoped": {
+      "plugins": 0,
+      "failed": 0,
+      "skills": [
+        "OpenCode",
+        "Report"
+      ]
+    }
+  },
+  {
+    "version": "opencode v2.4.1",
+    "mode": "package",
+    "providers": 0,
+    "cold": {
+      "plugins": 0,
+      "failed": 0,
+      "skills": []
+    },
+    "pending": {
+      "plugins": 100,
+      "failed": 0,
+      "skills": [
+        "Browser",
+        "OpenCode",
+        "Report",
+        "home-skill",
+        "project-skill"
+      ]
+    },
+    "settled": {
+      "plugins": 101,
+      "failed": 1,
+      "skills": [
+        "Browser",
+        "OpenCode",
+        "Report",
+        "home-skill",
+        "project-skill"
+      ]
+    },
+    "unscoped": {
+      "plugins": 0,
+      "failed": 0,
+      "skills": [
+        "OpenCode",
+        "Report"
+      ]
+    }
+  }
+]

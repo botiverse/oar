@@ -716,6 +716,12 @@ server has exited, an idle stop already under way included; the next
 operation starts a new one. Its output is never forwarded. A 401 from the server (2.2.7:
 `UnauthorizedError`, "Authentication required") rejects at once with kind
 `authentication_failed`, never as a timeout.
+Starting in 2.4.0, both registries can contain entries while a configured
+package is still downloading or activating. Built-in integrations are available
+at that point. A facade opened then can omit a late package integration from
+its cached `loginProviders()` menu. Opening a new facade after the package
+loads picks up that integration, as observed on 2.4.0 and 2.4.1.
+[Native provider-auth control](../../experiments/opencode-skills/activation-2.4.1.md#public-events-and-provider-auth-readiness).
 
 The server runs under a small Node watchdog (the host's own
 `process.execPath`, [`host-watchdog.ts`](../../packages/oar/src/shared/executable/host-watchdog.ts))
@@ -746,7 +752,7 @@ a new server first: creating the facade took 1.6 to 2.5 s and a call after
 
 | Facade | OpenCode 2 |
 | --- | --- |
-| `loginProviders()` | `integration.list` at creation, in OpenCode's order. Each `oauth` method is `{ method: "oauth", name: label }` with no `subscription`: OpenCode does not say whether a sign-in is a subscription, and the contract leaves the field absent then. Then `key` as `api_key` named by its label or "`<name>` API key", then `env` as an ambient `api_key` named by its variables. `external` and `command` methods (Amazon Bedrock and Google Vertex profiles, Claude Agent) are omitted; an integration with nothing left is omitted (2.2.7: Claude Agent). |
+| `loginProviders()` | `integration.list` at creation, in OpenCode's order. On 2.4.0 and later a package integration that loads after this read can be missing until a new facade opens. Each `oauth` method is `{ method: "oauth", name: label }` with no `subscription`: OpenCode does not say whether a sign-in is a subscription, and the contract leaves the field absent then. Then `key` as `api_key` named by its label or "`<name>` API key", then `env` as an ambient `api_key` named by its variables. `external` and `command` methods (Amazon Bedrock and Google Vertex profiles, Claude Agent) are omitted; an integration with nothing left is omitted (2.2.7: Claude Agent). |
 | `listProviders()` | Integrations with a stored credential connection. Environment-only connections are not listed, as the contract says. `resolve` makes no difference: OpenCode's connections carry no secret and nothing is refreshed. |
 | `status(id)` | `integration.get`: the first credential connection (OpenCode lists the newest first), else an environment connection. `label` is the credential's label or the variable's name; an `external` credential is configured with no `method`; no `subscription`. An id OpenCode does not know (404) is `{ providerId, configured: false }`, as with Pi. |
 | `login(id, "oauth")` | Several OAuth methods: a `select` with their ids and labels. Then each required, visible form field that applies (`when`): `select` for options and booleans, `text` otherwise, an empty answer taking the field's default. 2.2.7's form schema has no secret field type (`string` with formats `email`, `uri`, `date`, `date-time`; `number`, `integer`, `boolean`, `multiselect`, `external`), so no field is asked as `secret`. Optional and hidden fields are left to OpenCode's defaults. `integration.oauth.connect`, then a `device_code` event when the instructions end in `enter code: X` (verification URI: the attempt's URL), else `auth_url` with the instructions. An attempt with `mode: "code"` or `paste` also gets a `manual_code` prompt, whose answer goes to `integration.oauth.complete`; the prompt's signal aborts when the attempt completes another way. `integration.oauth.status` is polled every second until `complete`. Then, when OpenCode lists a credential it did not list before, the integration's earlier credentials are removed with `credential.remove` (as for keys), and `status(id)` is returned; a failed removal still returns that status. |
@@ -1544,7 +1550,7 @@ when querying that version's catalog. See
 
 ## Independent skill discovery
 
-`skills()` runs v1 `debug skill`, or starts an owned v2 loopback HTTP service.
+`skills()` runs v1 `debug skill`, or starts an owned loopback HTTP service on supported v2 releases.
 V1 stdout goes to a private temporary file descriptor, which OAR reads after
 native exit and removes before returning. Both 1.18.30 and pinned 1.19.5 can
 exit successfully before a large piped catalog finishes writing. The file
@@ -1552,11 +1558,15 @@ capture preserves those bytes; it does not replace native skill discovery.
 Tracked upstream in [#64635](https://github.com/anomalyco/opencode/issues/64635).
 See the [pipe/file controls and removal condition](../../experiments/opencode-skills/README.md#v1-stdout-drain).
 
-The v2 reader first calls `provider.list`, whose verified 2.2.7/2.3.0 implementation
-waits for plugin activation, then reads plugin states and `skill.list`. The
-skill endpoint alone can return a successful empty list before registration
-finishes. The v2 reader requires 2.2.7 or newer for this verified barrier;
-older v2 installations return `version_unsupported` from this reader only.
+The v2 skill reader supports 2.2.7 through the last 2.3.x release. It
+calls `provider.list` to wait for plugin activation, then reads plugin
+states and `skill.list`. Older v2 releases return `version_unsupported`
+with `requiredVersion: "2.2.7"`. On 2.4.0 and later, including future majors,
+the reader returns `version_unsupported` with the installed version and
+omits `requiredVersion`, before starting a server. Starting in 2.4.0,
+`provider.list` can return while user and project skills are still loading
+or before a configured plugin reports failure.
+[Native version comparison](../../experiments/opencode-skills/activation-2.4.1.md).
 
 Results have `view: "discovered"`. Native names and descriptions are preserved.
 Native filesystem paths are kept, including shared `.claude/skills` and

@@ -5,6 +5,8 @@ All probes use isolated HOME/XDG directories and synthetic skill files, without
 an account or model request. The host can obtain the native catalog without
 opening an OAR session; the OpenCode adapter owns projection and cleanup.
 
+The [2.4.1 comparison](activation-2.4.1.md) records the change to cold catalog reads and the limits of polling for plugin startup.
+
 ## Results
 
 OpenCode v1 `debug skill` returns the native catalog, including the builtin
@@ -51,8 +53,8 @@ has only location parameters, with no readiness option.
 [`plugin.list`](https://github.com/anomalyco/opencode/blob/v2.3.0/packages/core/src/plugin.ts)
 returns a current snapshot; `plugin.updated` and `skill.updated` announce changes,
 not global completion. No independent public activation-ready query was found.
-The adapter requires v2.2.7 or newer for this verified sequence; this is a skill
-reader requirement, not a floor on every OpenCode operation.
+The skill reader uses this sequence from v2.2.7 through the 2.3.x line.
+[The 2.4.0 change and reopen condition](activation-2.4.1.md#what-a-one-shot-reader-can-report) explain the upper bound.
 
 The same race is tracked by [#51680](https://github.com/anomalyco/opencode/issues/51680),
 closed by [#62569](https://github.com/anomalyco/opencode/pull/62569).

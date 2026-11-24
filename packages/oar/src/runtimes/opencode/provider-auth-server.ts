@@ -201,7 +201,8 @@ export class OpencodeServer {
     return running;
   }
 
-  /** The registry fills in stages after listening. OpenCode 2.2.7 lists its plugins once it is complete. */
+  /** Wait for initial catalogs. From 2.4.0, package plugins can still be loading
+   * when both lists contain rows, so the cached login menu can miss their integrations. */
   async #ready(running: Running, signal: AbortSignal): Promise<void> {
     for (;;) {
       const plugins = await this.#request(running, "GET", "/api/plugin", undefined, signal);
