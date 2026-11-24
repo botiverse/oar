@@ -46,6 +46,7 @@
 
 - [Kimi first Web startup](kimi-web-startup/README.md): native first-token race, readiness gate, warm bypass and reader deadlines; [upstream #5035](https://github.com/MoonshotAI/kimi-code/issues/5035).
 
+- [Runtime version check: 2026-11-24](runtime-version-checks/2026-11-24.md) covers the Antigravity 1.5.16 baseline, Cursor 1.5.0 skill parity and five OpenCode CI failures.
 - [Runtime version check: 2026-11-23](runtime-version-checks/2026-11-23.md) covers the Antigravity 1.5.14 Windows retry, OpenCode 2.4.1 skill discovery and 20 failed CI jobs.
 - [Runtime version check: 2026-11-22](runtime-version-checks/2026-11-22.md) covers Qwen 0.28.4, Factory 1.17.2, Antigravity skill discovery and the Windows platform shards.
 - [Runtime version check: 2026-11-21](runtime-version-checks/2026-11-21.md): Pi candidate failures before the upgrade, the packed-host recheck and Qwen 0.28.3.
