@@ -8,6 +8,7 @@ import type { ContextUsage, RawEvent, RuntimeEventBody, SessionCapabilities, Ses
 import { asRecord, type JsonRecord } from "../json.js";
 import { initializeAcpConnection } from "./initialize.js";
 import type { AcpDerivedSessionHooks } from "./derived-sessions.js";
+import type { AcpRawToolOutputReader } from "./projection.js";
 import type { AcpSteerRequestHooks } from "./steer-request.js";
 import { acpAdditionalDirectories } from "./additional-directories.js";
 import { configureAcpModel, type AcpModelConfiguration } from "./model-configuration.js";
@@ -27,6 +28,8 @@ export interface AcpSessionProfile extends AcpDerivedSessionHooks, AcpSteerReque
   readonly projectExtension?: (method: string, params: JsonRecord) => readonly RuntimeEventBody[];
   /** Additional vendor facts on a session update; attribution remains the recorder's responsibility. */
   readonly projectUpdate?: (update: JsonRecord, receivedAt: number) => readonly RuntimeEventBody[];
+  /** Vendor-specific tool result reading when closing `tool_call_update.content` is absent (for example, Grok MCP `rawOutput`). */
+  readonly projectRawToolOutput?: AcpRawToolOutputReader;
   /** Vendor attribution for forwarded updates. The original notification is always recorded verbatim. */
   readonly attributeUpdate?: (notification: unknown) => { readonly sessionId: string; readonly parent: string } | null;
   readonly args: readonly string[] | ((options: SessionOptions) => readonly string[]);
