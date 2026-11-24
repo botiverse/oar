@@ -1,0 +1,31 @@
+{
+  "version": "opencode v2.4.1",
+  "pluginDelayMs": 900,
+  "samples": [
+    {
+      "phase": "later-1.3",
+      "scope": "query",
+      "requested": "A",
+      "resolved": "A",
+      "endpoint": "plugin",
+      "atMs": 1538,
+      "durationMs": 138,
+      "count": 0,
+      "failed": 0
+    },
+    {
+      "phase": "later-1.3",
+      "scope": "query",
+      "requested": "A",
+      "resolved": "A",
+      "endpoint": "skill",
+      "atMs": 1676,
+      "durationMs": 25,
+      "count": 2,
+      "names": [
+        "OpenCode",
+        "Report"
+      ]
+    }
+  ]
+}
