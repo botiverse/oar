@@ -13,10 +13,11 @@ import { statusOf } from "../observe/agent-status.js";
 import { coalesceText, eventsReader } from "../observe/events.js";
 import { contextUsageOf, effortOf, modelOf, serviceTierOf, usageOf } from "../observe/usage.js";
 import { deliverInto } from "./deliver.js";
+import { isInputId } from "./input-id.js";
 
 const identify = (options: InputOptions = {}): InputOptions => {
   const inputId = options.inputId ?? globalThis.crypto.randomUUID();
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(inputId)) {
+  if (!isInputId(inputId)) {
     throw new Error("inputId must be a UUID");
   }
   return { ...options, inputId };

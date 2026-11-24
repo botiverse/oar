@@ -1,4 +1,5 @@
 import type { ControlOutcome, RawEvent, Session } from "../contracts/session.js";
+import { isInputId } from "../shared/input-id.js";
 import type { QueueSnapshot, QueueSnapshotEntry, QueueSnapshotEvidenceCode } from "./queue-snapshot.js";
 
 /**
@@ -24,17 +25,24 @@ export interface QueueSnapshotTarget {
 }
 
 /**
- * Why one entry is not resent. The first five repeat the snapshot's evidence
- * (`never` or unclear); the rest are this target's own findings: the input
- * already has an attempt in the target stream (`duplicate_input`), the stream
- * never observed the runtime's answer and the host did not take responsibility
- * (`unconfirmed`), the runtime already saw this logical id and no fresh one was
- * offered (`input_id_reused`), the snapshot is a checkpoint of this very stream
- * (`already_current`), or the whole snapshot was refused (`plan_blocked`).
+ * Why one entry is not resent. The first group repeats the snapshot's evidence
+ * (`never` or unclear); the rest are this target's own findings:
+ * `child_lane` (a sub-agent lane's input: `Session.queue` has no lane target),
+ * `duplicate_input` (the target stream already names the input),
+ * `input_id_collision` (the outgoing id names another snapshot entry, or two
+ * planned entries share it), `invalid_input_id` (an outgoing id that is not the
+ * UUID every prompt, steer and queue takes), `unconfirmed` (no outcome was
+ * observed and the host did not take responsibility), `input_id_reused` (the
+ * runtime may have seen this id and no fresh one was offered),
+ * `already_current` (the snapshot is a checkpoint of this very stream), or
+ * `plan_blocked` (the whole snapshot was refused).
  */
 export type QueueSnapshotSkipCode =
   | QueueSnapshotEvidenceCode
+  | "child_lane"
   | "duplicate_input"
+  | "input_id_collision"
+  | "invalid_input_id"
   | "unconfirmed"
   | "input_id_reused"
   | "already_current"
@@ -66,7 +74,10 @@ export interface QueueSnapshotPlanOptions {
   /**
    * A fresh logical inputId for a resend, and a requirement for an input the
    * runtime may already have seen: Claude refuses a reused UUID, and every
-   * runtime may treat a repeated id as the same input. An empty string throws.
+   * runtime may treat a repeated id as the same input. It must be the UUID
+   * shape every prompt, steer and queue takes, and must not name an id the
+   * target stream already holds, another entry of this snapshot, or another
+   * resend of this plan; a violating entry is skipped, never sent.
    */
   readonly inputId?: (entry: QueueSnapshotEntry) => string;
   /** Take responsibility for an input whose outcome the stream never observed (`uncertain`). Absent: skipped. */
@@ -96,17 +107,21 @@ export interface QueueRestoreResult {
 
 /**
  * Decide, without sending anything, which snapshot entries a target could
- * restore. Pure: the same snapshot and target always yield the same plan.
+ * restore. Pure: the same snapshot and target always yield the same plan. Two
+ * passes: each entry against its own evidence and the ids the target already
+ * names, then every planned id against the others, because an id shared by two
+ * sends would fold two inputs into one.
  */
 export function queueSnapshotPlan(snapshot: QueueSnapshot, target: QueueSnapshotTarget, options: QueueSnapshotPlanOptions = {}): QueueSnapshotPlan {
   const refusal = targetRefusal(snapshot, target);
   const current = refusal === undefined && target.streamId === snapshot.stream.streamId;
   const claimed = claimedInputs(snapshot.stream.sessionId, target.records ?? []);
-  const entries = snapshot.entries.map((entry): QueueSnapshotPlanEntry => {
-    if (refusal !== undefined) { return { entry, resend: false, code: "plan_blocked" }; }
-    if (current) { return { entry, resend: false, code: "already_current" }; }
-    return decide(entry, claimed, options);
+  const decided = snapshot.entries.map((entry): QueueSnapshotPlanEntry => {
+    if (refusal !== undefined) { return refused(entry, "plan_blocked"); }
+    if (current) { return refused(entry, "already_current"); }
+    return candidate(entry, claimed, options);
   });
+  const entries = settled(decided, claimed, snapshot.entries);
   const resends = entries.filter((planned) => planned.resend).length;
   return {
     status: refusal === undefined ? (current ? "current" : "ready") : "blocked",
@@ -119,8 +134,10 @@ export function queueSnapshotPlan(snapshot: QueueSnapshot, target: QueueSnapshot
 /**
  * Restore a snapshot into a reopened session: plan, then queue every entry the
  * plan would resend, in snapshot order, one awaited call each. Nothing is sent
- * when the plan is `current` or `blocked`. A rejected queue call is reported
- * with its code and the loop continues; it is never retried here.
+ * when the plan is `current` or `blocked`, for input the target already names,
+ * for a sub-agent lane, or under an id that collides or is not a UUID. A
+ * rejected queue call is reported with its code and the loop continues; it is
+ * never retried here.
  */
 export async function restoreQueue(session: QueueRestoreSession, snapshot: QueueSnapshot, options: QueueRestoreOptions): Promise<QueueRestoreResult> {
   const plan = queueSnapshotPlan(snapshot, {
@@ -161,16 +178,52 @@ function targetRefusal(snapshot: QueueSnapshot, target: QueueSnapshotTarget): Qu
     : { code: "stale_snapshot", message: `stream ${snapshot.stream.streamId} holds records up to seq ${lastSeq}, before the snapshot's ${snapshot.stream.lastSeq}` };
 }
 
-function decide(entry: QueueSnapshotEntry, claimed: ReadonlySet<string>, options: QueueSnapshotPlanOptions): QueueSnapshotPlanEntry {
+/** One entry's first reading: its own evidence and the ids the target stream already names. */
+function candidate(entry: QueueSnapshotEntry, claimed: ReadonlySet<string>, options: QueueSnapshotPlanOptions): QueueSnapshotPlanEntry {
   const inputId = entry.inputId;
-  if (inputId === undefined) { return { entry, resend: false, code: "unnamed_input" }; }
-  if (entry.evidence.resend === "never") { return { entry, resend: false, code: entry.evidence.code }; }
-  if (claimed.has(laneKey(entry.agentPath, inputId))) { return { entry, resend: false, code: "duplicate_input" }; }
-  if (entry.evidence.resend === "uncertain" && options.allowUncertain?.(entry) !== true) { return { entry, resend: false, code: "unconfirmed" }; }
-  const fresh = options.inputId?.(entry);
-  if (fresh !== undefined && fresh.length === 0) { throw new TypeError(`inputId for ${inputId} must be a non-empty string`); }
-  if (fresh === undefined && entry.evidence.inputIdSeenByRuntime) { return { entry, resend: false, code: "input_id_reused" }; }
-  return { entry, resend: true, inputId: fresh ?? inputId };
+  // `Session.queue` records the root agent's lane: nothing in InputOptions names
+  // a sub-agent, so a child lane's input cannot be delivered from this session.
+  if (entry.agentPath.length > 0) { return refused(entry, "child_lane"); }
+  if (inputId === undefined) { return refused(entry, "unnamed_input"); }
+  if (entry.evidence.resend === "never") { return refused(entry, entry.evidence.code); }
+  if (claimed.has(laneKey(entry.agentPath, inputId))) { return refused(entry, "duplicate_input"); }
+  if (entry.evidence.resend === "uncertain" && options.allowUncertain?.(entry) !== true) { return refused(entry, "unconfirmed"); }
+  const outgoing = options.inputId?.(entry) ?? inputId;
+  if (!isInputId(outgoing)) { return refused(entry, "invalid_input_id"); }
+  // A reused id is only sound when the runtime never saw it; a fresh one is the host's promise that it is new.
+  if (entry.evidence.inputIdSeenByRuntime && outgoing === inputId) { return refused(entry, "input_id_reused"); }
+  return { entry, resend: true, inputId: outgoing };
+}
+
+/**
+ * The whole plan's outgoing ids, checked against each other and against the
+ * target: an id two sends share, an id that names a different snapshot entry,
+ * or an id the target stream already names would fold two inputs into one, so
+ * every entry involved is refused rather than resent.
+ */
+function settled(decided: readonly QueueSnapshotPlanEntry[], claimed: ReadonlySet<string>, entries: readonly QueueSnapshotEntry[]): readonly QueueSnapshotPlanEntry[] {
+  const owners = new Map<string, QueueSnapshotEntry>();
+  for (const entry of entries) {
+    if (entry.inputId !== undefined) { owners.set(laneKey(entry.agentPath, entry.inputId), entry); }
+  }
+  const sending = new Map<string, number>();
+  for (const planned of decided) {
+    if (!planned.resend) { continue; }
+    const key = laneKey(planned.entry.agentPath, planned.inputId);
+    sending.set(key, (sending.get(key) ?? 0) + 1);
+  }
+  return decided.map((planned): QueueSnapshotPlanEntry => {
+    if (!planned.resend) { return planned; }
+    const key = laneKey(planned.entry.agentPath, planned.inputId);
+    if ((sending.get(key) ?? 0) > 1) { return refused(planned.entry, "input_id_collision"); }
+    const owner = owners.get(key);
+    if (owner !== undefined && owner !== planned.entry) { return refused(planned.entry, "input_id_collision"); }
+    return claimed.has(key) ? refused(planned.entry, "duplicate_input") : planned;
+  });
+}
+
+function refused(entry: QueueSnapshotEntry, code: QueueSnapshotSkipCode): QueueSnapshotPlanEntry {
+  return { entry, resend: false, code };
 }
 
 /** Inputs the target stream already names: an attempt there means the input is not the caller's to resend. */

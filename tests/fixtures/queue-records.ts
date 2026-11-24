@@ -54,3 +54,7 @@ export function echo(seq: number, inputId = OTHER_INPUT): Frame {
 export function childQueue(seq: number, id: string, input = "child work"): RequestRecord {
   return { ...queue(seq, id, { input }), agentPath: ["researcher"] };
 }
+/** One lane's copy of a request or its answer: the fold links a response to its request by lane, so a lane case moves the whole set. */
+export function inLane(record: RequestRecord | ResponseRecord, agentPath: readonly string[]): RequestRecord | ResponseRecord {
+  return { ...record, agentPath };
+}

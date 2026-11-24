@@ -36,6 +36,7 @@ export const sessionQueueSnapshotCases: readonly TrialCase[] = [
       for (const sent of restored.resent) {
         assert.notEqual(sent.entry.evidence.resend, "never", `restore resent input the stream says the runtime has (${sent.entry.evidence.code})`);
         assert.ok(sent.inputId !== inputId, "a restored input never reuses an id the runtime may have seen");
+        assert.deepEqual(sent.entry.agentPath, [], "a restore delivers on the root lane only");
       }
       assert.equal(restored.resent.length, restored.plan.resends, "restore sends exactly what the plan counted");
       assert.equal(restored.resent.length + restored.skipped.length, restored.plan.entries.length, "every planned entry is either sent or reported");

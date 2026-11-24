@@ -19,6 +19,9 @@ import {
   THIRD_INPUT,
   accepted,
   childQueue,
+  echo,
+  exited,
+  inLane,
   prompt,
   queue,
   rejected,
@@ -34,6 +37,19 @@ import {
 const snapshotOf = (records: Parameters<typeof queueSnapshotOf>[0]): QueueSnapshot => queueSnapshotOf(records, { streamId: STREAM, sessionId: SESSION });
 const heldQueue = (): QueueSnapshot => snapshotOf([queue(0, "rq-1"), accepted(1, "rq-1", "adapter")]);
 const withdrawn = (): QueueSnapshot => snapshotOf([queue(0, "rq-1"), accepted(1, "rq-1", "adapter"), withdraw(2, "rq-2"), accepted(3, "rq-2")]);
+/** Two adapter-held inputs, both withdrawn: neither id was seen, so either old id may be reused. */
+const twoWithdrawn = (): QueueSnapshot => snapshotOf([
+  queue(0, "rq-1"), accepted(1, "rq-1", "adapter"), withdraw(2, "rq-2"), accepted(3, "rq-2"),
+  queue(4, "rq-3", { inputId: SECOND_INPUT, input: "second" }), accepted(5, "rq-3", "adapter"), withdraw(6, "rq-4", SECOND_INPUT), accepted(7, "rq-4"),
+]);
+/** One lane's held-then-withdrawn input: a sub-agent lane cannot be queued from the root session. */
+const laneWithdrawn = (): QueueSnapshot => {
+  const lane = ["researcher"];
+  return snapshotOf([
+    inLane(queue(0, "rq-1", { input: "child work" }), lane), inLane(accepted(1, "rq-1", "adapter"), lane),
+    inLane(withdraw(2, "rq-2"), lane), inLane(accepted(3, "rq-2"), lane),
+  ]);
+};
 const reopened = (overrides: Partial<QueueSnapshotTarget> = {}): QueueSnapshotTarget => ({ sessionId: SESSION, streamId: "stream-2", records: [], ...overrides });
 const acceptedOutcome = (seq: number, id: string): ControlOutcome => ({ kind: "accepted", seq, requestId: id, request: queue(seq, id), response: accepted(seq + 1, id) });
 
@@ -73,11 +89,58 @@ test("a checkpoint of the same stream is current, and a snapshot ahead of that s
   expect(stale).toMatchObject({ status: "blocked", blocked: { code: "stale_snapshot" }, resends: 0 });
 });
 
-test("an input the target stream already names is a duplicate, not a second send; another lane is not", () => {
+test("an input the target stream already names is a duplicate; a claim in another lane is not", () => {
   const claimed = queueSnapshotPlan(withdrawn(), reopened({ records: [queue(0, "rq-9")] }));
   expect(claimed).toMatchObject({ resends: 0, entries: [{ resend: false, code: "duplicate_input" }] });
   const otherLane = queueSnapshotPlan(withdrawn(), reopened({ records: [childQueue(0, "rq-9")] }));
   expect(otherLane).toMatchObject({ resends: 1 });
+});
+
+test("a sub-agent lane's input is refused: Session.queue records the root lane only", async () => {
+  expect(laneWithdrawn().entries[0]?.evidence).toMatchObject({ ownership: "caller", resend: "safe", code: "withdrawn" });
+  expect(queueSnapshotPlan(laneWithdrawn(), reopened())).toMatchObject({ status: "ready", resends: 0, entries: [{ resend: false, code: "child_lane" }] });
+  const { session, calls } = recorder();
+  const result = await restoreQueue(session, laneWithdrawn(), { streamId: "stream-2", inputId: () => OTHER_INPUT });
+  expect(result.resent).toEqual([]);
+  expect(calls).toEqual([]);
+});
+
+test("a fresh id the target stream already names is a duplicate, not a second send", () => {
+  const plan = queueSnapshotPlan(withdrawn(), reopened({ records: [queue(0, "rq-9", { inputId: OTHER_INPUT })] }), { inputId: () => OTHER_INPUT });
+  expect(plan).toMatchObject({ status: "ready", resends: 0, entries: [{ resend: false, code: "duplicate_input" }] });
+});
+
+test("one fresh id for two resends is refused on both entries", async () => {
+  const plan = queueSnapshotPlan(twoWithdrawn(), reopened(), { inputId: () => THIRD_INPUT });
+  expect(plan).toMatchObject({ resends: 0, entries: [{ resend: false, code: "input_id_collision" }, { resend: false, code: "input_id_collision" }] });
+  const { session, calls } = recorder();
+  await restoreQueue(session, twoWithdrawn(), { streamId: "stream-2", inputId: () => THIRD_INPUT });
+  expect(calls).toEqual([]);
+});
+
+test("a fresh id that names another snapshot entry is refused, while a genuinely new one is sent", () => {
+  const plan = queueSnapshotPlan(twoWithdrawn(), reopened(), { inputId: (entry) => entry.inputId === SNAPSHOT_INPUT ? SECOND_INPUT : THIRD_INPUT });
+  expect(plan).toMatchObject({ resends: 1, entries: [{ resend: false, code: "input_id_collision" }, { resend: true, inputId: THIRD_INPUT }] });
+});
+
+test("an outgoing id that is not a UUID is refused, as sealSession refuses one on every queue", async () => {
+  expect(queueSnapshotPlan(twoWithdrawn(), reopened(), { inputId: () => "not-a-uuid" })).toMatchObject({ resends: 0, entries: [{ resend: false, code: "invalid_input_id" }, { resend: false, code: "invalid_input_id" }] });
+  const { session, calls } = recorder();
+  await restoreQueue(session, twoWithdrawn(), { streamId: "stream-2", inputId: () => "" });
+  expect(calls).toEqual([]);
+});
+
+test("a fresh id that is the entry's own seen id is still the reuse it must not do", () => {
+  const seen = snapshotOf([queue(0, "rq-1"), accepted(1, "rq-1"), withdraw(2, "rq-2"), accepted(3, "rq-2")]);
+  expect(queueSnapshotPlan(seen, reopened(), { inputId: () => SNAPSHOT_INPUT })).toMatchObject({ resends: 0, entries: [{ resend: false, code: "input_id_reused" }] });
+});
+
+test("an unobserved or exit-only outcome stays unsent until the host takes responsibility", () => {
+  const unanswered = snapshotOf([queue(0, "rq-1")]);
+  expect(queueSnapshotPlan(unanswered, reopened(), { inputId: () => OTHER_INPUT })).toMatchObject({ resends: 0, entries: [{ resend: false, code: "unconfirmed" }] });
+  const exitOnly = snapshotOf([echo(2), queue(3, "rq-1"), accepted(4, "rq-1"), exited(5)]);
+  expect(queueSnapshotPlan(exitOnly, reopened(), { inputId: () => OTHER_INPUT })).toMatchObject({ resends: 0, entries: [{ resend: false, code: "unconfirmed" }] });
+  expect(queueSnapshotPlan(exitOnly, reopened(), { allowUncertain: () => true, inputId: () => OTHER_INPUT })).toMatchObject({ resends: 1, entries: [{ resend: true, inputId: OTHER_INPUT }] });
 });
 
 test("an id the runtime already saw needs a fresh one, and an unobserved outcome needs the host's consent", () => {

@@ -186,10 +186,17 @@ records of the reopened stream.
 
 Per entry, a `resend: false` decision carries one code: the evidence's own
 (`never` codes, `unconfirmed` for `uncertain` without the host's consent) or a
-target finding — `duplicate_input` (this stream already names that input, so a
-second restore or an input the host already re-queued is refused),
-`input_id_reused` (the runtime may know the id and no fresh one was offered),
-`already_current`, or `plan_blocked`.
+target finding:
+
+| `code` | When |
+| --- | --- |
+| `child_lane` | the input belongs to a sub-agent lane (`agentPath` non-empty). `Session.queue` records the ROOT lane — `InputOptions` names no sub-agent — so a child lane's input cannot be delivered from this session and is never resent. |
+| `duplicate_input` | the target stream already names that input, so a second restore, or an input the host already re-queued, is refused. Checked for the entry's own id and again for the outgoing one. |
+| `input_id_collision` | the outgoing id names another entry of this snapshot, or two planned entries would send under it. Both are refused: one id folds two inputs into one. |
+| `invalid_input_id` | the outgoing id is not a UUID. `sealSession` requires that shape of every prompt, steer and queue, so a restore refuses it here instead of letting the queue call throw mid-batch. |
+| `input_id_reused` | the runtime may already know the id and the outgoing id is still that one (no fresh id, or the host handed back the same one). |
+| `already_current` | the snapshot is a checkpoint of the target's own stream. |
+| `plan_blocked` | the whole snapshot was refused. |
 
 `restoreQueue` then queues each planned entry **in snapshot order**, one awaited
 `Session.queue()` per entry, with `inputId`, `images` and `origin` as recorded.
@@ -226,12 +233,23 @@ plan.entries.map((entry) => entry.resend ? entry.inputId : entry.code);
 - **Session identity is a precondition.** A snapshot is restored into the same
   runtime-native session (`resume`). A different id is `foreign_session`: input
   ids, lanes and native queues do not transfer between conversations.
+- **Root lane only.** A restore delivers through `Session.queue`, which records
+  the root agent's lane. Sub-agent lanes are captured as evidence and never
+  restored (`child_lane`) until an OAR control names a lane target; a host that
+  wants a child lane's input delivered must do it through that child's own
+  session.
+- **The document is as sensitive as the conversation.** It carries the input
+  text, image paths and origin verbatim, so a host that logs or ships
+  `queue.json` exports conversation content. Store it beside the records it was
+  derived from, under the same retention and access rules.
 
 ## Evidence
 
 Unit coverage is `tests/queue-snapshot.test.ts` (projection, codec, scope) and
-`tests/queue-restore.test.ts` (plan, restore, live mock session); the behavior
-suite pins the promise every runtime must keep with
+`tests/queue-restore.test.ts` (plan, restore, live mock session), including the
+child-lane refusal and the outgoing-id rules (a fresh id the target names,
+shared by two resends, naming another entry, or not a UUID). The behavior suite
+pins the promise every runtime must keep with
 `session.queue-snapshot-restores-only-returned-input`, which accepts either
 withdraw outcome of the race and asserts that nothing with `resend: "never"`
 was ever queued.

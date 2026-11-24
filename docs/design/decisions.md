@@ -37,7 +37,12 @@ instead of repairing it; `queueSnapshotPlan` decides per input from explicit
 evidence (ownership, `safe` / `uncertain` / `never`, and whether the runtime
 may already know the logical id); and `restoreQueue` applies that plan through
 the ordinary `Session.queue` call, sending only input the stream returned to
-the caller. Nothing is written, read back or resent unless a host asks.
+the caller, only from the root lane, and only under an id the target does not
+already name (`child_lane`, `duplicate_input`, `input_id_collision`,
+`invalid_input_id`). A sub-agent lane's input is captured as evidence and
+never restored, because no OAR control names a lane target; a host that wants
+it delivered does so through that child's own session. Nothing is written,
+read back or resent unless a host asks.
 
 **Decision gates:** (1) the host decides whether queued input survives its own
 restart, and can show why each input did or did not return; (2) unsafe today

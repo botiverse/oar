@@ -61,7 +61,7 @@ export interface QueryResult<T> {
 }
 /** For prompt, steer and queue: empty text requires at least one image; otherwise rejected unsupported. Whitespace is not trimmed. */
 export interface InputOptions {
-  /** UUID identifying one logical input across delivery attempts; generated when omitted. */
+  /** UUID identifying one logical input across delivery attempts; generated when omitted, refused when it is not a UUID. Nothing here names a sub-agent, so input always lands on the root agent's lane: a child lane's input needs that child session. */
   readonly inputId?: string;
   /**
    * Images that travel with the input (text may be the empty string), as the runtime's own image input (not a
