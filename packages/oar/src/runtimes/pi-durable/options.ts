@@ -7,12 +7,13 @@ import { ModelConfirmationError } from "../../contracts/model-confirmation-error
 import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type { SessionOptions } from "../../contracts/session.js";
-import { refuseSessionOptions } from "../../shared/session-options.js";
+import { piOnlyRefusals, refuseSessionOptions } from "../../shared/session-options.js";
 
 /** The catalog belonging to the host's Durable peer, which can differ from the coding SDK. */
 export type DurableModels = Exclude<HarnessOptions["models"], () => unknown>;
 
 export const piDurableRefusedSessionOptions: RefusedSessionOptions = {
+  ...piOnlyRefusals,
   modelRequests: "This adapter has no verified capture of the root agent's provider request",
   fork: "OAR has not verified a native Pi Durable fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",

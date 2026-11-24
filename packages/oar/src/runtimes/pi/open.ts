@@ -10,6 +10,7 @@ import { preparePi } from "./static-modules.js";
 import { disposePiAgentSession } from "./lifecycle.js";
 import { piMcpExtensions, validatePiMcpEnvironment } from "./mcp.js";
 import { piAgentDir, piFindSessionFile, piResolveModel, piSessionDir } from "./resolve.js";
+import { checkPiCompaction, checkPiProvider, piProviderEntry, piRequestedModel } from "./provider.js";
 import { checkPiProjectPackages, reportMissingPiPackages } from "./project.js";
 import type { PiProjectOptions } from "./options.js";
 
@@ -132,6 +133,11 @@ export function checkPiSystemPrompt(prompt: string | undefined): void {
 export async function openPiAgentSession(options: SessionOptions, rememberKey?: (key: string | undefined) => void, project: PiProjectOptions = {}): Promise<PiAgentSession> {
   refuseSessionOptions(piRefusedSessionOptions, options);
   checkSessionName(options);
+  // SessionOptions.piProvider / piCompaction: Pi-only, checked before anything
+  // loads. The provider is registered into this session's model plane below,
+  // so no models.json is written and the user's own Pi configuration is kept.
+  if (options.piProvider !== undefined) { checkPiProvider(options.piProvider); }
+  if (options.piCompaction !== undefined) { checkPiCompaction(options.piCompaction); }
   checkPiSystemPrompt(options.systemPrompt);
   validatePiMcpEnvironment(options);
   const thinkingLevel = options.effort === undefined ? undefined : piThinkingLevel(options.effort);
@@ -148,6 +154,17 @@ export async function openPiAgentSession(options: SessionOptions, rememberKey?: 
   await checkPiProjectPackages(options.cwd, agentDir, settingsManager, project);
   await reportMissingPiPackages(options.cwd, agentDir, settingsManager);
   await preparePi(settingsManager);
+  // The compaction budget for this session only: applyOverrides changes what
+  // this SettingsManager reports without writing the user's settings file, so
+  // a host-declared reserve/keep window cannot leak into the next session.
+  if (options.piCompaction !== undefined) {
+    settingsManager.applyOverrides({
+      compaction: {
+        reserveTokens: options.piCompaction.reserveTokens,
+        ...(options.piCompaction.keepRecentTokens === undefined ? {} : { keepRecentTokens: options.piCompaction.keepRecentTokens }),
+      },
+    });
+  }
   // SessionOptions.mcpServers: pi's MCP extension plus one registering the
   // session's servers (mcp.ts); it refuses a name pi cannot take before
   // anything loads.
@@ -175,6 +192,13 @@ export async function openPiAgentSession(options: SessionOptions, rememberKey?: 
     },
   });
   mcp?.check(services.resourceLoader.getExtensions().errors);
+  // SessionOptions.piProvider: registered in this session's model plane (the
+  // same one createAgentSessionServices built), before the model is resolved,
+  // so a host-declared gateway model resolves exactly like a catalog one and
+  // disappears with the session.
+  if (options.piProvider !== undefined) {
+    services.modelRuntime.registerProvider(options.piProvider.id, piProviderEntry(options.piProvider));
+  }
   // pi persists sessions per cwd under <agentDir>/sessions; the same
   // directory is used to create (so a later resume finds the file) and to
   // look a resumed id up.
@@ -188,7 +212,13 @@ export async function openPiAgentSession(options: SessionOptions, rememberKey?: 
   // An explicit model wins over the one recorded in a resumed session
   // (sdk.js createAgentSession precedence, same in the services path); the
   // recorded one is restored only when none is given.
-  const model = options.model === undefined ? undefined : piResolveModel(services.modelRuntime, options.model);
+  // A bare model id the declared provider serves is qualified with its id,
+  // which is how Pi names a model; on resume without an explicit model the
+  // recorded one is restored, so no synthetic default is invented there.
+  const requestedModel = options.piProvider === undefined
+    ? options.model
+    : piRequestedModel(options.piProvider, options.model, options.resume !== undefined);
+  const model = requestedModel === undefined ? undefined : piResolveModel(services.modelRuntime, requestedModel);
   // Per-session env on an in-process runtime: the runtime itself has no own
   // process, but the processes the AGENT spawns do: a bash tool built with a
   // spawnHook overlaying the env replaces the builtin by name (custom tools
@@ -224,9 +254,9 @@ export async function openPiAgentSession(options: SessionOptions, rememberKey?: 
   // Read back rather than trust the request: the model record is the
   // runtime's report, and a resume that kept the old model must not pass.
   const effective = piEffectiveModel(session);
-  if (options.model !== undefined && effective !== options.model) {
+  if (requestedModel !== undefined && effective !== requestedModel) {
     session.dispose();
-    throw new ModelConfirmationError(`pi did not apply model ${options.model}: the session reports ${effective ?? "no model"}`, { requested: options.model, reported: effective });
+    throw new ModelConfirmationError(`pi did not apply model ${requestedModel}: the session reports ${effective ?? "no model"}`, { requested: requestedModel, reported: effective });
   }
   const refusal = options.effort === undefined ? null : piEffortRefusal(options.effort, session);
   if (refusal !== null) {

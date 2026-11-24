@@ -1039,6 +1039,13 @@ can copy a whole session. Other adapters refuse `fork`
 by Claude (`>= 2.1.274`) and Pi SDK, and refused elsewhere
 ([model-request.md](model-request.md)). The table omits all six, apart
 from Codex's shared-placement refusal.
+
+`piProvider` and `piCompaction` are Pi-only: every other runtime refuses both,
+and Pi itself refuses them in its subprocess (RPC) execution mode. They let a
+host declare the gateway provider and model a session runs, and that session's
+compaction budget, without writing Pi's `models.json` or the user's settings
+file ([host-declared provider](../runtimes/pi.md#host-declared-provider-and-compaction-budget)).
+A runtime that does not list them in `refusedSessionOptions` must honor them.
 These refusals have one reason wherever the table lists them: `serviceTier`,
 no verified per-session tier setting and readback; `outputSchema`, no
 verified final-output schema channel; `name`, no verified session name

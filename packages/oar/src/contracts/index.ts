@@ -111,6 +111,7 @@ export type { CompactionEvents, McpToolsListChanged, RefusableSessionOption, Ref
 export type { ModelRequest } from "./model-request.js";
 export type { ContextUsageCapability } from "./context-usage.js";
 export type { McpTransport } from "./session-options.js";
+export type { PiSessionCompaction, PiSessionModel, PiSessionProvider, PiSessionSelection, PiWireProtocol } from "./pi-provider.js";
 export type {
   AdapterSession,
   AttributionTier,

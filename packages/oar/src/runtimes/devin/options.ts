@@ -1,8 +1,10 @@
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
+import { piOnlyRefusals } from "../../shared/session-options.js";
 
 /* Declared refusals, apart from the session code so the runtime entry loads no ACP SDK until a session opens. */
 
 export const devinRefusedSessionOptions: RefusedSessionOptions = {
+  ...piOnlyRefusals,
   modelRequests: "This adapter has no verified capture of the root agent's provider request",
   mcpServerCredentials: "OAR has not verified MCP credential isolation for Devin",
   fork: "OAR has not verified a native Devin fork that opens a copy of a saved session under a new id, cut after a chosen turn",

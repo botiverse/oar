@@ -2,6 +2,7 @@ import { semverAtLeast } from "../../shared/semver.js";
 import { atLeastV2, hasBackgroundChildUpdates, parseOpencodeRelease, type OpencodeRelease } from "./version.js";
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { RefusedSessionOptions, SessionCapabilityDeclaration } from "../../contracts/runtime.js";
+import { piOnlyRefusals } from "../../shared/session-options.js";
 
 /* Declared refusals, apart from the session code so the runtime entry loads no ACP SDK until a session opens. */
 
@@ -11,6 +12,7 @@ import type { RefusedSessionOptions, SessionCapabilityDeclaration } from "../../
  * mapping is upstream's.
  */
 export const opencodeRefusedSessionOptions: RefusedSessionOptions = {
+  ...piOnlyRefusals,
   modelRequests: "This adapter has no verified capture of the root agent's provider request",
   goals: "This runtime interface exposes no structured native goal controls",
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted OpenCode turn's processes while its session stays usable",

@@ -31,6 +31,8 @@ export const piRpcRefusedSessionOptions: RefusedSessionOptions = {
   ...piRefusedSessionOptions,
   modelRequests: "Pi runs RPC command-line extensions before user extensions that can replace the provider request",
   launchArgs: "OAR owns Pi's RPC startup arguments; arbitrary CLI flags are not supported",
+  piProvider: "Pi's RPC execution mode runs the agent in a child process whose model plane OAR cannot register a host provider into; use the in-process execution mode",
+  piCompaction: "Pi's RPC execution mode compacts with the child's own settings; OAR cannot apply a per-session budget there",
 };
 
 export function piRpcState(response: RpcResponse): RpcSessionState {

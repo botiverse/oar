@@ -3,9 +3,11 @@ import { compareSemver, semverAtLeast } from "../../shared/semver.js";
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type { SessionOptions } from "../../contracts/session.js";
 import { DSH_MINIMUM_VERSION } from "./version.js";
+import { piOnlyRefusals } from "../../shared/session-options.js";
 
 /** Each stays refused until its own native probe. DSH may well have the concept; OAR has not verified its semantics. */
 export const dshRefusedSessionOptions: RefusedSessionOptions = {
+  ...piOnlyRefusals,
   modelRequests: "This adapter has no verified capture of the root agent's provider request",
   fork: "OAR has not verified a native DSH fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   launchArgs: "DSH overlays can disable the OAR bridge; arbitrary launch overlays have no verified final-composition check",

@@ -4,7 +4,7 @@ import { withdrawControl } from "../../shared/held-input.js";
 import { inputImagesRefusal } from "../../shared/input-images.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
-import { refuseSessionOptions } from "../../shared/session-options.js";
+import { piOnlyRefusals, refuseSessionOptions } from "../../shared/session-options.js";
 import { acquireConsole, morphStateDir, type ConsoleLease } from "./console.js";
 import { MorphRefusalError, carrierTask, checkProfile, openTopic, stopTask, submitTask } from "./topic.js";
 import { createTaskTracker } from "./tracker.js";
@@ -36,6 +36,7 @@ import { createTaskTracker } from "./tracker.js";
 const DISPOSE_SETTLE_MS = 3000;
 
 export const morphRefusedSessionOptions: RefusedSessionOptions = {
+  ...piOnlyRefusals,
   modelRequests: "This adapter has no verified capture of the root agent's provider request",
   fork: "OAR has not verified a native Morph fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",

@@ -1295,6 +1295,67 @@ mapping and the limits of acknowledgement evidence; the
 [steer delivery probes](steer-delivery.md) record the underlying native
 observations.
 
+## Host-declared provider and compaction budget
+
+A host that reaches a model through its own gateway, or an id Pi's catalog does
+not carry, declares it on the session instead of writing configuration files:
+`SessionOptions.piProvider` and `SessionOptions.piCompaction`. Both are Pi-only;
+every other runtime refuses them (`Runtime.refusedSessionOptions`), and so does
+Pi's [optional RPC process](#optional-native-rpc-process), which has no
+in-process model plane to register into.
+
+OAR registers the provider in the session's own model plane, the one its services
+built, before the model is resolved. Nothing is written to disk: no `models.json`
+entry, no change to the user's settings file, so the declaration ends with the
+session and the user's own Pi setup is untouched. The model then resolves and is
+read back like a catalog model ([Models, instructions, and context](#models-instructions-and-context)).
+
+```ts
+await piRuntime.session(installation, {
+  cwd,
+  piProvider: {
+    id: "gateway",
+    api: "openai-completions",
+    baseUrl: "https://gateway.example.test/v1",
+    apiKeyEnv: "GATEWAY_API_KEY",
+    models: [{
+      id: "reasoner",
+      contextWindow: 1_000_000,
+      maxTokens: 65_536,
+      reasoning: true,
+      compat: { supportsStore: false, maxTokensField: "max_tokens", thinkingFormat: "deepseek", requiresReasoningContentOnAssistantMessages: true },
+    }],
+  },
+  piCompaction: { reserveTokens: 100_000, keepRecentTokens: 20_000 },
+  model: "reasoner",
+});
+```
+
+`model` names one of the declared models, bare (`reasoner`) or qualified
+(`gateway/reasoner`); a bare id the provider declares is qualified with its id. A
+new session with no `model` runs the provider's first model, while a resumed one
+with no `model` keeps the model it recorded.
+
+The credential is an environment variable NAME (`apiKeyEnv`), never a secret:
+OAR hands Pi `$NAME` and Pi resolves it at request time, so the key reaches
+neither the records nor an error. The variable comes from
+`SessionOptions.env`, the host environment, or Pi's own stored auth.
+
+Wire quirks belong in `compat`, in Pi's own vocabulary: OAR infers nothing from
+a provider id, a model id or a host name, so a gateway relaying a reasoning
+model declares `thinkingFormat`, `maxTokensField`,
+`requiresReasoningContentOnAssistantMessages`, `supportsStore` or
+`supportsDeveloperRole` itself. A declaration OAR cannot honour is refused
+before anything starts: a malformed provider id, a non-HTTP(S) endpoint, an
+endpoint carrying a query, fragment or credentials, no models, duplicate or
+blank model ids, a completion limit larger than the context window, or an
+`apiKeyEnv` that is not an environment variable name.
+
+`piCompaction` sets the session's own `reserveTokens` (the headroom the compaction
+trigger keeps free) and, optionally, `keepRecentTokens` (history a compaction
+keeps verbatim). It is applied through the settings manager in memory, so it
+never becomes the user's saved default.
+
 ## Verification and open gaps
 
 [`experiments/live-contract.ts pi`](../../experiments/live-contract.ts) runs

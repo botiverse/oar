@@ -3,6 +3,7 @@
  * the MCP servers one can attach. What a runtime cannot honor is refused
  * (`UnsupportedOptionError`, `Runtime.refusedSessionOptions`).
  */
+import type { PiSessionSelection } from "./pi-provider.js";
 
 export type UserConfigurationCategory = "settings" | "mcp" | "instructions";
 export type McpTransport = "stdio" | "http";
@@ -48,7 +49,7 @@ export interface SessionFork {
  * decide before opening reads `Runtime.refusedSessionOptions`
  * (docs/spec/runtime-matrix.md#refused-session-options).
  */
-export interface SessionOptions {
+export interface SessionOptions extends PiSessionSelection {
   /** Keep the latest provider request attributed to this session's root agent. Capture is off by default. */
   readonly modelRequests?: "latest";
   /**
