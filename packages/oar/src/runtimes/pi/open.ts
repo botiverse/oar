@@ -154,17 +154,6 @@ export async function openPiAgentSession(options: SessionOptions, rememberKey?: 
   await checkPiProjectPackages(options.cwd, agentDir, settingsManager, project);
   await reportMissingPiPackages(options.cwd, agentDir, settingsManager);
   await preparePi(settingsManager);
-  // The compaction budget for this session only: applyOverrides changes what
-  // this SettingsManager reports without writing the user's settings file, so
-  // a host-declared reserve/keep window cannot leak into the next session.
-  if (options.piCompaction !== undefined) {
-    settingsManager.applyOverrides({
-      compaction: {
-        reserveTokens: options.piCompaction.reserveTokens,
-        ...(options.piCompaction.keepRecentTokens === undefined ? {} : { keepRecentTokens: options.piCompaction.keepRecentTokens }),
-      },
-    });
-  }
   // SessionOptions.mcpServers: pi's MCP extension plus one registering the
   // session's servers (mcp.ts); it refuses a name pi cannot take before
   // anything loads.
@@ -192,6 +181,20 @@ export async function openPiAgentSession(options: SessionOptions, rememberKey?: 
     },
   });
   mcp?.check(services.resourceLoader.getExtensions().errors);
+  // The compaction budget for this session only, applied AFTER the services:
+  // building them loads the resource loader, whose reload() calls
+  // settingsManager.reload() and rebuilds the settings from the user's files
+  // (core/resource-loader.js), which would discard an override applied
+  // earlier. Nothing else reloads them before the session reads the budget, so
+  // this window is the session's and the user's settings file stays untouched.
+  if (options.piCompaction !== undefined) {
+    settingsManager.applyOverrides({
+      compaction: {
+        reserveTokens: options.piCompaction.reserveTokens,
+        ...(options.piCompaction.keepRecentTokens === undefined ? {} : { keepRecentTokens: options.piCompaction.keepRecentTokens }),
+      },
+    });
+  }
   // SessionOptions.piProvider: registered in this session's model plane (the
   // same one createAgentSessionServices built), before the model is resolved,
   // so a host-declared gateway model resolves exactly like a catalog one and

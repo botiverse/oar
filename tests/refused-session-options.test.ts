@@ -244,14 +244,17 @@ test.each(["", "   ", "-c", "--continue", "--help", "id\0secret"])("an empty, da
   }
 });
 
-test("subprocess Pi accepts credentialed mcpServers and declares only its non-credential refusals", async () => {
+test("subprocess Pi accepts a declared provider and credentialed mcpServers, and declares only its non-credential refusals", async () => {
   const rpc = createPiRuntime({ execution: "subprocess" });
   expect(Object.keys(rpc.refusedSessionOptions ?? {}).toSorted()).toEqual([
     "additionalDirectories", "endTurnProcessesOnAbort", "fork", "goals", "launchArgs",
-    "modelRequests", "nativeMemoryDefault", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "userConfiguration",
+    "modelRequests", "nativeMemoryDefault", "outputSchema", "piCompaction", "serviceTier", "sessionLogUpload", "userConfiguration",
   ]);
   expect(() => {
     refuseSessionOptions(rpc.refusedSessionOptions ?? {}, { cwd: "/tmp", ...given.mcpServerCredentials });
+  }).not.toThrow();
+  expect(() => {
+    refuseSessionOptions(rpc.refusedSessionOptions ?? {}, { cwd: "/tmp", ...given.piProvider });
   }).not.toThrow();
   await expect(rpc.session(nowhere("pi"), { cwd: "/tmp", launchArgs: ["--probe"] }))
     .rejects.toMatchObject({ name: "UnsupportedOptionError", option: "launchArgs" });

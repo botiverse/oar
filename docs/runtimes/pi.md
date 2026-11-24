@@ -1301,8 +1301,9 @@ A host that reaches a model through its own gateway, or an id Pi's catalog does
 not carry, declares it on the session instead of writing configuration files:
 `SessionOptions.piProvider` and `SessionOptions.piCompaction`. Both are Pi-only;
 every other runtime refuses them (`Runtime.refusedSessionOptions`), and so does
-Pi's [optional RPC process](#optional-native-rpc-process), which has no
-in-process model plane to register into.
+Pi's [optional RPC process](#optional-native-rpc-process) for the compaction
+budget (see [below](#the-compaction-budget-in-the-rpc-child)). The provider is
+honored in **both** of Pi's execution modes; the budget only in process.
 
 OAR registers the provider in the session's own model plane, the one its services
 built, before the model is resolved. Nothing is written to disk: no `models.json`
@@ -1354,7 +1355,44 @@ blank model ids, a completion limit larger than the context window, or an
 `piCompaction` sets the session's own `reserveTokens` (the headroom the compaction
 trigger keeps free) and, optionally, `keepRecentTokens` (history a compaction
 keeps verbatim). It is applied through the settings manager in memory, so it
-never becomes the user's saved default.
+never becomes the user's saved default. That application happens after the
+session's services load, because loading the resource loader reloads Pi's
+settings from the user's files (`core/resource-loader.js` `reload()`) and an
+override applied earlier would be discarded. A native extension reload rebuilds
+them too, which drops the in-memory budget until the session is opened again;
+OAR reapplies it only at open.
+
+### The provider in the RPC child
+
+`createPiRuntime({ execution: "subprocess" })` honors `piProvider` too. The
+declaration travels in the private bootstrap document OAR's own RPC extension
+reads over the credential pipe (see [the private pipe](#optional-native-rpc-process));
+the extension calls `pi.registerProvider` while it loads, which Pi queues and
+applies when it binds the session's model plane — before `--model` and the
+session's model resolve. Still no `models.json`, no settings write, no command
+line: `--model` names the qualified model OAR derived, and the credential stays
+the `$NAME` reference Pi resolves at request time. Model spelling, the first
+model a new session runs and the recorded model a resumed session keeps come
+from the same `piRequestedModel` the in-process path uses, and the existing
+read-backs still apply: the child reports whether the selected model is
+registered and how many models the declared provider holds, and the open fails
+closed when either is short. A Pi whose extension API cannot register a
+provider refuses the declaration instead of running another model.
+
+### The compaction budget in the RPC child
+
+The budget stays refused there. Pi's RPC child compacts from the settings files
+its session loads (`compaction.reserveTokens` / `keepRecentTokens`), and its
+extension API exposes no settings channel: `pi.getSettings()` returns a copy,
+there is no setter, and the session's settings manager is not reachable from an
+extension (extensions load Pi's modules as a separate copy, so even a prototype
+patch would not reach it — checked against the bundled 1.6.0 `rpc-entry`).
+Honoring a budget there would mean writing the child's `settings.json` (the
+user's file, or a shadow of the whole agent directory that also carries the
+user's auth and models) or reimplementing Pi's trigger and cut point. OAR does
+neither, so a host that needs a per-session budget uses the in-process execution
+mode, and the RPC mode refuses `piCompaction` with that reason before the child
+starts.
 
 ## Verification and open gaps
 
@@ -1377,20 +1415,28 @@ working directory so ancestor instructions do not change the snapshot;
 [MCP vendor tests](../../sea-trial/vendor/mcp-servers-pi.vendor.test.ts)
 cover [session MCP servers](#session-mcp-servers) and run in CI's pi-aimock
 job. The
+[host-declared provider test](../../sea-trial/vendor/pi-host-provider.vendor.test.ts)
+runs a declaration that exists in no `models.json` — a scripted gateway model
+plus one session MCP server — through both execution modes, resumes it with no
+model given, checks the credential is present on the wire and absent from every
+record, and (in process) pins the declared compaction trigger and kept-recent
+window against Pi's defaults; in RPC mode it pins the budget refusal. The
 [replay test](../../tests/replay/pi-projection.test.ts) pins the fold over the
 recorded tool-round fixture and the settled/abort/error classification; the
 unit tests under [`tests/pi/`](../../tests/pi/) pin the session-directory
 formula, id lookup, model spelling/resolution, model readback, tool result
-text and the HTTP plane, and
+text, the HTTP plane and the RPC bootstrap document, and
 [`tests/providers/`](../../tests/providers/) the provider-auth bridge, the
 login providers and the model catalog.
 
 Open gaps: accepted steering through retry/compaction; distinct queued turns
 under races; extension-generated activity (children, permission gates,
 commands); unavailable saved-model fallback on resume; threshold compaction
-with a real provider; session MCP servers on a real login and model
-(measured against a scripted provider only); and corrupt session files and
-concurrent writers.
+with a real provider; a per-session compaction budget in the RPC execution mode
+(Pi's child reads it from settings files only, see
+[above](#the-compaction-budget-in-the-rpc-child)); session MCP servers on a
+real login and model (measured against a scripted provider only); and corrupt
+session files and concurrent writers.
 
 [native-sdk]: https://github.com/earendil-works/pi/blob/v0.84.2/packages/coding-agent/docs/sdk.md
 [native-format]: https://github.com/earendil-works/pi/blob/v0.84.2/packages/coding-agent/docs/session-format.md

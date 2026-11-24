@@ -1,8 +1,12 @@
 /*
  * The provider a host may declare for one Pi session, and the compaction
- * budget that goes with it. Pi is the only runtime with an in-process model
- * plane a host can add a provider to; every other runtime refuses these
- * options (`refusedSessionOptions.piProvider`, `piCompaction`).
+ * budget that goes with it. Pi alone takes a host-declared provider in both of
+ * its execution modes: the in-process SDK registers it in the session's model
+ * plane, and the RPC child's own OAR extension registers it while it loads (no
+ * `models.json`, no command line). Every other runtime refuses both options, and
+ * so does Pi's RPC mode for the compaction budget: that child compacts from the
+ * settings files it reads and exposes no per-session settings channel to an
+ * extension (`refusedSessionOptions.piProvider`, `piCompaction`).
  */
 
 /** The wire protocols a host-declared provider may speak; Pi's own names for them. */
@@ -110,15 +114,19 @@ export interface PiSessionSelection {
    * configuration is untouched. `model` then names one of its models, bare or
    * qualified as `<id>/<modelId>`; a bare id this provider declares is
    * qualified with its id. Omitted: Pi's own catalog and `models.json` apply as
-   * before. Refused in Pi's subprocess (RPC) execution mode, which has no
-   * in-process model plane to register into.
+   * before. Honored in both Pi execution modes: in-process before the model
+   * resolves, and in the RPC child by the OAR extension that starts with the
+   * session, which registers it before Pi resolves `--model` and reports what
+   * its model plane holds so a shortfall fails the open.
    */
   readonly piProvider?: PiSessionProvider;
   /**
    * Compaction budget for this Pi session (`PiSessionCompaction`). Pi only:
    * every other runtime refuses it. Applied to the session's own settings, so
    * the user's settings file is not modified. Omitted: Pi's own defaults and
-   * per-model overrides apply. Refused in Pi's subprocess (RPC) execution mode.
+   * per-model overrides apply. Refused in Pi's subprocess (RPC) execution mode:
+   * that child compacts from the settings files it reads and no extension API
+   * reaches its settings manager.
    */
   readonly piCompaction?: PiSessionCompaction;
 }

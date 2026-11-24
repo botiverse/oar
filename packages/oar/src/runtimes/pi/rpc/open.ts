@@ -17,6 +17,7 @@ import { piMcpServerConfig, validatePiMcpEnvironment } from "../mcp.js";
 import { piThinkingLevel, piRefusedSessionOptions, piEffortRefusal, checkPiSystemPrompt } from "../open.js";
 import { piFindSessionFile, piSessionDir, splitPiModelId } from "../resolve.js";
 import type { PiRuntimeOptions } from "../options.js";
+import { checkPiProvider, piProviderEntry, piRequestedModel, type PiProviderEntry } from "../provider.js";
 import { checkPiProjectPackages, reportMissingPiPackages } from "../project.js";
 import { piRpcControl } from "./control.js";
 import { servePiRpcPipe } from "./credentials.js";
@@ -31,9 +32,54 @@ export const piRpcRefusedSessionOptions: RefusedSessionOptions = {
   ...piRefusedSessionOptions,
   modelRequests: "Pi runs RPC command-line extensions before user extensions that can replace the provider request",
   launchArgs: "OAR owns Pi's RPC startup arguments; arbitrary CLI flags are not supported",
-  piProvider: "Pi's RPC execution mode runs the agent in a child process whose model plane OAR cannot register a host provider into; use the in-process execution mode",
-  piCompaction: "Pi's RPC execution mode compacts with the child's own settings; OAR cannot apply a per-session budget there",
+  piCompaction: "Pi's RPC execution mode compacts from the settings files its child reads, and its extension API exposes no per-session settings channel (the child's settings manager is not reachable from an extension), so OAR cannot apply a budget there; use the in-process execution mode",
 };
+
+/**
+ * The startup document the OAR RPC extension reads over its private credential
+ * pipe. It carries no secret: a declared provider's credential is the NAME of
+ * an environment variable (Pi resolves `$NAME` itself), and MCP credentials
+ * have already travelled pi's own config shape into the child's environment.
+ */
+export interface PiRpcBootstrap {
+  readonly agentDir: string;
+  readonly resume: boolean;
+  readonly hasHostAppend: boolean;
+  readonly projectTrusted: boolean;
+  readonly servers: readonly { readonly name: string; readonly config: ReturnType<typeof piMcpServerConfig> }[];
+  /** `SessionOptions.piProvider` in the shape the extension hands `pi.registerProvider`. */
+  readonly provider?: { readonly id: string; readonly entry: PiProviderEntry };
+}
+
+/**
+ * SessionOptions → the child's startup document. A host-declared provider
+ * travels here, not in `models.json` or a command line: the OAR extension
+ * registers it in the session's model plane while it loads, before Pi resolves
+ * `--model`, so the declaration ends with the child.
+ */
+export function piRpcBootstrap(options: SessionOptions, child: { readonly agentDir: string; readonly projectTrusted: boolean }): PiRpcBootstrap {
+  return {
+    agentDir: child.agentDir,
+    resume: options.resume !== undefined,
+    hasHostAppend: Boolean(options.appendSystemPrompt),
+    projectTrusted: child.projectTrusted,
+    servers: (options.mcpServers ?? []).map((server) => ({ name: server.name, config: piMcpServerConfig(server) })),
+    ...(options.piProvider === undefined ? {} : { provider: { id: options.piProvider.id, entry: piProviderEntry(options.piProvider) } }),
+  };
+}
+
+/**
+ * The model this RPC session asks Pi for: a bare id the declared provider
+ * serves is qualified with its id, a new session runs the provider's first
+ * model, and a resumed one keeps what it recorded (piRequestedModel, shared
+ * with the in-process path). Without a declared provider the id is Pi's own
+ * `provider/model` spelling, unchanged.
+ */
+export function piRpcRequestedModel(options: SessionOptions): string | undefined {
+  if (options.piProvider === undefined) { return options.model; }
+  checkPiProvider(options.piProvider);
+  return piRequestedModel(options.piProvider, options.model, options.resume !== undefined);
+}
 
 export function piRpcState(response: RpcResponse): RpcSessionState {
   if (!response.success) { throw new Error(response.error); }
@@ -65,7 +111,10 @@ export async function openPiRpc(options: SessionOptions, credentials: Credential
   // in-process MCP path has to refuse them when re-inheriting the host env.
   validatePiMcpEnvironment({ ...options, env: {} });
   if (options.effort !== undefined) { piThinkingLevel(options.effort); }
-  if (options.model !== undefined) { splitPiModelId(options.model); }
+  // SessionOptions.piProvider is checked before anything starts, and its model
+  // is spelled the way Pi names it before it reaches `--model` or a read-back.
+  const requestedModel = piRpcRequestedModel(options);
+  if (requestedModel !== undefined) { splitPiModelId(requestedModel); }
   const env = sessionEnvironment(options.env);
   const agentDir = path.resolve([environmentValue(env, "OAR_PI_AGENT_DIR"), environmentValue(env, "PI_CODING_AGENT_DIR")].find((value) => value !== undefined && value.length > 0)
     ?? path.join(environmentValue(env, "HOME") ?? environmentValue(env, "USERPROFILE") ?? homedir(), ".pi", "agent"));
@@ -84,10 +133,7 @@ export async function openPiRpc(options: SessionOptions, credentials: Credential
   const hasName = sessionFile !== undefined && SessionManager.open(sessionFile, sessionDir).getEntries().some((entry) => entry.type === "session_info");
   const directory = await privateTempDir("oar-pi-rpc-");
   try {
-    const config = JSON.stringify({ agentDir, resume: options.resume !== undefined,
-      hasHostAppend: Boolean(options.appendSystemPrompt), projectTrusted,
-      servers: (options.mcpServers ?? []).map((server) => ({ name: server.name, config: piMcpServerConfig(server) })),
-    });
+    const config = JSON.stringify(piRpcBootstrap(options, { agentDir, projectTrusted }));
     // A bundled host need not ship its own source files or a node_modules tree.
     const extension = path.join(directory.path, "extension.mjs");
     await writeFile(extension, piRpcExtensionSource, { mode: 0o600 });
@@ -103,7 +149,7 @@ export async function openPiRpc(options: SessionOptions, credentials: Credential
       "--no-mcp", "--session-dir", sessionDir, "-e", extension,
       ...(lifetime?.noSession === true ? ["--no-session"] : []),
       ...(sessionFile === undefined ? [] : ["--session", sessionFile]),
-      ...(options.model === undefined ? [] : ["--model", options.model]),
+      ...(requestedModel === undefined ? [] : ["--model", requestedModel]),
       ...(options.effort === undefined ? [] : ["--thinking", options.effort]),
       ...(options.name === undefined || hasName ? [] : ["--name", options.name]),
       ...promptArgs,
@@ -120,14 +166,23 @@ export async function openPiRpc(options: SessionOptions, credentials: Credential
       const state = piRpcState(response);
       if (!existsSync(path.join(directory.path, "ready"))) { throw new Error(`Pi did not load the OAR RPC extension: ${reportedStderr(child.diagnostics(), credentials.redact)}`); }
       // oxlint-disable-next-line typescript/no-unsafe-assignment -- Written only by the bundled extension into this private directory.
-      const ready: { modelRegistered: boolean; version: string } = JSON.parse(readFileSync(path.join(directory.path, "ready"), "utf8"));
+      const ready: { modelRegistered: boolean; version: string; provider?: { id: string; models: number } | null } = JSON.parse(readFileSync(path.join(directory.path, "ready"), "utf8"));
       assertPiRpcVersion(ready.version, runtime.command === undefined ? launch.version : undefined);
-      if (options.model !== undefined && !ready.modelRegistered) {
-        throw new RuntimeFailureError("model_unavailable", `pi model ${options.model} is not registered in the native model registry`);
+      // The declaration travelled over the private pipe; the child reports what
+      // its model plane holds, so a registration it did not apply fails here
+      // instead of running a different model.
+      if (options.piProvider !== undefined && ready.provider?.id !== options.piProvider.id) {
+        throw new RuntimeFailureError("model_unavailable", `pi did not register the declared provider ${options.piProvider.id} in the session's model plane`);
+      }
+      if (options.piProvider !== undefined && ready.provider?.models !== options.piProvider.models.length) {
+        throw new RuntimeFailureError("model_unavailable", `pi registered ${String(ready.provider?.models ?? 0)} models for the declared provider ${options.piProvider.id}, not the ${String(options.piProvider.models.length)} declared`);
+      }
+      if (requestedModel !== undefined && !ready.modelRegistered) {
+        throw new RuntimeFailureError("model_unavailable", `pi model ${requestedModel} is not registered in the native model registry`);
       }
       if (options.resume !== undefined && state.sessionId !== options.resume) { throw new Error(`Pi resumed a different session: ${state.sessionId}`); }
       const effective = state.model === undefined ? null : `${state.model.provider}/${state.model.id}`;
-      if (options.model !== undefined && options.model !== effective) { throw new ModelConfirmationError(`pi did not apply model ${options.model}: the session reports ${effective ?? "no model"}`, { requested: options.model, reported: effective }); }
+      if (requestedModel !== undefined && requestedModel !== effective) { throw new ModelConfirmationError(`pi did not apply model ${requestedModel}: the session reports ${effective ?? "no model"}`, { requested: requestedModel, reported: effective }); }
       if (options.effort !== undefined && options.effort !== state.thinkingLevel) {
         const { getSupportedThinkingLevels } = await import("@earendil-works/pi-ai");
         throw new Error(piEffortRefusal(options.effort, { model: state.model, thinkingLevel: state.thinkingLevel,

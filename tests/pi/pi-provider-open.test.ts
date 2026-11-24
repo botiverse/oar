@@ -57,6 +57,11 @@ test("a host-declared provider is registered in the session's model plane before
   expect(sdk.createAgentSessionFromServices).toHaveBeenCalledWith(expect.objectContaining({ model: selected }));
   // The compaction budget lands on the session's settings manager, in memory.
   expect(settings.applyOverrides).toHaveBeenCalledWith({ compaction: { reserveTokens: 16_384, keepRecentTokens: 8192 } });
+  // ...and AFTER the services built their resource loader: loading it reloads
+  // Pi's settings from the user's files and would discard an earlier override.
+  const overrideOrder = settings.applyOverrides.mock.invocationCallOrder[0] ?? -1;
+  const servicesOrder = sdk.createAgentSessionServices.mock.invocationCallOrder[0] ?? -1;
+  expect(overrideOrder).toBeGreaterThan(servicesOrder);
 });
 
 test("no declared provider leaves the model plane and the settings untouched", async () => {
