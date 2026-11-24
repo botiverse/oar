@@ -37,6 +37,35 @@ export type { TaskMap, TaskState, TaskView } from "./tasks.js";
 export { initialConversation, reduceConversation } from "./conversation.js";
 export type { ConversationState, ConversationInput, ConversationUpdate, InputAttempt, InputDisposition } from "./conversation.js";
 
+export { QUEUE_SNAPSHOT_FORMAT, QUEUE_SNAPSHOT_VERSION, queueSnapshotOf } from "./queue-snapshot.js";
+export type {
+  QueueSnapshot,
+  QueueSnapshotAction,
+  QueueSnapshotAttempt,
+  QueueSnapshotEnding,
+  QueueSnapshotEntry,
+  QueueSnapshotEvidence,
+  QueueSnapshotEvidenceCode,
+  QueueSnapshotOptions,
+  QueueSnapshotOwnership,
+  QueueSnapshotStream,
+} from "./queue-snapshot.js";
+export { QueueSnapshotError, parseQueueSnapshot } from "./queue-snapshot-codec.js";
+export type { QueueSnapshotErrorCode } from "./queue-snapshot-codec.js";
+export { queueSnapshotPlan, restoreQueue } from "./queue-restore.js";
+export type {
+  QueueRestoreOptions,
+  QueueRestoreResend,
+  QueueRestoreResult,
+  QueueRestoreSession,
+  QueueSnapshotBlockCode,
+  QueueSnapshotPlan,
+  QueueSnapshotPlanEntry,
+  QueueSnapshotPlanOptions,
+  QueueSnapshotSkipCode,
+  QueueSnapshotTarget,
+} from "./queue-restore.js";
+
 export { initialSessionView, reduceSessionView } from "./session-view.js";
 export type {
   SessionView,

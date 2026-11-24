@@ -213,6 +213,10 @@ only for records after the cursor. Save
 raw records, not maps or Promise results, to reproduce the view after restart;
 persistence belongs to the application
 ([application data ownership boundary](../design/foundations.md#replay-boundary)).
+A host that must carry a held queue across its own restart persists the
+[queue snapshot](queue-snapshot.md) beside those records: a versioned
+projection of the same evidence, restored only where the stream returned the
+input to the caller.
 
 Rao uses this reducer over its persisted records. It shows input requests
 immediately and hides routine success badges. It must not infer completion of

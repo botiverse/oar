@@ -948,6 +948,9 @@ response. Until dispatch or accepted withdrawal, status remains running with
 `waiting_model`, including a gap with no active native turn; a new prompt
 cannot overtake it. This is adapter ownership, not native `input_queued`
 evidence. Persist the entire `StatusState` checkpoint to retain that ownership.
+A host that must carry the held entries across its own restart persists the
+[queue snapshot](queue-snapshot.md) too: `queued: "adapter"` on the accepted
+response is what lets a restore prove an entry the adapter held was never sent.
 
 Hosts counting or grouping requests by kind must not count the queue and
 this dispatch prompt as two user inputs: the prompt's `carries` points to the

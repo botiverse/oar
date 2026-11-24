@@ -6,6 +6,7 @@ import { sessionCapabilitiesCases } from "./session-capabilities.js";
 import { sessionDisposeCases } from "./session-dispose.js";
 import { sessionEffortCases } from "./session-effort.js";
 import { sessionImagesCases } from "./session-images.js";
+import { sessionQueueSnapshotCases } from "./session-queue-snapshot.js";
 import { sessionWithdrawCases } from "./session-withdraw.js";
 
 /** The shared behavior suite: every case runs on every backend and skips only by capability. */
@@ -17,5 +18,6 @@ export const trialCases: readonly TrialCase[] = [
   ...sessionDisposeCases,
   ...sessionEffortCases,
   ...sessionImagesCases,
+  ...sessionQueueSnapshotCases,
   ...sessionWithdrawCases,
 ];

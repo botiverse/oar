@@ -12,6 +12,48 @@ and contract member, (4) the cheapest regression test and resource cost, and
 (5) a sea-trial case for every new `must` or `never`. If any answer is missing,
 keep the idea in the [roadmap](roadmap.md) or an experiment.
 
+## A durable queue OAR restores (2026-11-24)
+
+**Considered:** OAR persisting held input (adapter-held queues and the input
+facts around them) and restoring it after the host's process restarts, so a
+queue survives without the host doing anything.
+
+**Refused, because applications own their data layer**
+([replay boundary](foundations.md#replay-boundary);
+[a storage layer](#a-storage-layer-2026-09-03)): such a snapshot is a
+projection of records the host already keeps, so OAR writing it would duplicate
+the host's log, its retention policy and its product data, and make an
+OAR-owned file the source of truth for someone's queue. It would also put OAR
+in the position of resending input on its own initiative, which is exactly
+where a duplicate turn comes from: `accepted` already ends the caller's
+delivery obligation, and `runtime_exited` is not proof an input was never
+read ([dropped input](../spec/conversation.md#dropped-input)).
+
+**Accepted:** the same capability as a contract the host drives
+([queue snapshot](../spec/queue-snapshot.md)): `queueSnapshotOf` derives a
+versioned, JSON-safe document from records; `parseQueueSnapshot` refuses a
+foreign format, another version, a duplicate entry or a malformed field
+instead of repairing it; `queueSnapshotPlan` decides per input from explicit
+evidence (ownership, `safe` / `uncertain` / `never`, and whether the runtime
+may already know the logical id); and `restoreQueue` applies that plan through
+the ordinary `Session.queue` call, sending only input the stream returned to
+the caller. Nothing is written, read back or resent unless a host asks.
+
+**Decision gates:** (1) the host decides whether queued input survives its own
+restart, and can show why each input did or did not return; (2) unsafe today
+because a resent input the runtime already holds runs twice, and Codex's
+native queue can survive an exit that a fold reads as "dropped"; (3) the
+observe layer, `QueueSnapshot` / `restoreQueue` over `Session.queue`; (4)
+`tests/queue-snapshot.test.ts` and `tests/queue-restore.test.ts`, milliseconds
+with no runtime; (5) `session.queue-snapshot-restores-only-returned-input`,
+which accepts either withdraw outcome of the race and asserts that nothing the
+stream marks `resend: "never"` was ever queued.
+
+**What would reopen it:** OAR running as a service that outlives the hosts it
+serves (as for the storage layer), or a runtime whose native queue is readable
+and restorable through a documented API, which would make part of this a
+native capability rather than a host projection.
+
 ## Bounded orientation without readiness policy (2026-11-16)
 
 **Considered:** removing both `orient()` and `usability()`. They were added

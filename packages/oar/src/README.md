@@ -18,7 +18,7 @@ src/
   shared/                  # mechanisms + shared contract implementations
   mcp/                     # serveMcpTools: host-implemented tools served as a loopback MCP server
   forms/                   # @botiverse/oar/forms: runtime config forms as data, with pure validation and launch mapping (no runtime SDK)
-  observe/                 # consumer-side derivations over the record stream (events.ts: eventsOf + coalesceText behind Session.events(); status fold, turn helpers, usage folds, conversation and session view)
+  observe/                 # consumer-side derivations over the record stream (events.ts: eventsOf + coalesceText behind Session.events(); status fold, turn helpers, usage folds, conversation and session view, host-owned queue snapshots)
   agents/                  # @botiverse/oar/agents: subagents over a runtime registry (built-in by default)
   testing/                 # @botiverse/oar/testing: scriptedRuntime on the kernel SPI
 ```

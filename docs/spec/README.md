@@ -49,6 +49,7 @@ usage *derivation* (cumulative/epoch/boundary views are consumer business).
 | [runtime-matrix.md](runtime-matrix.md) | Which attribution tier does each shipped adapter declare, on what native evidence, and what are adapters forbidden to do? |
 | [model-request.md](model-request.md) | What the model was sent: opting in (`SessionOptions.modelRequests`), refusal, main-loop scope, and why it is read rather than recorded (Claude `>= 2.1.274` and Pi SDK; refused elsewhere) |
 | [conversation.md](conversation.md) | Input identity, native user messages and replayable conversation projection |
+| [queue-snapshot.md](queue-snapshot.md) | The host-owned durable queue: a versioned snapshot of held-input evidence, its reader, and a restore that never resends input the stream says the runtime has |
 | [subagents.md](subagents.md) | Child sessions as subagents: spawn, reports, follow-ups, delivery into a parent, limits, and `oar mcp` |
 | [inventory.md](inventory.md) | Independent skills, commands, MCP and tool queries, cwd defaults, coverage and failure semantics |
 | [account-usage.md](account-usage.md) | Account quota queries and failure reason semantics |
