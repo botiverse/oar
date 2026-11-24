@@ -859,8 +859,13 @@ verbatim), and closes with a `tool_call_update` whose
 content block holding the same output as text. The `tool_call_ended` event
 carries the content block's text as a text part of `content` (the byte array
 stays in `native`) and `exit_code` as `exitCode` (`null` for a signal exit);
-a closing update without content (`read_file`, `search_replace`) falls back
-to `rawOutput` as one `other` part. Under `--always-approve` no
+when `content` is absent, Grok MCP results (`rawOutput` `{type: "MCP",
+output: {OkayOutput} | {Error}}` on `completed`/`failed`, observed on `1.0.92`
+where normal MCP completions and `isError` failures omit `content`) project a
+non-empty string into a `text` part subject to the 10,000-character cut
+(`native` keeps it whole) and session credential redaction, while empty strings,
+mismatched statuses, and any other `rawOutput` without `content` fall back to
+`rawOutput` as one `other` part. Under `--always-approve` no
 `session/request_permission` arrives, though Grok still pushes
 `pending_interaction`/`interaction_resolved` pairs; if one did, the
 [client app](../../packages/oar/src/shared/acp/client-app.ts) selects

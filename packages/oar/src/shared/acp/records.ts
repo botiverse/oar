@@ -7,7 +7,7 @@ import { methods, type SessionNotification } from "./process.js";
 import { createAcpProjectionState, projectAcpUpdate, type AcpProjectionState } from "./projection.js";
 import type { AcpSessionProfile, UsageUpdateGate } from "./profile.js";
 import type { AcpTokenUsage } from "./token-usage.js";
-import { createAcpChildLineage, type AcpDerivedSessionHooks } from "./derived-sessions.js";
+import { createAcpChildLineage } from "./derived-sessions.js";
 
 /**
  * How ACP wire traffic lands in the record stream. Every frame is recorded
@@ -73,7 +73,7 @@ export function acpLineageOf(params: JsonRecord): { readonly parent: string; rea
   return null;
 }
 
-export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: AcpSessionProfile["attributeUpdate"], tokenUsage?: AcpTokenUsage, associations?: (method: string, params: JsonRecord) => readonly { readonly parent: string; readonly child: string }[], projectUpdate?: AcpSessionProfile["projectUpdate"], projectExtension?: AcpSessionProfile["projectExtension"], nativeTurns?: { project: (method: string, params: JsonRecord, rootId: string, afterOpen: boolean) => readonly RuntimeEventBody[] }, derived: Pick<AcpDerivedSessionHooks, "childNotification" | "spawnedSessions"> = {}): AcpRecorder {
+export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: AcpSessionProfile["attributeUpdate"], tokenUsage?: AcpTokenUsage, associations?: (method: string, params: JsonRecord) => readonly { readonly parent: string; readonly child: string }[], projectUpdate?: AcpSessionProfile["projectUpdate"], projectExtension?: AcpSessionProfile["projectExtension"], nativeTurns?: { project: (method: string, params: JsonRecord, rootId: string, afterOpen: boolean) => readonly RuntimeEventBody[] }, derived: Pick<AcpSessionProfile, "childNotification" | "spawnedSessions" | "projectRawToolOutput"> = {}): AcpRecorder {
   const hostRequests = new Map<string, string>();
   // Children reported on an extension channel: their standard copies stay native-only.
   const notifiedChildren = new Set<string>();
@@ -130,7 +130,7 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
           kernel.frame({ type, native: notification, events: [] }, { sessionId, receivedAt });
           return;
         }
-        const events: RuntimeEventBody[] = update === null ? [] : [...projectAcpUpdate(projectionFor(sessionId), update), ...projectUpdate?.(update, receivedAt) ?? []];
+        const events: RuntimeEventBody[] = update === null ? [] : [...projectAcpUpdate(projectionFor(sessionId), update, derived.projectRawToolOutput), ...projectUpdate?.(update, receivedAt) ?? []];
         if (ownedLinks !== undefined) { events.push(...newSessionLinks(kernel, ownedLinks.map(({ parent, child }) => ({ parent, child, via: "tool_call" })))); }
         else if (source?.parent !== undefined) {
           events.push(...newSessionLinks(kernel, [{ parent: source.parent, child: sessionId, via: "tool_call" }]));
@@ -157,7 +157,7 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
           const sessionId = notice.update === null ? notice.parent : notice.sessionId;
           const events: RuntimeEventBody[] = notice.update === null
             ? [...projectExtension?.(method, params) ?? []]
-            : [...projectAcpUpdate(projectionFor(notice.sessionId), notice.update), ...projectUpdate?.(notice.update, receivedAt) ?? []];
+            : [...projectAcpUpdate(projectionFor(notice.sessionId), notice.update, derived.projectRawToolOutput), ...projectUpdate?.(notice.update, receivedAt) ?? []];
           events.push(...newSessionLinks(kernel, childLineage.claim(notice.sessionId, notice.parent)), ...spawnedLinks(kernel, notice.sessionId, notice.update));
           kernel.frame({ type: method, native: params, events }, { ...(sessionId === kernel.sessionId ? {} : { sessionId }), ...at });
           return;

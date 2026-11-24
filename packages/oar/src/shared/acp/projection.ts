@@ -4,11 +4,15 @@ import type {
   TokenTotals,
   TurnOutcome,
 } from "../../contracts/session.js";
+import type { ToolOutputPart } from "../../contracts/tool-output.js";
 import { asNumber, asRecord, type JsonRecord } from "../json.js";
 import { addTokens } from "../token-totals.js";
 import { toolContent } from "../tool-output.js";
 import { AcpError } from "./errors.js";
 import { acpReportedEffort, acpReportedModel } from "./model.js";
+
+/** Vendor-specific tool result reading when closing `tool_call_update.content` is absent. */
+export type AcpRawToolOutputReader = (rawOutput: unknown, status: unknown) => readonly ToolOutputPart[] | undefined;
 
 /**
  * ACP `session/update` → events, as a pure projection. Every update becomes
@@ -96,7 +100,7 @@ function toolName(update: JsonRecord): string {
   return typeof update.kind === "string" ? update.kind : "tool";
 }
 
-function projectTool(state: AcpProjectionState, update: JsonRecord): RuntimeEventBody[] {
+function projectTool(state: AcpProjectionState, update: JsonRecord, rawToolOutput?: AcpRawToolOutputReader): RuntimeEventBody[] {
   const callId = typeof update.toolCallId === "string" ? update.toolCallId : null;
   if (callId === null) {
     return [];
@@ -143,7 +147,7 @@ function projectTool(state: AcpProjectionState, update: JsonRecord): RuntimeEven
     const unwrapped = toolContent(update.content, (item: unknown) => {
       const wrapper = asRecord(item);
       return wrapper?.type === "content" ? wrapper.content : item;
-    }) ?? toolContent(update.rawOutput);
+    }) ?? rawToolOutput?.(update.rawOutput, update.status) ?? toolContent(update.rawOutput);
     const content = unwrapped?.map((part) => (part.type === "text" ? { type: "text" as const, text: truncate(part.text) } : part));
     let result: "ok" | "failed" | undefined = undefined;
     if (update.status === "completed") {
@@ -225,7 +229,7 @@ function reasoningView(value: unknown): RuntimeEventBody {
 }
 
 /** The events oar reads out of one `session/update`; the update itself is recorded verbatim by the caller. */
-export function projectAcpUpdate(state: AcpProjectionState, update: JsonRecord): RuntimeEventBody[] {
+export function projectAcpUpdate(state: AcpProjectionState, update: JsonRecord, rawToolOutput?: AcpRawToolOutputReader): RuntimeEventBody[] {
   const events: RuntimeEventBody[] = [];
   switch (update.sessionUpdate) {
     case "usage_update": {
@@ -247,7 +251,7 @@ export function projectAcpUpdate(state: AcpProjectionState, update: JsonRecord):
       break;
     case "tool_call":
     case "tool_call_update":
-      events.push(...projectTool(state, update));
+      events.push(...projectTool(state, update, rawToolOutput));
       break;
     default:
       break;

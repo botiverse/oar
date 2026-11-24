@@ -5,6 +5,7 @@ import { refuseSessionOptions } from "../../shared/session-options.js";
 import { grokCompaction } from "./compaction.js";
 import { grokRefusedSessionOptions } from "./options.js";
 import type { ContextUsage, SessionOptions, TokenTotals } from "../../contracts/session.js";
+import type { ToolOutputPart } from "../../contracts/tool-output.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
@@ -147,8 +148,29 @@ export const GROK_EXTENSION_NOTIFICATIONS: readonly string[] = [
   "_x.ai/session/usage",
 ];
 
+export function grokRawToolOutput(rawOutput: unknown, status: unknown): readonly ToolOutputPart[] | undefined {
+  const raw = asRecord(rawOutput);
+  if (raw?.type !== "MCP") {
+    return undefined;
+  }
+  const output = asRecord(raw.output);
+  if (output === null) {
+    return undefined;
+  }
+  const hasOk = Object.hasOwn(output, "OkayOutput");
+  const hasErr = Object.hasOwn(output, "Error");
+  if (hasOk && hasErr) {
+    return undefined;
+  }
+  const text = status === "completed" && hasOk
+    ? output.OkayOutput
+    : (status === "failed" && hasErr ? output.Error : undefined);
+  return typeof text === "string" && text.length > 0 ? [{ type: "text", text }] : undefined;
+}
+
 export const grokAcpProfile: AcpSessionProfile = {
   projectExtension: grokTaskViews,
+  projectRawToolOutput: grokRawToolOutput,
   compaction: grokCompaction,
   args: ["agent", "--always-approve", "--no-leader", "stdio"],
   isResumeNotFound: (native) => asRecord(native.data)?.code === "FS_NOT_FOUND",
