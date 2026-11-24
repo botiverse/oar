@@ -6,6 +6,8 @@
 
 - [The next request after an interrupted turn](abort-aftermath/README.md) compares model-visible history after stopping a stream or a running tool.
 
+- [Codex plan/checklist notifications](codex-plan-2026-11-24.md) captures `turn/plan/updated` from a real app-server against a scripted local provider: the whole list, `inProgress` versus the tool's `in_progress`, `explanation: null` and the empty clear; [selected notifications](codex-plan-2026-11-24.json).
+- [ACP plan update schema](acp-plan-2026-11-24.json) records the standard `plan` session update's `Plan`/`PlanEntry` definitions from `@agentclientprotocol/sdk` 1.4.0, which no captured ACP runtime here has sent yet.
 - [Codex thread instructions](codex-instruction-retention/README.md) traces what reaches the model after compaction and collaboration-mode changes.
 
 - [Session MCP credential isolation](mcp-credential-admission/README.md) checks delivery, tool environments and storage at the CI pins.

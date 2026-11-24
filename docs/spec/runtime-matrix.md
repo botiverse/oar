@@ -419,6 +419,21 @@ saying why; Grok uses the process-tree kill there, not yet run. A `cleanup` resp
 other runtimes refuse before launch. Omitted or false exposes no
 member. [Contract and boundaries](goals.md), [Codex evidence](../runtimes/codex.md#native-goals), [DSH evidence](../runtimes/dsh.md#native-goals).
 
+## Native plan/checklist
+
+`plan_changed` is an observation with no opt-in and no `Session` member: a
+runtime reports its checklist on its own channel, or reports none.
+[Contract](plans.md), [Codex evidence](../runtimes/codex.md#native-planchecklists),
+[Grok and ACP](../runtimes/grok.md#plan-and-checklist-updates),
+[DSH evidence](../runtimes/dsh.md#native-plan).
+
+| Runtime | Native source | Evidence |
+|---|---|---|
+| codex | `turn/plan/updated` notification, whole list, `inProgress` spelled its own way | `plan_update` ([env] 0.171.0 capture) |
+| grok, kimi, opencode, qwen, qoder, codebuddy, antigravity, devin, factory | ACP `session/update` `sessionUpdate: "plan"` | `plan_update` ([schema] SDK 1.4.0; no ACP runtime here captured sending one) |
+| dsh | the model's `todo_write` tool call, whole `todos` argument | `tool_call` with the call id ([env] tool schema) |
+| claude, cursor, pi, pi-durable, morph | no structured checklist on the adapter's transport | no event |
+
 ## Context breakdown
 
 `contextBreakdown` is a member a session may lack, like `steer`: only claude

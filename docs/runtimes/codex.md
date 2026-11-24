@@ -704,6 +704,29 @@ or translate these controls into text commands for other runtimes.
 [unit/replay regression](../../tests/codex/codex-goals.test.ts),
 [native regression](../../sea-trial/vendor/codex-goals.vendor.test.ts).
 
+### Native plan/checklists
+
+The model's `update_plan` tool call reaches clients as the
+`turn/plan/updated` notification: `{threadId, turnId, explanation, plan}`, the
+whole list each time, with each step `{step, status}`. OAR reads one
+`plan_changed` event per notification with `evidence: "plan_update"` and the
+turn id as the record's `spanId`
+([contract](../spec/plans.md#shape-and-evidence),
+[end-to-end capture](../../experiments/codex-plan-2026-11-24.md)). The
+app-server spells the in-flight step `inProgress` while the tool schema the
+model sees takes `in_progress`; OAR reads both. `explanation` is kept when
+codex sends a non-empty one, and `plan: []` is codex's own clear, reported
+rather than dropped.
+
+[env] Codex 0.171.0 offers the tool only when configuration enables it
+(`[tools.update_plan] enabled = true`); OAR sets no such switch, adds no
+session option and exposes no control, so a session reports a checklist only
+when the runtime and its configuration do. Plan mode refuses the tool
+natively ("update_plan is a TODO/checklist tool and is not allowed in Plan
+mode"), which is why no checklist appears there.
+
+[Unit and capture regression](../../tests/codex/codex-plan.test.ts).
+
 ### Observation, children, and history
 
 Codex 0.171.0 reported the resolved child model on the parent's

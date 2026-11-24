@@ -344,6 +344,26 @@ providers, login and history while suppressing user configuration. Revisit
 abort cleanup when a host needs verified ownership of every process started
 by the aborted turn on its target platforms.
 
+## Native plan
+
+DSH reports no checklist channel of its own. The session's checklist is the
+model's `todo_write` tool call, whose `todos` argument is the COMPLETE list
+(each item `{content, status}`; the tool's own description says it "replaces
+any previous list", [env] captured in the 0.2.1-rc.5 and 0.2.2-rc.1 request
+headers). OAR reads that call's frame as the usual `tool_call_started` **and**
+one `plan_changed` whose `evidence` is `tool_call` and whose `callId` names the
+call, so a host can tell the model's own claim from runtime-tracked state
+([contract](../spec/plans.md#shape-and-evidence)). `todos: []` is the model's
+own clear; streamed argument deltas are not the complete list and produce no
+checklist, and a call whose arguments do not parse stays a plain tool call.
+
+A session with `disallowedTools: ["todo_write"]` reports no checklist, since
+the model cannot call the tool at all. OAR adds no prompt, no tool and no
+session option here.
+
+[dsh tests](../../tests/dsh/plan.test.ts),
+[captured tool schema](../../experiments/dsh-plugin/evidence/0.2.1-rc.5.json).
+
 ## Launcher arguments
 
 `launchArgs` remains refused before a process starts. Native `--patch` can

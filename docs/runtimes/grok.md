@@ -624,6 +624,25 @@ retained records and continues live; a full replay equals `records()`
 (`live-contract/cursor`). There is no native-history enumeration and no
 rebuild after the process died.
 
+#### Plan and checklist updates
+
+The standard ACP `plan` session update carries the agent's whole checklist
+(`entries` of `{content, priority, status}`; the client replaces the plan with
+each update). The shared ACP projection reads it as `plan_changed` with
+`evidence: "plan_update"`, `content` as the step, `priority` when reported, and
+`entries: []` as the agent's own clear
+([contract](../spec/plans.md#shape-and-evidence)).
+
+No ACP runtime here has been captured sending one: grok 1.0.25 and 1.0.77
+traffic holds `agent_message_chunk`, `agent_thought_chunk`, `tool_call`,
+`tool_call_update`, `usage_update`, `available_commands_update`,
+`config_option_update` and `session_info_update` only, so a grok session shows
+a checklist only if a later build emits the standard kind. The shape comes
+from the SDK schema ([capture](../../experiments/acp-plan-2026-11-24.json));
+the end-to-end test drives it through the real ACP client, which validates
+each `session/update` against its closed union
+([test](../../tests/acp/acp-plan.test.ts)).
+
 ### Service tiers
 
 `SessionOptions.serviceTier` is explicitly refused with

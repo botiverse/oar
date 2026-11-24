@@ -42,6 +42,7 @@ usage *derivation* (cumulative/epoch/boundary views are consumer business).
 | [acp-shared-connection.md](acp-shared-connection.md) | Internal ACP pooled connection ownership, explicit routing, bounded cleanup and lifetime credential redaction; runtime admission remains separate, and no native runtime is admitted in the current release |
 | [manual-compaction.md](manual-compaction.md) | Native compaction controls, completion evidence, busy state and observation deadlines |
 | [goals.md](goals.md) | Native goal controls, session opt-in, observed snapshots and continuation boundaries |
+| [plans.md](plans.md) | Native plan/checklist observation: which channel reported it, the whole list each time, empty clear versus unsupported, and why it is never a task or a message |
 | [record-stream.md](record-stream.md) | Why one stream with three record kinds? What exactly is an event, a request, a response? What does an event body carry? |
 | [attribution.md](attribution.md) | How do records self-attribute? Why is attribution a field, not a channel? How is usage exposed? |
 | [session-graph-and-cursor.md](session-graph-and-cursor.md) | What goes in the session graph, and how does resumable reading work? |

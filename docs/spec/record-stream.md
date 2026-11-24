@@ -818,6 +818,7 @@ interface FrameBody {
 //   tool_call_ended {callId, content?: ToolOutputPart[], result?: "ok" | "failed", exitCode?: number | null, fileChanges?: FileChange[]} |
 //   turn_ended {outcome, inputId?, inputIds?, forkAnchor?} | usage {usage: {context?, tokens?: {input, output, reasoning?, cacheRead?, cacheWrite?}, total?: <same>}} | model {model} |
 //   goal_changed {goal: GoalSnapshot | null} |
+//   plan_changed {plan: PlanSnapshot, evidence: "plan_update" | "tool_call", callId?} (plans.md) |
 //   effort {effort} | service_tier {serviceTier} | app_request_cancelled {requestId} |
 //   compaction_started {compactionId?, trigger?} |
 //   compaction_ended {outcome: completed | aborted | failed, compactionId?, requestId?, trigger?, reason?} |
@@ -1106,6 +1107,13 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   `failure` and `message`. Input-scoped waits use them for the failed outcome;
   absent fields yield `unknown` / `runtime refused the input`. An interruption
   yields `aborted`. See [dropped input](conversation.md#dropped-input).
+- `plan_changed`: the checklist a runtime reported, whole, each time
+  ([contract](plans.md)). Codex `turn/plan/updated` (its `inProgress` reads as
+  `in_progress`) and the standard ACP `plan` session update both say
+  `evidence: "plan_update"`; DSH has no checklist channel of its own, so its
+  model's `todo_write` call says `evidence: "tool_call"` with that call's id.
+  An empty list is the reported clear; a runtime without the channel reports
+  nothing. It is state, not transcript, and never a `Task`.
 - `text_delta`, `reasoning`, `tool_call_started`, `tool_call_ended`,
   `turn_ended`, `usage`, `model`: every shipped adapter, except that
   antigravity sent no reasoning and no usage in any probe ([env]

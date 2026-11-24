@@ -4,6 +4,7 @@ import type { InputImage, InputOrigin, InputReference, UserMessage } from "./inp
 import type { PlacementRequest, SessionCleanup, SessionPlacement, SessionRelease } from "./placement.js";
 import type { ContextUsage } from "./context-usage.js";
 import type { FailureClass } from "./failure.js";
+import type { PlanEventBody } from "./plan.js";
 import type { TaskEventBody } from "./tasks.js";
 import type { TurnOutcome } from "./turn-outcome.js";
 
@@ -87,10 +88,7 @@ export interface FrameBody {
   readonly events: readonly RuntimeEventBody[];
   readonly elided?: true; // `retainedBytes` removed `native` (now null) and tool input and output from this retained frame. Live observers received it complete.
 }
-export type ReasoningContent =
-  | { readonly kind: "text"; readonly text: string }
-  | { readonly kind: "redacted" }
-  | { readonly kind: "empty" };
+export type ReasoningContent = { readonly kind: "text"; readonly text: string } | { readonly kind: "redacted" } | { readonly kind: "empty" };
 
 /** Runtime-reported totals for the attributed agent, counted from this Session's opening.
  * Cache counts are parts of input; reasoning is part of output. Optional counts accumulate only when reported.
@@ -131,6 +129,7 @@ export type RuntimeEventBody =
   /** A named server's own startup in this session. Pending requires an observed start; silence is unknown. */
   | { readonly kind: "mcp_server_startup"; readonly server: string; readonly status: "pending" | "ready" | "failed" | "cancelled" }
   | { readonly kind: "goal_changed"; readonly goal: GoalSnapshot | null }
+  | PlanEventBody
   | UserMessage
   /** Native evidence of true session lineage, carried by the frame that names the relationship. Foreign session ids alone never establish an edge. */
   | { readonly kind: "session_linked"; readonly parent: string; readonly child: string; readonly via: "tool_call" }
