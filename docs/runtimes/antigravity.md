@@ -37,6 +37,13 @@ contract; it does not select `yolo`, which the new CLI does not offer.
 The CLI uses its existing configuration and login. OAR sends no synthetic
 `authenticate` request.
 
+In a direct Linux ACP session on 1.5.16 using native default permissions,
+a subagent's shell command sent `session/request_permission` on the root
+session ID. Selecting `allow_once` completed the command and delivered its
+output to the child. Selecting `reject_once` closed the tool call as
+`failed`. The root prompt returned `end_turn` in both cases.
+[Native permission forwarding change](https://github.com/google-antigravity/antigravity-cli/releases/tag/1.5.16).
+
 ## High-level mapping to OAR
 
 OAR exposes an ordered record stream per Session. ACP messages are retained
@@ -746,7 +753,7 @@ never rewrites the host process environment.
 The [migration report](../../experiments/antigravity-cli-acp-2026-11-05.md)
 links repeatable native controls and the runtime-specific vendor tests.
 The local behavior suite covers prompt, steer, queue, cancellation, resume,
-models, images and disposal as applicable. Required CI (`ci.yml`) installs the pinned CLI 1.5.14 archive on Linux,
+models, images and disposal as applicable. Required CI (`ci.yml`) installs the pinned CLI 1.5.16 archive on Linux,
 verifies its SHA-512, and runs the behavior and vendor suites with an isolated
 home and local provider; daily `platform-matrix.yml` runs the same install and
 suites on macOS and Windows.
@@ -813,6 +820,10 @@ by the reader in 18 comparisons. Both platforms had the same six builtin
 mounts, directory precedence and invocation flags. Native listed the
 conditional `swarm` builtin as user-invocable only in all six stages. The
 file reader worked while signed out and launched neither fixture MCP server.
+
+On 1.5.16 OAR uses native discovery. A Linux query found a skill under
+`~/.agents/skills` and preferred `~/.gemini/skills` when both directories
+defined the same name. [Linux comparison](../../experiments/runtime-version-checks/2026-11-23.md#antigravity).
 
 The file-reader CI comparison pins 1.5.11 independently of the ACP baseline.
 Windows CI asserts the native reader and signed-out guard. A Windows junction-cwd comparison exposed different

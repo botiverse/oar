@@ -207,7 +207,7 @@ session IDs and local paths; publish selected evidence only.
 explain which other observations remain active and why.
 
 The separate Antigravity file-skill comparison uses 1.5.11 from
-`.github/antigravity-file-skills.json`, after the 1.5.14 ACP controls.
+`.github/antigravity-file-skills.json`, after the pinned ACP controls.
 It compares native `/skills` with the local reader across isolated catalog
 fixtures on Linux and macOS, records three file-read timings per stage, and
 checks synthetic MCP start markers and signed-out reads. Windows uses a native
@@ -315,7 +315,7 @@ newer push or dispatch on the same ref cancels any in-progress or queued
   offline Cursor SDK skill-loader parity against local fixtures, OpenCode 2.2.7
   isolated native tool cleanup and skills, Kimi native login and workspace skill
   discovery cleanup (both `kimi-login` and `kimi-skills` pins), and the pinned
-  agy CLI 1.5.14 (`antigravity-aimock` behavior and vendor suites against a
+  agy CLI 1.5.16 (`antigravity-aimock` behavior and vendor suites against a
   local Gemini provider in an isolated home, concurrency 2), followed by the
   separate 1.5.11 file-skills comparison. OpenCode,
   Kimi and Antigravity upload diagnostic artifacts, failures included.
