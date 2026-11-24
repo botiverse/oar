@@ -64,8 +64,10 @@ export interface AnswerOptions {
   /**
    * Aborts BEFORE the decision is written: an already-aborted signal refuses
    * the answer (`aborted`, `answer_aborted`) and writes nothing. After
-   * dispatch it bounds only the acknowledgment wait, like `timeoutMs`; OAR
-   * never unwrites a reply.
+   * dispatch it bounds only the acknowledgment wait, like `timeoutMs`: the
+   * wait ends at once and the outcome is `unconfirmed`. OAR never unwrites
+   * the reply, never claims the runtime applied it, and never claims native
+   * execution stopped.
    */
   readonly signal?: AbortSignal;
 }
@@ -84,7 +86,8 @@ interface AnswerEvidence {
 /**
  * What `Session.answer` observed. `accepted` and `unconfirmed` both mean the
  * reply was written and recorded; they differ in whether the runtime's own
- * acknowledgment was seen. `timeout` means the reply was written but no
+ * acknowledgment was seen (`unconfirmed` also covers a caller signal that
+ * ended the wait). `timeout` means the reply was written but no
  * acknowledgment arrived within the bound, or that OAR's unanswered-request
  * policy answered in the host's place (`code: "unanswered"`). `aborted` means
  * the request stopped waiting before this answer took ownership (the runtime

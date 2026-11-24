@@ -1,26 +1,21 @@
 import type { AppRequestAnswering, AppRequestDecision, AppRequestKind, AnswerOptions, AnswerOutcome } from "../contracts/answer.js";
 import type { RawEvent, RequestRecord, ResponseRecord } from "../contracts/records.js";
 import { appRequestKind } from "../observe/app-requests.js";
-import { answerAborted, answerRefusal, correlation } from "./app-request-outcome.js";
+import { answerAborted, answerRefusal, correlation, ignoreLateReceipt } from "./app-request-outcome.js";
 import type { RecordAt, SessionKernel } from "./session-kernel.js";
 
 /**
- * The reusable host-answered approval round-trip (docs/spec/app-requests.md),
- * for any adapter whose protocol can write an answer to a runtime→app
- * request. Provider-independent by construction: the adapter supplies the
- * native reply and says whether its protocol acknowledges one; everything
- * else — correlation by request record id, one answer per request, the
- * unanswered policy, cancellation/exit/dispose settlement, the recorded
- * `answered` response with `by: "host"`, and the outcome vocabulary — is
- * shared here and never re-implemented per runtime.
+ * The reusable host-answered approval round-trip (docs/spec/app-requests.md):
+ * the adapter supplies the native reply and says whether its protocol
+ * acknowledges one; everything else — correlation by request record id, one
+ * answer per request, the unanswered policy, teardown settlement, the
+ * recorded `answered` response with `by: "host"`, and the outcome vocabulary —
+ * is shared here and never re-implemented per runtime.
  *
- * Ownership is explicit. A request registered with `request` waits for the
- * host; `autoAnswer` records the adapter's own reply and takes the request
- * back. A request the adapter records with `kernel.request` and answers with
- * `kernel.respond` is never registered, so `answer` reports `unknown_request`
- * instead of guessing ownership. The retained record stream is the source of
- * truth throughout: `answer` never inspects a private pending flag before the
- * kernel has the request record.
+ * Ownership is explicit: `request` waits for the host and `autoAnswer` takes
+ * the request back; a request recorded with `kernel.request`/`kernel.respond`
+ * is never registered, so `answer` reports `unknown_request` rather than
+ * guessing ownership.
  */
 export interface AppRequestAnsweringOptions {
   readonly kernel: SessionKernel;
@@ -83,11 +78,7 @@ function safely(observer: ((outcome: AnswerOutcome) => void) | undefined, outcom
   }
 }
 
-/**
- * Build the host-answer machinery for one session. The kernel keeps the
- * records; this keeps only what a record cannot say: which requests are
- * waiting, the live timers, and the in-flight answer guard.
- */
+/** Build the host-answer machinery for one session: the kernel keeps the records, this keeps which requests wait and their timers. */
 export function createAppRequestAnswers(options: AppRequestAnsweringOptions): AppRequestAnswers {
   const { kernel, deliver, onSettled } = options;
   const kinds: readonly AppRequestKind[] = options.kinds ?? ["approval"];
@@ -113,22 +104,10 @@ export function createAppRequestAnswers(options: AppRequestAnsweringOptions): Ap
     return outcome;
   };
 
-  const recordOf = (requestId: string): RequestRecord | undefined => {
-    for (const record of kernel.records()) {
-      if (record.kind === "request" && record.direction === "toApp" && record.id === requestId) {
-        return record;
-      }
-    }
-    return undefined;
-  };
-  const responseOf = (requestId: string): ResponseRecord | undefined => {
-    for (const record of kernel.records()) {
-      if (record.kind === "response" && record.requestId === requestId && record.body.kind === "answered") {
-        return record;
-      }
-    }
-    return undefined;
-  };
+  const recordOf = (requestId: string): RequestRecord | undefined =>
+    kernel.records().find((record): record is RequestRecord => record.kind === "request" && record.direction === "toApp" && record.id === requestId);
+  const responseOf = (requestId: string): ResponseRecord | undefined =>
+    kernel.records().find((record): record is ResponseRecord => record.kind === "response" && record.requestId === requestId && record.body.kind === "answered");
 
   const answerable = (pending: Pending): boolean => kinds.includes(pending.kind);
   const settleAll = (code: "disposed" | "runtime_exited" | "session_released", reason: string): void => {
@@ -228,13 +207,19 @@ export function createAppRequestAnswers(options: AppRequestAnsweringOptions): Ap
       : answerRefusal(requestId, "not_answerable", "this request is not waiting for a host answer", requestRecord);
   };
 
-  const acknowledge = async (pending: Pending, decision: AppRequestDecision, reply: unknown, response: ResponseRecord, acknowledged: Promise<unknown> | undefined, bound: number): Promise<AnswerOutcome> => {
+  const acknowledge = async (pending: Pending, decision: AppRequestDecision, reply: unknown, response: ResponseRecord, acknowledged: Promise<unknown> | undefined, bound: number, signal: AbortSignal | undefined): Promise<AnswerOutcome> => {
     const base = correlation(pending.record.id, pending.record, response);
-    if (acknowledged === undefined || bound <= 0) {
-      return settle(pending, { ...base, kind: "unconfirmed", decision, native: reply });
+    const unconfirmed = { ...base, kind: "unconfirmed" as const, decision, native: reply };
+    // No receipt to wait for, no bound, or the caller already stopped waiting:
+    // the reply stays written; OAR claims nothing about the runtime applying it.
+    if (acknowledged === undefined || bound <= 0 || signal?.aborted === true) {
+      ignoreLateReceipt(acknowledged);
+      return settle(pending, unconfirmed);
     }
-    const timer = Promise.withResolvers<"timeout">();
-    const handle = setTimeout(() => { timer.resolve("timeout"); }, bound);
+    const finish = Promise.withResolvers<"timeout" | "aborted">();
+    const handle = setTimeout(() => { finish.resolve("timeout"); }, bound);
+    const onAbort = (): void => { finish.resolve("aborted"); };
+    signal?.addEventListener("abort", onAbort, { once: true });
     const receipt = (async (): Promise<"ack" | "unobserved"> => {
       try {
         await acknowledged;
@@ -244,12 +229,17 @@ export function createAppRequestAnswers(options: AppRequestAnsweringOptions): Ap
       }
     })();
     try {
-      const raced = await Promise.race([receipt, timer.promise]);
-      return raced === "ack"
-        ? settle(pending, { ...base, kind: "accepted", decision, native: reply })
+      const raced = await Promise.race([receipt, finish.promise]);
+      if (raced === "ack") {
+        return settle(pending, { ...base, kind: "accepted", decision, native: reply });
+      }
+      // "aborted": the caller's signal ends only this wait; never unwrite the reply.
+      return raced === "aborted"
+        ? settle(pending, unconfirmed)
         : settle(pending, { ...base, kind: "timeout", code: "no_native_ack", reason: `the runtime did not acknowledge within ${String(bound)} ms`, decision, native: reply });
     } finally {
       clearTimeout(handle);
+      signal?.removeEventListener("abort", onAbort);
     }
   };
 
@@ -276,7 +266,7 @@ export function createAppRequestAnswers(options: AppRequestAnsweringOptions): Ap
     try {
       const delivery = await deliver(pending.record, decision);
       const response = kernel.respond(requestId, { kind: "answered", native: delivery.reply, by: "host" });
-      return await acknowledge(pending, decision, delivery.reply, response, delivery.acknowledged, answerOptions.timeoutMs ?? acknowledgeTimeoutMs);
+      return await acknowledge(pending, decision, delivery.reply, response, delivery.acknowledged, answerOptions.timeoutMs ?? acknowledgeTimeoutMs, answerOptions.signal);
     } catch (error) {
       pending.answering = false;
       return answerRefusal(requestId, "error", error instanceof Error ? error.message : String(error), pending.record);

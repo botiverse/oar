@@ -62,7 +62,7 @@ when one exists (`response`), the request's `seq`, and one of five kinds:
 | kind | Meaning |
 |---|---|
 | `accepted` | The reply was written and recorded, and the protocol's own acknowledgment was observed within the bound. |
-| `unconfirmed` | The reply was written and recorded; the protocol has no acknowledgment (or the bound was `0`), so OAR cannot claim the runtime applied it. This is the honest default. |
+| `unconfirmed` | The reply was written and recorded; the protocol has no acknowledgment, the bound was `0`, or the caller's signal ended the wait, so OAR cannot claim the runtime applied it. This is the honest default. |
 | `timeout` | `no_native_ack`: the reply was written and recorded, but the acknowledgment did not arrive within `timeoutMs` or the session's bound. `unanswered`: the session's policy replied because no host did; `decision` is that policy decision. |
 | `aborted` | The request stopped waiting before this answer took ownership: `cancelled` (the runtime withdrew it, an `app_request_cancelled` fact), `answer_aborted` (the caller's signal was already aborted), `disposed`, `runtime_exited` or `session_released` (the stream's reachability rule). |
 | `rejected` | OAR wrote nothing. `code` says why, `reason` is prose: `unknown_request`, `not_answerable`, `already_answered`, `busy`, `unsupported`, `error`. |
@@ -71,6 +71,19 @@ when one exists (`response`), the request's `seq`, and one of five kinds:
 the model attended to anything. It says one reply was taken by the runtime's
 transport and its receipt was seen. The tool's own result is a separate
 native fact on the stream.
+
+### Caller bounds
+
+`AnswerOptions.timeoutMs` and `AnswerOptions.signal` bound only the wait, never
+the reply:
+
+- An already-aborted signal is refused before anything is written (`aborted`,
+  `answer_aborted`).
+- An abort **after** dispatch ends the acknowledgment wait at once and reports
+  `unconfirmed`: the reply stays written and recorded, and OAR makes no claim
+  that the runtime applied it or that native execution stopped.
+- A receipt that arrives after OAR stopped waiting changes no outcome. The
+  request stays settled, so a second `answer` is `already_answered`.
 
 ### Decision vocabulary
 

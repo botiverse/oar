@@ -34,3 +34,15 @@ export function answerRefusal(requestId: string, code: AnswerRejectionCode, reas
 export function answerAborted(request: RequestRecord, code: Extract<AnswerOutcome, { readonly kind: "aborted" }>["code"], reason: string): AnswerOutcome {
   return { ...correlation(request.id, request), kind: "aborted", code, reason };
 }
+
+/**
+ * A reply is already recorded and its request settled: a receipt that arrives
+ * after OAR stopped waiting changes no outcome, and its failure is the
+ * adapter's late news, not an error of this run.
+ */
+export function ignoreLateReceipt(acknowledged: Promise<unknown> | undefined): void {
+  if (acknowledged === undefined) { return; }
+  void (async (): Promise<void> => {
+    try { await acknowledged; } catch { /* late receipt: the outcome is already settled */ }
+  })();
+}

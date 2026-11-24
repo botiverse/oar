@@ -21,6 +21,11 @@ adapters were not changed here.
 - `Session.answer` (optional; presence is the capability) and
   `SessionCapabilities.appRequests` /
   `SessionCapabilityDeclaration.answer`.
+- `AnswerOptions.signal` bounds only the wait after dispatch: an abort ends
+  the acknowledgment wait at once and reports `unconfirmed` — the reply stays
+  written and recorded, OAR claims neither native application nor that native
+  execution stopped, and a late receipt changes no outcome or duplicate
+  answer (regressed in `tests/app-request-answer.test.ts`).
 - Tests: `tests/app-request-answer.test.ts` (every outcome and edge) and the
   shared behavior case `session.answer-approval-round-trip`, which runs on
   the in-process mock. The mock (`sea-trial/fixtures/mock-session.ts`) is the

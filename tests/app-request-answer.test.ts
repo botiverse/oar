@@ -63,6 +63,70 @@ describe("the host-answered approval round-trip", () => {
     expect(kernel.records().filter((record) => record.kind === "response" && record.body.kind === "answered")).toHaveLength(1);
   });
 
+  it("a caller's signal after dispatch ends the acknowledgment wait without unwriting the reply", async () => {
+    const never = Promise.withResolvers<void>();
+    const dispatched = Promise.withResolvers<void>();
+    // The session's 10 s default is the bound the review saw waited out.
+    const kernel = opened();
+    const answers = createAppRequestAnswers({
+      kernel,
+      acknowledgeTimeoutMs: 10_000,
+      deliver: () => {
+        dispatched.resolve();
+        return { reply: { ok: true }, acknowledged: never.promise };
+      },
+    });
+    answers.request("tool-1", "approval", {});
+    const controller = new AbortController();
+    const started = Date.now();
+    const pending = answers.answer("tool-1", ALLOW, { signal: controller.signal });
+    await dispatched.promise;
+    controller.abort();
+    const outcome = await pending;
+    expect(Date.now() - started).toBeLessThan(1000); // 10 s bound must not be waited out
+    expect(outcome).toMatchObject({ kind: "unconfirmed", decision: ALLOW, native: { ok: true } });
+    expect(outcome.response).toMatchObject({ kind: "response", body: { kind: "answered", by: "host" } });
+    expect(kernel.records().filter((record) => record.kind === "response" && record.body.kind === "answered")).toHaveLength(1);
+  });
+
+  it("a native receipt after the caller stopped waiting changes no outcome and no duplicate is accepted", async () => {
+    const acknowledged = Promise.withResolvers<void>();
+    const dispatched = Promise.withResolvers<void>();
+    const { kernel, answers } = answering(() => {
+      dispatched.resolve();
+      return { reply: { ok: true }, acknowledged: acknowledged.promise };
+    });
+    answers.request("tool-1", "approval", {});
+    const controller = new AbortController();
+    const pending = answers.answer("tool-1", ALLOW, { timeoutMs: 10_000, signal: controller.signal });
+    await dispatched.promise;
+    controller.abort();
+    await expect(pending).resolves.toMatchObject({ kind: "unconfirmed" });
+    acknowledged.resolve(); // the protocol settles late; the answer is already recorded
+    await delay(10);
+    expect(kernel.records().filter((record) => record.kind === "response" && record.body.kind === "answered")).toHaveLength(1);
+    expect(answers.pending()).toEqual([]);
+    await expect(answers.answer("tool-1", DENY)).resolves.toMatchObject({ kind: "rejected", code: "already_answered" });
+  });
+
+  it("a late receipt that fails after the caller stopped waiting is not an unhandled rejection", async () => {
+    const acknowledged = Promise.withResolvers<void>();
+    const dispatched = Promise.withResolvers<void>();
+    const { answers } = answering(() => {
+      dispatched.resolve();
+      return { reply: { ok: true }, acknowledged: acknowledged.promise };
+    });
+    answers.request("tool-1", "approval", {});
+    const controller = new AbortController();
+    const pending = answers.answer("tool-1", ALLOW, { timeoutMs: 10_000, signal: controller.signal });
+    await dispatched.promise;
+    controller.abort();
+    await expect(pending).resolves.toMatchObject({ kind: "unconfirmed" });
+    acknowledged.reject(new Error("late transport failure"));
+    await delay(10);
+    expect(answers.pending()).toEqual([]);
+  });
+
   it("refuses without writing when the transport fails, and keeps the request answerable", async () => {
     let failing = true;
     const { answers } = answering(() => {
