@@ -1,6 +1,7 @@
 /* oxlint-disable import/max-dependencies -- The ACP profile composes Hermes launch, refusals and resume classification. */
 import type { SessionOptions } from "../../contracts/session.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
+import { acpReportedEffort, acpReportedModel } from "../../shared/acp/model.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
 import { hermesInstallationRefusals } from "./mcp-credentials.js";
@@ -46,6 +47,16 @@ export const hermesAcpProfile: AcpSessionProfile = {
   // list it answers is the applied model's readback. `set_session_model`
   // alone answers `{}` and pushes nothing.
   modelViaConfigOption: true,
+  configureModel: async ({ options, response, setModel, setEffort }) => {
+    // Hermes rebuilds its model inventory on every setter, even for a no-op.
+    const requestedModel = options.model;
+    const changeModel = requestedModel !== undefined && requestedModel !== acpReportedModel(response);
+    const selected = changeModel ? await setModel(requestedModel) : undefined;
+    if (options.effort !== undefined && (changeModel || options.effort !== acpReportedEffort(response))) {
+      await setEffort(options.effort, selected);
+    }
+    return selected;
+  },
   // `session/fork` copies the whole conversation under a new id, never a
   // turn-cut copy.
   wholeSessionFork: true,

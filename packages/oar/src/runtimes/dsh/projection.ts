@@ -12,6 +12,7 @@ export interface DshSessionFold {
   readonly nextTurn: readonly (string | null)[];
   readonly nextStep: readonly (string | null)[];
   readonly turnOpen: boolean;
+  readonly turnInputIds: readonly string[];
   readonly tokens: TokenTotals;
   readonly contextWindow: number | null;
   readonly model: string | undefined;
@@ -31,7 +32,7 @@ export interface DshFolded {
   readonly frame: { readonly body: FrameBody; readonly sessionId?: string };
 }
 
-const emptySession: DshSessionFold = { nextTurn: [], nextStep: [], turnOpen: false, tokens: noTokens, contextWindow: null, model: undefined, effort: undefined };
+const emptySession: DshSessionFold = { nextTurn: [], nextStep: [], turnOpen: false, turnInputIds: [], tokens: noTokens, contextWindow: null, model: undefined, effort: undefined };
 
 export function initialDshProjection(rootId: string): DshProjection {
   return { rootId, sessions: {}, links: [] };
@@ -179,13 +180,18 @@ function sessionEvent(state: DshProjection, sessionId: string, session: DshSessi
       return { ...spliced(session, data, cause), links: state.links };
     case "turn/start":
       // The claim that follows names the input when one is waiting.
-      return { session: { ...session, turnOpen: true }, links: state.links, events: session.nextTurn.length === 0 ? [{ kind: "turn_active" }] : [] };
+      return { session: { ...session, turnOpen: true, turnInputIds: [] }, links: state.links, events: session.nextTurn.length === 0 ? [{ kind: "turn_active" }] : [] };
     case "turn/end":
-      return { session: { ...session, turnOpen: false }, links: state.links, events: [{ kind: "turn_ended", outcome: dshTurnOutcome(asRecord(data.reason)) }] };
+      return { session: { ...session, turnOpen: false, turnInputIds: [] }, links: state.links, events: [{
+        kind: "turn_ended", outcome: dshTurnOutcome(asRecord(data.reason)),
+        ...(session.turnInputIds.length === 0 ? {} : { inputIds: session.turnInputIds }),
+      }] };
     case "user/message": {
       const inputId = inputIdOf(data);
       if (asRecord(data.source)?.kind !== "user") { return { ...unchanged, events: [] }; }
-      return { ...unchanged, events: [{ kind: "user_message", input: textOf(data.content), ...(inputId === null ? {} : { inputId, nativeMessageId: inputId }), evidence: "turn_item" }] };
+      const next = session.turnOpen && inputId !== null && !session.turnInputIds.includes(inputId)
+        ? { ...session, turnInputIds: [...session.turnInputIds, inputId] } : session;
+      return { session: next, links: state.links, events: [{ kind: "user_message", input: textOf(data.content), ...(inputId === null ? {} : { inputId, nativeMessageId: inputId }), evidence: "turn_item" }] };
     }
     case "tool/call":
       return { ...unchanged, events: dshToolCallEvents(data) };

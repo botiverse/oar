@@ -19,6 +19,8 @@ export const hermesRuntime = defineRuntime({
     taskEventTypes: [],
     steer: false,
     stopTask: false,
+    // Measured on 0.23.3; opened sessions still consult initialize.promptCapabilities.
+    ...(hermesMeasuredMcpCredentials(installation) ? { images: true } : {}),
     contextUsage: { tokens: true, contextWindow: true },
     // Stdio only: `initialize` declares no `mcpCapabilities.http`. A stdio
     // entry with `env` attaches only on the release whose credential handling

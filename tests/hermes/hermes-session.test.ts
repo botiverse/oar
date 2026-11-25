@@ -129,6 +129,26 @@ test("Hermes resume maps the gateway's not_found reason to SessionNotFoundError"
   );
 });
 
+test("Hermes skips setters only for the exact applied model and effort", async () => {
+  const log = path.join(scratch("oar-hermes-stable-selectors-"), "calls.txt");
+  const model = "custom:hikari:deepseek-flash";
+  const modelState = { currentModelId: model, availableModels: [{ modelId: model, name: model }] };
+  const session = await open({}, { FAKE_HERMES_MODELS: JSON.stringify(modelState) });
+  await session.dispose();
+  const resumed = await acpSession({ ...hermesAcpProfile, args: [fixture] })(install, {
+    cwd: process.cwd(),
+    env: { FAKE_HERMES_MODELS: JSON.stringify(modelState), FAKE_HERMES_EFFORT: "high", FAKE_HERMES_CALL_LOG: log },
+    resume: session.id,
+    model,
+    effort: "high",
+  });
+  try {
+    expect(resumed.model().value).toBe(model);
+    expect(resumed.effort().value).toBe("high");
+    expect(readFileSync(log, "utf8")).not.toContain("set_config_option");
+  } finally { await resumed.dispose(); }
+});
+
 test("Hermes listModels projects the gateway model state and falls back to config options", async () => {
   assert.deepEqual(projectHermesModels({
     models: {
