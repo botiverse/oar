@@ -17,11 +17,12 @@ test("directory paths resolve against the session cwd, preserve spaces and dedup
 });
 
 test.each([undefined, "old-thread"])("codex sets and confirms workspace roots without changing permission config, resume=%s", (resume) => {
-  const options = { cwd, additionalDirectories: ["../extra directory", "."], ...(resume === undefined ? {} : { resume }) };
+  const base = { cwd, ...(resume === undefined ? {} : { resume }) };
+  const options = { ...base, additionalDirectories: ["../extra directory", "."] };
   const { method, params } = codexThreadOpen(options);
-  expect(params.runtimeWorkspaceRoots).toEqual([cwd, extra]);
+  expect(params).toEqual({ ...codexThreadOpen(base).params, runtimeWorkspaceRoots: [cwd, extra] });
   expect(params).not.toHaveProperty("config");
-  expect(params).not.toHaveProperty("sandbox");
+  expect(codexThreadOpen({ ...options, nativePermissions: "inherit" }).params).not.toHaveProperty("sandbox");
   expect(codexOpenReadback(method, options, { runtimeWorkspaceRoots: [cwd, extra] }).refusal).toBeNull();
   // A loaded native thread can ignore the override; never accept that reply.
   expect(codexOpenReadback(method, options, { runtimeWorkspaceRoots: [cwd] }).refusal).toContain("did not confirm");

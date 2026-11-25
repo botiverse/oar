@@ -172,7 +172,8 @@ history/path inputs are not exposed. [Resume schema][resume-schema].
 **Mapped:** `codexRuntime.session(installation, { cwd, resume: savedSessionId,
 model? })` sends `thread/resume { threadId, excludeTurns: true, cwd,
 runtimeWorkspaceRoots?, model?, serviceTier?, approvalPolicy?: "never",
-…instructions, config?: { mcp_servers } }` (omitting `approvalPolicy` when `nativePermissions: "inherit"`), requires a thread id, checks an
+sandbox?, …instructions, config?: { mcp_servers } }` (omitting
+`approvalPolicy` and `sandbox` when `nativePermissions: "inherit"`), requires a thread id, checks an
 explicit `model` against the readback, and sets a differing effort afterwards
 ([effort](#models-instructions-and-context)). The token is a native thread id
 resolved against the selected executable's runtime storage and configuration
@@ -265,7 +266,8 @@ the resume runs again is unobserved. [Baseline][oar-token-usage],
 **Fork (mapped).** `SessionOptions.fork` with `resume: <source>` sends
 `thread/fork { threadId: <source>, lastTurnId?, excludeTurns: true, cwd,
 runtimeWorkspaceRoots?, model?, serviceTier?, approvalPolicy?: "never",
-…instructions, config?: { mcp_servers } }` (omitting `approvalPolicy` when `nativePermissions: "inherit"`) instead of `thread/resume`; the
+sandbox?, …instructions, config?: { mcp_servers } }` (omitting `approvalPolicy`
+and `sandbox` when `nativePermissions: "inherit"`) instead of `thread/resume`; the
 reply's `thread.id` is the new thread and becomes `Session.id` (a reply
 naming the source is refused). `lastTurnId` is `fork.through`, the turn id
 carried as the root `turn_ended.forkAnchor` (and as the records' `spanId`):
@@ -1084,23 +1086,34 @@ records each server request as a `toApp` request record and refuses it at once
 ([mapping](#high-level-mapping-to-oar)). By default it sets
 `approvalPolicy: "never"` on `thread/start`, `thread/resume`, and `thread/fork`,
 and launches with `-c sandbox_mode="danger-full-access"`, the only seam that
-governs codex's exec tool (`thread/start.sandboxMode` does not; pinned on a real
-login). `OAR_CODEX_SANDBOX` pins a process-wide mode, and
-`OAR_CODEX_SANDBOX=inherit` skips the sandbox override while keeping
-`approvalPolicy: "never"`.
+governs codex's exec tool on new threads (`thread/start.sandboxMode` does not;
+pinned on a real login). On `thread/resume` and `thread/fork`, Codex restores a
+rollout's persisted unnamed permission profile (such as `readOnly` or
+`dangerFullAccess`) ahead of CLI `-c sandbox_mode=...`, so OAR also sends the
+selected `sandbox` (`OAR_CODEX_SANDBOX ?? "danger-full-access"`) on
+`thread/resume` and `thread/fork` whenever `OAR_CODEX_SANDBOX` is not
+`"inherit"` and host `launchArgs` do not override sandbox. `OAR_CODEX_SANDBOX`
+pins a process-wide mode, and `OAR_CODEX_SANDBOX=inherit` skips both the CLI
+and RPC sandbox overrides while keeping `approvalPolicy: "never"`.
 
 `SessionOptions.nativePermissions: "inherit"` overrides this per session: OAR
-omits `-c sandbox_mode=...` (winning over `process.env.OAR_CODEX_SANDBOX` for
-that session) and omits `approvalPolicy` on `thread/start`, `thread/resume`,
-and `thread/fork`, so Codex reads `sandbox_mode`, `approval_policy`, and
-`approvals_reviewer` from `CODEX_HOME/config.toml` (or `~/.codex/config.toml`).
-Supply `nativePermissions: "inherit"` again on resume and fork; omission
-restores OAR's default bypass (`OAR_CODEX_SANDBOX ?? "danger-full-access"` and
+omits `-c sandbox_mode=...`, `approvalPolicy`, and `sandbox` on `thread/start`,
+`thread/resume`, and `thread/fork` (winning over `process.env.OAR_CODEX_SANDBOX`
+for that session). On `thread/start`, Codex reads `sandbox_mode`,
+`approval_policy`, and `approvals_reviewer` from `CODEX_HOME/config.toml` (or
+`~/.codex/config.toml`) and CLI `launchArgs`; on `thread/resume` and
+`thread/fork`, Codex follows its native precedence (persisted rollout
+permissions ahead of `config.toml` and CLI `-c`). Supply
+`nativePermissions: "inherit"` again on resume and fork; omission restores
+OAR's default bypass (`OAR_CODEX_SANDBOX ?? "danger-full-access"`, sent via both
+`-c sandbox_mode=...` and `sandbox` on `thread/resume`/`thread/fork`, plus
 `approvalPolicy: "never"`). The launch choice is not recorded, and any defined
 value other than `"inherit"` is refused with `UnsupportedOptionError` on
-`nativePermissions` before spawning. Host `launchArgs` (such as
-`-c sandbox_mode=...` or `-c approval_policy=...`) are still appended after
-OAR's overrides and keep CLI precedence over `config.toml`.
+`nativePermissions` before spawning. Host `launchArgs` overriding sandbox
+(`-c sandbox_mode=...`, `-s`/`--sandbox`, `--full-auto`, etc.) suppress OAR's
+RPC `sandbox` field and keep CLI precedence on `thread/start`, though on
+`thread/resume` Codex still restores persisted `readOnly`/`dangerFullAccess`
+rollout profiles ahead of CLI `-c` overrides.
 
 Inheriting native approvals does not add an interactive approval channel: when
 `config.toml` selects Codex's own reviewer (`approvals_reviewer = "guardian_subagent"`
@@ -2035,7 +2048,7 @@ Evidence and verification limits: [tool-denial audit](../../experiments/disallow
 
 ## Launch arguments
 
-`SessionOptions.launchArgs` go after `app-server` and OAR's own `-c` overrides, before `--listen stdio://`; codex reads `-c key=value` there, for example `-c service_tier="fast"`. codex applies `-c` overrides in command-line order (`codex-rs/utils/cli/src/config_override.rs`), so a host `-c` for a key OAR also sets (`sandbox_mode`) is the one that applies. OAR passes them unchecked and never records them; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
+`SessionOptions.launchArgs` go after `app-server` and OAR's own `-c` overrides, before `--listen stdio://`; codex reads `-c key=value` there, for example `-c service_tier="fast"`. codex applies `-c` overrides in command-line order (`codex-rs/utils/cli/src/config_override.rs`), so on new threads a host `-c` for a key OAR also sets (`sandbox_mode`) is the one that applies; on `thread/resume` and `thread/fork`, OAR omits its RPC `sandbox` override when `launchArgs` supply a sandbox override so Codex follows its native CLI and persisted-rollout precedence instead of OAR's RPC value. OAR passes them unchecked and never records them; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
 
 ## Additional directories
 

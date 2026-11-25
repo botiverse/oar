@@ -6,7 +6,7 @@ import { validateCodexToolDenials } from "./tool-denials.js";
 import type { McpServer, RuntimeEventBody, SessionOptions } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { checkMcpServerNames, givenMcpServers, isHttpMcpServer } from "../../shared/mcp-servers.js";
-import { codexRefusedSessionOptions } from "./options.js";
+import { codexLaunchSandboxMode, codexRefusedSessionOptions, codexResumeSandboxParams } from "./options.js";
 import { checkSessionName, refuseSessionOptions } from "../../shared/session-options.js";
 
 /*
@@ -16,6 +16,7 @@ import { checkSessionName, refuseSessionOptions } from "../../shared/session-opt
  */
 
 export type CodexOpenMethod = "thread/start" | "thread/resume" | "thread/fork";
+export { codexLaunchSandboxMode } from "./options.js";
 
 /** The names codex starts an MCP server under; any other fails that server's startup after the thread opened ([env] 0.160.1). */
 const CODEX_MCP_SERVER_NAME = /^[\w:@/.-]+$/u;
@@ -64,7 +65,10 @@ function workspaceRoots(options: SessionOptions): string[] | null {
  * for the MCP credentials its `config` carries, through which every error
  * codex reports for this session goes.
  */
-export function codexThreadOpen(options: SessionOptions): { readonly method: CodexOpenMethod; readonly params: JsonRecord; readonly redact: (text: string) => string } {
+export function codexThreadOpen(
+  options: SessionOptions,
+  sandboxMode: string = codexLaunchSandboxMode(options),
+): { readonly method: CodexOpenMethod; readonly params: JsonRecord; readonly redact: (text: string) => string } {
   refuseSessionOptions(codexRefusedSessionOptions, options);
   validateCodexToolDenials(options);
   checkSessionName(options);
@@ -99,6 +103,7 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
   const roots = workspaceRoots(options);
   const directoryParams = roots === null ? {} : { runtimeWorkspaceRoots: roots };
   const approvalParams = options.nativePermissions === "inherit" ? {} : { approvalPolicy: "never" };
+  const resumeSandboxParams = codexResumeSandboxParams(options, sandboxMode);
   if (options.resume === undefined) {
     return {
       method: "thread/start",
@@ -143,6 +148,7 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
         ...modelParams,
         ...tierParams,
         ...approvalParams,
+        ...resumeSandboxParams,
         ...instructionParams,
         ...configParams(mcpConfig),
       },
@@ -164,6 +170,7 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
       ...modelParams,
       ...tierParams,
       ...approvalParams,
+      ...resumeSandboxParams,
       ...instructionParams,
       ...configParams(mcpConfig),
     },

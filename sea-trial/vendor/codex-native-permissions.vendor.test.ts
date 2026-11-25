@@ -143,6 +143,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex SessionOptions.n
         env: aimockEnv,
         nativePermissions: "inherit",
       });
+      let threadId = "";
       try {
         const startFrame = openNative(session.records(), "thread/start");
         expect(startFrame).toMatchObject({
@@ -165,8 +166,24 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex SessionOptions.n
           kind: "answered",
           native: { result: { decision: "decline" } },
         });
+        threadId = session.id;
       } finally {
         await session.dispose();
+      }
+
+      const resumedDefault = await codexSession(installation, {
+        cwd: directory,
+        env: aimockEnv,
+        resume: threadId,
+      });
+      try {
+        const resumeFrame = openNative(resumedDefault.records(), "thread/resume");
+        expect(resumeFrame).toMatchObject({
+          approvalPolicy: "never",
+          sandbox: { type: "dangerFullAccess" },
+        });
+      } finally {
+        await resumedDefault.dispose();
       }
     } finally {
       await env.stop();
