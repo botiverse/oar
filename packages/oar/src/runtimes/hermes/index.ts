@@ -17,7 +17,7 @@ export const hermesRuntime = defineRuntime({
   // the ACP surface exposes no single-task stop.
   sessionCapabilities: (installation) => ({
     taskEventTypes: [],
-    steer: false,
+    // ACP initialize confirms the optional structured steer extension on the actual connection.
     stopTask: false,
     // Measured on 0.23.3; opened sessions still consult initialize.promptCapabilities.
     ...(hermesMeasuredMcpCredentials(installation) ? { images: true } : {}),

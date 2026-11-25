@@ -59,6 +59,42 @@ function completedText(session: Session): string[] {
     .flatMap((event) => event.kind === "text_delta" ? [event.text] : []);
 }
 
+// oxlint-disable-next-line eslint/max-statements -- The fork, active delivery, and receipt belong to one scenario.
+test("Hermes steers a branch's original prompt using the advertised control, not a second prompt", async () => {
+  const logPath = path.join(scratch("oar-hermes-steer-"), "calls");
+  const session = await acpSession({ ...hermesAcpProfile, args: [fixture] })(install, {
+    cwd: process.cwd(), resume: "local-fake-hermes", fork: {},
+    env: { FAKE_HERMES_STEER: "yes", FAKE_HERMES_CALL_LOG: logPath },
+  });
+  try {
+    assert.equal(typeof session.steer, "function");
+    const idle = await session.steer?.("idle");
+    assert.equal(idle?.kind, "rejected");
+    const turn = promptAndWait(session, "hold");
+    await expect.poll(() => readFileSync(logPath, "utf8")).toContain("prompt:hold");
+    const result = await session.steerOrQueue("use the branch");
+    assert.equal(result.landed, "steered");
+    const ended = await turn;
+    assert.equal(ended.kind, "ended");
+    assert.deepEqual(completedText(session), ["echo:use the branch"]);
+    assert.deepEqual(readFileSync(logPath, "utf8").split("\n").filter(line => /^(?:prompt|steer):/u.test(line)),
+      ["prompt:hold", "steer:local-fake-hermes-fork:use the branch"]);
+  } finally { await session.dispose(); }
+});
+
+test.each(["lost", "idle"])("Hermes does not claim injection when the native receipt is %s", async mode => {
+  const logPath = path.join(scratch("oar-hermes-steer-receipt-"), "calls");
+  const session = await open({}, { FAKE_HERMES_STEER: mode, FAKE_HERMES_CALL_LOG: logPath });
+  try {
+    const prompt = await session.prompt("hold");
+    assert.equal(prompt.kind, "accepted");
+    await expect.poll(() => readFileSync(logPath, "utf8")).toContain("prompt:hold");
+    const result = await session.steerOrQueue("correction");
+    assert.equal(result.landed, mode === "lost" ? "rejected" : "queued");
+    assert.equal(readFileSync(logPath, "utf8").includes("prompt:correction"), false);
+  } finally { await session.dispose(); }
+});
+
 afterEach(() => {
   for (const dir of tempDirs.splice(0)) {
     rmSync(dir, { recursive: true, force: true });
@@ -76,6 +112,7 @@ test("Hermes ACP profile opens the gateway's real session shape and maps a compl
   };
   const session = await open({}, { FAKE_HERMES_MODELS: JSON.stringify(modelState) });
   assert.equal(session.id, "local-fake-hermes");
+  assert.equal(typeof session.steer, "undefined");
   assert.equal(session.capabilities.images, true);
   assert.deepEqual(session.capabilities.queue, { durable: false });
   assert.equal(session.model().value, "openrouter:provider/model-a");
@@ -129,6 +166,7 @@ test("Hermes resume maps the gateway's not_found reason to SessionNotFoundError"
   );
 });
 
+// oxlint-disable-next-line eslint/max-statements -- One exact readback and the associated wire assertions.
 test("Hermes skips setters only for the exact applied model and effort", async () => {
   const log = path.join(scratch("oar-hermes-stable-selectors-"), "calls.txt");
   const model = "custom:hikari:deepseek-flash";

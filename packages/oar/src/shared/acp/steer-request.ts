@@ -14,6 +14,9 @@ export interface AcpSteerRequestHooks {
   readonly steerRequest?: (context: { readonly sessionId: string; readonly input: string; readonly prompt: readonly JsonRecord[]; readonly inputId: string }) => { readonly method: string; readonly params: JsonRecord };
   /** Whether this connection's `initialize` answer advertises `steerRequest`; false leaves the session without `steer`. Absent: it always exists. */
   readonly steerRequestAdvertised?: (initialized: JsonRecord) => boolean;
+  readonly steerRequestImages?: false;
+  /** This runtime confirms refusal in its structured answer, not in RPC errors. */
+  readonly steerRequestErrorsUnknown?: true;
   /**
    * Reads the answer to `steerRequest`: `accepted` admits the input into the
    * running turn; `no_active_turn` is the runtime's report that nothing was
@@ -46,14 +49,17 @@ export async function sendAcpSteerRequest(
   if (runtime.closed) { return gone; }
   // OAR's turn or the runtime's own: an interjection with nothing running would start a turn of its own.
   if (!deps.running()) { return noActiveTurn; }
-  return withInputImages(capabilities, options?.images, async (loaded): Promise<ResponseBody> => {
+  const images = profile.steerRequestImages === false ? { images: false as const } : capabilities;
+  return withInputImages(images, options?.images, async (loaded): Promise<ResponseBody> => {
     const { method, params } = build({ sessionId: kernel.sessionId, input, prompt: acpPrompt(input, loaded), inputId: options?.inputId ?? request.id });
+    const dispatch = { sent: false };
     try {
       const native = await withAcpDeadline(runtime, method, profile.requestTimeoutMs ?? 15_000,
         // oxlint-disable-next-line typescript/promise-function-async -- SDK callback returns its native request promise.
         (requestOptions) => {
           // After the transport's own spawn wait, immediately before dispatch: the turn may have ended or been replaced.
           if (!deps.running()) { throw stale; }
+          dispatch.sent = true;
           return runtime.connection.agent.request(method, params, requestOptions);
         });
       kernel.frame({ type: method, native: native ?? null, responseTo: request.id, events: [] });
@@ -64,6 +70,9 @@ export async function sendAcpSteerRequest(
       return { kind: "rejected", code: "error", reason: `unrecognized ${method} answer; whether the runtime took the input is unknown` };
     } catch (error) {
       if (error === stale) { return noActiveTurn; }
+      if (dispatch.sent && profile.steerRequestErrorsUnknown === true) {
+        return { kind: "rejected", code: "error", reason: `No definitive ${method} receipt; whether the runtime took the input is unknown` };
+      }
       if (runtime.closed) { return gone; }
       kernel.frame({ type: `${method}/error`, native: acpErrorNative(error), responseTo: request.id, events: [] });
       return { kind: "rejected", code: error instanceof RequestError ? "runtime_refused" : "error", reason: error instanceof Error ? error.message : String(error) };

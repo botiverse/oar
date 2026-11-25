@@ -40,6 +40,7 @@ account or real model is used
 | `session/fork` | `SessionOptions.fork` without `through`; the gateway copies the whole conversation under a new id. |
 | `session/prompt` | `prompt()`; `stopReason` decides the turn outcome, and the standard update stream supplies text, reasoning, tool calls and context usage. |
 | `session/cancel` | `abort()`; the admission is cancelled and the prompt answers `cancelled`. |
+| `_hermes/session/steer` (optional) | `steer()` for text when `initialize._meta["hermes/steer"]` is `true`. |
 | `session/set_config_option` on `model` | `SessionOptions.model`; the returned full option list is the applied-model readback. |
 | `session/set_config_option` on `reasoning_effort` | `SessionOptions.effort`; the returned list reports the applied level. |
 | `session/list` | Not used for resume; the gateway resumes by id and reports a missing target itself. |
@@ -47,9 +48,11 @@ account or real model is used
 | `available_commands_update`, `config_option_update`, `session_info_update` | Recorded verbatim. Config updates also produce `model` / `effort` events. |
 
 `Session.capabilities` reports an adapter-held queue (`durable: false`),
-`attribution: "opaque"`, and images from the handshake. `Session.steer` is
-absent: a second prompt is not verified to redirect the active turn, so queued
-input is held by OAR instead. `Session.stopTask` is absent. Manual compaction
+`attribution: "opaque"`, and images from the handshake. The structured steer
+extension targets the current native turn; acceptance does not prove the model
+consumed the text. Without the extension, or with images, follow-ups can queue.
+OAR does not issue `/steer` as a second prompt or resend an ambiguous receipt.
+`Session.stopTask` is absent. Manual compaction
 is declared unsupported: `/compress` is advertised, but there is no structured
 completion or attribution contract.
 

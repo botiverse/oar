@@ -1,4 +1,4 @@
-/* oxlint-disable import/no-nodejs-modules, eslint/no-underscore-dangle, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-argument, typescript/no-unsafe-call, typescript/no-unsafe-return, unicorn/prefer-top-level-await -- Standalone ACP wire fixture replaying Hermes gateway 0.23.3 shapes. */
+/* oxlint-disable import/no-nodejs-modules, eslint/max-lines, eslint/no-underscore-dangle, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-argument, typescript/no-unsafe-call, typescript/no-unsafe-return, unicorn/prefer-top-level-await -- Standalone ACP wire fixture replaying Hermes gateway 0.23.3 shapes. */
 import { appendFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { attachEditorServers, callEditorTool, closeEditorServers, editorMcpFingerprint } from "./fake-hermes-editor-mcp.mjs";
@@ -213,6 +213,7 @@ function initializeResult(id) {
   log("initialize");
   result(id, {
     protocolVersion: 1,
+    ...(process.env.FAKE_HERMES_STEER === undefined ? {} : { _meta: { "hermes/steer": true } }),
     agentCapabilities: {
       loadSession: true,
       promptCapabilities: { image: true },
@@ -261,6 +262,21 @@ async function newSession(message) {
   afterAttach();
 }
 
+function handleSteer(message) {
+  log(`steer:${message.params.sessionId}:${message.params.text}`);
+  if (process.env.FAKE_HERMES_STEER === "lost") {
+    error(message.id, { code: -32_603, message: "Internal error" });
+  } else if (pendingPrompts.size === 0 || process.env.FAKE_HERMES_STEER === "idle") {
+    result(message.id, { status: "no_active_turn" });
+  } else {
+    result(message.id, { status: "queued" });
+    for (const id of pendingPrompts.keys()) {
+      pendingPrompts.delete(id);
+      void completePrompt(id, message.params.text);
+    }
+  }
+}
+
 function handleRequest(message) {
   switch (message.method) {
     case "initialize": initializeResult(message.id); break;
@@ -274,6 +290,7 @@ function handleRequest(message) {
     case "session/set_mode": log(`set_mode:${message.params?.modeId}`); currentMode = String(message.params?.modeId ?? currentMode); result(message.id, {}); break;
     case "session/set_config_option": configResult(message); break;
     case "session/prompt": handlePrompt(message); break;
+    case "_hermes/session/steer": handleSteer(message); break;
     case "session/cancel": handleCancel(message); break;
     default: error(message.id, { code: -32_601, message: `unknown method: ${message.method}` }); break;
   }
