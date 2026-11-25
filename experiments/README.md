@@ -87,6 +87,7 @@
 - [Old CLI upgrade path](old-cli-upgrade/README.md): native AGY 1.4.9 to 1.5.9, Pi self-update, and DSH command boundaries.
 
 - [Public API export cleanup (2026-11-16)](public-api-sweep-2026-11-16/README.md): confirmed removals, host audit and migration table.
+- [OpenCode v2 model discovery](opencode-models/README.md) compares cold standalone CLI output and workspace-scoped HTTP model metadata.
 - [OpenCode independent skills](opencode-skills/README.md): native v1/v2 catalogs, cold-start activation barrier, directory provenance and owned-process cleanup.
 - [Runtime version check: November 16](runtime-version-checks/2026-11-16.md): unchanged release inventory, retained CI failures and queued work, and ZCode 3.18.2 desktop release limits.
 

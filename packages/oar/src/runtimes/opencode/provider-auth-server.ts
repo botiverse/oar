@@ -56,14 +56,12 @@ export function nativeDetail(response: ApiResponse, secrets: LoginSecrets): stri
 }
 
 /**
- * The serve child's environment: the caller's, with OAR's password, no
- * inherited OpenCode 1 username (2.2.7 has a fixed user), and no update
- * check or model-catalog fetch (OPENCODE_DISABLE_AUTOUPDATE and
- * OPENCODE_DISABLE_MODELS_FETCH, both read by 2.2.7). On POSIX, BROWSER is a
- * command that does nothing, so OpenCode can never open a browser on the
- * machine it runs on; Windows has no such command and keeps the caller's.
+ * Each private server uses OAR's password and disables update checks. Login
+ * and skill discovery disable model-catalog fetching. Model discovery keeps
+ * the caller's fetch policy. On POSIX, BROWSER prevents the server from
+ * opening a browser. Windows keeps the caller's browser setting.
  */
-export function serveEnvironment(env: NodeJS.ProcessEnv, password: string, platform: NodeJS.Platform = process.platform): NodeJS.ProcessEnv {
+export function serveEnvironment(env: NodeJS.ProcessEnv, password: string, modelsFetch: "disable" | "inherit" = "disable"): NodeJS.ProcessEnv {
   const inherited = { ...env };
   delete inherited.OPENCODE_SERVER_USERNAME;
   return {
@@ -72,8 +70,8 @@ export function serveEnvironment(env: NodeJS.ProcessEnv, password: string, platf
     OPENCODE_PASSWORD: password,
     OPENCODE_SERVER_PASSWORD: password,
     OPENCODE_DISABLE_AUTOUPDATE: "1",
-    OPENCODE_DISABLE_MODELS_FETCH: "1",
-    ...(platform === "win32" ? {} : { BROWSER: "true" }),
+    ...(modelsFetch === "disable" ? { OPENCODE_DISABLE_MODELS_FETCH: "1" } : {}),
+    ...(process.platform === "win32" ? {} : { BROWSER: "true" }),
   };
 }
 

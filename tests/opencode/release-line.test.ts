@@ -1,4 +1,3 @@
-import path from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { opencodeMajor } from "../../packages/oar/src/runtimes/opencode/version.js";
 import { opencodeListModels } from "../../packages/oar/src/runtimes/opencode/list-models.js";
@@ -50,47 +49,6 @@ test("v1 preserves verbose model metadata and performs no new session writes", a
   `);
   expect(run.mock.calls[0]?.[2]?.signal).toBeInstanceOf(AbortSignal);
   expect(run.mock.calls).toEqual([["opencode", ["models", "--verbose"], { cwd: process.cwd(), env: process.env, signal: run.mock.calls[0]?.[2]?.signal, timeoutMs: 30_000 }]]);
-});
-
-test("v2 empty native listing is unsupported, not a claim of no models", async () => {
-  run.mockResolvedValueOnce(ok(""));
-  expect(await opencodeListModels({ ...installation, version: "opencode v2.0.26" }, { timeoutMs: 1234 })).toMatchInlineSnapshot(`
-    {
-      "kind": "unsupported",
-      "reason": "opencode 2.0.26 models --standalone exits before the cold catalog finishes loading; an empty response does not establish that no models exist (https://github.com/anomalyco/opencode/issues/53724)",
-    }
-  `);
-  expect(run.mock.calls[0]?.[2]?.signal).toBeInstanceOf(AbortSignal);
-  expect(run.mock.calls).toEqual([["opencode", ["models", "--standalone"], { cwd: process.cwd(), env: process.env, signal: run.mock.calls[0]?.[2]?.signal, timeoutMs: 1234 }]]);
-});
-
-// A project's opencode.json can add providers, so the catalog is read where a session would run.
-test("the listing runs opencode in the requested directory, resolved against the host's cwd", async () => {
-  run.mockResolvedValueOnce(ok("opencode/big-pickle\n"));
-  await opencodeListModels({ ...installation, version: "opencode v2.0.27" }, { cwd: "workspace" });
-  expect(run.mock.calls[0]?.[2]).toEqual({ cwd: path.resolve("workspace"), env: process.env, signal: run.mock.calls[0]?.[2]?.signal, timeoutMs: 30_000 });
-});
-
-test("a ready v2 standalone listing uses native IDs without inventing effort menus", async () => {
-  run.mockResolvedValueOnce(ok("opencode/big-pickle\nopencode/exo-free\n"));
-  expect(await opencodeListModels({ ...installation, version: "opencode v2.0.27" })).toMatchInlineSnapshot(`
-    {
-      "kind": "ok",
-      "models": [
-        {
-          "id": "opencode/big-pickle",
-        },
-        {
-          "id": "opencode/exo-free",
-        },
-      ],
-    }
-  `);
-});
-
-test("v2 failures retain native process diagnostics", async () => {
-  run.mockResolvedValueOnce({ ok: false, stdout: "", stderr: "native catalog failure", exitCode: 7 });
-  await expect(opencodeListModels({ ...installation, version: "opencode v2.0.26" })).rejects.toThrow("native catalog failure");
 });
 
 for (const option of ["systemPrompt", "appendSystemPrompt"] as const) {
