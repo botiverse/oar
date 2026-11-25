@@ -123,7 +123,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
           break;
         }
         case "toApp":
-          streamJsonAppRequest(kernel, child, command.id, command.type, message, profile.permissionResponse);
+          streamJsonAppRequest(kernel, child, command.id, command.type, message, profile.appRequestResponse);
           break;
         default:
           break;

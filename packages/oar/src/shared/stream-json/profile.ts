@@ -67,6 +67,6 @@ export interface StreamJsonSessionProfile<S extends StreamJsonProjectionState> {
   readonly close?: (active: boolean) => Promise<void>;
   readonly lastModelRequest?: Session["lastModelRequest"];
   readonly contextBreakdown?: Session["contextBreakdown"];
-  /** A native allow response, already in the runtime's own wire shape; null leaves the request unanswered. */
-  readonly permissionResponse?: (requestId: string, request: JsonRecord) => JsonRecord | null;
+  /** A native reply to a runtime control_request, already in the runtime's own wire shape; null leaves the request unanswered. */
+  readonly appRequestResponse?: (type: string, requestId: string, request: JsonRecord) => JsonRecord | null;
 }

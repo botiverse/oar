@@ -126,8 +126,10 @@ input still held by OAR can be withdrawn, edited or sent now (Commands).
 
 1. **Answering runtime requests.** `Session` has no `answer(requestId)`.
    Answering depends on the adapter: some automatically allow permission
-   requests; Claude normally starts with permission bypass and records any
-   incoming `toApp` request without answering it. Hosts can explicitly select
+   requests; Claude normally starts with permission bypass, automatically
+   declines unattended MCP `elicitation` requests with `{ action: "decline" }`,
+   and records any other incoming `toApp` request (such as `can_use_tool`)
+   without answering it. Hosts can explicitly select
    noninteractive native modes for Claude; remaining approvals are denied
    locally, not presented as unanswered host requests. A UI that wants human
    approval needs explicit request ownership, an answer call and an opt-out
