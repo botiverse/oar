@@ -24,5 +24,5 @@ export type ControlOutcome =
 export type SteerOrQueueResult =
   | { readonly landed: "steered"; readonly result: ControlOutcome }
   | { readonly landed: "queued"; readonly result: ControlOutcome }
-  /** `result` is the last attempt, the queue; `code` / `reason` / `failure` are its. */
+  /** `result` is the last attempt (steer or queue); `code` / `reason` / `failure` are its. */
   | { readonly landed: "rejected"; readonly code: RejectionCode; readonly reason: string; readonly failure?: FailureClass; readonly result: ControlOutcome };

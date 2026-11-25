@@ -36,6 +36,8 @@ async function intoRunning(session: Session, input: string, options: InputOption
     if (steered.kind === "accepted") {
       return landed("steered", options.inputId, steered);
     }
+    // An ended turn does not prove that a steer with an unknown receipt was never taken.
+    if (steered.code === "error") { return refused(options.inputId, steered); }
     // The turn ended while the steer was in flight. The adapter's gate says
     // `no_active_turn`; past the gate the runtime refuses in its own words
     // (codex 0.158.0: "no active turn to steer"), so read the status too.

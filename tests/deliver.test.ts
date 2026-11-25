@@ -4,6 +4,7 @@ import type { Session } from "../packages/oar/src/contracts/session.js";
 import { conversationOf } from "../packages/oar/src/observe/conversation.js";
 import { awaitIdle } from "../packages/oar/src/observe/turns.js";
 import { scriptedRuntime } from "../packages/oar/src/testing/index.js";
+import { deliverInto } from "../packages/oar/src/shared/deliver.js";
 import { Gate } from "./fixtures/subagent-fixtures.js";
 
 async function sessionOf(gate: Gate): Promise<Session> {
@@ -42,6 +43,28 @@ test("deliver now steers a running turn", async () => {
   gate.release();
   await awaitIdle(session);
   await session.dispose();
+});
+
+test("deliver never resends a steer with an unknown receipt when the turn ends", async () => {
+  const gate = new Gate();
+  const session = await sessionOf(gate);
+  try {
+    const steer = session.steer;
+    if (steer === undefined) { throw new Error("fixture must support steer"); }
+    await session.prompt("work");
+    const result = await deliverInto({
+      ...session,
+      steer: async (input, options) => {
+        const outcome = await steer(input, options);
+        gate.release();
+        await awaitIdle(session);
+        return { ...outcome, kind: "rejected", code: "error", reason: "no delivery receipt" };
+      },
+    }, "supplemental input", { inputId: "11111111-2222-4333-8444-555555555555" });
+    expect(result).toMatchObject({ landed: "rejected", code: "error" });
+    expect(session.records().flatMap((record) => record.kind === "request" ? [record.body.kind] : []))
+      .toEqual(["open", "prompt", "steer"]);
+  } finally { await session.dispose(); }
 });
 
 test("deliver after_turn queues behind a running turn", async () => {

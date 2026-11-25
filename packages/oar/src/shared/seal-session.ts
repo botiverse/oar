@@ -12,7 +12,7 @@ import { observeWithPrefix } from "../observe/cursor.js";
 import { statusOf } from "../observe/agent-status.js";
 import { coalesceText, eventsReader } from "../observe/events.js";
 import { contextUsageOf, effortOf, modelOf, serviceTierOf, usageOf } from "../observe/usage.js";
-import { deliverInto } from "./deliver.js";
+import { deliverInto, failureOf } from "./deliver.js";
 import { isInputId } from "./input-id.js";
 
 const identify = (options: InputOptions = {}): InputOptions => {
@@ -90,6 +90,9 @@ export function sealSession(adapterSession: AdapterSession): Session {
       const steered = await steer(input, identified);
       if (steered.kind === "accepted") {
         return { landed: "steered", result: steered };
+      }
+      if (steered.code !== "unsupported" && steered.code !== "no_active_turn") {
+        return { landed: "rejected", code: steered.code, reason: steered.reason, ...failureOf(steered), result: steered };
       }
     }
     const queued = await queue(input, identified);

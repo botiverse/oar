@@ -281,9 +281,10 @@ export interface Session extends AdapterSession {
    */
   status(): QueryResult<AgentStatus>;
   /**
-   * DERIVED: steer when the session has `steer` and the steer is accepted,
-   * otherwise queue; always report where the input landed. `rejected` means
-   * the input was NOT taken over and the caller still owns it.
+   * DERIVED: steer when available; queue when steer is absent or explicitly
+   * returns `unsupported` or `no_active_turn`. Other outcomes are returned
+   * without another attempt. For `rejected` with `code: "error"`, delivery
+   * may be unknown: do not assume ownership has returned to the caller.
    */
   steerOrQueue(input: string, options?: InputOptions): Promise<SteerOrQueueResult>;
   /**
