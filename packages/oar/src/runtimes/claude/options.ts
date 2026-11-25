@@ -2,10 +2,11 @@ import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { semverAtLeast } from "../../shared/semver.js";
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
-import { piOnlyRefusals } from "../../shared/session-options.js";
+import { dshOnlyRefusals, piOnlyRefusals } from "../../shared/session-options.js";
 
 export const claudeRefusedSessionOptions: RefusedSessionOptions = {
   ...piOnlyRefusals,
+  ...dshOnlyRefusals,
   goals: "Claude /goal is a prompt command, not a structured native goal control",
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted Claude turn's processes while its session stays usable",
   nativeMemoryDefault: "Claude Code has no configuration layer below user settings for a soft native-memory default",

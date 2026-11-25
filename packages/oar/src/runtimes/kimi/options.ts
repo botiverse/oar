@@ -2,7 +2,7 @@ import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { RefusedSessionOptions, SessionCapabilityDeclaration } from "../../contracts/runtime.js";
 import { semverAtLeast } from "../../shared/semver.js";
 import { isKimiKapBotiverseVersion } from "./version.js";
-import { piOnlyRefusals } from "../../shared/session-options.js";
+import { dshOnlyRefusals, piOnlyRefusals } from "../../shared/session-options.js";
 
 /* Declared refusals and installation capabilities, apart from the session code so the runtime entry loads no SDK until a session opens. */
 
@@ -10,6 +10,7 @@ export const KIMI_ACP_APPEND_SYSTEM_PROMPT_REFUSAL = "kimi acp has no per-sessio
 
 export const kimiRefusedSessionOptions: RefusedSessionOptions = {
   ...piOnlyRefusals,
+  ...dshOnlyRefusals,
   modelRequests: "This adapter has no verified capture of the root agent's provider request",
   fork: "OAR has not verified a native Kimi fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",

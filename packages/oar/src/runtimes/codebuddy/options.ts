@@ -1,10 +1,11 @@
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type { SessionOptions } from "../../contracts/session.js";
 import { checkManagedLaunchArgs } from "../../shared/launch-args.js";
-import { piOnlyRefusals } from "../../shared/session-options.js";
+import { dshOnlyRefusals, piOnlyRefusals } from "../../shared/session-options.js";
 
 export const codebuddyRefusedSessionOptions: RefusedSessionOptions = {
   ...piOnlyRefusals,
+  ...dshOnlyRefusals,
   modelRequests: "This adapter has no verified capture of the root agent's provider request",
   fork: "OAR has not verified a native CodeBuddy fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "CodeBuddy ACP has no verified structured goal controls",

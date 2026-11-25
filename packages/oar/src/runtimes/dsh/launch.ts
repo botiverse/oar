@@ -3,6 +3,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import type { SessionOptions } from "../../contracts/session.js";
 import { sessionEnvironment } from "../../shared/environment.js";
+import type { JsonRecord } from "../../shared/json.js";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { privateTempDir, type PrivateTempDir } from "../../shared/private-temp.js";
 import { dshBridgeSource } from "./bridge.js";
@@ -27,8 +28,19 @@ export function dshEnvironment(env: SessionOptions["env"]): NodeJS.ProcessEnv {
 const SESSION_LOG_PLUGIN_ID = "session-log-deepseek";
 const SESSION_LOG_PLUGIN_NAME = "@deepseek-ai/dsh-session-log-deepseek";
 
+/**
+ * A host-declared provider, in the two shapes the launch needs: the
+ * `llm-pi-ai` row DSH's loader applies, and the audit the bridge confirms once
+ * it has (`dshProviderPatchRow`, `dshProviderAudit`).
+ */
+export interface DshProviderLaunch {
+  readonly patch: JsonRecord;
+  readonly audit: JsonRecord;
+}
+
 export interface DshLaunchOptions {
   readonly disableSessionLogUpload?: boolean;
+  readonly provider?: DshProviderLaunch;
   readonly signal?: AbortSignal;
   readonly profileWait?: DshProfileWait;
 }
@@ -39,17 +51,21 @@ export interface DshLaunchOptions {
  * message is exchanged. The overlay is an invocation layer: it edits no user file.
  */
 export async function launchDsh(command: string, cwd: string, env: NodeJS.ProcessEnv, options: DshLaunchOptions = {}): Promise<LaunchedDsh> {
-  const { disableSessionLogUpload = false, signal } = options;
+  const { disableSessionLogUpload = false, provider, signal } = options;
   const directory = await privateTempDir("oar-dsh-");
   let release: (() => void) | undefined = undefined;
   try {
     const bridge = path.join(directory.path, "bridge.mjs");
     const patch = path.join(directory.path, "patch.json");
     await writeFile(bridge, dshBridgeSource, { mode: 0o600, flag: "wx" });
-    const bridgeConfig = disableSessionLogUpload ? { sessionLogPlugin: { id: SESSION_LOG_PLUGIN_ID, name: SESSION_LOG_PLUGIN_NAME } } : {};
+    const bridgeConfig = {
+      ...(disableSessionLogUpload ? { sessionLogPlugin: { id: SESSION_LOG_PLUGIN_ID, name: SESSION_LOG_PLUGIN_NAME } } : {}),
+      ...(provider === undefined ? {} : { provider: provider.audit }),
+    };
     const patchRows: readonly unknown[] = [
       { id: "acp", disabled: true },
       { insert: [{ id: "oar-dsh-bridge", name: pathToFileURL(bridge).href, config: bridgeConfig }] },
+      ...(provider === undefined ? [] : [provider.patch]),
       ...(disableSessionLogUpload ? [{ id: SESSION_LOG_PLUGIN_ID, name: SESSION_LOG_PLUGIN_NAME, config: { enabled: false } }] : []),
     ];
     await writeFile(patch, JSON.stringify(patchRows), { mode: 0o600, flag: "wx" });

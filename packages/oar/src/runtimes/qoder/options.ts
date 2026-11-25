@@ -1,9 +1,10 @@
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import { checkManagedLaunchArgs } from "../../shared/launch-args.js";
-import { piOnlyRefusals } from "../../shared/session-options.js";
+import { dshOnlyRefusals, piOnlyRefusals } from "../../shared/session-options.js";
 
 export const qoderRefusedSessionOptions: RefusedSessionOptions = {
   ...piOnlyRefusals,
+  ...dshOnlyRefusals,
   modelRequests: "This adapter has no verified capture of the root agent's provider request",
   fork: "OAR has not verified a native Qoder fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",

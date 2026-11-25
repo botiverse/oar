@@ -6,7 +6,7 @@ import type { McpServer, SessionOptions } from "../../contracts/session.js";
 import { checkMcpServerNames, givenMcpServers, isHttpMcpServer } from "../../shared/mcp-servers.js";
 import { cursorOpenFailure, cursorResumeFailure } from "./failure.js";
 import type { CursorAgent, CursorAgentOptions, CursorMcpServerConfig, CursorSdk, ModelListItem, ModelSelection } from "./sdk.js";
-import { piOnlyRefusals } from "../../shared/session-options.js";
+import { dshOnlyRefusals, piOnlyRefusals } from "../../shared/session-options.js";
 
 /**
  * Cursor's catalog (`Cursor.models.list()`, SDK 1.0.35) gives each model its
@@ -57,6 +57,7 @@ function findModel(models: readonly ModelListItem[], id: string): ModelListItem 
  */
 export const cursorRefusedSessionOptions: RefusedSessionOptions = {
   ...piOnlyRefusals,
+  ...dshOnlyRefusals,
   modelRequests: "This adapter has no verified capture of the root agent's provider request",
   mcpServerCredentials: "OAR has not verified MCP credential isolation for this Cursor SDK",
   partialUserConfiguration: "Cursor settingSources controls user configuration as a group and cannot exclude individual categories",

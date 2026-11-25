@@ -273,8 +273,9 @@ refused at open: it has no route), `effort` as `reasoningEffort`, and per-sessio
 stdio or streamable HTTP `mcpServers` ([MCP details](#session-mcp-servers)), `name`,
 `disallowedTools` ([native title and tool boundaries](#session-name-and-tool-denial)),
 `systemPrompt` and `appendSystemPrompt` ([prompt boundaries](#system-prompts)),
-`goals: true` ([native goals](#native-goals)), and `sessionLogUpload: "off"`
-([session-log upload](#session-log-upload)).
+`goals: true` ([native goals](#native-goals)), `sessionLogUpload: "off"`
+([session-log upload](#session-log-upload)), and `dshProvider`, a host-declared
+provider and model ([host-declared provider](#host-declared-provider)).
 
 `DSH_PERMISSION_MODE` is `danger-full-access` unless the host names its own for this
 session in `SessionOptions.env`: nobody sits at an approval prompt, and native reports
@@ -475,6 +476,105 @@ models (`deepseek-flash` default, `deepseek-v4-pro` on `0.2.2-rc.5`) with their
 reasoning efforts. When no provider lists any model and the provider DSH names as
 its `default` is present with zero models and no failure, OAR answers
 `unauthenticated` naming that default provider rather than `ok` with an empty list.
+A provider a host declares for one session (`dshProvider`) is not in this
+reader's answer: it reads the installation's configuration, not a session's
+private overlay.
+
+## Host-declared provider
+
+A host whose model lives behind its own gateway — or under an id DSH's catalog
+does not carry — declares the route on the session instead of writing DSH's own
+configuration: `SessionOptions.dshProvider`. It is DSH-only; every other runtime
+refuses it (`Runtime.refusedSessionOptions.dshProvider`).
+
+```ts
+await dshRuntime.session(installation, {
+  cwd,
+  dshProvider: {
+    id: "gateway",
+    api: "openai-completions",
+    baseUrl: "https://gateway.example.test/v1",
+    apiKeyEnv: "GATEWAY_API_KEY",
+    models: [{
+      id: "reasoner",
+      contextWindow: 200_000,
+      maxTokens: 8192,
+      reasoningEfforts: { low: "low", high: "high" },
+      compat: { supportsDeveloperRole: false, thinkingFormat: "deepseek" },
+    }],
+  },
+  model: "reasoner",
+  effort: "high",
+});
+```
+
+The declaration becomes one `llm-pi-ai` row in OAR's private invocation
+`--patch`, the same overlay `sessionLogUpload` uses: DSH applies it after the
+profile's own layers, and OAR renders it as structured JSON — no YAML text, no
+`!!js`, no script, nothing under `$DSH_HOME` read or written. A patch layer
+replaces the config object it names rather than merging into it (measured with
+`--dump-config` on `0.2.2-rc.2`), so for this session's process the declared
+`providers` map is DSH's whole `llm-pi-ai` config; other sessions and the user's
+file keep theirs. Two consequences a host must know: the declaration is the
+route, so no other `llm-pi-ai` provider is reachable in that process, and a
+profile that disables `llm-pi-ai` cannot run it.
+
+`model` names one of the declared models, bare (`reasoner`) or qualified
+(`gateway/reasoner`); a bare id the provider declares is qualified with its id,
+a model id containing `/` must be given qualified, and anything naming another
+provider is refused before anything starts. A new session with no `model` runs
+the provider's first model, while a resumed one with no `model` keeps the route
+it saved — the declaration must then be supplied again, as on every other
+option. `effort` is DSH's own `reasoningEffort`, checked natively against the
+levels the declaration lists for that model.
+
+The credential is an environment variable NAME (`apiKeyEnv`), never a secret:
+OAR writes `apiKeyEnv: NAME` and DSH resolves the value at request time, so the
+key reaches neither OAR's private patch, nor a record, nor an error. The
+variable comes from `SessionOptions.env`, the host environment, or DSH's own
+store. Omitted, DSH's own credential resolution applies to that provider.
+
+`reasoningEfforts` is three-state, because the three states are not the same
+model: omitted writes nothing and leaves DSH's own default, `false` declares a
+model with no level selection (so `effort` for it is refused natively), and a
+map lists exactly the levels the model offers, each level mapped to the spelling
+this endpoint expects — OAR reads no vendor rule out of a level name. Wire
+quirks belong in `compat`, in the `llm-pi-ai` vocabulary:
+`supportsStore`, `supportsDeveloperRole`, `maxTokensField`,
+`requiresReasoningContentOnAssistantMessages` and `thinkingFormat`. OAR infers
+nothing from a provider id, a model id, a host name or a base URL, so a gateway
+that appends `/v1`, renames a provider per wire, or defaults a compatibility
+switch to `false` states it itself; that policy stays in the host. The three
+`llm-pi-ai` wires OAR models are `openai-completions`, `openai-responses` and
+`anthropic-messages`; `google-generative-ai` stays reachable through the user's
+own patch.
+
+Before any agent exists, the session's bridge confirms the declaration fail-closed:
+the profile mounts `llm-pi-ai` with its own name, it is not disabled and its
+fiber is active, the applied provider entry carries the declared `api`,
+`baseURL`, credential variable and model ids, and the model plane resolves every
+declared model. Anything short of that rejects the open with
+`UnsupportedOptionError("dshProvider")` instead of running another route, and
+the existing route read-back (`ModelConfirmationError`) still covers the open
+itself. A declaration OAR cannot honour is refused before anything starts: a
+provider id DSH could not key a route by, a wire OAR does not speak for DSH, a
+non-HTTP(S) endpoint or one carrying a query, fragment or credentials, no
+models, duplicate or blank model ids, a completion limit above the context
+window, an unknown reasoning level or a compatibility value DSH's schema would
+reject.
+
+Measured against real DSH `0.2.2-rc.2` in an isolated `HOME`/`DSH_HOME` whose
+own patch holds no `llm-pi-ai` row: a session opened with a declaration ran a
+real turn, and the request arrived at a scripted loopback gateway with
+`model: "gateway-model"` and `authorization: Bearer <the value of the declared
+variable>`; `dsh/opened` reported `gateway/gateway-model` and the declared
+`reasoningEffort`; a resume with no model given reached the same gateway with
+the same model; a profile whose patch disables `llm-pi-ai` refused the open with
+`UnsupportedOptionError("dshProvider")` and sent no request; and the private
+patch text carried the variable NAME and not its value, which appears in no
+record. The
+[vendor test](../../sea-trial/vendor/dsh-host-provider.vendor.test.ts) pins all
+of that.
 
 ## Installation and configuration
 

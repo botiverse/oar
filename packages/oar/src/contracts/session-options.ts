@@ -1,8 +1,8 @@
 /*
- * How a session opens: the options every runtime's `session()` takes, and
- * the MCP servers one can attach. What a runtime cannot honor is refused
- * (`UnsupportedOptionError`, `Runtime.refusedSessionOptions`).
+ * How a session opens: the options every runtime's `session()` takes, and the MCP servers one can attach.
+ * What a runtime cannot honor is refused (`UnsupportedOptionError`, `Runtime.refusedSessionOptions`).
  */
+import type { DshSessionSelection } from "./dsh-provider.js";
 import type { PiSessionSelection } from "./pi-provider.js";
 
 export type UserConfigurationCategory = "settings" | "mcp" | "instructions";
@@ -49,7 +49,7 @@ export interface SessionFork {
  * decide before opening reads `Runtime.refusedSessionOptions`
  * (docs/spec/runtime-matrix.md#refused-session-options).
  */
-export interface SessionOptions extends PiSessionSelection {
+export interface SessionOptions extends PiSessionSelection, DshSessionSelection {
   /** Keep the latest provider request attributed to this session's root agent. Capture is off by default. */
   readonly modelRequests?: "latest";
   /**

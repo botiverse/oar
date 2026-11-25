@@ -1,5 +1,5 @@
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
-import { piOnlyRefusals } from "../../shared/session-options.js";
+import { dshOnlyRefusals, piOnlyRefusals } from "../../shared/session-options.js";
 
 /*
  * Declared refusals, apart from the session code so the runtime entry loads no
@@ -8,6 +8,7 @@ import { piOnlyRefusals } from "../../shared/session-options.js";
  */
 export const hermesRefusedSessionOptions: RefusedSessionOptions = {
   ...piOnlyRefusals,
+  ...dshOnlyRefusals,
   modelRequests: "This adapter has no verified capture of the gateway-owned turn's provider request",
   systemPrompt: "Hermes ACP exposes no system-prompt replacement channel; the gateway owns the profile's prompt",
   appendSystemPrompt: "Hermes ACP exposes no system-prompt append channel",

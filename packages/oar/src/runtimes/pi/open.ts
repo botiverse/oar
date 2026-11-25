@@ -2,7 +2,7 @@
 import type { RefusedSessionOptions, SessionOptions } from "../../contracts/index.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { ModelConfirmationError } from "../../contracts/model-confirmation-error.js";
-import { checkSessionName, refuseSessionOptions } from "../../shared/session-options.js";
+import { checkSessionName, dshOnlyRefusals, refuseSessionOptions } from "../../shared/session-options.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import type { AgentSession as PiAgentSession, CreateAgentSessionOptions } from "@earendil-works/pi-coding-agent";
 import { piCredentialExtension, rememberPiKey } from "./credentials.js";
@@ -103,6 +103,7 @@ export function piEffectiveModel(session: PiModelSource): string | null {
 
 /** Options the in-process SDK cannot honor, refused before anything opens. */
 export const piRefusedSessionOptions: RefusedSessionOptions = {
+  ...dshOnlyRefusals,
   fork: "OAR has not verified a native Pi fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",
   endTurnProcessesOnAbort: "pi has no verified per-turn process ownership: its SDK form runs in the host process and its RPC form was not probed for this",

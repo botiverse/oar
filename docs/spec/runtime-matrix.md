@@ -1059,6 +1059,13 @@ by Claude (`>= 2.1.274`) and Pi SDK, and refused elsewhere
 ([model-request.md](model-request.md)). The table omits all seven, apart
 from Codex's shared-placement refusal.
 
+`dshProvider` is DSH-only: every other runtime refuses it. It declares the
+provider, wire, endpoint, credential variable and models a DSH session runs, in
+`llm-pi-ai`'s own vocabulary, through OAR's private invocation `--patch` — no
+file under `DSH_HOME` is read or written, and the session's bridge rejects the
+open when DSH did not apply it ([host-declared
+provider](../runtimes/dsh.md#host-declared-provider)).
+
 `piProvider` and `piCompaction` are Pi-only: every other runtime refuses both.
 Pi honors the provider in both of its execution modes (the RPC child registers it
 from OAR's own extension before the model resolves) and refuses the compaction

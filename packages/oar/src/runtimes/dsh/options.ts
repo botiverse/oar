@@ -4,6 +4,7 @@ import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type { SessionOptions } from "../../contracts/session.js";
 import { DSH_MINIMUM_VERSION } from "./version.js";
 import { piOnlyRefusals } from "../../shared/session-options.js";
+import { dshProviderRequestedModel } from "./provider.js";
 
 /** Each stays refused until its own native probe. DSH may well have the concept; OAR has not verified its semantics. */
 export const dshRefusedSessionOptions: RefusedSessionOptions = {
@@ -52,10 +53,19 @@ export interface DshAgentOptions {
   readonly reasoningEffort?: string;
 }
 
-/** DSH routes every request by provider and model; a bare model name has no route and would fail only at its first request. */
-export function dshAgentOptions(options: Pick<SessionOptions, "model" | "effort">): DshAgentOptions {
-  const { model, effort } = options;
+/**
+ * DSH routes every request by provider and model; a bare model name has no
+ * route and would fail only at its first request. A host-declared provider
+ * (`SessionOptions.dshProvider`) is the route: a bare id it serves is qualified
+ * with its id, a new session with no model runs its first model, and a resume
+ * with no model keeps the route it saved (`dshProviderRequestedModel`).
+ */
+export function dshAgentOptions(options: Pick<SessionOptions, "model" | "effort" | "dshProvider" | "resume">): DshAgentOptions {
+  const { effort } = options;
   const effortOption = effort === undefined ? {} : { reasoningEffort: effort };
+  const model = options.dshProvider === undefined
+    ? options.model
+    : dshProviderRequestedModel(options.dshProvider, options.model, options.resume !== undefined);
   if (model === undefined) { return effortOption; }
   const separator = model.indexOf("/");
   if (separator <= 0 || separator === model.length - 1) {
