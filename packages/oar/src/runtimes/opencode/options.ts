@@ -23,6 +23,7 @@ export const opencodeRefusedSessionOptions: RefusedSessionOptions = {
   disallowedTools: "opencode ACP has no session tool denylist; global permission rules can be overridden by agent rules and do not use the tool-name vocabulary consistently",
   nativeMemoryDefault: "OpenCode exposes no verified below-user default layer for background auto-memory",
   sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
+  nativePermissions: "This adapter has no verified per-session switch to inherit native permission and sandbox settings",
 };
 
 export const opencodeV1RefusedSessionOptions: RefusedSessionOptions = {

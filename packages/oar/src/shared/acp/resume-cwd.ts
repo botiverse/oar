@@ -10,7 +10,9 @@ import { type AcpProcess, methods, withAcpDeadline } from "./process.js";
  * have not received a prompt, but resumes them in their original directory.
  * Listing failures retain their native error classification; no resume follows them.
  */
-export async function refuseResumeElsewhere(process: AcpProcess, sessionId: string, cwd: string, timeoutMs: number): Promise<void> {
+export async function refuseResumeElsewhere(
+  process: AcpProcess, sessionId: string, cwd: string, timeoutMs: number, normalizeListedCwd?: (listedCwd: string) => string,
+): Promise<void> {
   const method = methods.agent.session.list;
   let cursor: string | null = null;
   const visited = new Set<string>();
@@ -26,7 +28,7 @@ export async function refuseResumeElsewhere(process: AcpProcess, sessionId: stri
     const found = sessions.find((session) => session.sessionId === sessionId);
     if (found !== undefined) {
       if (typeof found.cwd !== "string" || found.cwd.length === 0) { throw unknownResumeCwd(sessionId, cwd, "cwd_unreported"); }
-      if (!sameDirectory(found.cwd, cwd)) {
+      if (!sameDirectory(normalizeListedCwd?.(found.cwd) ?? found.cwd, cwd)) {
         throw new ResumeCwdError(`session ${sessionId} lives in ${found.cwd} and this runtime resumes it only there; the resume names ${cwd}`, {
           sessionId, requestedCwd: cwd, reason: "other_cwd", savedCwd: found.cwd,
         });

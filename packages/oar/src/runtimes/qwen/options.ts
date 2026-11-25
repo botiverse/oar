@@ -14,6 +14,7 @@ export const qwenRefusedSessionOptions: RefusedSessionOptions = {
   outputSchema: "Qwen rejects --json-schema with its long-lived stream-json input protocol",
   name: "Qwen's stream-json interface does not expose a session-name readback",
   sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
+  nativePermissions: "This adapter has no verified per-session switch to inherit native permission and sandbox settings",
 };
 
 /** Qwen 0.26.0+ supports lowering native auto-memory defaults via QWEN_CODE_SYSTEM_DEFAULTS_PATH. */

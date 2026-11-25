@@ -72,6 +72,7 @@ export const cursorRefusedSessionOptions: RefusedSessionOptions = {
   launchArgs: "Cursor runs in this process through its SDK; there is no runtime command line to add arguments to",
   nativeMemoryDefault: "Cursor exposes no verified below-user default layer for background auto-memory",
   sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
+  nativePermissions: "This adapter has no verified per-session switch to inherit native permission and sandbox settings",
 };
 
 /**

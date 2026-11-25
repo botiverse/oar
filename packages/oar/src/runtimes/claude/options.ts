@@ -10,6 +10,7 @@ export const claudeRefusedSessionOptions: RefusedSessionOptions = {
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted Claude turn's processes while its session stays usable",
   nativeMemoryDefault: "Claude Code has no configuration layer below user settings for a soft native-memory default",
   sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
+  nativePermissions: "This adapter has no verified per-session switch to inherit native permission and sandbox settings",
 };
 
 /** Oldest verified combination of a native sdk attribution and a readable effective setting. */

@@ -132,6 +132,23 @@ resume.
 | DSH (`< 0.2.1-rc.5` or unreadable) | Refused at open (`UnsupportedOptionError("sessionLogUpload", ...)`), declared in `sessionCapabilities`. |
 | All other runtimes | Refused at open (`refusedSessionOptions.sessionLogUpload`): no verified switch. |
 
+## Native permissions
+
+`SessionOptions.nativePermissions: "inherit"` leaves the runtime's own
+permission, approval and sandbox configuration in charge for that session
+instead of injecting OAR's default bypass flags. Omission preserves OAR's
+default noninteractive bypass; there is no `"bypass"` value, and any defined
+value other than `"inherit"` is refused with `UnsupportedOptionError` on
+`nativePermissions`. Supply it again on resume and fork; the launch choice is
+not recorded. Inheriting native approvals does not add an interactive approval
+channel: any server approval request that still reaches OAR is recorded and
+immediately declined so turns never hang.
+
+| Runtime | `nativePermissions: "inherit"` |
+|---|---|
+| Codex | Omits `-c sandbox_mode=...`, `approvalPolicy`, and `sandbox` on `thread/start`, `thread/resume`, and `thread/fork` (winning over `process.env.OAR_CODEX_SANDBOX` for that session). `thread/start` reads `sandbox_mode`, `approval_policy`, and `approvals_reviewer` from `CODEX_HOME/config.toml` (or `~/.codex/config.toml`); `thread/resume` and `thread/fork` follow Codex's native precedence (persisted rollout permissions before `config.toml`), so omission on a subsequent open is what restores OAR's bypass over a persisted restricted rollout (`read-only` or Windows `workspace-write`) by sending `sandbox` alongside `approvalPolicy: "never"`. Host `launchArgs` (such as `-c sandbox_mode=...`) suppress OAR's RPC `sandbox` override and take CLI precedence on `thread/start` (`thread/resume` restores persisted rollout profiles ahead of CLI `-c`). Requests routed to Codex's own reviewer (`guardian_subagent` / `auto_review`) settle natively; requests reaching OAR (such as `approvals_reviewer = "user"`) are recorded as `toApp` and immediately declined ([details](../runtimes/codex.md#tools-permissions-and-client-callbacks), [vendor test](../../sea-trial/vendor/codex-native-permissions.vendor.test.ts)). |
+| All other runtimes | Refused at open (`refusedSessionOptions.nativePermissions`): no verified per-session inherit switch. |
+
 ## Session controls
 
 `prompt`, `queue` and `abort` are on every session. `steer`, `withdraw` and `stopTask`
@@ -1004,7 +1021,7 @@ reading the message.
 
 `Runtime.refusedSessionOptions` declares, before any session opens, the
 `SessionOptions` a runtime refuses when given (`env`, `mcpServers`, `disallowedTools`, `launchArgs`, `additionalDirectories`: a
-non-empty one; `userConfiguration`: any exclusion; `partialUserConfiguration`: a proper nonempty subset; `goals`, `endTurnProcessesOnAbort`: `true`; `fork`: any value; `nativeMemoryDefault`: `"off"`; `sessionLogUpload`: `"off"`), each with that reason. The adapter checks the same map, so
+non-empty one; `userConfiguration`: any exclusion; `partialUserConfiguration`: a proper nonempty subset; `goals`, `endTurnProcessesOnAbort`: `true`; `fork`: any value; `nativeMemoryDefault`: `"off"`; `sessionLogUpload`: `"off"`; `nativePermissions`: `"inherit"`), each with that reason. The adapter checks the same map, so
 the declaration and the refusal cannot drift
 (`tests/refused-session-options.test.ts`). A host leaves a declared option
 out instead of naming runtimes. `outputSchema` is considered given even
@@ -1028,16 +1045,18 @@ isolation is unverified declares `mcpServerCredentials`. Every
 app-server and Grok ([ending a turn's processes](#ending-a-turns-processes-on-abort)),
 `nativeMemoryDefault: "off"` everywhere except Qwen `>= 0.26.0`
 ([native memory default](#native-memory-default)),
-and `sessionLogUpload: "off"` everywhere except DSH `>= 0.2.1-rc.5`
+`sessionLogUpload: "off"` everywhere except DSH `>= 0.2.1-rc.5`
 ([session log upload](#session-log-upload)),
+and `nativePermissions: "inherit"` everywhere except Codex
+([native permissions](#native-permissions)),
 for want of a verified way to end one aborted turn's processes while the
 session stays usable (in the host process, no process tree of its own to
-read), a below-user default settings layer, or a verified vendor session-log
-upload switch. Claude and Codex accept forks through a chosen turn. OpenCode v2
+read), a below-user default settings layer, a verified vendor session-log
+upload switch, or a verified per-session native permissions inherit path. Claude and Codex accept forks through a chosen turn. OpenCode v2
 can copy a whole session. Other adapters refuse `fork`
 ([forking a session](#forking-a-session)). `modelRequests: "latest"` is accepted
 by Claude (`>= 2.1.274`) and Pi SDK, and refused elsewhere
-([model-request.md](model-request.md)). The table omits all six, apart
+([model-request.md](model-request.md)). The table omits all seven, apart
 from Codex's shared-placement refusal.
 
 `piProvider` and `piCompaction` are Pi-only: every other runtime refuses both.

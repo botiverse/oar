@@ -1,0 +1,646 @@
+{
+  "window": {
+    "from": "2026-11-23T21:08:00Z",
+    "through": "2026-11-24T21:07:59Z",
+    "basis": "workflow creation time, every observed attempt, job IDs counted once"
+  },
+  "workflowCounts": {
+    "ci.yml": {
+      "runs": 17,
+      "attempts": 18,
+      "uniqueJobs": 375,
+      "outcomes": {
+        "success": 360,
+        "skipped": 11,
+        "cancelled": 3,
+        "failure": 1
+      },
+      "zeroJobAttempts": [
+        {
+          "run": 45415537179,
+          "attempt": 1,
+          "conclusion": "action_required"
+        },
+        {
+          "run": 45392862274,
+          "attempt": 1,
+          "conclusion": "action_required"
+        }
+      ]
+    },
+    "acp-windows.yml": {
+      "runs": 7,
+      "attempts": 7,
+      "uniqueJobs": 21,
+      "outcomes": {
+        "success": 14,
+        "skipped": 7
+      },
+      "zeroJobAttempts": []
+    },
+    "runtime-latest.yml": {
+      "runs": 1,
+      "attempts": 1,
+      "uniqueJobs": 42,
+      "outcomes": {
+        "success": 39,
+        "failure": 3
+      },
+      "zeroJobAttempts": []
+    },
+    "platform-matrix.yml": {
+      "runs": 1,
+      "attempts": 1,
+      "uniqueJobs": 7,
+      "outcomes": {
+        "success": 6,
+        "failure": 1
+      },
+      "zeroJobAttempts": []
+    }
+  },
+  "failedJobs": [
+    {
+      "workflow": "ci.yml",
+      "attempt": 1,
+      "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+      "url": "https://github.com/botiverse/oar/actions/runs/45269895777/job/138026716705",
+      "case": "session.effort-never-substituted",
+      "native": {
+        "trace": "https://github.com/botiverse/oar/actions/runs/45269895777/artifacts/14865121054",
+        "preparedVersion": "opencode v2.2.7",
+        "preparation": "ready",
+        "operation": [
+          "configure database"
+        ],
+        "reason": [
+          "disk I/O error"
+        ],
+        "codes": [],
+        "nativeErrorAfterOpenMs": 863,
+        "peersAtError": {
+          "opening": 0,
+          "open": 0,
+          "closing": 1
+        },
+        "peersAtRejection": {
+          "opening": 0,
+          "open": 0,
+          "closing": 1
+        },
+        "presentAtRejection": [
+          "opencode.db",
+          "opencode.db-wal",
+          "opencode.db-shm"
+        ]
+      },
+      "successfulRetry": "https://github.com/botiverse/oar/actions/runs/45269895777/job/138030458023"
+    },
+    {
+      "workflow": "runtime-latest.yml",
+      "attempt": 1,
+      "name": "native (opencode-cleanup, windows-latest, opencode-cleanup)",
+      "url": "https://github.com/botiverse/oar/actions/runs/45341232470/job/138265219854",
+      "version": "2.4.1",
+      "successfulListingBytes": 764,
+      "brokenPluginPartial": false
+    },
+    {
+      "workflow": "runtime-latest.yml",
+      "attempt": 1,
+      "name": "native (opencode-cleanup, ubuntu-latest, opencode-cleanup)",
+      "url": "https://github.com/botiverse/oar/actions/runs/45341232470/job/138265219861",
+      "version": "2.4.1",
+      "successfulListingBytes": 764,
+      "brokenPluginPartial": false
+    },
+    {
+      "workflow": "runtime-latest.yml",
+      "attempt": 1,
+      "name": "native (opencode-cleanup, macos-latest, opencode-cleanup)",
+      "url": "https://github.com/botiverse/oar/actions/runs/45341232470/job/138265219924",
+      "version": "2.4.1",
+      "successfulListingBytes": 764,
+      "brokenPluginPartial": false
+    },
+    {
+      "workflow": "platform-matrix.yml",
+      "attempt": 1,
+      "name": "shards (windows-behavior-1, windows-latest)",
+      "url": "https://github.com/botiverse/oar/actions/runs/45319484528/job/138194283225",
+      "case": "session.effort-never-substituted",
+      "native": {
+        "trace": "https://github.com/botiverse/oar/actions/runs/45319484528/artifacts/14887192548",
+        "preparedVersion": "opencode v2.2.7",
+        "preparation": "ready",
+        "operation": [
+          "configure database"
+        ],
+        "reason": [
+          "disk I/O error"
+        ],
+        "codes": [],
+        "nativeErrorAfterOpenMs": 534,
+        "peersAtError": {
+          "opening": 0,
+          "open": 0,
+          "closing": 1
+        },
+        "peersAtRejection": {
+          "opening": 0,
+          "open": 0,
+          "closing": 1
+        },
+        "presentAtRejection": [
+          "opencode.db",
+          "opencode.db-wal",
+          "opencode.db-shm"
+        ]
+      }
+    }
+  ],
+  "frozen": {
+    "source": "https://github.com/botiverse/oar/actions/runs/45341232470/artifacts/14895269348",
+    "at": "2026-11-24T06:32:50.877Z",
+    "runtimes": {
+      "claude-aimock": "2.1.331",
+      "codex-aimock": "0.172.0",
+      "qwen-aimock": "0.28.4",
+      "factory-aimock": "1.19.0",
+      "kimi-aimock": "2.7.3",
+      "grok-aimock": "1.0.92",
+      "codebuddy-aimock": "2.185.0",
+      "opencode-aimock": "1.19.6",
+      "opencode-cleanup": "2.4.1",
+      "kimi-login": "2.7.3",
+      "kimi-skills": "2.7.3",
+      "antigravity-aimock": "1.5.16"
+    },
+    "sdks": {
+      "cursor": {
+        "@cursor/sdk": "1.4.2"
+      },
+      "pi": {
+        "@earendil-works/pi-coding-agent": "1.6.0",
+        "undici": "8.12.4",
+        "@earendil-works/pi-ai": "1.6.0",
+        "@earendil-works/pi-durable": "1.6.0",
+        "@earendil-works/chord": "1.6.0"
+      }
+    }
+  },
+  "antigravity": {
+    "release": {
+      "tag_name": "1.5.16",
+      "published_at": "2026-11-24T04:06:53Z",
+      "html_url": "https://github.com/google-antigravity/antigravity-cli/releases/tag/1.5.16"
+    },
+    "jobs": [
+      {
+        "name": "native (antigravity-aimock, windows-latest, acp)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/45341232470/job/138265219952"
+      },
+      {
+        "name": "native (antigravity-aimock, ubuntu-latest, acp)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/45341232470/job/138265219986"
+      },
+      {
+        "name": "native (antigravity-aimock, macos-latest, acp)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/45341232470/job/138265220062"
+      }
+    ],
+    "manifests": {
+      "Linux-X64": {
+        "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json",
+        "version": "1.5.16",
+        "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.16-5250855658717184/linux-x64/cli_linux_x64.tar.gz",
+        "sha512": "3dee9f26e298156db673f6ce2a0f5dfed5b30006e04ceb9809c68070e7b717587b33a3da0f8bc2eda45af81a50bc8b14c82b28ae5832bcfe3e7fd49397117b31"
+      },
+      "macOS-ARM64": {
+        "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/darwin_arm64.json",
+        "version": "1.5.16",
+        "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.16-5250855658717184/darwin-arm/cli_mac_arm64.tar.gz",
+        "sha512": "33f5617dc74fea606d47b2483c6d271c850c9f3c9c55b724c664c3c0d4b82100d819fbcf55714f851765f6628d4296883ac8939b4fdeb55d5e6b9ce923135d18"
+      },
+      "macOS-X64": {
+        "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/darwin_amd64.json",
+        "version": "1.5.16",
+        "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.16-5250855658717184/darwin-x64/cli_mac_x64.tar.gz",
+        "sha512": "b3eae073ee633032e9d473cdc7725c30bdfe2e09436bc36cfb3422e7e5fa3733de9591a7f78d02362294e7bf87e345d70e5d839689e526129a6f3fc041857a05"
+      },
+      "Windows-X64": {
+        "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/windows_amd64.json",
+        "version": "1.5.16",
+        "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.16-5250855658717184/windows-x64/cli_windows_x64.exe",
+        "sha512": "058a85911c40a0beba24d0ae4e3227ea5060388060d4746aa6b48722ff43516c16fbffe6d30e31e2c266d5b47495a7886f072cc4e0143b26eb3cd9a007578c83"
+      }
+    }
+  },
+  "inventoryAt": "2026-11-24T21:09:22.148Z",
+  "inventory": [
+    {
+      "runtime": "antigravity",
+      "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json",
+      "latest": "1.5.16"
+    },
+    {
+      "runtime": "claude",
+      "source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest",
+      "latest": "2.1.331"
+    },
+    {
+      "runtime": "codex",
+      "source": "https://registry.npmjs.org/@openai/codex/latest",
+      "latest": "0.172.0"
+    },
+    {
+      "runtime": "cursor",
+      "source": "https://registry.npmjs.org/@cursor/sdk/latest",
+      "latest": "1.5.0",
+      "previousObservation": "1.4.2",
+      "publishedAt": "2026-11-24T19:36:19.723Z"
+    },
+    {
+      "runtime": "dsh",
+      "source": "https://registry.npmjs.org/@deepseek-ai/dsh/latest",
+      "latest": "0.2.2-rc.5"
+    },
+    {
+      "runtime": "factory",
+      "source": "https://registry.npmjs.org/droid/latest",
+      "latest": "1.19.0",
+      "previousObservation": "1.18.0",
+      "publishedAt": "2026-11-24T05:12:33.664Z"
+    },
+    {
+      "runtime": "grok",
+      "source": "https://x.ai/cli/stable",
+      "latest": "1.0.92"
+    },
+    {
+      "runtime": "kimi",
+      "source": "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest",
+      "latest": "2.7.3"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v1",
+      "source": "https://registry.npmjs.org/opencode-ai/latest",
+      "latest": "1.19.6"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v2",
+      "source": "https://registry.npmjs.org/@opencode/cli/latest",
+      "latest": "2.4.1"
+    },
+    {
+      "runtime": "codebuddy",
+      "source": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest",
+      "latest": "2.186.0",
+      "previousObservation": "2.185.0",
+      "publishedAt": "2026-11-24T06:39:04.637Z"
+    },
+    {
+      "runtime": "qoder",
+      "source": "https://registry.npmjs.org/@qoder-ai/qodercli/latest",
+      "latest": "1.1.97",
+      "previousObservation": "1.1.96",
+      "publishedAt": "2026-11-24T13:52:15.450Z"
+    },
+    {
+      "runtime": "qwen",
+      "source": "https://registry.npmjs.org/@qwen-code/qwen-code/latest",
+      "latest": "0.28.4"
+    },
+    {
+      "runtime": "pi",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/latest",
+      "latest": "1.6.0"
+    },
+    {
+      "runtime": "pi-durable",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-durable/latest",
+      "latest": "1.6.0"
+    }
+  ],
+  "linuxProbes": {
+    "baseCommit": "8ec51b3e",
+    "platform": "linux-x64",
+    "factory": {
+      "version": "1.19.0",
+      "behavior": "factory-aimock: 20 passed, 0 skipped, 0 failed",
+      "vendor": "Tests  13 passed | 592 skipped (605)",
+      "native": {
+        "steer": {
+          "addUserMessageReply": {},
+          "turnEnds": [
+            "first"
+          ],
+          "steerQueuedAs": "end_of_turn",
+          "steerEchoed": true,
+          "lastProviderRequestHasSteer": true,
+          "endReason": "completed"
+        },
+        "interrupt": {
+          "interruptReply": {},
+          "endReason": "cancelled",
+          "discardedNamesSteerRpcId": true
+        },
+        "compaction": {
+          "emptyConversation": {
+            "code": -32602,
+            "message": "Nothing to compact — the conversation is empty."
+          },
+          "sameSessionId": true,
+          "reportedSessionCompacted": true,
+          "removedCount": 5
+        }
+      }
+    },
+    "codebuddy": {
+      "version": "2.186.0",
+      "behavior": "codebuddy-aimock: 17 passed, 3 skipped, 0 failed",
+      "vendor": "Tests  9 passed | 596 skipped (605)"
+    },
+    "qoder": {
+      "version": "1.1.97",
+      "status": "no_offline_replay_requires_real_account",
+      "submittedPrompts": 0
+    },
+    "cursor": {
+      "version": "1.5.0",
+      "sdkCompileAndReplay": [
+        {
+          "sdkVersion": "1.4.1",
+          "compilerExitCode": 0,
+          "diagnostics": "",
+          "sourceDerivedUsageReplay": {
+            "callEvents": [
+              {
+                "kind": "usage",
+                "usage": {
+                  "context": {
+                    "tokens": 100,
+                    "contextWindow": null,
+                    "percent": null
+                  }
+                }
+              }
+            ],
+            "turnEvents": [
+              {
+                "kind": "usage",
+                "usage": {
+                  "tokens": {
+                    "input": 100,
+                    "output": 20,
+                    "cacheRead": 30,
+                    "cacheWrite": 10
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "sdkVersion": "1.5.0",
+          "compilerExitCode": 0,
+          "diagnostics": "",
+          "sourceDerivedUsageReplay": {
+            "callEvents": [
+              {
+                "kind": "usage",
+                "usage": {
+                  "context": {
+                    "tokens": 100,
+                    "contextWindow": null,
+                    "percent": null
+                  }
+                }
+              }
+            ],
+            "turnEvents": [
+              {
+                "kind": "usage",
+                "usage": {
+                  "tokens": {
+                    "input": 100,
+                    "output": 20,
+                    "cacheRead": 30,
+                    "cacheWrite": 10
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "localLoginScenariosPassed": 12,
+      "localConfiguration": [
+        {
+          "label": "oar default",
+          "configuration": [
+            {
+              "scope": "user",
+              "included": true,
+              "ruleRead": false,
+              "agentsRead": false,
+              "mcpConnected": true,
+              "hookExecuted": true,
+              "modelConfigRead": false
+            },
+            {
+              "scope": "project",
+              "included": true,
+              "ruleRead": true,
+              "agentsRead": true,
+              "mcpConnected": true,
+              "hookExecuted": true,
+              "modelConfigRead": false
+            }
+          ],
+          "model": {
+            "id": "gpt-5.4-nano"
+          },
+          "storedLoginUsed": true,
+          "authenticatedRunReachedLocalBackend": true,
+          "terminalStatus": "error"
+        },
+        {
+          "label": "oar include",
+          "configuration": [
+            {
+              "scope": "user",
+              "included": true,
+              "ruleRead": false,
+              "agentsRead": false,
+              "mcpConnected": true,
+              "hookExecuted": true,
+              "modelConfigRead": false
+            },
+            {
+              "scope": "project",
+              "included": true,
+              "ruleRead": true,
+              "agentsRead": true,
+              "mcpConnected": true,
+              "hookExecuted": true,
+              "modelConfigRead": false
+            }
+          ],
+          "model": {
+            "id": "gpt-5.4-nano"
+          },
+          "storedLoginUsed": true,
+          "authenticatedRunReachedLocalBackend": true,
+          "terminalStatus": "error"
+        },
+        {
+          "label": "native omitted control",
+          "configuration": [
+            {
+              "scope": "user",
+              "included": false,
+              "ruleRead": false,
+              "agentsRead": false,
+              "mcpConnected": false,
+              "hookExecuted": false,
+              "modelConfigRead": false
+            },
+            {
+              "scope": "project",
+              "included": false,
+              "ruleRead": false,
+              "agentsRead": false,
+              "mcpConnected": false,
+              "hookExecuted": false,
+              "modelConfigRead": false
+            }
+          ],
+          "model": {
+            "id": "gpt-5.4-nano"
+          },
+          "storedLoginUsed": true,
+          "authenticatedRunReachedLocalBackend": true,
+          "terminalStatus": "error"
+        },
+        {
+          "label": "native user positive control",
+          "configuration": [
+            {
+              "scope": "user",
+              "included": true,
+              "ruleRead": false,
+              "agentsRead": false,
+              "mcpConnected": true,
+              "hookExecuted": true,
+              "modelConfigRead": false
+            },
+            {
+              "scope": "project",
+              "included": false,
+              "ruleRead": false,
+              "agentsRead": false,
+              "mcpConnected": false,
+              "hookExecuted": false,
+              "modelConfigRead": false
+            }
+          ],
+          "model": {
+            "id": "gpt-5.4-nano"
+          },
+          "storedLoginUsed": true,
+          "authenticatedRunReachedLocalBackend": true,
+          "terminalStatus": "error"
+        },
+        {
+          "label": "oar exclude",
+          "configuration": [
+            {
+              "scope": "user",
+              "included": false,
+              "ruleRead": false,
+              "agentsRead": false,
+              "mcpConnected": false,
+              "hookExecuted": false,
+              "modelConfigRead": false
+            },
+            {
+              "scope": "project",
+              "included": false,
+              "ruleRead": false,
+              "agentsRead": false,
+              "mcpConnected": false,
+              "hookExecuted": false,
+              "modelConfigRead": false
+            }
+          ],
+          "model": {
+            "id": "gpt-5.4-nano"
+          },
+          "storedLoginUsed": true,
+          "authenticatedRunReachedLocalBackend": true,
+          "terminalStatus": "error"
+        },
+        {
+          "label": "oar exclude after reopen",
+          "configuration": [
+            {
+              "scope": "user",
+              "included": false,
+              "ruleRead": false,
+              "agentsRead": false,
+              "mcpConnected": false,
+              "hookExecuted": false,
+              "modelConfigRead": false
+            },
+            {
+              "scope": "project",
+              "included": false,
+              "ruleRead": false,
+              "agentsRead": false,
+              "mcpConnected": false,
+              "hookExecuted": false,
+              "modelConfigRead": false
+            }
+          ],
+          "model": {
+            "id": "gpt-5.4-nano"
+          },
+          "storedLoginUsed": true,
+          "authenticatedRunReachedLocalBackend": true,
+          "terminalStatus": "error"
+        },
+        {
+          "credentialFileUnchangedAfterDisposalAndReopen": true,
+          "originalLoginStillPresent": true,
+          "inferencePerformed": false
+        }
+      ],
+      "nativeSkillObserver": {
+        "original": "Both fixtures failed before comparing skill rows: (0, y.q6) is not a function.",
+        "diagnosticChange": "In the test observer only, replaced y.q6 with the 1.5.0 bundle context factory b.q6.",
+        "controls": [
+          {
+            "git": false,
+            "nativeRows": 22,
+            "publishedItems": 19,
+            "partial": true,
+            "parity": true
+          },
+          {
+            "git": true,
+            "nativeRows": 26,
+            "publishedItems": 23,
+            "partial": true,
+            "parity": true
+          }
+        ]
+      }
+    }
+  }
+}

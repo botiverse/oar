@@ -49,6 +49,7 @@ export const morphRefusedSessionOptions: RefusedSessionOptions = {
   launchArgs: "morph sessions run in its Console process, which a session neither starts nor owns",
   name: "OAR knows no morph session name setting",
   sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
+  nativePermissions: "This adapter has no verified per-session switch to inherit native permission and sandbox settings",
 };
 
 interface Held {

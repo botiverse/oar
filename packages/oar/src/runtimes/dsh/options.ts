@@ -16,6 +16,7 @@ export const dshRefusedSessionOptions: RefusedSessionOptions = {
   userConfiguration: "DSH default-config dumping omits provider routes with user patches; no verified boot filter preserves providers, login and history",
   endTurnProcessesOnAbort: "DSH cancellation leaves background jobs alive; selected Linux jobs can be killed natively, but complete per-turn process cleanup is not verified",
   nativeMemoryDefault: "DSH exposes no verified below-user default layer for background auto-memory",
+  nativePermissions: "This adapter has no verified per-session switch to inherit native permission and sandbox settings",
 };
 
 /** Session-scoped directory grants are effective for file and process writes on these platforms. */

@@ -39,7 +39,7 @@ try {
   const usage = { inputTokens: 100, outputTokens: 20, cacheReadTokens: 30, cacheWriteTokens: 10 };
   const call = foldCursorDelta(initialCursorProjection, { type: "model-call-completed", modelCallId: "synthetic-call", usage });
   const turn = foldCursorDelta(call.state, { type: "turn-ended", usage });
-  assert.deepEqual(call.frame.events, []);
+  assert.deepEqual(call.frame.events, [{ kind: "usage", usage: { context: { tokens: 100, contextWindow: null, percent: null } } }]);
   assert.deepEqual(turn.frame.events, [{ kind: "usage", usage: { tokens: { input: 100, output: 20, cacheRead: 30, cacheWrite: 10 } } }]);
   const diagnostics = `${checked.stdout}${checked.stderr}`
     .replaceAll(path.resolve(directory), "<sdk>")

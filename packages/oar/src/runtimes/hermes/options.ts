@@ -21,6 +21,7 @@ export const hermesRefusedSessionOptions: RefusedSessionOptions = {
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted Hermes turn's processes while its session stays usable",
   userConfiguration: "OAR has not verified isolating a Hermes session from the profile's user configuration, including selected parts of it",
   nativeMemoryDefault: "Hermes exposes no verified settings layer below user configuration for native memory",
+  nativePermissions: "Hermes exposes no verified per-session switch to inherit native permission and sandbox settings",
   sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
   // The gateway binds editor MCP servers under a session scope that OAR has
   // not verified as ephemeral. A stdio entry without env attaches; a served
