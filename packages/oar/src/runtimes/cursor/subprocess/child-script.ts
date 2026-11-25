@@ -154,7 +154,7 @@ const parentGone = () => {
   try { process.kill(parent, 0); return false; } catch (error) { return error.code === "ESRCH"; }
 };
 setInterval(() => { if (parentGone()) { orphaned = true; void shutdown(1); } }, 1000).unref();
-if (electron === null) { delete process.env.ELECTRON_RUN_AS_NODE; } else { process.env.ELECTRON_RUN_AS_NODE = electron; }
+if (electron === null) { delete process.env.ELECTRON_RUN_AS_NODE; } else if (typeof electron === "string") { process.env.ELECTRON_RUN_AS_NODE = electron; }
 try {
   const root = path.dirname(require("node:module").createRequire(sdkModule).resolve("@cursor/sdk-" + process.platform + "-" + process.arch + "/package.json"));
   process.env.CURSOR_TREE_SITTER_VENDOR_DIR ??= path.join(root, "vendor");
@@ -249,13 +249,27 @@ function taskkillPath(): string | null {
   return path.win32.join(environmentValue(process.env, "SystemRoot") ?? String.raw`C:\Windows`, "System32", "taskkill.exe");
 }
 
+/** Custom child command spawned with `[...(args ?? []), spec]` when a host cannot run `process.execPath -e`. */
+export interface CursorChildProcess {
+  readonly command: string;
+  readonly args?: readonly string[];
+}
+
 /**
  * The launch of one cursor child: the script, its spec, and its environment
- * with `ELECTRON_RUN_AS_NODE=1` and a fresh environment marker
- * (`OAR_CURSOR_CHILD_<id>=1`), which everything the child starts inherits.
+ * with a fresh environment marker (`OAR_CURSOR_CHILD_<id>=1`) that everything
+ * the child starts inherits. Only the default `node -e` launch injects
+ * `ELECTRON_RUN_AS_NODE=1` (and asks the child to restore the host's value);
+ * a custom `childProcess` keeps `ELECTRON_RUN_AS_NODE` untouched.
  */
-export function cursorChildLaunch(sdkModule: string, env: Readonly<NodeJS.ProcessEnv>): { readonly script: string; readonly argument: string; readonly env: NodeJS.ProcessEnv; readonly marker: string } {
+export function cursorChildLaunch(
+  sdkModule: string,
+  env: Readonly<NodeJS.ProcessEnv>,
+  customChild = false,
+): { readonly script: string; readonly argument: string; readonly env: NodeJS.ProcessEnv; readonly marker: string } {
   const marker = newEnvironmentMarker();
-  const spec = [sdkModule, Math.floor(killGraceMs() / 2), environmentValue(env, "ELECTRON_RUN_AS_NODE") ?? null, taskkillPath(), marker.entry];
-  return { script: SCRIPT, argument: JSON.stringify(spec), env: sessionEnvironment({ ELECTRON_RUN_AS_NODE: "1", [marker.name]: "1" }, env), marker: marker.entry };
+  const electron = customChild ? false : (environmentValue(env, "ELECTRON_RUN_AS_NODE") ?? null);
+  const spec = [sdkModule, Math.floor(killGraceMs() / 2), electron, taskkillPath(), marker.entry];
+  const overlay = customChild ? { [marker.name]: "1" } : { ELECTRON_RUN_AS_NODE: "1", [marker.name]: "1" };
+  return { script: SCRIPT, argument: JSON.stringify(spec), env: sessionEnvironment(overlay, env), marker: marker.entry };
 }

@@ -112,7 +112,7 @@ this page holds for both unless it says otherwise.
 
 | | In process (default) | Subprocess |
 | --- | --- | --- |
-| Option | `{ sdk: () => import("@cursor/sdk") }` | `{ execution: "subprocess", sdkModule, envBase? }` |
+| Option | `{ sdk: () => import("@cursor/sdk") }` | `{ execution: "subprocess", sdkModule, envBase?, childProcess? }` |
 | Where the SDK runs | The host process; one load shared by every session | A Node child per session, and a one-shot child per model listing, login, logout and status call |
 | `Runtime.execution`, `Session.placement` | `in_process`, `in_process` | `process`, `isolated` (no shared placement) |
 | Environment of the agent's tools | The host's whole `process.env` | The child's: `SessionOptions.env` over the host's environment, or over nothing ([child environment](#child-environment)) |
@@ -135,16 +135,29 @@ const cursor = createCursorRuntime({
 });
 ```
 
-**How the child runs.** The child is the host's own executable
+**How the child runs.** By default the child is the host's own executable
 (`process.execPath -e <script>`). A compiled single executable host (Node
-SEA, Bun standalone) cannot run one, because its executable starts the
-application again: there every subprocess call (session, model listing,
-login, logout, status) rejects with that reason, and such a host uses the
-in-process mode. The child runs with stdin ignored, stdout drained,
+SEA, Bun standalone) cannot run `-e`, because its executable starts the
+application again: without `childProcess`, `installation()` refuses the host
+and every subprocess call (session, model listing, login, logout, status)
+rejects with that reason. Such a host can either use in-process mode or pass
+`childProcess: { command, args? }` to spawn a hidden child entrypoint of its
+own executable and call the exported `runCursorChild(spec)` helper from that
+entrypoint. When `childProcess` is set, OAR spawns `command` with
+`[...(args ?? []), spec]` over the same Node IPC channel (`serialization:
+"advanced"`), leaves `ELECTRON_RUN_AS_NODE` untouched, and keeps platform,
+Node version, and `sdkModule` resolution checks in `installation()`.
+`runCursorChild(spec)` takes over the child process (hooks IPC, signals, and
+exit, and calls `process.exit`), validates IPC and `spec` synchronously, and
+loads `@cursor/sdk` only by dynamic `import(sdkModule)` from the spec so
+bundlers cannot alias a bare `@cursor/sdk` specifier away (CJS-bundled SEA
+hosts must keep native dynamic `import()` intact, e.g. esbuild
+`--supported:dynamic-import=true`); never call it in the parent process. The child runs with stdin ignored, stdout drained,
 stderr kept as an 8 KiB tail, and a Node IPC channel (`serialization:
-"advanced"`). The script is self-contained (Node built-ins only), because a
-host that bundles OAR may have no separate file to point at; it is about
-9,000 characters, well within the Windows command line limit (32767 characters). A host-side proxy implements
+"advanced"`). The default inline script is self-contained (Node built-ins
+only), because a host that bundles OAR may have no separate file to point at;
+it is about 9,000 characters, well within the Windows command line limit
+(32767 characters). A host-side proxy implements
 `CursorSdk` over the channel: every SDK call is a request with an id and a
 reply; a run's `onDelta` updates and `run.stream()` messages arrive as
 events; `wait`, `cancel`, `steer`, `summarize` and `close` are requests.
@@ -156,6 +169,7 @@ tell an `AuthenticationError` (401) or `agent_not_found` apart
 A session's child also answers the model and run lookups its open makes
 (`Cursor.models.list`, `Agent.listRuns`); an open that fails ends the
 child. Sources: [child script](../../packages/oar/src/runtimes/cursor/subprocess/child-script.ts),
+[child runner](../../packages/oar/src/runtimes/cursor/subprocess/child-runner.ts),
 [channel](../../packages/oar/src/runtimes/cursor/subprocess/channel.ts),
 [proxy](../../packages/oar/src/runtimes/cursor/subprocess/proxy.ts),
 [spawn](../../packages/oar/src/shared/executable/node-script.ts).
@@ -342,9 +356,11 @@ none of this applies: the SDK reads the host's own variable.
 
 What OAR adds, in both bases:
 
-- `ELECTRON_RUN_AS_NODE=1`, only to start the child; the child removes it
-  from its `process.env` (or puts back the value `env` gave it) before it
-  imports the SDK.
+- `ELECTRON_RUN_AS_NODE=1`, only for the default `process.execPath -e` child
+  launch; the child removes it from its `process.env` (or puts back the value
+  `env` gave it) before it imports the SDK. When `childProcess` is set, OAR
+  does not inject `ELECTRON_RUN_AS_NODE` and `runCursorChild` leaves it
+  untouched.
 - `OAR_CURSOR_CHILD_<id>=1`, the environment marker, with a fresh random
   id per child: tool shells see it, also under `clean`. It is not a secret;
   OAR uses it to find what the child started ([the child's
@@ -920,8 +936,8 @@ packages (darwin arm64 and x64, linux arm64 and x64, win32 x64, per
 `package.json` `optionalDependencies`); `unsupported_node_version` below Node
 22.13.0 (per `package.json` `engines.node`); and, in subprocess mode,
 `unsupported_host` on a compiled single executable (Node SEA or Bun
-standalone) or `dependency_missing` when `sdkModule` cannot be resolved on
-disk. In-process mode does not call the host's `sdk()` loader during
+standalone) when `childProcess` is not configured, or `dependency_missing`
+when `sdkModule` cannot be resolved on disk. In-process mode does not call the host's `sdk()` loader during
 discovery; where the package is missing anyway, the first call that needs the
 SDK fails with `cursor could not load @cursor/sdk through the host's sdk
 loader`, carrying the loader's error as its cause. There is no update check or

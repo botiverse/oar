@@ -6,6 +6,7 @@ import { sessionEnvironment } from "../../shared/environment.js";
 import { cursorRefusedSessionOptions, cursorSubprocessRefusedSessionOptions } from "./model.js";
 import { cursorSdkLoader, type CursorSdk } from "./sdk.js";
 import { openCursorChannel, type CursorChildExit } from "./subprocess/channel.js";
+import type { CursorChildProcess } from "./subprocess/child-script.js";
 import { proxySdk } from "./subprocess/proxy.js";
 
 /** The SDK for one session or one call, and what reaching it started. */
@@ -75,7 +76,10 @@ export function inProcessAccess(loader: () => Promise<CursorSdk>, loadOnce = fal
  * so the agent's tools neither inherit it nor can read it from the child's
  * `/proc/<pid>/environ`.
  */
-export function subprocessAccess(sdkModule: string, envBase: "inherit" | "clean" = "inherit"): CursorSdkAccess {
+export function subprocessAccess(sdkModule: string, envBase: "inherit" | "clean" = "inherit", childProcess?: CursorChildProcess): CursorSdkAccess {
+  if (childProcess !== undefined && childProcess.command.trim() === "") {
+    throw new RangeError("Cursor subprocess childProcess.command must be a non-empty string");
+  }
   const environment = (overlay: SessionOptions["env"]): NodeJS.ProcessEnv => (envBase === "clean" ? sessionEnvironment(overlay, {}) : sessionEnvironment(overlay));
   return {
     execution: "subprocess",
@@ -86,7 +90,7 @@ export function subprocessAccess(sdkModule: string, envBase: "inherit" | "clean"
       const credentials = sessionCredentialRedactor(overlay === undefined ? {} : { env: overlay });
       const apiKey = readEnvironmentCredential(env, "CURSOR_API_KEY", credentials);
       const childEnv = apiKey === undefined ? env : sessionEnvironment({ CURSOR_API_KEY: null }, env);
-      const channel = await openCursorChannel(sdkModule, childEnv, use === "session", own, credentials.redact);
+      const channel = await openCursorChannel(sdkModule, childEnv, use === "session", own, credentials.redact, childProcess);
       return { sdk: proxySdk(channel, apiKey), env, child: channel, release: async () => { const exit = await channel.stop(); return exit; } };
     },
   };

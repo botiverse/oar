@@ -197,8 +197,10 @@ test("cursor installation enforces platform, Node >=22.13, non-SEA and resolvabl
   expect(await cursorInstallationFor("linux", "x64", "in_process", { host: { ...healthyHost, nodeVersion: "22.12.0" } })())
     .toMatchObject({ kind: "unsupported", code: "unsupported_node_version", installedVersion: "22.12.0", requiredVersion: "22.13.0" });
 
-  expect(await cursorInstallationFor("linux", "x64", "subprocess", { sdkModule: "@cursor/sdk", host: { ...healthyHost, compiledSingleExecutable: true } })())
-    .toMatchObject({ kind: "unsupported", code: "unsupported_host" });
+  const compiledRefusal = await cursorInstallationFor("linux", "x64", "subprocess", { sdkModule: "@cursor/sdk", host: { ...healthyHost, compiledSingleExecutable: true } })();
+  expect(compiledRefusal).toMatchObject({ kind: "unsupported", code: "unsupported_host" });
+  expect(compiledRefusal.kind === "unsupported" ? compiledRefusal.reason : "").toContain("childProcess");
+  expect(compiledRefusal.kind === "unsupported" ? compiledRefusal.reason : "").toContain("runCursorChild");
 
   // In-process mode does not spawn process.execPath.
   expect(await cursorInstallationFor("linux", "x64", "in_process", { host: { ...healthyHost, compiledSingleExecutable: true } })())
@@ -211,6 +213,23 @@ test("cursor installation enforces platform, Node >=22.13, non-SEA and resolvabl
 
   const missingRuntime = createCursorRuntime({ execution: "subprocess", sdkModule: path.join(scratch, "missing-cursor-sdk.mjs") });
   expect(await missingRuntime.installation()).toMatchObject({ kind: "unsupported", code: "dependency_missing" });
+});
+
+test("cursor subprocess installation allows compiled single executables when childProcess is configured", async () => {
+  const childProcess = { command: "/opt/raft-computer", args: ["--cursor-sdk-child"] } as const;
+  const compiledHost = { ...healthyHost, compiledSingleExecutable: true } as const;
+
+  expect(await cursorInstallationFor("linux", "x64", "subprocess", { sdkModule: "@cursor/sdk", childProcess, host: compiledHost })())
+    .toEqual({ kind: "available", via: "bundled" });
+  expect(await cursorInstallationFor("win32", "arm64", "subprocess", { sdkModule: "@cursor/sdk", childProcess, host: compiledHost })())
+    .toMatchObject({ kind: "unsupported", code: "unsupported_platform" });
+  expect(await cursorInstallationFor("linux", "x64", "subprocess", { sdkModule: "@cursor/sdk", childProcess, host: { ...compiledHost, nodeVersion: "22.12.0" } })())
+    .toMatchObject({ kind: "unsupported", code: "unsupported_node_version" });
+  expect(await cursorInstallationFor("linux", "x64", "subprocess", {
+    sdkModule: "file:///nonexistent/cursor-sdk.mjs",
+    childProcess,
+    host: { ...compiledHost, resolveModule: () => null },
+  })()).toMatchObject({ kind: "unsupported", code: "dependency_missing" });
 });
 
 test("pi RPC installation enforces non-SEA, non-Electron and resolvable rpc-entry when no command is given", async () => {
