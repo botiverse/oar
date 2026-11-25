@@ -12,6 +12,7 @@ export interface RuntimeUnderTest {
     readonly model?: string;
     readonly effort?: string;
     readonly serviceTier?: string;
+    readonly serviceTierFallback?: "default";
     readonly systemPrompt?: string;
     readonly appendSystemPrompt?: string;
     readonly mcpServers?: readonly McpServer[];
@@ -41,6 +42,7 @@ export function runtimeUnderTest(
         ...(model === undefined ? {} : { model }),
         ...(overrides.effort === undefined ? {} : { effort: overrides.effort }),
         ...(overrides.serviceTier === undefined ? {} : { serviceTier: overrides.serviceTier }),
+        ...(overrides.serviceTierFallback === undefined ? {} : { serviceTierFallback: overrides.serviceTierFallback }),
         ...(env === undefined ? {} : { env }),
         ...(overrides.resume === undefined ? {} : { resume: overrides.resume }),
         ...(overrides.systemPrompt === undefined ? {} : { systemPrompt: overrides.systemPrompt }),

@@ -101,3 +101,51 @@ test("unanswered initialize is bounded and stops claude", async () => {
   await rejected;
   expect(child.killed()).toBe(true);
 });
+
+test.each([
+  { resume: undefined, applied: { fast_mode_state: "off", fast_mode_disabled_reason: "unsupported_model" } },
+  { resume: undefined, applied: { fast_mode_state: "cooldown" } },
+  { resume: "old-id", applied: { fast_mode_state: "off", fast_mode_disabled_reason: "unsupported_model" } },
+  { resume: "old-id", applied: { fast_mode_state: "cooldown" } },
+])("serviceTierFallback default accepts off and cooldown on fast open (resume=$resume, $applied.fast_mode_state)", async ({ resume, applied }) => {
+  const child = scripted(applied);
+  const session = await claudeSession(installation, {
+    cwd: "/work", serviceTier: "fast", serviceTierFallback: "default", ...(resume === undefined ? {} : { resume }),
+  });
+  expect(session.serviceTier().value).toBeNull();
+  expect(session.records().map((record) => record.body)).toEqual([{ kind: "open", placement: "auto" }, { kind: "opened", placement: "isolated" }]);
+  child.emit(`${JSON.stringify({ type: "system", subtype: "init", model: "sonnet", fast_mode_state: applied.fast_mode_state })}\n`);
+  expect(session.serviceTier().value).toBe("default");
+  await session.dispose();
+});
+
+test("serviceTierFallback default still rejects unknown tiers, absent/unknown states and initialize errors", async () => {
+  await expect(claudeSession(installation, { cwd: "/work", serviceTier: "priority", serviceTierFallback: "default" }))
+    .rejects.toThrow(/cannot apply serviceTier priority/u);
+  expect(spawnLineProcess).not.toHaveBeenCalled();
+
+  for (const applied of [{ effective: { fastMode: true } }, { fast_mode_state: "unexpected" }]) {
+    const child = scripted(applied);
+    // oxlint-disable-next-line no-await-in-loop -- Each refusal is independently verified.
+    await expect(claudeSession(installation, { cwd: "/work", serviceTier: "fast", serviceTierFallback: "default" }))
+      .rejects.toThrow(/although serviceTier fast was requested/u);
+    expect(child.killed()).toBe(true);
+  }
+
+  const errored = scripted({}, "initialize rejected");
+  await expect(claudeSession(installation, { cwd: "/work", serviceTier: "fast", serviceTierFallback: "default" }))
+    .rejects.toThrow(/unreported.*fast.*initialize rejected/u);
+  expect(errored.killed()).toBe(true);
+});
+
+test("serviceTierFallback default still bounds unanswered initialize and stops claude", async () => {
+  vi.useFakeTimers();
+  const hung = fakeLineProcess();
+  spawnLineProcess.mockReturnValue(hung);
+  const opening = claudeSession(installation, { cwd: "/work", serviceTier: "fast", serviceTierFallback: "default" });
+  const rejected = expect(opening).rejects.toThrow(/initialize.*serviceTier fast cannot be confirmed/u);
+  await vi.waitFor(() => { expect(hung.written).toHaveLength(1); });
+  await vi.advanceTimersByTimeAsync(CLAUDE_EFFORT_READBACK_MS);
+  await rejected;
+  expect(hung.killed()).toBe(true);
+});

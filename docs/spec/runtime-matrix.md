@@ -569,9 +569,17 @@ but never inserted into their tier menus. Omitting the option lets the runtime
 choose; it does not promise to clear a configured choice. There is no per-turn
 setter: reopen the session to change it.
 
-The adapter reads the applied native value before returning. A refused,
-missing or different value fails the open with the requested and actual
-selection. OAR does not normalize aliases: codex's `fast` comes back as
+The adapter reads the applied native value before returning. By default, a
+refused, missing or different value fails the open with the requested and actual
+selection. Hosts that render `Session.serviceTier()` rather than echoing the
+request may opt in to `SessionOptions.serviceTierFallback: "default"`: when the
+runtime explicitly reports standard service instead of the requested tier (Codex
+`serviceTier: null` projected as `default`; Claude `fast_mode_state` `off` or
+`cooldown` when `fast` was requested), the open succeeds and reports the actual
+tier. Aliases, other named substitutions, absent reports and RPC errors are
+still refused. `serviceTierFallback` requires `serviceTier` and rejects any
+other value with `UnsupportedOptionError` on `serviceTierFallback` before
+opening. OAR does not normalize aliases: codex's `fast` comes back as
 `priority` and is refused; use the catalog's `priority`. `Session.serviceTier()`
 and `SessionView.serviceTier` report native facts, not the request. Later
 native reports of a changed tier remain visible in records and tier events.

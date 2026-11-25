@@ -642,9 +642,15 @@ changes no user settings file. Any other tier is refused before launch.
 only when it is true. `default` is an opt-out, never a menu entry.
 
 Before returning the session, OAR requires `on` for fast or `off` for
-default. `off`, `cooldown`, an absent report or a native rejection cannot
-confirm requested fast, and opening fails with both the request and native
-status/reason. The wait has the same 30-second active budget and bounded
+default. By default, `off`, `cooldown`, an absent report or a native rejection
+cannot confirm requested fast, and opening fails with both the request and
+native status/reason. With `SessionOptions.serviceTierFallback: "default"`,
+a successful `initialize` reporting `fast_mode_state` `off` or `cooldown` when
+`serviceTier: "fast"` was requested is accepted; absent/unknown states, unknown
+tier names, `initialize` errors, and timeouts still fail the open. Private
+`initialize` remains unrecorded, so `Session.serviceTier()` stays `null` until
+turn 1's `system/init` or `result` reports `default` or `fast`. The wait has
+the same 30-second active budget and bounded
 [SessionStart hook pause](#opening-with-sessionstart-hooks); failure stops the child.
 Native error answers to this `initialize` or the effort `get_settings`
 call are retained as `{ method, native }` in the thrown error's `cause`,
