@@ -45,6 +45,10 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex SessionOptions.n
     ]);
     const installation = await codexInstallation();
     expectAvailable(installation, "codex");
+    // On Windows without Codex's Windows sandbox enabled, Codex's
+    // effective_sandbox_mode downgrades workspace-write to readOnly
+    // (same rule as additional-directories.vendor.test.ts).
+    const expectedSandbox = process.platform === "win32" ? "readOnly" : "workspaceWrite";
     try {
       await withProcessEnv({ OAR_CODEX_SANDBOX: "danger-full-access" }, async () => {
         const started = await codexSession(installation, {
@@ -58,7 +62,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex SessionOptions.n
           expect(startFrame).toMatchObject({
             approvalPolicy: "on-request",
             approvalsReviewer: "auto_review",
-            sandbox: { type: "workspaceWrite" },
+            sandbox: { type: expectedSandbox },
           });
           // Run one turn so codex writes the thread rollout for resume.
           const firstTurn = await runTurn(started, "hello");
@@ -79,7 +83,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex SessionOptions.n
           expect(resumeFrame).toMatchObject({
             approvalPolicy: "on-request",
             approvalsReviewer: "auto_review",
-            sandbox: { type: "workspaceWrite" },
+            sandbox: { type: expectedSandbox },
           });
         } finally {
           await resumedInherit.dispose();
