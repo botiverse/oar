@@ -124,14 +124,18 @@ input still held by OAR can be withdrawn, edited or sent now (Commands).
 
 ## Open questions
 
-1. **Answering runtime requests.** `Session` has no `answer(requestId)`.
-   Answering depends on the adapter: some automatically allow permission
-   requests; Claude normally starts with permission bypass and records any
-   incoming `toApp` request without answering it. Hosts can explicitly select
-   noninteractive native modes for Claude; remaining approvals are denied
-   locally, not presented as unanswered host requests. A UI that wants human
-   approval needs explicit request ownership, an answer call and an opt-out
-   wherever an adapter currently answers automatically. See the
+1. **Answering runtime requests.** The generic calls exist:
+   `Session.answer(requestId, decision)` for approvals and
+   `Session.answerQuestion(requestId, answers)` for questions, each present
+   only where `capabilities.appRequests` says that kind waits for the host;
+   the view's `pendingRequests` already names each one. No approval adopter
+   exists yet, so a UI must render approval `pendingRequests` without offering
+   an answer it cannot send. Claude questions are the one exception: with
+   `SessionOptions.questions: "ask"`, root-agent questions are answerable
+   through `answerQuestion` (never through an approval decision). Adopting an adapter is per-runtime
+   work with native evidence, not a UI change; the outcome vocabulary,
+   timeout and redaction rules a UI must display are in
+   [the spec](../spec/app-requests.md). See also the
    [Claude permission investigation](../../experiments/claude-permissions/README.md).
 2. **Long-lived streams over HTTP.** `AssistantTransport` assumes a command
    opens a run whose stream then closes, while OAR sessions stream

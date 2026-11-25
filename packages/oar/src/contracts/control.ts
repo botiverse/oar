@@ -19,3 +19,10 @@ export interface ControlResult {
 export type ControlOutcome =
   | (ControlResult & { readonly kind: "accepted"; readonly seq: number; readonly requestId: string })
   | (ControlResult & { readonly kind: "rejected"; readonly seq: number; readonly requestId: string; readonly code: RejectionCode; readonly reason: string; readonly failure?: FailureClass });
+
+/** What `Session.steerOrQueue` reports: where the input landed, and the control that carried it. */
+export type SteerOrQueueResult =
+  | { readonly landed: "steered"; readonly result: ControlOutcome }
+  | { readonly landed: "queued"; readonly result: ControlOutcome }
+  /** `result` is the last attempt (steer or queue); `code` / `reason` / `failure` are its. */
+  | { readonly landed: "rejected"; readonly code: RejectionCode; readonly reason: string; readonly failure?: FailureClass; readonly result: ControlOutcome };

@@ -1,21 +1,24 @@
 /* oxlint-disable import/max-dependencies -- Session composes the independently owned control and observation contracts. */
 import type { AdapterGoalControl, GoalControl } from "./goal.js";
+import type { AnswerOptions, AnswerOutcome, AppQuestionAnswers, AppRequestAnswering, AppRequestDecision, QuestionAnswerOutcome } from "./answer.js";
 import type { CompactionOptions, CompactionOutcome } from "./compaction.js";
-import type { ContextUsage, Cursor, Event, RawEvent, RejectionCode, SessionGraph, TokenTotals } from "./records.js";
-import type { ControlOutcome, ControlResult } from "./control.js";
+import type { ContextUsage, Cursor, Event, RawEvent, SessionGraph } from "./records.js";
+import type { ControlOutcome, ControlResult, SteerOrQueueResult } from "./control.js";
 import type { DeliverOptions, DeliverResult } from "./deliver.js";
 import type { InputImage, InputOrigin } from "./input.js";
 import type { SessionOpenContext, SessionPlacement } from "./placement.js";
 import type { AgentStatus } from "./status.js";
 import type { AvailableInstallation } from "./installation.js";
 import type { ContextBreakdown } from "./context-breakdown.js";
-import type { FailureClass } from "./failure.js";
 import type { ModelRequest } from "./model-request.js";
 import type { SessionOptions } from "./session-options.js";
+import type { SessionUsage } from "./session-usage.js";
 
 export type { GoalControl, AdapterGoalControl, GoalSnapshot, GoalStatus, KnownGoalStatus, GoalSetOptions } from "./goal.js";
+export type { AnswerOptions, AnswerOutcome, AnswerRejectionCode, AppRequestAnswering, AppRequestDecision, AppRequestKind } from "./answer.js";
 export type { CompactionOptions, CompactionOutcome, ManualCompaction } from "./compaction.js";
-export type { ControlResult, ControlOutcome } from "./control.js";
+export type { ControlResult, ControlOutcome, SteerOrQueueResult } from "./control.js";
+export type { SessionUsage } from "./session-usage.js";
 export type { McpServer, SessionFork, SessionOptions, UserConfigurationCategory } from "./session-options.js";
 export type { CredentialProblem, FailedTurn, FailureClass } from "./failure.js";
 export type { ContextBreakdown, ContextCategory, ContextItem } from "./context-breakdown.js";
@@ -61,7 +64,7 @@ export interface QueryResult<T> {
 }
 /** For prompt, steer and queue: empty text requires at least one image; otherwise rejected unsupported. Whitespace is not trimmed. */
 export interface InputOptions {
-  /** UUID identifying one logical input across delivery attempts; generated when omitted. */
+  /** UUID identifying one logical input across delivery attempts; generated when omitted, refused when it is not a UUID. Nothing here names a sub-agent, so input always lands on the root agent's lane: a child lane's input needs that child session. */
   readonly inputId?: string;
   /**
    * Images that travel with the input (text may be the empty string), as the runtime's own image input (not a
@@ -102,7 +105,10 @@ export interface PromptOptions extends InputOptions {
  *   prompt: a gate is a hang, not safety. A host wanting isolation opts in
  *   (OAR_CODEX_SANDBOX). Runtime→app requests that DO
  *   arrive are recorded verbatim (direction "toApp") and oar's automatic
- *   answer, when it gives one, is the matching response record.
+ *   answer, when it gives one, is the matching response record. An adapter
+ *   that hands an approval to the host instead exposes `Session.answer`
+ *   (`capabilities.appRequests`); every other adapter keeps answering or
+ *   recording by itself (docs/spec/app-requests.md).
  * - The cursor is honored for the lifetime of the adapter process: a
  *   subscriber reconnecting with `afterSeq` misses nothing and repeats
  *   nothing. `SessionOptions.resume` reopens the runtime-native conversation
@@ -142,6 +148,8 @@ export interface SessionCapabilities {
   readonly images: boolean;
   /** Effective native background auto-memory state observed at session open (`"on"` or `"off"`). Absent means unknown, never `"off"` (unreadable, unverified version, unmodeled runtime override, or requires extra open-time wait). */
   readonly nativeMemory?: "on" | "off";
+  /** Present when approvals wait for a host here (`Session.answer`): which kinds, what OAR answers when none does, and the acknowledgment bound. Absent: the adapter answers or records them itself (docs/spec/app-requests.md). */
+  readonly appRequests?: AppRequestAnswering;
 }
 
 export type RawEventObserver = (record: RawEvent) => void;
@@ -192,6 +200,10 @@ export interface AdapterSession {
   steer?(input: string, options?: InputOptions): Promise<ControlResult>; // mid-turn input; ABSENT when the runtime cannot inject into an active turn (kimi, qwen, codebuddy, opencode v2 without the advertised steering extension): its presence is the capability. Rejected `no_active_turn` when nothing is active, `unsupported` when the runtime cannot take these inputs mid-turn (images on a cursor steer), `runtime_refused` when the runtime itself refuses (reasons start `not_steerable:`). Input written during runtime-autonomous compaction is HELD, not lost.
   queue(input: string, options?: InputOptions): Promise<ControlResult>; // input for a later turn, held by the runtime or the adapter (`capabilities.queue.durable` says which). That later turn has events but no request of its own: a spontaneous turn.
   withdraw?(inputId: string): Promise<ControlResult>; // take a held input (a queue request's `inputId`) back before it is sent; ABSENT where OAR cannot remove held input (codex, whose queue is the runtime's own): its presence is the capability. Accepted means the entry was removed before dispatch and the caller owns the input again; rejected `not_queued` when no held input with this id is waiting (already sent, never queued here, or already withdrawn). Atomic against the drain: never accepted when the input may already have been sent. The queue request and its response stay in the stream unchanged.
+  /** Answer ONE host-owned approval request by its request record id; ABSENT where no approval waits for a host. OAR writes the native reply and records `answered` with `by: "host"`; one answer per request, never guessed (contracts/answer.ts). */
+  answer?(requestId: string, decision: AppRequestDecision, options?: AnswerOptions): Promise<AnswerOutcome>;
+  /** Answer ONE host-owned question request by its request record id. ABSENT where no question waits for a host. An approval decision never carries these answers (contracts/answer.ts). */
+  answerQuestion?(requestId: string, answers: AppQuestionAnswers, options?: AnswerOptions): Promise<QuestionAnswerOutcome>;
   /** Stop one native task without aborting its parent or peers. Accepted is only the native acknowledgement, never a task-ended fact. Absent without native single-task control. */
   stopTask?(taskId: string): Promise<ControlResult>;
   abort(): Promise<ControlResult>; // interrupt the active turn; accepted means the interrupt was delivered, the outcome is the runtime's own turn_ended event. Rejected when nothing is active; a late abort is a normal race, not an error. Ending the turn does not promise that processes it started have stopped (codex keeps commands across turns; docs/spec/runtime-matrix.md#what-abort-stops); isolated dispose stops the owned process; shared cleanup can leave native work running; a borrowed Pi Durable harness keeps its own lifetime.
@@ -226,6 +238,10 @@ export interface Session extends AdapterSession {
   queue(input: string, options?: InputOptions): Promise<ControlOutcome>;
   /** Present only where OAR holds the queue and can remove an entry before it is sent: a host offers withdraw, edit (withdraw, then `queue`) and send now (withdraw, then `deliver`) only where it exists. */
   withdraw?(inputId: string): Promise<ControlOutcome>;
+  /** Present only where the adapter hands approvals to a host (`capabilities.appRequests`); the SPI face is bound here. */
+  answer?(requestId: string, decision: AppRequestDecision, options?: AnswerOptions): Promise<AnswerOutcome>;
+  /** Present only where the adapter hands the runtime's questions to a host (`capabilities.appRequests.questions`). */
+  answerQuestion?(requestId: string, answers: AppQuestionAnswers, options?: AnswerOptions): Promise<QuestionAnswerOutcome>;
   stopTask?(taskId: string): Promise<ControlOutcome>;
   abort(): Promise<ControlOutcome>;
   /**
@@ -265,9 +281,10 @@ export interface Session extends AdapterSession {
    */
   status(): QueryResult<AgentStatus>;
   /**
-   * DERIVED: steer when the session has `steer` and the steer is accepted,
-   * otherwise queue; always report where the input landed. `rejected` means
-   * the input was NOT taken over and the caller still owns it.
+   * DERIVED: steer when available; queue when steer is absent or explicitly
+   * returns `unsupported` or `no_active_turn`. Other outcomes are returned
+   * without another attempt. For `rejected` with `code: "error"`, delivery
+   * may be unknown: do not assume ownership has returned to the caller.
    */
   steerOrQueue(input: string, options?: InputOptions): Promise<SteerOrQueueResult>;
   /**
@@ -281,20 +298,3 @@ export interface Session extends AdapterSession {
    */
   deliver(input: string, options?: DeliverOptions): Promise<DeliverResult>;
 }
-
-export interface SessionUsage {
-  /** Null until the runtime has reported token totals, never a guessed zero (kimi's ACP surface reports context only). */
-  readonly total: TokenTotals | null;
-  /** Present only when more than the root agent reported tokens, or part of `total` is `unattributed`. */
-  readonly byAgent?: readonly { readonly agentPath: readonly string[]; readonly tokens: TokenTotals }[];
-  /** What `total` includes that no `byAgent` entry accounts for (claude's subagents, sidechains and compaction, which its stream does not attribute per agent): `total` less every entry, never split by estimate. Absent when the agents account for all of it. */
-  readonly unattributed?: TokenTotals;
-  /** `total` plus each derived session's independently reported token total, nested children too, each counted once. Grok's child ledgers stay native-only to avoid possible overlap; this does not establish that the root counted every child. Absent when no child session reported independent usage, and while `total` is null. */
-  readonly withChildren?: TokenTotals;
-}
-
-export type SteerOrQueueResult =
-  | { readonly landed: "steered"; readonly result: ControlOutcome }
-  | { readonly landed: "queued"; readonly result: ControlOutcome }
-  /** `result` is the last attempt, the queue; `code` / `reason` / `failure` are its. */
-  | { readonly landed: "rejected"; readonly code: RejectionCode; readonly reason: string; readonly failure?: FailureClass; readonly result: ControlOutcome };

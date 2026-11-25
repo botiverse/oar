@@ -20,7 +20,7 @@ test("all manual compaction declarations distinguish unsupported from untested",
     ];
     expect(Object.fromEntries(runtimes.map(({ name, runtime }) => [name, runtime.manualCompaction?.kind ?? null]))).toEqual({
       antigravity: "unsupported", claude: "supported", codebuddy: "unsupported", codex: "supported", cursor: null, devin: "unsupported", dsh: "supported", factory: "supported",
-      grok: "supported", kimi: null, opencode: null, pi: "supported", "pi-rpc": "supported", "pi-durable": null, qoder: "supported", qwen: "unsupported",
+      grok: "supported", hermes: "unsupported", kimi: null, opencode: null, pi: "supported", "pi-rpc": "supported", "pi-durable": null, qoder: "supported", qwen: "unsupported",
     });
     for (const { runtime } of runtimes) { verifyPolicy(runtime); }
   } finally { await harness.close(BACKGROUND_CONTEXT); }

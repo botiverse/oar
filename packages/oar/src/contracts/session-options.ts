@@ -1,8 +1,9 @@
 /*
- * How a session opens: the options every runtime's `session()` takes, and
- * the MCP servers one can attach. What a runtime cannot honor is refused
- * (`UnsupportedOptionError`, `Runtime.refusedSessionOptions`).
+ * How a session opens: the options every runtime's `session()` takes, and the MCP servers one can attach.
+ * What a runtime cannot honor is refused (`UnsupportedOptionError`, `Runtime.refusedSessionOptions`).
  */
+import type { DshSessionSelection } from "./dsh-provider.js";
+import type { PiSessionSelection } from "./pi-provider.js";
 
 export type UserConfigurationCategory = "settings" | "mcp" | "instructions";
 export type McpTransport = "stdio" | "http";
@@ -48,7 +49,7 @@ export interface SessionFork {
  * decide before opening reads `Runtime.refusedSessionOptions`
  * (docs/spec/runtime-matrix.md#refused-session-options).
  */
-export interface SessionOptions {
+export interface SessionOptions extends PiSessionSelection, DshSessionSelection {
   /** Keep the latest provider request attributed to this session's root agent. Capture is off by default. */
   readonly modelRequests?: "latest";
   /**
@@ -59,6 +60,8 @@ export interface SessionOptions {
    * so a host wanting the full history persists it. Omitted: retain everything.
    */
   readonly retainedBytes?: number;
+  /** Route the runtime's own QUESTIONS to `Session.answerQuestion` (Claude only; other runtimes refuse it). It selects Claude's permission gate, so non-question approvals are denied and recorded, never granted. Omission keeps the default bypass. */
+  readonly questions?: "ask";
   /**
    * Enable structured native goals, including any model-visible goal tools.
    * Only Codex currently supports true; other runtimes refuse it before open.

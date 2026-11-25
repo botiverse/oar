@@ -45,6 +45,7 @@ const EXECUTABLE_RUNTIMES = [
   ["dsh", "OAR_DSH_BIN"],
   ["factory", "OAR_FACTORY_BIN"],
   ["grok", "OAR_GROK_BIN"],
+  ["hermes", "OAR_HERMES_BIN"],
   ["kimi", "OAR_KIMI_BIN"],
   ["opencode", "OAR_OPENCODE_BIN"],
   ["qoder", "OAR_QODER_BIN"],

@@ -1295,6 +1295,143 @@ mapping and the limits of acknowledgement evidence; the
 [steer delivery probes](steer-delivery.md) record the underlying native
 observations.
 
+## Host-declared provider and compaction budget
+
+A host that reaches a model through its own gateway, or an id Pi's catalog does
+not carry, declares it on the session instead of writing configuration files:
+`SessionOptions.piProvider` and `SessionOptions.piCompaction`. Both are Pi-only;
+every other runtime refuses them (`Runtime.refusedSessionOptions`), and so does
+Pi's [optional RPC process](#optional-native-rpc-process) for the compaction
+budget (see [below](#the-compaction-budget-in-the-rpc-child)). The provider is
+honored in **both** of Pi's execution modes; the budget only in process.
+
+OAR registers the provider in the session's own model plane, the one its services
+built, before the model is resolved. Nothing is written to disk: no `models.json`
+entry, no change to the user's settings file, so the declaration ends with the
+session and the user's own Pi setup is untouched. The model then resolves and is
+read back like a catalog model ([Models, instructions, and context](#models-instructions-and-context)).
+
+```ts
+await piRuntime.session(installation, {
+  cwd,
+  piProvider: {
+    id: "gateway",
+    api: "openai-completions",
+    baseUrl: "https://gateway.example.test/v1",
+    apiKeyEnv: "GATEWAY_API_KEY",
+    models: [{
+      id: "reasoner",
+      contextWindow: 1_000_000,
+      maxTokens: 65_536,
+      reasoning: true,
+      compat: { supportsStore: false, maxTokensField: "max_tokens", thinkingFormat: "deepseek", requiresReasoningContentOnAssistantMessages: true },
+    }],
+  },
+  piCompaction: { reserveTokens: 100_000, keepRecentTokens: 20_000 },
+  model: "reasoner",
+});
+```
+
+`model` names one of the declared models, bare (`reasoner`) or qualified
+(`gateway/reasoner`); a bare id the provider declares is qualified with its id. A
+new session with no `model` runs the provider's first model, while a resumed one
+with no `model` keeps the model it recorded.
+
+The credential is an environment variable NAME (`apiKeyEnv`), never a secret:
+OAR hands Pi `$NAME` and Pi resolves it at request time, so the key reaches
+neither the records nor an error. The variable comes from
+`SessionOptions.env`, the host environment, or Pi's own stored auth.
+
+Wire quirks belong in `compat`, in Pi's own vocabulary: OAR infers nothing from
+a provider id, a model id or a host name, so a gateway relaying a reasoning
+model declares `thinkingFormat`, `maxTokensField`,
+`requiresReasoningContentOnAssistantMessages`, `supportsStore` or
+`supportsDeveloperRole` itself. A declaration OAR cannot honour is refused
+before anything starts: a malformed provider id, a non-HTTP(S) endpoint, an
+endpoint carrying a query, fragment or credentials, no models, duplicate or
+blank model ids, a completion limit larger than the context window, or an
+`apiKeyEnv` that is not an environment variable name.
+
+`piCompaction` sets the session's own `reserveTokens` (the headroom the compaction
+trigger keeps free) and, optionally, `keepRecentTokens` (history a compaction
+keeps verbatim). It is applied through the settings manager in memory, so it
+never becomes the user's saved default. That application happens after the
+session's services load, because loading the resource loader reloads Pi's
+settings from the user's files (`core/resource-loader.js` `reload()`) and an
+override applied earlier would be discarded. A native extension reload rebuilds
+them too, which drops the in-memory budget until the session is opened again;
+OAR reapplies it only at open.
+
+### The provider in the RPC child
+
+`createPiRuntime({ execution: "subprocess" })` honors `piProvider` too. The
+declaration travels in the private bootstrap document OAR's own RPC extension
+reads over the credential pipe (see [the private pipe](#optional-native-rpc-process));
+the extension calls `pi.registerProvider` while it loads, which Pi queues and
+applies when it binds the session's model plane — before `--model` and the
+session's model resolve. Still no `models.json`, no settings write, no command
+line: `--model` names the qualified model OAR derived, and the credential stays
+the `$NAME` reference Pi resolves at request time. Model spelling, the first
+model a new session runs and the recorded model a resumed session keeps come
+from the same `piRequestedModel` the in-process path uses, and the existing
+read-backs still apply: the child reports whether the selected model is
+registered and how many models the declared provider holds, and the open fails
+closed when either is short. A Pi whose extension API cannot register a
+provider refuses the declaration instead of running another model.
+
+### The compaction budget in the RPC child
+
+The budget stays refused there, and the refusal is measured, not assumed:
+[`pi-rpc-compaction-channel.vendor.test.ts`](../../sea-trial/vendor/pi-rpc-compaction-channel.vendor.test.ts)
+runs the real bundled `rpc-entry` child and pins three facts.
+
+1. **The channel is the child's settings files.** With
+   `compaction.reserveTokens: 190000` / `keepRecentTokens: 500` in the agent
+   directory's `settings.json`, the RPC child compacts at that trigger where
+   Pi's own 16384-token headroom would not, and the run leaves the file byte for
+   byte as it found it. Pi's budget is real; it is the file's.
+2. **OAR refuses before the child exists.** `piCompaction` — a well-formed
+   budget as much as an invalid one — fails the open with the same
+   `UnsupportedOptionError`, before Pi opens a session directory or any settings
+   file is touched.
+3. **The escape hatch does not exist.** The child's extension API holds exactly
+   one settings member, `pi.getSettings()`, and it returns a *copy*: mutating it
+   does not change what the session resolves. There is no writer
+   (`applyOverrides`, `updateSettings`, `setSettings` are all absent) and the
+   extension context carries no settings manager. Extensions also load Pi's
+   modules as a separate copy of the bundled child, so a prototype patch would
+   not reach the live manager anyway. Fact 3 is the tripwire: the day Pi's
+   extension API grows a supported writer, that fixture fails and this section
+   gets rewritten.
+
+Honoring a budget there would mean writing the child's `settings.json` — the
+user's file, or a shadow of the whole agent directory that also carries the
+user's auth and models and would have to keep native resume working — or
+reimplementing Pi's trigger and cut point in an extension and calling the result
+Pi's compaction. OAR does neither, so the RPC mode refuses `piCompaction` with
+that reason, and a host that needs a per-session budget uses the in-process
+execution mode. A host that owns the child's agent directory (its own `HOME`,
+its own `PI_CODING_AGENT_DIR`) can of course put the budget in that directory's
+`settings.json` itself; that is the host's file, and OAR neither writes nor
+claims to verify it.
+
+**Minimal upstream change** that would close this: an extension-API method that
+applies overrides to the session's live settings manager, equivalent to the
+SDK's `SettingsManager.applyOverrides` on the instance the RPC session built —
+for example `pi.applySettingsOverrides(overrides: Partial<Settings>)`, delegated
+to `settingsManager.applyOverrides` the way `pi.getSettings()` is already
+delegated to `settingsManager.getSettings()`
+(`core/agent-session.js` wires both through `ExtensionActions`). It has to run
+after the resource loader's `reload()` — the same ordering the in-process path
+documents — which load-time or `session_start` extension code already satisfies,
+because extensions load after that reload. With it, OAR would carry the budget
+in the same private bootstrap document as the provider declaration, apply it
+from its own extension at load, and read the effective values back
+(`SettingsManager.inMemory(pi.getSettings()).getCompactionSettings(model)`)
+into the `ready` file so a budget the child did not take fails the open — the
+read-back pattern the provider registration already uses. Until such a method
+exists, OAR does not call a guessed one.
+
 ## Verification and open gaps
 
 [`experiments/live-contract.ts pi`](../../experiments/live-contract.ts) runs
@@ -1316,20 +1453,33 @@ working directory so ancestor instructions do not change the snapshot;
 [MCP vendor tests](../../sea-trial/vendor/mcp-servers-pi.vendor.test.ts)
 cover [session MCP servers](#session-mcp-servers) and run in CI's pi-aimock
 job. The
+[host-declared provider test](../../sea-trial/vendor/pi-host-provider.vendor.test.ts)
+runs a declaration that exists in no `models.json` — a scripted gateway model
+plus one session MCP server — through both execution modes, resumes it with no
+model given, checks the credential is present on the wire and absent from every
+record, and (in process) pins the declared compaction trigger and kept-recent
+window against Pi's defaults; in RPC mode it pins the budget refusal, whose
+evidence lives in the
+[RPC compaction-channel test](../../sea-trial/vendor/pi-rpc-compaction-channel.vendor.test.ts)
+(real child: file-driven trigger, untouched settings file, refusal before
+start, and the extension API's read-only settings surface). The
 [replay test](../../tests/replay/pi-projection.test.ts) pins the fold over the
 recorded tool-round fixture and the settled/abort/error classification; the
 unit tests under [`tests/pi/`](../../tests/pi/) pin the session-directory
 formula, id lookup, model spelling/resolution, model readback, tool result
-text and the HTTP plane, and
+text, the HTTP plane and the RPC bootstrap document, and
 [`tests/providers/`](../../tests/providers/) the provider-auth bridge, the
 login providers and the model catalog.
 
 Open gaps: accepted steering through retry/compaction; distinct queued turns
 under races; extension-generated activity (children, permission gates,
 commands); unavailable saved-model fallback on resume; threshold compaction
-with a real provider; session MCP servers on a real login and model
-(measured against a scripted provider only); and corrupt session files and
-concurrent writers.
+with a real provider; a per-session compaction budget in the RPC execution mode
+(Pi's child reads it from settings files and its extension API has no writer —
+see [above](#the-compaction-budget-in-the-rpc-child) for the measured facts and
+the minimal upstream change); session MCP servers on a
+real login and model (measured against a scripted provider only); and corrupt
+session files and concurrent writers.
 
 [native-sdk]: https://github.com/earendil-works/pi/blob/v0.84.2/packages/coding-agent/docs/sdk.md
 [native-format]: https://github.com/earendil-works/pi/blob/v0.84.2/packages/coding-agent/docs/session-format.md

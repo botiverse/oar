@@ -32,8 +32,10 @@ shows the same running turn: a reply the runtime started on its own that the
 adapter cannot steer (OpenCode 2.3.0) or a turn whose abort is pending. A final refusal is `landed: "rejected"` with the last
 control's `code`, `reason` and, for any classified rejection, its
 `failure` (as on `ControlOutcome`); `steerOrQueue`'s rejection carries the
-same. `steerOrQueue` stays as the running half
-of `now`; unlike it, `deliver` never queues into an idle session, where some
+same. `steerOrQueue` only falls back to queue when `steer` is absent or
+reports `unsupported` or `no_active_turn`. An ambiguous `error` may have
+reached the runtime and is returned without queuing again. Unlike
+`steerOrQueue`, `deliver` never queues into an idle session, where some
 runtimes would hold the input without starting a turn. The host decides
 priority, persistence and when an interruption is worth its cost. OAR supplies
 the explicit interrupt mechanism below.
@@ -213,6 +215,10 @@ only for records after the cursor. Save
 raw records, not maps or Promise results, to reproduce the view after restart;
 persistence belongs to the application
 ([application data ownership boundary](../design/foundations.md#replay-boundary)).
+A host that must carry a held queue across its own restart persists the
+[queue snapshot](queue-snapshot.md) beside those records: a versioned
+projection of the same evidence, restored only where the stream returned the
+input to the caller.
 
 Rao uses this reducer over its persisted records. It shows input requests
 immediately and hides routine success badges. It must not infer completion of

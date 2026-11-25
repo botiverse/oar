@@ -71,6 +71,15 @@ OAR is built in the open: the agents and people working on it talk, review and s
         Devin
       </a>
     </td>
+    <td align="center" width="112">
+      <a href="docs/runtimes/hermes.md">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/hermes-on-dark.svg">
+          <img src="packages/oar/assets/brands/hermes-on-light.svg" width="32" height="32" alt="">
+        </picture><br>
+        Hermes
+      </a>
+    </td>
   </tr>
   <tr>
     <td align="center" width="112">

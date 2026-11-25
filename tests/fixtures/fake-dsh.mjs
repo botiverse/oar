@@ -15,6 +15,14 @@ if (process.argv.includes("--version")) {
 const patch = JSON.parse(readFileSync(process.argv[process.argv.indexOf("--patch") + 1], "utf8"));
 if (process.argv[process.argv.indexOf("--profile") + 1] !== "acp" || patch[0].id !== "acp" || patch[0].disabled !== true) { process.exit(9); }
 const bridgeRow = patch[1].insert.find(row => row.id === "oar-dsh-bridge");
+if (process.env.FAKE_DSH_PATCH_RECEIPT) { writeFileSync(process.env.FAKE_DSH_PATCH_RECEIPT, JSON.stringify(patch)); }
+// The host-declared provider OAR writes (SessionOptions.dshProvider): its
+// applied llm-pi-ai config is what the real loader exposes, and the model plane
+// knows exactly those models.
+const providerPatch = patch.find(row => row.id === "llm-pi-ai");
+const providers = providerPatch === undefined || process.env.FAKE_DSH_PROVIDER_IGNORE_PATCH === "1"
+  ? {}
+  : providerPatch.config?.providers ?? {};
 if (process.env.FAKE_DSH_HOLD_BEFORE_PROFILE) {
   writeFileSync(process.env.FAKE_DSH_HOLD_BEFORE_PROFILE, "waiting");
   process.stdin.resume();
@@ -124,16 +132,28 @@ const sessionStore = {
   get: (id) => sessions.get(id)?.session,
   flush: async (session) => { materializeBuffered(session.id); },
 };
+const declaredModels = (provider) => (providers[provider]?.models ?? []).map((model) => ({ provider, id: model.id, name: model.name ?? model.id }));
 const llm = {
-  listProviders: () => [{ id: "local", name: "Local" }, ...(mode === "listing-fails" ? [{ id: "broken", name: "Broken" }] : [])],
+  listProviders: () => [{ id: "local", name: "Local" }, ...Object.keys(providers).map((id) => ({ id, name: id })), ...(mode === "listing-fails" ? [{ id: "broken", name: "Broken" }] : [])],
   listModels: async (provider) => {
+    if (providers[provider] !== undefined) { return declaredModels(provider); }
     if (provider === "broken" || mode === "listing-fails") { throw new Error("no credential"); }
     if (mode === "empty-models") { return []; }
     return [{ provider, id: "plain", name: "Plain" }, { provider, id: "thinks", name: "Thinks" }];
   },
-  resolveModelInfo: async (provider, id) => ({ provider, id, ...(id === "thinks" ? { reasoning: { efforts: [{ id: "low", name: "Low" }, { id: "high", name: "High" }], defaultEffort: "low" } } : {}), ...(process.env.FAKE_DSH_IMAGES === "1" ? { inputModalities: ["text", "image"] } : {}) }),
+  resolveModelInfo: async (provider, id) => {
+    if (providers[provider] !== undefined) {
+      const known = declaredModels(provider).find((model) => model.id === id);
+      if (known === undefined) { throw Object.assign(new Error(`no configured model "${id}"`), { code: "UNKNOWN_MODEL" }); }
+      return known;
+    }
+    return { provider, id, ...(id === "thinks" ? { reasoning: { efforts: [{ id: "low", name: "Low" }, { id: "high", name: "High" }], defaultEffort: "low" } } : {}), ...(process.env.FAKE_DSH_IMAGES === "1" ? { inputModalities: ["text", "image"] } : {}) };
+  },
   ...(missing.has("resolveCallConfig") ? {} : { resolveCallConfig: async (route) => {
     if (route.reasoningEffort === "bad") { throw Object.assign(new Error('does not support reasoning effort "bad"'), { code: "UNSUPPORTED_REASONING_EFFORT" }); }
+    if (providers[route.provider] !== undefined && !providers[route.provider].models.some((model) => model.id === route.model)) {
+      throw Object.assign(new Error(`no configured model "${route.model}"`), { code: "UNKNOWN_MODEL" });
+    }
     if (route.model === "bad") { throw Object.assign(new Error('no configured model "bad"'), { code: "UNKNOWN_MODEL" }); }
     return route;
   } }),
@@ -162,6 +182,15 @@ const sessionLogEntry = missing.has("session-log-deepseek") ? [] : [{
   },
   fiber: { state: Number(process.env.FAKE_DSH_SESSION_LOG_STATE ?? "2"), await: async () => {} },
 }];
+const providerEntry = process.env.FAKE_DSH_PROVIDER_MISSING === "1" ? [] : [{
+  options: {
+    id: "llm-pi-ai",
+    name: process.env.FAKE_DSH_PROVIDER_NAME ?? "@deepseek-ai/dsh-llm-pi-ai",
+    ...(process.env.FAKE_DSH_PROVIDER_DISABLED === "1" ? { disabled: true } : {}),
+    config: { providers },
+  },
+  fiber: { state: Number(process.env.FAKE_DSH_PROVIDER_STATE ?? "2"), await: async () => {} },
+}];
 const loader = {
   await: async () => { if (mode === "barrier-fails") { throw new Error("barrier failed"); } },
   ...(mode === "no-mcp-method" ? {} : { import: async () => ({}), unwrapExports: value => value }),
@@ -169,6 +198,7 @@ const loader = {
     entries: () => [
       ...patch[1].insert.map(options => ({ options, fiber: { state: mode === "mcp-inactive" ? 0 : 2, await: async () => {} } })),
       ...sessionLogEntry,
+      ...providerEntry,
     ],
   }),
 };

@@ -42,12 +42,15 @@ usage *derivation* (cumulative/epoch/boundary views are consumer business).
 | [acp-shared-connection.md](acp-shared-connection.md) | Internal ACP pooled connection ownership, explicit routing, bounded cleanup and lifetime credential redaction; runtime admission remains separate, and no native runtime is admitted in the current release |
 | [manual-compaction.md](manual-compaction.md) | Native compaction controls, completion evidence, busy state and observation deadlines |
 | [goals.md](goals.md) | Native goal controls, session opt-in, observed snapshots and continuation boundaries |
+| [plans.md](plans.md) | Native plan/checklist observation: which channel reported it, the whole list each time, empty clear versus unsupported, and why it is never a task or a message |
 | [record-stream.md](record-stream.md) | Why one stream with three record kinds? What exactly is an event, a request, a response? What does an event body carry? |
+| [app-requests.md](app-requests.md) | How may a host answer a runtime approval: correlation, ownership, `accepted`/`unconfirmed`/`timeout`/`aborted`/`rejected`, unanswered policy, teardown and redaction |
 | [attribution.md](attribution.md) | How do records self-attribute? Why is attribution a field, not a channel? How is usage exposed? |
 | [session-graph-and-cursor.md](session-graph-and-cursor.md) | What goes in the session graph, and how does resumable reading work? |
 | [runtime-matrix.md](runtime-matrix.md) | Which attribution tier does each shipped adapter declare, on what native evidence, and what are adapters forbidden to do? |
 | [model-request.md](model-request.md) | What the model was sent: opting in (`SessionOptions.modelRequests`), refusal, main-loop scope, and why it is read rather than recorded (Claude `>= 2.1.274` and Pi SDK; refused elsewhere) |
 | [conversation.md](conversation.md) | Input identity, native user messages and replayable conversation projection |
+| [queue-snapshot.md](queue-snapshot.md) | The host-owned durable queue: a versioned snapshot of held-input evidence, its reader, and a restore that never resends input the stream says the runtime has |
 | [subagents.md](subagents.md) | Child sessions as subagents: spawn, reports, follow-ups, delivery into a parent, limits, and `oar mcp` |
 | [inventory.md](inventory.md) | Independent skills, commands, MCP and tool queries, cwd defaults, coverage and failure semantics |
 | [account-usage.md](account-usage.md) | Account quota queries and failure reason semantics |
@@ -99,7 +102,8 @@ runtime page states which live checks are verified:
   them) answered `accepted` / `rejected` (a rejection carries a typed `code` beside
   its prose `reason`); the `Session` returns those records read, as a
   `ControlOutcome`; runtime→app requests recorded `toApp` and oar's
-  automatic answer as `answered`; the process exit as `exited`;
+  automatic (or host-supplied, [app requests](app-requests.md)) answer as
+  `answered`; the process exit as `exited`;
 - queries as folds: `model()`, `effort()`, `serviceTier()`, `usage()`,
   `contextUsage()` and `status()` project over `records()` and return `{ value, seq }`, where
   `seq` is the last record the fold consumed (or `-1` before any record);

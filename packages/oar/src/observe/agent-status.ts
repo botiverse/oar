@@ -257,7 +257,7 @@ function reduceEvent(previous: StatusState, record: RawEvent, event: RuntimeEven
     case "session_linked":
     case "user_message":
     case "input_handled":
-    case "mcp_server_startup": case "goal_changed":
+    case "mcp_server_startup": case "goal_changed": case "plan_changed":
     case "usage":
     case "model":
     case "effort":

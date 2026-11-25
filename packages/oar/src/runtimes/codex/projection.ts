@@ -13,6 +13,7 @@ import { foldCodexMessages, type CodexMessages } from "./messages.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { noTokens } from "../../shared/token-totals.js";
 import { codexItemInput, codexToolEnd } from "./item-detail.js";
+import { codexPlanEvents } from "./plan.js";
 import { codexServiceTierEvents, type CodexOpenMethod } from "./open.js";
 import { codexReasoningContent } from "./reasoning.js";
 import { aboutOwnChild, codexTaskViews, withStartedChild, type SubagentThreads } from "./tasks.js";
@@ -81,10 +82,8 @@ export function initialCodexProjection(rootThreadId: string, opened: CodexOpenMe
   return { inputs: new Map(), messages: new Map(), rootThreadId, quotaReset: emptyCodexQuotaReset, lastErrorDetail: null, retries: new Map(), compacting: false, subagents: new Map(), tokenBaseline: initialTokenBaseline(opened !== "thread/start") };
 }
 
-const COMPACTION_ITEM_TYPE = "contextCompaction";
-
 function isCompactionItem(params: JsonRecord): boolean {
-  return asRecord(params.item)?.type === COMPACTION_ITEM_TYPE;
+  return asRecord(params.item)?.type === "contextCompaction";
 }
 
 // The runtime's own status is the truth: an interrupt that landed reports
@@ -195,6 +194,7 @@ function viewsFor(state: CodexProjectionState, reporter: string, method: string,
     case "thread/goal/updated":
     case "thread/goal/cleared":
       return codexGoalEvents(method, params);
+    case "turn/plan/updated": return codexPlanEvents(method, params);
     case "turn/started":
       return [{ kind: "turn_active" }];
     case "item/commandExecution/outputDelta":

@@ -6,10 +6,20 @@ export interface InputDrop {
   readonly reason: "turn_interrupted" | "runtime_exited" | "runtime_refused";
 }
 
+/**
+ * Index of the last attempt that no longer owns the input: an accepted
+ * withdrawal, or the attempt a drop settled. Everything after it decides the
+ * input again; every reader of ownership takes the same cut from here.
+ */
+export function ownershipCut(attempts: readonly InputAttempt[], drop?: InputDrop): number {
+  const withdrawn = attempts.findLastIndex((attempt) => attempt.request.body.kind === "withdraw" && attempt.state === "accepted");
+  return Math.max(withdrawn, (drop?.attempts ?? 0) - 1);
+}
+
 /** Only attempts after the latest withdrawal or drop can own the input again. */
 export function deliveryState(attempts: readonly InputAttempt[], drop?: InputDrop): Pick<ConversationInput, "state" | "reason"> {
   const withdrawn = attempts.findLastIndex((attempt) => attempt.request.body.kind === "withdraw" && attempt.state === "accepted");
-  const cut = Math.max(withdrawn, (drop?.attempts ?? 0) - 1);
+  const cut = ownershipCut(attempts, drop);
   const delivery = attempts.slice(cut + 1).filter((attempt) => attempt.request.body.kind !== "withdraw");
   if (delivery.some((attempt) => attempt.state === "accepted")) { return { state: "accepted" }; }
   const last = delivery.at(-1);

@@ -1,0 +1,197 @@
+{
+  "at": "2026-11-24T10:00:28.906Z",
+  "codex": "codex-cli 0.171.0",
+  "platform": "darwin-arm64",
+  "config": {
+    "toolsUpdatePlanEnabled": true,
+    "provider": "local scripted Responses stream",
+    "model": "gpt-5.1"
+  },
+  "tool": {
+    "type": "function",
+    "name": "update_plan",
+    "description": "Updates the task plan.\nProvide an optional explanation and a list of plan items, each with a step and status.\nAt most one step can be in_progress at a time.\n",
+    "strict": false,
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "explanation": {
+          "type": "string",
+          "description": "Optional explanation for this plan update."
+        },
+        "plan": {
+          "type": "array",
+          "description": "The list of steps",
+          "items": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "description": "Step status.",
+                "enum": [
+                  "pending",
+                  "in_progress",
+                  "completed"
+                ]
+              },
+              "step": {
+                "type": "string",
+                "description": "Task step text."
+              }
+            },
+            "required": [
+              "step",
+              "status"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "plan"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "frames": [
+    {
+      "native": {
+        "threadId": "01a20cff-eca5-7a30-af84-ebbb6cf5bc55",
+        "turnId": "01a20cff-ed1f-74f2-b046-a2a1f6b889b7",
+        "explanation": "Two steps to prove the wire",
+        "plan": [
+          {
+            "step": "Collect the native facts",
+            "status": "inProgress"
+          },
+          {
+            "step": "Write the checklist spec",
+            "status": "pending"
+          }
+        ]
+      },
+      "events": [
+        {
+          "kind": "plan_changed",
+          "plan": {
+            "steps": [
+              {
+                "step": "Collect the native facts",
+                "status": "in_progress"
+              },
+              {
+                "step": "Write the checklist spec",
+                "status": "pending"
+              }
+            ],
+            "explanation": "Two steps to prove the wire"
+          },
+          "evidence": "plan_update"
+        }
+      ],
+      "spanId": "01a20cff-ed1f-74f2-b046-a2a1f6b889b7"
+    },
+    {
+      "native": {
+        "threadId": "01a20cff-eca5-7a30-af84-ebbb6cf5bc55",
+        "turnId": "01a20cff-ed1f-74f2-b046-a2a1f6b889b7",
+        "explanation": null,
+        "plan": [
+          {
+            "step": "Collect the native facts",
+            "status": "completed"
+          },
+          {
+            "step": "Write the checklist spec",
+            "status": "completed"
+          }
+        ]
+      },
+      "events": [
+        {
+          "kind": "plan_changed",
+          "plan": {
+            "steps": [
+              {
+                "step": "Collect the native facts",
+                "status": "completed"
+              },
+              {
+                "step": "Write the checklist spec",
+                "status": "completed"
+              }
+            ]
+          },
+          "evidence": "plan_update"
+        }
+      ],
+      "spanId": "01a20cff-ed1f-74f2-b046-a2a1f6b889b7"
+    },
+    {
+      "native": {
+        "threadId": "01a20cff-eca5-7a30-af84-ebbb6cf5bc55",
+        "turnId": "01a20cff-ed63-7c81-acda-252b064f020f",
+        "explanation": null,
+        "plan": []
+      },
+      "events": [
+        {
+          "kind": "plan_changed",
+          "plan": {
+            "steps": []
+          },
+          "evidence": "plan_update"
+        }
+      ],
+      "spanId": "01a20cff-ed63-7c81-acda-252b064f020f"
+    }
+  ],
+  "oarEvents": [
+    {
+      "kind": "plan_changed",
+      "plan": {
+        "steps": [
+          {
+            "step": "Collect the native facts",
+            "status": "in_progress"
+          },
+          {
+            "step": "Write the checklist spec",
+            "status": "pending"
+          }
+        ],
+        "explanation": "Two steps to prove the wire"
+      },
+      "evidence": "plan_update",
+      "spanId": "01a20cff-ed1f-74f2-b046-a2a1f6b889b7",
+      "seq": 19
+    },
+    {
+      "kind": "plan_changed",
+      "plan": {
+        "steps": [
+          {
+            "step": "Collect the native facts",
+            "status": "completed"
+          },
+          {
+            "step": "Write the checklist spec",
+            "status": "completed"
+          }
+        ]
+      },
+      "evidence": "plan_update",
+      "spanId": "01a20cff-ed1f-74f2-b046-a2a1f6b889b7",
+      "seq": 25
+    },
+    {
+      "kind": "plan_changed",
+      "plan": {
+        "steps": []
+      },
+      "evidence": "plan_update",
+      "spanId": "01a20cff-ed63-7c81-acda-252b064f020f",
+      "seq": 49
+    }
+  ]
+}

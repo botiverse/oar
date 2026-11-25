@@ -5,6 +5,7 @@ import { addTokens, noTokens } from "../../shared/token-totals.js";
 import { toolContent } from "../../shared/tool-output.js";
 import { dshGoal, dshGoalEvents } from "./goal.js";
 import { dshJobEvents } from "./jobs.js";
+import { dshToolCallEvents } from "./plan.js";
 
 /** What one session's native log has said so far. An input without a native id keeps its position as null. */
 export interface DshSessionFold {
@@ -187,8 +188,7 @@ function sessionEvent(state: DshProjection, sessionId: string, session: DshSessi
       return { ...unchanged, events: [{ kind: "user_message", input: textOf(data.content), ...(inputId === null ? {} : { inputId, nativeMessageId: inputId }), evidence: "turn_item" }] };
     }
     case "tool/call":
-      return { ...unchanged, events: typeof data.callId === "string" && typeof data.name === "string"
-        ? [{ kind: "tool_call_started", callId: data.callId, tool: data.name, ...(typeof data.arguments === "string" ? { input: data.arguments } : {}) }] : [] };
+      return { ...unchanged, events: dshToolCallEvents(data) };
     case "tool/result":
       return { ...unchanged, events: toolEnd(asRecord(data.message) ?? {}) };
     case "assistant/message":

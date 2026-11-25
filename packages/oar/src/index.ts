@@ -8,6 +8,7 @@ import { devinRuntime } from "./runtimes/devin/index.js";
 import { dshRuntime } from "./runtimes/dsh/index.js";
 import { factoryRuntime } from "./runtimes/factory/index.js";
 import { grokRuntime } from "./runtimes/grok/index.js";
+import { hermesRuntime } from "./runtimes/hermes/index.js";
 import { kimiRuntime } from "./runtimes/kimi/index.js";
 import { opencodeRuntime } from "./runtimes/opencode/index.js";
 import { piRuntime } from "./runtimes/pi/index.js";
@@ -33,6 +34,8 @@ export { createCursorRuntime, cursorNativeEnvironment } from "./runtimes/cursor/
 export type { CursorRuntime, CursorRuntimeOptions } from "./runtimes/cursor/index.js";
 export type { CursorSdk, ModelListItem as CursorModelListItem } from "./runtimes/cursor/sdk.js";
 export { grokRuntime } from "./runtimes/grok/index.js";
+export { hermesRuntime } from "./runtimes/hermes/index.js";
+export { hermesInstallation } from "./runtimes/hermes/installation.js";
 export { kimiRuntime } from "./runtimes/kimi/index.js";
 export type { KimiLoginOptions } from "./runtimes/kimi/login.js";
 export { opencodeRuntime } from "./runtimes/opencode/index.js";
@@ -57,6 +60,7 @@ export const defaultRuntimes = new RuntimeRegistry([
   dshRuntime,
   factoryRuntime,
   grokRuntime,
+  hermesRuntime,
   kimiRuntime,
   opencodeRuntime,
   piRuntime,

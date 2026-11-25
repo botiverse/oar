@@ -53,7 +53,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     if (installation.via !== "executable") {
       throw new Error("ACP runtimes require an executable installation");
     }
-    profile.validateOptions?.(options);
+    profile.validateOptions?.(options, installation);
     // SessionOptions.mcpServers go out in the open request (mcp-servers.ts):
     // a list with an empty or repeated name fails before anything starts,
     // and an open that fails reports no credential they carry.

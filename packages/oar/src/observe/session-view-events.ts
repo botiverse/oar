@@ -223,7 +223,8 @@ export function foldEvent(draft: Draft, event: Event, streamId: string, openedBy
       break;
     case "mcp_server_startup":
     case "goal_changed":
-      // Goal snapshots are state observations, not transcript content.
+    case "plan_changed":
+      // Goal snapshots and checklists are state observations, not transcript content.
       break;
     case "task_started":
     case "task_updated":

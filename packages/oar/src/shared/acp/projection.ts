@@ -10,6 +10,7 @@ import { addTokens } from "../token-totals.js";
 import { toolContent } from "../tool-output.js";
 import { AcpError } from "./errors.js";
 import { acpReportedEffort, acpReportedModel } from "./model.js";
+import { acpPlanEvents } from "./plan.js";
 
 /** Vendor-specific tool result reading when closing `tool_call_update.content` is absent. */
 export type AcpRawToolOutputReader = (rawOutput: unknown, status: unknown) => readonly ToolOutputPart[] | undefined;
@@ -252,6 +253,10 @@ export function projectAcpUpdate(state: AcpProjectionState, update: JsonRecord, 
     case "tool_call":
     case "tool_call_update":
       events.push(...projectTool(state, update, rawToolOutput));
+      break;
+    case "plan":
+      // The agent's whole checklist replaces the previous one; an empty list is its own clear.
+      events.push(...acpPlanEvents(update));
       break;
     default:
       break;

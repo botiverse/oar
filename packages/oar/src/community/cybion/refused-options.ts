@@ -1,7 +1,10 @@
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
+import { dshOnlyRefusals, piOnlyRefusals } from "../../shared/session-options.js";
 
 /** Options a Cybion session refuses, each with the reason the Agent API gives none. */
 export const cybionRefusedSessionOptions: RefusedSessionOptions = {
+  ...piOnlyRefusals,
+  ...dshOnlyRefusals,
   modelRequests: "This adapter has no verified capture of the root agent's provider request",
   systemPrompt: "A Cybion Thread takes no per-session system prompt: its instructions are the Manuals Cybion loads for it",
   appendSystemPrompt: "A Cybion Thread takes no per-session system prompt: its instructions are the Manuals Cybion loads for it",

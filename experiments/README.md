@@ -1,9 +1,14 @@
 # experiments
 
+- [Hermes ACP first contact](hermes-acp/README.md) records the real `hermes acp` gateway viewer against a scripted provider: protocol 1, one completed turn, config-selector model/effort readback and a missing-resume `SessionNotFoundError`.
+- [Host-answered approvals and questions](app-request-answering/README.md) ships the provider-independent `Session.answer` and `Session.answerQuestion` round-trips, verifies Claude root-agent questions end to end, and records the native evidence still missing before any adapter hands an approval to a host.
+
 - [Kimi 2.7.2 KAP wire contract](kimi-kap-wire/README.md) follows session creation through model selection, tool calls, usage, cancellation, compaction and child-agent completion.
 
 - [The next request after an interrupted turn](abort-aftermath/README.md) compares model-visible history after stopping a stream or a running tool.
 
+- [Codex plan/checklist notifications](codex-plan-2026-11-24.md) captures `turn/plan/updated` from a real app-server against a scripted local provider: the whole list, `inProgress` versus the tool's `in_progress`, `explanation: null` and the empty clear; [selected notifications](codex-plan-2026-11-24.json).
+- [ACP plan update schema](acp-plan-2026-11-24.json) records the standard `plan` session update's `Plan`/`PlanEntry` definitions from `@agentclientprotocol/sdk` 1.4.0, which no captured ACP runtime here has sent yet.
 - [Codex thread instructions](codex-instruction-retention/README.md) traces what reaches the model after compaction and collaboration-mode changes.
 
 - [Session MCP credential isolation](mcp-credential-admission/README.md) checks delivery, tool environments and storage at the CI pins.

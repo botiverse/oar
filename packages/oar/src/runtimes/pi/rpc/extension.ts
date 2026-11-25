@@ -55,6 +55,14 @@ export default async function oarPiRpcExtension(pi) {
     await createMcpExtension({ loadConfig: () => ({ servers: [], errors: [] }), logPath: path.join(config.agentDir, "mcp.log") })(pi);
     for (const server of config.servers) { pi.registerMcpServer(server.name, server.config); }
   }
+  // SessionOptions.piProvider: a load-time registration is queued and applied
+  // when Pi binds its model plane, before --model and the session's model
+  // resolve. Nothing is written to models.json, and the credential is the
+  // $NAME reference the host sent, which Pi resolves at request time.
+  if (config.provider !== undefined) {
+    if (typeof pi.registerProvider !== "function") { throw new Error("This Pi cannot register a provider from an extension, which SessionOptions.piProvider needs"); }
+    pi.registerProvider(config.provider.id, config.provider.entry);
+  }
   const remember = async (context) => {
     if (context.model === undefined) { return; }
     const auth = await context.modelRegistry.getApiKeyAndHeaders(context.model);
@@ -77,6 +85,12 @@ export default async function oarPiRpcExtension(pi) {
     writeFileSync(path.join(directory, "ready"), JSON.stringify({
       version: VERSION,
       modelRegistered: context.model !== undefined && context.modelRegistry.find(context.model.provider, context.model.id) !== undefined,
+      // What the model plane holds for a declared provider: the parent compares
+      // this with the declaration and fails closed when it is short.
+      provider: config.provider === undefined ? null : {
+        id: config.provider.id,
+        models: context.modelRegistry.getAll().filter((model) => model.provider === config.provider.id).length,
+      },
     }), { mode: 0o600 });
   });
   pi.on("model_select", async (_event, context) => { await remember(context); });

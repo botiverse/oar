@@ -1,4 +1,5 @@
 import { dshInputSource } from "./bridge-input.js";
+import { dshProviderSource } from "./bridge-provider.js";
 import { dshControlSource } from "./bridge-controls.js";
 import { dshGoalSource } from "./bridge-goal.js";
 import { dshPromptSource } from "./bridge-prompt.js";
@@ -90,13 +91,13 @@ export function apply(ctx, config) {
           }
         }
       }
+      if (config?.provider !== undefined) { await confirmProvider(ctx, loader, config.provider); }
       boot(ctx, config);
     }
     catch (error) { const native = structured(error); write({ type: "startup-error", error: native, code: native.code, capability: native.capability }); }
   })();
 }
-
-function boot(ctx) {
+${dshProviderSource}function boot(ctx) {
   const agents = ctx.get("agents");
   const persistence = ctx.get("sessionPersistence");
 ${dshControlSource}

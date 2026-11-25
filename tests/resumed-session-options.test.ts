@@ -27,6 +27,7 @@ test("the complete resume declaration inventory is measured and never declares a
       dsh: ["appendSystemPrompt", "systemPrompt"],
       factory: null,
       grok: null,
+      hermes: null,
       kimi: null,
       opencode: null,
       pi: ["appendSystemPrompt", "systemPrompt"],

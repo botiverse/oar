@@ -69,4 +69,10 @@ export interface StreamJsonSessionProfile<S extends StreamJsonProjectionState> {
   readonly contextBreakdown?: Session["contextBreakdown"];
   /** A native allow response, already in the runtime's own wire shape; null leaves the request unanswered. */
   readonly permissionResponse?: (requestId: string, request: JsonRecord) => JsonRecord | null;
+  /** A runtime→app request the adapter records/answers itself; false lets the shared recorder keep it. */
+  readonly appRequest?: (id: string, type: string, native: unknown) => boolean;
+  /** The host-answered question operation, when this adapter hands questions over. */
+  readonly answerQuestion?: Session["answerQuestion"];
+  /** The kernel the adapter already built (with its host-answer coordinator bound); absent creates one here. */
+  readonly kernel?: SessionKernel;
 }

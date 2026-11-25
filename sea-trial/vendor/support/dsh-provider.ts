@@ -9,6 +9,8 @@ import { asRecord, asRecordList, parseJson, type JsonRecord } from "../../../pac
 export interface ProviderRequest {
   readonly messages: readonly JsonRecord[];
   readonly body: JsonRecord;
+  /** The request headers as sent, for the credential a host-declared provider resolves from an environment variable NAME. */
+  readonly headers: Readonly<Record<string, string | string[] | undefined>>;
 }
 
 /** One provider reply, as DSH's OpenAI-compatible route reads it. */
@@ -121,7 +123,7 @@ export async function startDshProvider(script: (request: ProviderRequest) => Rep
     req.on("data", (part: Buffer) => { parts.push(part); });
     req.on("end", () => {
       const body = asRecord(parseJson(Buffer.concat(parts).toString("utf8"))) ?? {};
-      const request = { body, messages: asRecordList(body.messages) };
+      const request = { body, messages: asRecordList(body.messages), headers: req.headers };
       requests.push(request);
       const reply = script(request);
       if (reply.kind === "error") {

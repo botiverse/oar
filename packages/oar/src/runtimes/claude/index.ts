@@ -25,6 +25,7 @@ export const claudeRuntime = defineRuntime({
       ? { taskEventTypes: semverAtLeast(installation.version, "2.1.318") ? ["agent", "shell", "workflow"] : ["workflow"] } : {}),
     ...(installation.via === "executable" && semverAtLeast(installation.version, "2.1.326") ? { subagentResults: { foreground: "parent_tool_result", background: "child_text" } } : {}),
     ...(supportsClaudeSideQuestion(installation) ? { sideQuestion: true } : {}),
+    ...(installation.via === "executable" && semverAtLeast(installation.version, "2.1.284") ? { questions: true } : {}),
     refusedSessionOptions: claudeModelRequestRefusal(installation.via === "executable" ? installation.version : undefined),
     steer: true, images: true, contextUsage: { tokens: true, contextWindow: true }, mcpTransports: ["stdio", "http"], stopTask: true,
   }),
