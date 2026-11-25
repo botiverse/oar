@@ -60,8 +60,10 @@ function completedText(session: Session): string[] {
 }
 
 // oxlint-disable-next-line eslint/max-statements -- The fork, active delivery, and receipt belong to one scenario.
-test("Hermes steers a branch's original prompt using the advertised control, not a second prompt", async () => {
+test.each([false, true])("Hermes steers the branch without a second prompt (image only: %s)", async (imageOnly) => {
   const logPath = path.join(scratch("oar-hermes-steer-"), "calls");
+  const imagePath = path.join(path.dirname(logPath), "attached image.png");
+  writeFileSync(imagePath, "fixture bytes stay on disk");
   const session = await acpSession({ ...hermesAcpProfile, args: [fixture] })(install, {
     cwd: process.cwd(), resume: "local-fake-hermes", fork: {},
     env: { FAKE_HERMES_STEER: "yes", FAKE_HERMES_CALL_LOG: logPath },
@@ -72,13 +74,14 @@ test("Hermes steers a branch's original prompt using the advertised control, not
     assert.equal(idle?.kind, "rejected");
     const turn = promptAndWait(session, "hold");
     await expect.poll(() => readFileSync(logPath, "utf8")).toContain("prompt:hold");
-    const result = await session.steerOrQueue("use the branch");
+    const result = await session.steerOrQueue(imageOnly ? "" : "use the branch", imageOnly ? { images: [{ path: imagePath }] } : {});
     assert.equal(result.landed, "steered");
     const ended = await turn;
     assert.equal(ended.kind, "ended");
-    assert.deepEqual(completedText(session), ["echo:use the branch"]);
-    assert.deepEqual(readFileSync(logPath, "utf8").split("\n").filter(line => /^(?:prompt|steer):/u.test(line)),
-      ["prompt:hold", "steer:local-fake-hermes-fork:use the branch"]);
+    const text = imageOnly ? `\n\nRead the attached image files at these local paths: ${JSON.stringify([imagePath])}` : "use the branch";
+    assert.deepEqual(completedText(session), [`echo:${text}`]);
+    assert.equal(readFileSync(logPath, "utf8").split("prompt:").length, 2);
+    assert.ok(readFileSync(logPath, "utf8").includes(`steer:local-fake-hermes-fork:${text}`));
   } finally { await session.dispose(); }
 });
 

@@ -40,7 +40,7 @@ export const hermesAcpProfile: AcpSessionProfile = {
   // oxlint-disable-next-line eslint/no-underscore-dangle -- ACP extension capability envelope.
   steerRequestAdvertised: initialized => asRecord(initialized._meta)?.["hermes/steer"] === true,
   steerRequest: ({ sessionId, input }) => ({ method: "_hermes/session/steer", params: { sessionId, text: input } }),
-  steerRequestImages: false,
+  steerRequestImages: "paths",
   steerRequestErrorsUnknown: true,
   steerRequestAnswer: answer => {
     switch (asRecord(answer)?.status) {

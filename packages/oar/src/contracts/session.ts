@@ -69,8 +69,8 @@ export interface InputOptions {
   /**
    * Images that travel with the input (text may be the empty string), as the runtime's own image input (not a
    * path in prose). Each is a file on this machine, read when the input is
-   * delivered; the request record keeps the paths, never the bytes. Rejected
-   * `unsupported` when `capabilities.images` is false.
+   * delivered; request records keep paths, never bytes. A documented text-only steer may refer to
+   * the files by path. Otherwise rejected `unsupported` when `capabilities.images` is false.
    */
   readonly images?: readonly InputImage[];
   /** Who the input comes from; kept on the request record, never sent to the runtime. */

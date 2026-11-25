@@ -50,7 +50,9 @@ account or real model is used
 `Session.capabilities` reports an adapter-held queue (`durable: false`),
 `attribution: "opaque"`, and images from the handshake. The structured steer
 extension targets the current native turn; acceptance does not prove the model
-consumed the text. Without the extension, or with images, follow-ups can queue.
+consumed the text. With the extension, image attachments are referenced by their
+local paths in the steer text; the normal prompt still uses native image blocks.
+If no active turn takes the steer, queueing keeps the original images.
 OAR does not issue `/steer` as a second prompt or resend an ambiguous receipt.
 `Session.stopTask` is absent. Manual compaction
 is declared unsupported: `/compress` is advertised, but there is no structured
