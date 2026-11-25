@@ -23,6 +23,7 @@ export type { FailureAdvice } from "./failure-advice.js";
 export type { NoticeTone } from "./display-text.js";
 export { toolResultText } from "./tool-output.js";
 export { appRequestKind, appRequestText } from "./app-requests.js";
+export type { UserQuestionItem, UserQuestionPrompt } from "../contracts/user-questions.js";
 export { userQuestionOf } from "../shared/user-question-prompt.js";
 export { redactRecord } from "./redact-record.js";
 export { REDACTION_RULES } from "../shared/credential-redaction.js";

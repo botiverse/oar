@@ -21,7 +21,7 @@ function itemProblem(item: UserQuestionItem, given: { readonly selected?: readon
   const labels = new Set((item.options ?? []).map((option) => option.label));
   const unknown = selected.find((label) => !labels.has(label));
   if (unknown !== undefined) { return `has no option ${JSON.stringify(unknown)}; give other words as text`; }
-  if (given.text !== undefined && !item.allowOther && (item.options?.length ?? 0) > 0) { return "takes only its own options"; }
+  if (given.text !== undefined && given.text !== "" && !item.allowOther && (item.options?.length ?? 0) > 0) { return "takes only its own options"; }
   return null;
 }
 

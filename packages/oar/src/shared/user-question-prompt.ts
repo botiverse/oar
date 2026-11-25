@@ -31,7 +31,8 @@ function questionItem(question: JsonRecord, id: unknown, own: Pick<UserQuestionI
  * native body: codex `item/tool/requestUserInput` (0.172.0) and claude
  * `can_use_tool` for `AskUserQuestion` (2.1.332, whose own UI always takes
  * other words). Null for any other request, and for one with a question it
- * cannot read: a half-read prompt would hide what is asked.
+ * cannot read (a half-read prompt would hide what is asked) or two under one
+ * id (answers are keyed by it).
  */
 export function userQuestionOf(type: string, body: unknown): UserQuestionPrompt | null {
   const claude = claudeQuestion(type, body);
@@ -41,5 +42,6 @@ export function userQuestionOf(type: string, body: unknown): UserQuestionPrompt 
     ? questionItem(question, question.id, { multiSelect: false, allowOther: question.isOther === true || asRecordList(question.options).length === 0, secret: question.isSecret === true })
     : questionItem(question, question.question, { multiSelect: question.multiSelect === true, allowOther: true, secret: false }));
   const read = questions.filter((question) => question !== null);
-  return read.length === 0 || read.length !== questions.length ? null : { questions: read };
+  const ids = new Set(read.map((question) => question.id));
+  return read.length === 0 || read.length !== questions.length || ids.size !== read.length ? null : { questions: read };
 }

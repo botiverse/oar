@@ -55,7 +55,7 @@ export function claudeSessionArgs(sessionId: string, options: Pick<SessionOption
 function spawnClaude(command: string, sessionId: string, options: SessionOptions, mcpConfig: string | null, tierSettings: JsonRecord, nativeArgs: readonly string[], capture?: string): LineProcess {
   const directories = resolvedAdditionalDirectories(options);
   const asks = options.userQuestions === "host";
-  const disallowed = [...options.disallowedTools ?? [], ...(asks ? CLAUDE_QUESTION_DISALLOWED : [])];
+  const disallowed = [...new Set([...options.disallowedTools ?? [], ...(asks ? CLAUDE_QUESTION_DISALLOWED : [])])];
   const configuration = claudeUserConfiguration(options);
   const settings = { ...tierSettings, ...configuration.settings };
   if (capture !== undefined) {

@@ -84,6 +84,34 @@ test.each([
   await session.dispose();
 });
 
+test("an empty text is no other words, so an options-only question takes it", async () => {
+  const { session, replies, child } = await open();
+  const question = { id: "color", question: "Which color?", isOther: false, options: [{ label: "Red" }, { label: "Blue" }] };
+  child.emit(`${JSON.stringify({ id: 0, method: "item/tool/requestUserInput", params: { questions: [question] } })}\n`);
+  expect(await session.answerQuestion?.("0", { kind: "answered", answers: { color: { selected: ["Red"], text: "teal" } } })).toMatchObject({ kind: "rejected", code: "unsupported" });
+  expect(await session.answerQuestion?.("0", { kind: "answered", answers: { color: { selected: ["Red"], text: "" } } })).toMatchObject({ kind: "answered" });
+  expect(replies).toEqual([{ id: 0, result: { answers: { color: { answers: ["Red"] } } } }]);
+  await session.dispose();
+});
+
+test("two questions under one id are answered empty at once", async () => {
+  const { session, replies, child } = await open();
+  const question = { id: "color", question: "Which color?", options: null };
+  child.emit(`${JSON.stringify({ id: 0, method: "item/tool/requestUserInput", params: { questions: [question, question] } })}\n`);
+  expect(replies).toEqual([{ id: 0, result: { answers: {} } }]);
+  expect(await session.answerQuestion?.("0", { kind: "declined" })).toMatchObject({ kind: "rejected", code: "unknown_request" });
+  await session.dispose();
+});
+
+test("a resolution without a request id withdraws nothing", async () => {
+  const { session, child } = await open();
+  child.emit(`${JSON.stringify({ id: "undefined", method: "item/tool/requestUserInput", params: { questions: QUESTIONS } })}\n`);
+  expect(viewOf(session.records()).pendingRequests).toHaveLength(1);
+  child.emit(`${JSON.stringify({ method: "serverRequest/resolved", params: { threadId: "thread" } })}\n`);
+  expect(appEvents(session)).toEqual(["app_request"]);
+  await session.dispose();
+});
+
 test("codex withdrawing a question cancels it", async () => {
   const { session, replies, ask, child } = await open();
   ask(0);

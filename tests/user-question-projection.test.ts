@@ -32,6 +32,8 @@ test.each([
   ["can_use_tool", { request: { tool_name: "Bash", input: { questions: [{ question: "q" }] } } }],
   ["can_use_tool", { request: { tool_name: "AskUserQuestion", input: { questions: [] } } }],
   ["item/tool/requestUserInput", { questions: [{ id: "a", question: "read" }, { id: "b" }] }],
+  ["item/tool/requestUserInput", { questions: [{ id: "a", question: "one" }, { id: "a", question: "two" }] }],
+  ["can_use_tool", { request: { tool_name: "AskUserQuestion", input: { questions: [{ question: "q" }, { question: "q" }] } } }],
   ["mcpServer/elicitation/request", { message: "Sign in?" }],
   ["item/tool/requestUserInput", undefined],
 ])("%s %j is no prompt", (type, body) => { expect(userQuestionOf(type, body)).toBeNull(); });

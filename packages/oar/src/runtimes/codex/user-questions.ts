@@ -34,6 +34,7 @@ export function codexQuestionReply(prompt: UserQuestionPrompt, answer: UserQuest
 /** `serverRequest/resolved` for a question nobody answered. Every other request is answered as it arrives, so it withdraws nothing. */
 export function codexQuestionWithdrawn(questions: UserQuestions | undefined, method: string, params: JsonRecord): readonly RuntimeEventBody[] {
   if (method !== "serverRequest/resolved" || questions === undefined) { return []; }
+  if (typeof params.requestId !== "string" && typeof params.requestId !== "number") { return []; }
   const requestId = String(params.requestId);
   return questions.withdraw(requestId) ? [{ kind: "app_request_cancelled", requestId }] : [];
 }
