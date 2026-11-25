@@ -14,7 +14,7 @@ import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { newSessionLinks } from "../../shared/session-links.js";
 import { startAppServerClient, type RpcOutcome } from "./app-server-client.js";
-import { CODEX_SETTINGS_REPORT_MS, codexOpenReadback, codexResumeEffortRefusal, codexThreadName, codexThreadOpen } from "./open.js";
+import { CODEX_SETTINGS_REPORT_MS, codexLaunchSandboxMode, codexOpenReadback, codexResumeEffortRefusal, codexThreadName, codexThreadOpen } from "./open.js";
 import { foldCodexNotification, initialCodexProjection, type CodexProjectionState } from "./projection.js";
 import { prepareCodexOpenParams } from "./open-config.js";
 import { missingDirectoryError, nameThread, openThread, rpcControl, updateThreadEffort, type RpcControlPlan } from "./rpc-control.js";
@@ -43,9 +43,8 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
   // Threads persist so a later SessionOptions.resume can reattach; the thread
   // id is the runtime-native identity and becomes Session.id (open.ts builds
   // the request, and refuses what it cannot build before anything starts).
-  const { method: openMethod, params: openParams, redact } = codexThreadOpen(options);
-  // Default bypasses approvals and sandbox; nativePermissions: "inherit" wins per session over OAR_CODEX_SANDBOX.
-  const sandboxMode = options.nativePermissions === "inherit" ? "inherit" : process.env.OAR_CODEX_SANDBOX ?? "danger-full-access";
+  const sandboxMode = codexLaunchSandboxMode(options);
+  const { method: openMethod, params: openParams, redact } = codexThreadOpen(options, sandboxMode);
   const configOverrides = { ...(sandboxMode === "inherit" ? {} : { sandbox_mode: `"${sandboxMode}"` }), ...(options.goals === true ? { "features.goals": "true" } : {}) };
   // Client errors redact the MCP credentials carried by the open config.
   const client = startAppServerClient(installation.command, options.env, configOverrides, options.cwd, { redact, ...(options.launchArgs === undefined ? {} : { launchArgs: options.launchArgs }) });

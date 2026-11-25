@@ -72,17 +72,77 @@ test("default omits nativePermissions and sends danger-full-access plus approval
     expect(args, label).toContain('sandbox_mode="danger-full-access"');
     const open = requests.find((request) => request.method === method);
     expect(open?.params.approvalPolicy, label).toBe("never");
+    if (method === "thread/start") {
+      expect(open?.params, label).not.toHaveProperty("sandbox");
+    } else {
+      expect(open?.params.sandbox, label).toBe("danger-full-access");
+    }
   }
 });
 
-test("omitted nativePermissions still honors OAR_CODEX_SANDBOX while keeping approvalPolicy never", async () => {
+test("omitted nativePermissions still honors OAR_CODEX_SANDBOX across start, resume, and fork while keeping approvalPolicy never", async () => {
   process.env.OAR_CODEX_SANDBOX = "workspace-write";
-  const { requests, args } = await openAndDispose({});
-  expect(args).toContain('sandbox_mode="workspace-write"');
-  expect(requests.find((request) => request.method === "thread/start")?.params.approvalPolicy).toBe("never");
+  for (const [label, opts, method] of [
+    ["start", {}, "thread/start"],
+    ["resume", { resume: "thread-1" }, "thread/resume"],
+    ["fork", { resume: "thread-1", fork: {} }, "thread/fork"],
+  ] as const) {
+    spawnLineProcess.mockReset();
+    // oxlint-disable-next-line no-await-in-loop -- each open uses its own mocked spawn call.
+    const { requests, args } = await openAndDispose(opts);
+    expect(args, label).toContain('sandbox_mode="workspace-write"');
+    const open = requests.find((request) => request.method === method);
+    expect(open?.params.approvalPolicy, label).toBe("never");
+    if (method === "thread/start") {
+      expect(open?.params, label).not.toHaveProperty("sandbox");
+    } else {
+      expect(open?.params.sandbox, label).toBe("workspace-write");
+    }
+  }
 });
 
-test("nativePermissions inherit omits sandbox_mode and approvalPolicy on start, resume, and fork, winning over OAR_CODEX_SANDBOX", async () => {
+test("OAR_CODEX_SANDBOX inherit omits sandbox_mode and RPC sandbox on resume and fork while keeping approvalPolicy never", async () => {
+  process.env.OAR_CODEX_SANDBOX = "inherit";
+  for (const [label, opts, method] of [
+    ["start", {}, "thread/start"],
+    ["resume", { resume: "thread-1" }, "thread/resume"],
+    ["fork", { resume: "thread-1", fork: {} }, "thread/fork"],
+  ] as const) {
+    spawnLineProcess.mockReset();
+    // oxlint-disable-next-line no-await-in-loop -- each open uses its own mocked spawn call.
+    const { requests, args } = await openAndDispose(opts);
+    expect(args.some((arg) => arg.startsWith("sandbox_mode=")), label).toBe(false);
+    const open = requests.find((request) => request.method === method);
+    expect(open?.params.approvalPolicy, label).toBe("never");
+    expect(open?.params, label).not.toHaveProperty("sandbox");
+  }
+});
+
+test("launchArgs sandbox overrides suppress RPC sandbox on resume and fork without suppressing unrelated launchArgs", async () => {
+  delete process.env.OAR_CODEX_SANDBOX;
+  for (const launchArgs of [
+    ["-c", 'sandbox_mode="workspace-write"'],
+    ['--config=sandbox_mode="read-only"'],
+    ["--sandbox", "workspace-write"],
+    ["--full-auto"],
+  ] as const) {
+    for (const [label, opts, method] of [
+      ["resume", { resume: "thread-1", launchArgs }, "thread/resume"],
+      ["fork", { resume: "thread-1", fork: {}, launchArgs }, "thread/fork"],
+    ] as const) {
+      spawnLineProcess.mockReset();
+      // oxlint-disable-next-line no-await-in-loop -- each open uses its own mocked spawn call.
+      const { requests } = await openAndDispose(opts);
+      const open = requests.find((request) => request.method === method);
+      expect(open?.params, `${label} ${launchArgs.join(" ")}`).not.toHaveProperty("sandbox");
+    }
+  }
+  spawnLineProcess.mockReset();
+  const { requests } = await openAndDispose({ resume: "thread-1", launchArgs: ["-c", 'shell_environment_policy.inherit="core"'] });
+  expect(requests.find((request) => request.method === "thread/resume")?.params.sandbox).toBe("danger-full-access");
+});
+
+test("nativePermissions inherit omits sandbox_mode, sandbox, and approvalPolicy on start, resume, and fork, winning over OAR_CODEX_SANDBOX", async () => {
   process.env.OAR_CODEX_SANDBOX = "danger-full-access";
   for (const [label, opts, method] of [
     ["start", { nativePermissions: "inherit" as const }, "thread/start"],
@@ -95,6 +155,7 @@ test("nativePermissions inherit omits sandbox_mode and approvalPolicy on start, 
     expect(args.some((arg) => arg.startsWith("sandbox_mode=")), label).toBe(false);
     const open = requests.find((request) => request.method === method);
     expect(open?.params, label).not.toHaveProperty("approvalPolicy");
+    expect(open?.params, label).not.toHaveProperty("sandbox");
   }
 });
 

@@ -8,7 +8,11 @@ import { fakeLineProcess, type FakeLineProcess } from "../fixtures/fake-line-pro
 
 const spawnLineProcess = vi.hoisted(() => vi.fn<(command: string, args: readonly string[]) => FakeLineProcess>());
 vi.mock("../../packages/oar/src/shared/executable/index.js", () => ({ spawnLineProcess }));
-afterEach(() => { spawnLineProcess.mockReset(); });
+const savedSandboxEnv = process.env.OAR_CODEX_SANDBOX;
+afterEach(() => {
+  spawnLineProcess.mockReset();
+  if (savedSandboxEnv === undefined) { delete process.env.OAR_CODEX_SANDBOX; } else { process.env.OAR_CODEX_SANDBOX = savedSandboxEnv; }
+});
 
 const installation = { kind: "available", via: "executable", command: "codex" } as const;
 
@@ -50,11 +54,12 @@ const open = async (options: Partial<SessionOptions>, version: string | null = "
 };
 
 test("a fork sends thread/fork for the source through lastTurnId, and the Session is the new thread", async () => {
+  delete process.env.OAR_CODEX_SANDBOX;
   const { requests, opening } = await open({ fork: { through: "turn-1" } });
   const session = await opening;
   expect(session.id).toBe("fork-thread");
   const fork = requests.find((request) => request.method === "thread/fork");
-  expect(fork?.params).toEqual({ threadId: "source-thread", lastTurnId: "turn-1", excludeTurns: true, cwd: "/work", approvalPolicy: "never" });
+  expect(fork?.params).toEqual({ threadId: "source-thread", lastTurnId: "turn-1", excludeTurns: true, cwd: "/work", approvalPolicy: "never", sandbox: "danger-full-access" });
   expect(requests.map((request) => request.method)).not.toContain("thread/resume");
   expect(session.records().some((record) => record.kind === "frame" && record.body.type === "thread/fork")).toBe(true);
   await session.dispose();
