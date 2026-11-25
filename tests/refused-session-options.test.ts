@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { expect, test } from "vitest";
 import { createSubagents } from "../packages/oar/src/agents/index.js";
 import type { AvailableInstallation } from "../packages/oar/src/contracts/installation.js";
-import type { RefusableSessionOption } from "../packages/oar/src/contracts/runtime.js";
+import type { RefusableSessionOption, RefusedSessionOptions } from "../packages/oar/src/contracts/runtime.js";
 import type { SessionOptions } from "../packages/oar/src/contracts/session.js";
-import { createPiRuntime, defineRuntime, UnsupportedOptionError } from "../packages/oar/src/index.js";
+import { createPiRuntime, defineRuntime, installedSessionCapabilities, UnsupportedOptionError } from "../packages/oar/src/index.js";
 import { refuseSessionOptions } from "../packages/oar/src/shared/session-options.js";
 import { scriptedRuntime } from "../packages/oar/src/testing/index.js";
 import { allRuntimes } from "../sea-trial/harness/runtimes.js";
@@ -53,6 +53,14 @@ function refusalMessage(reason: string | undefined, key: RefusableSessionOption)
   return key === "mcpServerCredentials" ? `${String(reason)}: ["served"]` : reason;
 }
 
+// What a host reads before opening for one installation: the static map plus
+// whatever that installation's own answer adds. Hermes' `mcpServerCredentials`
+// lives only there (hermes-mcp-credentials.test.ts pins both directions).
+function declaredFor(id: string): RefusedSessionOptions {
+  const runtime = allRuntimes.require(id);
+  return installedSessionCapabilities(runtime, nowhere(id)).refusedSessionOptions ?? {};
+}
+
 test("every declared refusal is what session() rejects with", async () => {
   const declaring = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions !== undefined);
   assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "claude", "codebuddy", "codex", "cursor", "devin", "dsh", "factory", "grok", "hermes", "kimi", "opencode", "pi", "qoder", "qwen"]);
@@ -76,6 +84,8 @@ test("a runtime without a verified question channel refuses questions", async ()
 });
 
 test("the declarations say which options each runtime refuses", () => {
+  // The static map: what every installation of a runtime refuses. A refusal
+  // that depends on the release is in the installation's answer instead.
   const refused = Object.fromEntries(allRuntimes.list().map((runtime) => [runtime.id, Object.keys(runtime.refusedSessionOptions ?? {}).toSorted()]));
   assert.deepEqual(refused, {
     antigravity: ["additionalDirectories", "disallowedTools", "dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "systemPrompt", "userConfiguration"],
@@ -87,7 +97,7 @@ test("the declarations say which options each runtime refuses", () => {
     dsh: ["endTurnProcessesOnAbort", "fork", "launchArgs", "modelRequests", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "userConfiguration"],
     factory: ["additionalDirectories", "disallowedTools", "dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "userConfiguration"],
     grok: ["additionalDirectories", "disallowedTools", "dshProvider", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "userConfiguration"],
-    hermes: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "dshProvider", "endTurnProcessesOnAbort", "goals", "launchArgs", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "systemPrompt", "userConfiguration"],
+    hermes: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "dshProvider", "endTurnProcessesOnAbort", "goals", "launchArgs", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "systemPrompt", "userConfiguration"],
     kimi: ["disallowedTools", "dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "systemPrompt", "userConfiguration"],
     opencode: ["disallowedTools", "dshProvider", "endTurnProcessesOnAbort", "goals", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "userConfiguration"],
     pi: ["additionalDirectories", "dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "launchArgs", "nativeMemoryDefault", "nativePermissions", "outputSchema", "serviceTier", "sessionLogUpload", "userConfiguration"],
@@ -129,7 +139,10 @@ test("entries without credentials are no mcpServerCredentials given, and every r
       refuseSessionOptions(runtime.refusedSessionOptions ?? {}, { cwd: "/tmp", mcpServers: bare });
     }, runtime.id);
   }
-  const refusing = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions?.mcpServers !== undefined || runtime.refusedSessionOptions?.mcpServerCredentials !== undefined);
+  const refusing = allRuntimes.list().filter((runtime) => {
+    const declared = declaredFor(runtime.id);
+    return declared.mcpServers !== undefined || declared.mcpServerCredentials !== undefined;
+  });
   expect(refusing.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", "cursor", "devin", "hermes"]);
 });
 

@@ -58,6 +58,8 @@ export interface SessionCapabilityDeclaration {
   readonly contextUsage?: ContextUsageCapability;
   /** Verified session MCP transports (`[]` when MCP is refused; absent when unverified or handshake-only). */
   readonly mcpTransports?: readonly McpTransport[];
+  /** Verified handling of stdio MCP credentials without persisting the transport configuration. */
+  readonly mcpServerCredentialsVerified?: boolean;
   /** Whether this installation accepts a host-declared DSH provider at open. */
   readonly dshProvider?: boolean;
   /** Per-server native startup reports are available before input. A first model request may run while discovery is pending. */

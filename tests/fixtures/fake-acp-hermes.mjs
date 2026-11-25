@@ -1,6 +1,7 @@
 /* oxlint-disable import/no-nodejs-modules, eslint/no-underscore-dangle, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-argument, typescript/no-unsafe-call, typescript/no-unsafe-return, unicorn/prefer-top-level-await -- Standalone ACP wire fixture replaying Hermes gateway 0.23.3 shapes. */
 import { appendFileSync } from "node:fs";
 import { createInterface } from "node:readline";
+import { attachEditorServers, callEditorTool, closeEditorServers, editorMcpFingerprint } from "./fake-hermes-editor-mcp.mjs";
 
 /*
  * `hermes-acp` is a viewer of the Hermes gateway daemon. These are the frames
@@ -20,6 +21,11 @@ let currentEffort = process.env.FAKE_HERMES_EFFORT ?? "default";
 let currentMode = "default";
 const pendingPrompts = new Map();
 const pending = new Map();
+// The session's editor MCP servers, borrowed in THIS process's memory
+// (`authority._local_editor_mcp`); the store gets a fingerprint, not values.
+const home = process.env.FAKE_HERMES_HOME ?? process.cwd();
+/** @type {{ fingerprint: string | null, connections: unknown[], tools: Set<string> }} */
+let editorServers = { fingerprint: null, connections: [], tools: new Set() };
 
 function log(entry) {
   if (typeof logPath === "string") {
@@ -37,6 +43,37 @@ function error(id, failure) {
 }
 function update(value, target = sessionId) {
   send({ jsonrpc: "2.0", method: "session/update", params: { sessionId: target, update: value } });
+}
+
+/*
+ * The gateway's `bind_editor_mcp` (`session/new`) and `resume_editor_mcp`
+ * (`session/resume`): attach the editor's servers, or keep the session's when
+ * the list is empty or unchanged. A changed list re-spawns them, because the
+ * old connection holds the previous generation's env values.
+ */
+async function bindEditorServers(params) {
+  const servers = Array.isArray(params?.mcpServers) ? params.mcpServers : [];
+  // An empty or omitted list keeps the session's servers (`resume_editor_mcp`);
+  // the same list keeps the held connection; a changed list swaps the values.
+  const fingerprint = servers.length === 0 ? undefined : editorMcpFingerprint(servers);
+  if (editorServers.fingerprint !== null && (fingerprint === undefined || fingerprint === editorServers.fingerprint)) {
+    log(fingerprint === undefined ? "editor_mcp:kept" : "editor_mcp:reused");
+    return;
+  }
+  if (servers.length === 0) { return; }
+  closeEditorServers(editorServers);
+  editorServers = await attachQuietly(servers);
+}
+
+/** A changed list swaps the credentials: a broken server is left out and the session continues. */
+async function attachQuietly(servers) {
+  try {
+    return await attachEditorServers({ servers, home, log });
+    // oxlint-disable-next-line eslint/no-shadow -- `error` is this fixture's JSON-RPC error responder; the catch parameter shadows it inside the handler only.
+  } catch (error) {
+    log(`editor_mcp:discovery_failed:${error instanceof Error ? error.message : String(error)}`);
+    return { fingerprint: editorMcpFingerprint(servers), connections: [], tools: new Set() };
+  }
 }
 
 function configOptions() {
@@ -122,13 +159,25 @@ function afterAttach() {
   });
 }
 
-function completePrompt(id, text) {
+/**
+ * The model asked for the session MCP tool: the owner calls it and the tool's
+ * own answer becomes part of this turn's text. A prompt naming the echo makes
+ * the tool answer with the env value it was started under.
+ */
+async function toolText(text) {
+  const echoToken = text.includes("echo");
+  const answered = await callEditorTool({ holder: editorServers, tool: "probe_echo", args: { text: "hello", echoToken }, log });
+  return `tool:${answered}`;
+}
+
+async function completePrompt(id, text) {
   if (text === "cancel") {
     result(id, { stopReason: "cancelled" });
     update({ sessionUpdate: "usage_update", used: 200, size: 1000 });
     return;
   }
-  update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: `echo:${text}` } });
+  const body = typeof text === "string" && text.startsWith("call-tool") ? await toolText(text) : `echo:${String(text)}`;
+  update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: body } });
   update({ sessionUpdate: "usage_update", used: 300, size: 1000 });
   // Session-cumulative counters, as gateway_session_meta.turn_usage reports
   // them; OAR does not map these as per-prompt tokens.
@@ -147,7 +196,7 @@ function handlePrompt(message) {
     pending.set(message.id, message.id);
     return;
   }
-  queueMicrotask(() => { completePrompt(message.id, text); });
+  queueMicrotask(() => { void completePrompt(message.id, text); });
 }
 
 function handleCancel(message) {
@@ -181,13 +230,14 @@ function initializeResult(id) {
     ],
   });
 }
-function resumeResult(message) {
+async function resumeResult(message) {
   log(message.method);
   if (process.env.FAKE_HERMES_RESUME_ERROR !== undefined) {
     const failure = JSON.parse(process.env.FAKE_HERMES_RESUME_ERROR);
     error(message.id, { code: failure.code, message: failure.message, ...(failure.data === undefined ? {} : { data: failure.data }) });
     return;
   }
+  await bindEditorServers(message.params);
   result(message.id, sessionFields());
   afterAttach();
 }
@@ -202,11 +252,20 @@ function configResult(message) {
   }
   result(message.id, { configOptions: configOptions() });
 }
+// The gateway discovers the editor's servers before it answers `session/new`
+// (`bind_editor_mcp` inside `session.create`), so the reply waits for them.
+async function newSession(message) {
+  log("session/new");
+  await bindEditorServers(message.params);
+  result(message.id, { sessionId, ...sessionFields() });
+  afterAttach();
+}
+
 function handleRequest(message) {
   switch (message.method) {
     case "initialize": initializeResult(message.id); break;
     case "authenticate": log("authenticate"); result(message.id, {}); break;
-    case "session/new": log("session/new"); result(message.id, { sessionId, ...sessionFields() }); afterAttach(); break;
+    case "session/new": newSession(message); break;
     case "session/resume":
     case "session/load": resumeResult(message); break;
     case "session/fork": log("session/fork"); result(message.id, { sessionId: `${sessionId}-fork`, ...sessionFields() }); break;

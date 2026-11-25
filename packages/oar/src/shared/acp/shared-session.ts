@@ -134,7 +134,7 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
   });
   return withSessionCredentials(async (installation, options, credentials, context) => {
     if (installation.via !== "executable") { throw new Error("ACP runtimes require an executable installation"); }
-    profile.validateOptions?.(options);
+    profile.validateOptions?.(options, installation);
     const withoutCredentials = acpMcpOpenGuard(options.mcpServers, credentials.redact);
     const environment = sessionEnvironment(options.env);
     const lease = await pool.acquire({

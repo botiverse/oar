@@ -2,6 +2,7 @@ import { runtimeBrands } from "../../brands.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { onFirstCall } from "../../shared/lazy.js";
 import { hermesInstallation } from "./installation.js";
+import { hermesInstallationRefusals, hermesMeasuredMcpCredentials } from "./mcp-credentials.js";
 import { hermesRefusedSessionOptions } from "./options.js";
 
 const NO_MANUAL_COMPACTION = {
@@ -14,14 +15,18 @@ export const hermesRuntime = defineRuntime({
   // `initialize` advertises image prompts and the gateway publishes
   // `usage_update` from its session stats. Turns and children stay opaque;
   // the ACP surface exposes no single-task stop.
-  sessionCapabilities: () => ({
+  sessionCapabilities: (installation) => ({
     taskEventTypes: [],
     steer: false,
     stopTask: false,
     contextUsage: { tokens: true, contextWindow: true },
+    // Stdio only: `initialize` declares no `mcpCapabilities.http`. A stdio
+    // entry with `env` attaches only on the release whose credential handling
+    // OAR measured (mcp-credentials.ts).
     mcpTransports: ["stdio"],
+    mcpServerCredentialsVerified: hermesMeasuredMcpCredentials(installation),
     manualCompaction: NO_MANUAL_COMPACTION,
-    refusedSessionOptions: hermesRefusedSessionOptions,
+    refusedSessionOptions: hermesInstallationRefusals(installation),
   }),
   manualCompaction: NO_MANUAL_COMPACTION,
   brand: runtimeBrands.hermes,

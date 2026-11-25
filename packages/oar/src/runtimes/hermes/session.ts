@@ -3,6 +3,7 @@ import type { SessionOptions } from "../../contracts/session.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
+import { hermesInstallationRefusals } from "./mcp-credentials.js";
 import { hermesRefusedSessionOptions } from "./options.js";
 
 /**
@@ -49,8 +50,11 @@ export const hermesAcpProfile: AcpSessionProfile = {
   // turn-cut copy.
   wholeSessionFork: true,
   isResumeNotFound: hermesResumeNotFound,
-  validateOptions: (options: SessionOptions): void => {
-    refuseSessionOptions(hermesRefusedSessionOptions, options);
+  validateOptions: (options: SessionOptions, installation): void => {
+    // The static map and the release-specific one together: `sessionCapabilities()`
+    // reads the same `hermesInstallationRefusals`, so the declaration and this open
+    // agree on whether an entry with `env` or `headers` attaches.
+    refuseSessionOptions({ ...hermesRefusedSessionOptions, ...hermesInstallationRefusals(installation) }, options);
   },
 };
 

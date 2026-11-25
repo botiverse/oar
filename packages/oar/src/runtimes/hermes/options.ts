@@ -4,7 +4,10 @@ import { dshOnlyRefusals, piOnlyRefusals } from "../../shared/session-options.js
 /*
  * Declared refusals, apart from the session code so the runtime entry loads no
  * ACP SDK until a session opens. Each reason names the checked native surface,
- * not an absent OAR feature.
+ * not an absent OAR feature. A refusal that depends on the release OAR
+ * measured is not here but in `hermesInstallationRefusals` (mcp-credentials.ts),
+ * which both the declaration and the open read: whatever this map refuses,
+ * every installation refuses.
  */
 export const hermesRefusedSessionOptions: RefusedSessionOptions = {
   ...piOnlyRefusals,
@@ -24,8 +27,4 @@ export const hermesRefusedSessionOptions: RefusedSessionOptions = {
   nativeMemoryDefault: "Hermes exposes no verified settings layer below user configuration for native memory",
   nativePermissions: "Hermes exposes no verified per-session switch to inherit native permission and sandbox settings",
   sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
-  // The gateway binds editor MCP servers under a session scope that OAR has
-  // not verified as ephemeral. A stdio entry without env attaches; a served
-  // entry carries env, so it is refused rather than guessed at.
-  mcpServerCredentials: "OAR has not verified that Hermes' gateway keeps session MCP env and header values out of its persisted profile state",
 };

@@ -60,7 +60,7 @@ export function createGrokSharedSession(diagnostic: (entry: AcpUnattributed) => 
     cleanup: closeAcpSession, diagnostic,
   });
   return withSessionCredentials(async (installation, options, _credentials, context) => {
-    grokAcpProfile.validateOptions?.(options);
+    grokAcpProfile.validateOptions?.(options, installation);
     checkMcpServerNames(options.mcpServers ?? []);
     if (installation.via !== "executable") { throw new Error("grok requires an executable installation"); }
     const refusal = grokSharedLaunchRefusal(installation.command, options);
