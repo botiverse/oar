@@ -44,9 +44,8 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
   // id is the runtime-native identity and becomes Session.id (open.ts builds
   // the request, and refuses what it cannot build before anything starts).
   const { method: openMethod, params: openParams, redact } = codexThreadOpen(options);
-  // Default bypasses approvals and sandbox; OAR_CODEX_SANDBOX can override
-  // that launch setting, or use "inherit" to leave native configuration in charge.
-  const sandboxMode = process.env.OAR_CODEX_SANDBOX ?? "danger-full-access";
+  // Default bypasses approvals and sandbox; nativePermissions: "inherit" wins per session over OAR_CODEX_SANDBOX.
+  const sandboxMode = options.nativePermissions === "inherit" ? "inherit" : process.env.OAR_CODEX_SANDBOX ?? "danger-full-access";
   const configOverrides = { ...(sandboxMode === "inherit" ? {} : { sandbox_mode: `"${sandboxMode}"` }), ...(options.goals === true ? { "features.goals": "true" } : {}) };
   // Client errors redact the MCP credentials carried by the open config.
   const client = startAppServerClient(installation.command, options.env, configOverrides, options.cwd, { redact, ...(options.launchArgs === undefined ? {} : { launchArgs: options.launchArgs }) });
