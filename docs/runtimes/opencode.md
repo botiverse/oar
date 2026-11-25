@@ -624,21 +624,17 @@ covers 2.0.27.
 - **Prompt options:** both are supported, through the same session-local
   `OPENCODE_CONFIG_CONTENT` as v1 with v2's own fields
   ([details](#v2-prompt-options)).
-- **Models:** queries use `models --standalone`, never `--verbose` or a
-  persistent service. On 2.0.27 through 2.0.30 and on 2.0.32, cold queries
-  in fresh native configurations returned a nonempty catalog, which OAR
-  returns as `ok` without an adapter change (on 2.0.27 two fresh
-  configurations each returned the same 11 IDs,
-  [October 12 evidence](../../experiments/runtime-version-checks/2026-10-12.md);
-  ten IDs on 2.0.32,
-  [October 17 report](../../experiments/runtime-version-checks/2026-10-17.md)).
-  On 2.0.26 the cold query returned no models; an empty native response
-  still becomes `unsupported`, not `ok` with zero models
-  ([upstream issue #53724](https://github.com/anomalyco/opencode/issues/53724)).
-  OAR creates no throwaway session for a read-only query. A nonempty native
-  listing supplies IDs only; no effort menu is fabricated. The separate
-  `api agent.list --standalone` empty result was observed on 2.0.26 and not
-  re-probed since.
+- **Models:** OAR starts one private `opencode serve --stdio` on loopback.
+  It follows the native CLI's startup check for initial plugins, then reads
+  the workspace's `GET /api/model` catalog once. Each entry carries its
+  provider ID, model name and concrete variant IDs when available. One
+  deadline covers version detection, server startup and the whole catalog.
+  OAR stops the process tree on success, failure or timeout. Listing creates
+  zero ACP sessions and leaves the configured default model in place.
+  On 2.4.0+, plugins that finish later can still add models after the snapshot.
+  OAR reports an empty snapshot as `unsupported`.
+  The [model catalog probe](../../experiments/opencode-models/README.md)
+  compares the CLI and HTTP results on four real v2 releases.
 - **Defaults and configuration:** on 2.0.26 the native default model was
   `opencode/exo-free`, and the initial effort was `default`; these are
   observations, not OAR defaults. v2 can rewrite v1's `autoupdate` config
@@ -1036,9 +1032,10 @@ answers `{}` and 1.18.30 pushes nothing, although the switch applies, so OAR
 switches with `session/set_config_option` on `model`, whose answer lists
 every option with its current value. On v1, `listModels` reads
 `opencode models --verbose` (every configured provider's models, with each
-model's `variants`). On v2 it runs `opencode models --standalone` and returns
-the bare model IDs, without variant or display metadata. On both lines the query
-runs in
+model's `variants`). On v2, the [model API](../../experiments/opencode-models/README.md) supplies
+each model's name, provider and variant IDs in one response. OAR excludes
+the `default` sentinel from both effort menus and omits `effortLevels` when
+no concrete variants remain. Both release lines read the catalog in
 `ListModelsOptions.cwd` (default: the host's cwd), because project
 configuration there can add providers.
 
@@ -1535,7 +1532,7 @@ history. Omission and `"include"` retain existing behavior. See the
 ## Orientation query costs
 
 `listModels()` starts `opencode models --verbose` on v1 or
-`opencode models --standalone` on v2 in the selected workspace. Native project
+one private `opencode serve --stdio` on v2 in the selected workspace. Native project
 configuration, provider credentials and catalog cache affect the result; a cold
 catalog can involve network access. It does not submit a model turn. OAR exposes
 no auth-status reader for local orientation.
