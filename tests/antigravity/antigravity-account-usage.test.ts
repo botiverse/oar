@@ -50,12 +50,48 @@ test("agy's model groups become windows, scoped to the group agy names", () => {
     kind: "available",
     rateLimited: false,
     windows: [
-      { label: "Gemini Models · Weekly Limit Remaining", usedRatio: 0.022807, resetsAt: "2026-11-19T16:40:24.000Z", id: "gemini-weekly", durationMs: 604_800_000, scope: { kind: "models", name: "Gemini Models" } },
-      { label: "Gemini Models · Five Hour Limit Remaining", usedRatio: 0.050173, resetsAt: "2026-11-12T21:40:24.000Z", id: "gemini-5h", durationMs: 18_000_000, scope: { kind: "models", name: "Gemini Models" } },
-      { label: "Claude and GPT models · Weekly Limit Remaining", usedRatio: 0, resetsAt: "2026-11-19T17:40:11.000Z", id: "3p-weekly", durationMs: 604_800_000, scope: { kind: "models", name: "Claude and GPT models" } },
-      { label: "Claude and GPT models · Five Hour Limit Remaining", usedRatio: 0, resetsAt: "2026-11-12T22:40:11.000Z", id: "3p-5h", durationMs: 18_000_000, scope: { kind: "models", name: "Claude and GPT models" } },
+      { label: "Gemini Models · Weekly Limit", usedRatio: 0.022807, resetsAt: "2026-11-19T16:40:24.000Z", id: "gemini-weekly", durationMs: 604_800_000, scope: { kind: "models", name: "Gemini Models" } },
+      { label: "Gemini Models · Five Hour Limit", usedRatio: 0.050173, resetsAt: "2026-11-12T21:40:24.000Z", id: "gemini-5h", durationMs: 18_000_000, scope: { kind: "models", name: "Gemini Models" } },
+      { label: "Claude and GPT models · Weekly Limit", usedRatio: 0, resetsAt: "2026-11-19T17:40:11.000Z", id: "3p-weekly", durationMs: 604_800_000, scope: { kind: "models", name: "Claude and GPT models" } },
+      { label: "Claude and GPT models · Five Hour Limit", usedRatio: 0, resetsAt: "2026-11-12T22:40:11.000Z", id: "3p-5h", durationMs: 18_000_000, scope: { kind: "models", name: "Claude and GPT models" } },
     ],
   });
+});
+
+test("trailing Remaining is stripped from bucket labels while keeping other names intact", () => {
+  const snapshot = projectAntigravityUsage({
+    status: "SUCCESS",
+    command: {
+      name: "usage",
+      data: {
+        groups: [
+          {
+            name: "Gemini Models",
+            buckets: [
+              { id: "lower", name: "Weekly Limit remaining", window: "weekly", remaining_fraction: 0.89 },
+              { id: "spaced", name: "  Five Hour Limit   Remaining  ", window: "5h", remaining_fraction: 0.84 },
+              { id: "bare", name: "Remaining", window: "5h", remaining_fraction: 0.5 },
+              { id: "plain", name: "Daily Quota", remaining_fraction: 0.75 },
+              { id: "suffix-word", name: "Unremaining", remaining_fraction: 0.75 },
+            ],
+          },
+          {
+            buckets: [
+              { id: "ungrouped", name: "Weekly Limit Remaining", window: "weekly", remaining_fraction: 0.9 },
+            ],
+          },
+        ],
+      },
+    },
+  });
+  expect(snapshot.kind === "available" ? snapshot.windows.map((w) => w.label) : undefined).toEqual([
+    "Gemini Models · Weekly Limit",
+    "Gemini Models · Five Hour Limit",
+    "Gemini Models · Limit",
+    "Gemini Models · Daily Quota",
+    "Gemini Models · Unremaining",
+    "Weekly Limit",
+  ]);
 });
 
 /** The recorded reply with the given buckets used up. */
