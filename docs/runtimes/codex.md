@@ -833,11 +833,17 @@ by build):
 ### Service tiers
 
 `SessionOptions.serviceTier` is sent on `thread/start` or `thread/resume`,
-never `turn/start`. The open reply's `serviceTier` must match before OAR
-returns a session. The native `fast` alias is **not** accepted as equivalent:
-0.161.0 reports `priority`, so requesting `fast` fails with both names. Use
-the model catalog's native ID. Unknown IDs that codex drops also fail the
-readback. Provider-side restrictions can still fail a later turn.
+never `turn/start`. By default, the open reply's `serviceTier` must match before
+OAR returns a session. With `SessionOptions.serviceTierFallback: "default"`, an
+explicit `serviceTier: null` report (projected as `default`) is accepted on
+`thread/start`, `thread/resume`, and `thread/fork`, and `Session.serviceTier()`
+immediately reports `default`. Without `serviceTierFallback: "default"`,
+custom-provider or account-level drops to `default` stay strict and fail the
+open. The native `fast` alias is **not** accepted as equivalent even with
+fallback: 0.161.0 reports `priority`, so requesting `fast` fails with both
+names. Use the model catalog's native ID. Named substitutions, absent reports,
+and RPC errors (including unknown IDs codex rejects) still fail the open.
+Provider-side restrictions can still fail a later turn.
 
 The explicit opt-out `default` clears any special tier and is accepted even
 though it is not a catalog entry. Native null is also a report of no tier,

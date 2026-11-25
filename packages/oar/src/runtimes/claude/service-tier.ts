@@ -1,4 +1,4 @@
-import type { RuntimeEventBody } from "../../contracts/session.js";
+import type { RuntimeEventBody, SessionOptions } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 
 /** Settings apply to this process only; user settings files are never edited. */
@@ -19,11 +19,18 @@ export function claudeServiceTierEvents(message: JsonRecord): RuntimeEventBody[]
 }
 
 /** Initialization reports applied state; get_settings.effective.fastMode is only configuration intent. */
-export function claudeServiceTierRefusal(requested: string, answer: JsonRecord): string | null {
+export function claudeServiceTierRefusal(
+  requested: string,
+  answer: JsonRecord,
+  fallback?: SessionOptions["serviceTierFallback"],
+): string | null {
   const response = asRecord(answer.response);
   const applied = asRecord(response?.response);
   const status = applied?.fast_mode_state;
-  if (response?.subtype === "success" && status === (requested === "fast" ? "on" : "off")) { return null; }
+  const accepted = requested === "fast"
+    ? status === "on" || (fallback === "default" && (status === "off" || status === "cooldown"))
+    : status === "off";
+  if (response?.subtype === "success" && accepted) { return null; }
   const actual = typeof status === "string" ? status : "unreported";
   const reason = response?.subtype === "success" ? applied?.fast_mode_disabled_reason : response?.error;
   return `claude reports fast_mode_state ${actual} although serviceTier ${requested} was requested${typeof reason === "string" ? ` (${reason})` : ""}`;

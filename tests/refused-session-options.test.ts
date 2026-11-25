@@ -261,3 +261,30 @@ test("unexpected nativePermissions values are rejected before opening", () => {
     refuseSessionOptions({}, { cwd: "/tmp", nativePermissions: "inherit" });
   }).not.toThrow();
 });
+
+test("serviceTierFallback requires serviceTier and rejects values outside the union before opening", async () => {
+  expect(() => {
+    // @ts-expect-error -- Verify runtime validation rejects values outside the union.
+    refuseSessionOptions({}, { cwd: "/tmp", serviceTier: "priority", serviceTierFallback: "flex" });
+  }).toThrow(UnsupportedOptionError);
+  expect(() => {
+    // @ts-expect-error -- Verify runtime validation rejects empty strings.
+    refuseSessionOptions({}, { cwd: "/tmp", serviceTier: "priority", serviceTierFallback: "" });
+  }).toThrow(UnsupportedOptionError);
+  expect(() => {
+    refuseSessionOptions({}, { cwd: "/tmp", serviceTierFallback: "default" });
+  }).toThrow(UnsupportedOptionError);
+  expect(() => {
+    refuseSessionOptions({}, { cwd: "/tmp", serviceTier: "priority", serviceTierFallback: "default" });
+  }).not.toThrow();
+  for (const runtime of allRuntimes.list()) {
+    // oxlint-disable-next-line no-await-in-loop -- One open at a time keeps the refusal attributable.
+    await expect(runtime.session(nowhere(runtime.id), { cwd: "/tmp", serviceTierFallback: "default" }), runtime.id)
+      .rejects.toMatchObject({ name: "UnsupportedOptionError", option: "serviceTierFallback" });
+    if (runtime.refusedSessionOptions?.serviceTier !== undefined) {
+      // oxlint-disable-next-line no-await-in-loop -- Non-tier runtimes refuse serviceTier first.
+      await expect(runtime.session(nowhere(runtime.id), { cwd: "/tmp", serviceTier: "priority", serviceTierFallback: "default" }), runtime.id)
+        .rejects.toMatchObject({ name: "UnsupportedOptionError", option: "serviceTier" });
+    }
+  }
+});

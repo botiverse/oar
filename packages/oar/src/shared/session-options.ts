@@ -53,6 +53,7 @@ export function refuseSessionOptions(refused: RefusedSessionOptions, options: Se
   checkResume(options);
   checkFork(options);
   checkNativePermissions(options);
+  checkServiceTierFallback(options);
 }
 
 /**
@@ -94,6 +95,21 @@ function checkNativePermissions(options: SessionOptions): void {
   const value: unknown = options.nativePermissions;
   if (value !== undefined && value !== "inherit") {
     throw new UnsupportedOptionError("nativePermissions", `nativePermissions must be "inherit" when specified, received ${JSON.stringify(value)}`);
+  }
+}
+
+/**
+ * Reject runtime values outside the `serviceTierFallback` union and reject
+ * `serviceTierFallback` without `serviceTier` before anything starts.
+ */
+function checkServiceTierFallback(options: SessionOptions): void {
+  const value: unknown = options.serviceTierFallback;
+  if (value === undefined) { return; }
+  if (value !== "default") {
+    throw new UnsupportedOptionError("serviceTierFallback", `serviceTierFallback must be "default" when specified, received ${JSON.stringify(value)}`);
+  }
+  if (options.serviceTier === undefined) {
+    throw new UnsupportedOptionError("serviceTierFallback", "serviceTierFallback requires serviceTier to be specified");
   }
 }
 

@@ -59,6 +59,38 @@ test.each([undefined, "tier-thread"])("native open errors retain the requested t
   expect(child.killed()).toBe(true);
 });
 
+test.each([
+  { label: "start", extra: {}, reply: { serviceTier: null } },
+  { label: "resume", extra: { resume: "tier-thread" }, reply: { serviceTier: null } },
+  { label: "fork", extra: { resume: "source-thread", fork: {} }, reply: { thread: { id: "forked-thread" }, serviceTier: null } },
+])("serviceTierFallback default accepts explicit default downgrade on $label and reports default", async ({ extra, reply }) => {
+  const { requests } = scripted(reply);
+  const session = await codexSession(installation, { cwd: "/work", serviceTier: "priority", serviceTierFallback: "default", ...extra });
+  expect(requests.at(-1)?.params).toMatchObject({ serviceTier: "priority" });
+  expect(session.serviceTier().value).toBe("default");
+  await session.dispose();
+});
+
+test.each([undefined, "tier-thread"])("serviceTierFallback default still rejects aliases, other substitutions, absent reports and RPC errors (resume=%s)", async (resume) => {
+  for (const [requested, reply, reported] of [
+    ["fast", { serviceTier: "priority" }, "priority"],
+    ["priority", { serviceTier: "flex" }, "flex"],
+    ["priority", {}, "unreported"],
+  ] as const) {
+    const { child } = scripted(reply);
+    // oxlint-disable-next-line no-await-in-loop -- Each refusal is independently verified.
+    await expect(codexSession(installation, {
+      cwd: "/work", serviceTier: requested, serviceTierFallback: "default", ...(resume === undefined ? {} : { resume }),
+    })).rejects.toThrow(`reports serviceTier ${reported} although ${requested} was requested`);
+    expect(child.killed()).toBe(true);
+  }
+  const { child } = scripted({}, [], "selection unavailable");
+  await expect(codexSession(installation, {
+    cwd: "/work", serviceTier: "priority", serviceTierFallback: "default", ...(resume === undefined ? {} : { resume }),
+  })).rejects.toThrow("serviceTier priority could not be confirmed (actual unreported): selection unavailable");
+  expect(child.killed()).toBe(true);
+});
+
 test("omitting tier preserves the native selection and null means no special tier", async () => {
   const { requests } = scripted({ serviceTier: null });
   const session = await codexSession(installation, { cwd: "/work", resume: "tier-thread" });

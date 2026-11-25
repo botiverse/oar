@@ -124,20 +124,10 @@ export interface SessionOptions {
    * `Session.effort()` is the runtime's report, where it gives one.
    */
   readonly effort?: string;
-  /**
-   * Runtime-native service tier, one of the model's `ModelEntry.serviceTiers`,
-   * or `default` to explicitly disable a special tier. `default` is an
-   * opt-out, not an entry in the catalog. Omission follows the runtime's
-   * configuration and restore rules; see its page for resume behavior.
-   * Applied at open, including resume; reopen to change it. The adapter reads
-   * the native report before returning and rejects a refused or substituted
-   * tier instead of silently running another. Runtimes without a verified
-   * channel reject with UnsupportedOptionError on serviceTier, declared in
-   * Runtime.refusedSessionOptions. A runtime that accepts this option lists
-   * its tiers, and one that lists tiers accepts it. Session.serviceTier()
-   * folds native reports; provider-side availability can still change later.
-   */
+  /** Runtime-native service tier (`ModelEntry.serviceTiers` or `default` opt-out); applied at open and strictly read back unless `serviceTierFallback` is set. `Session.serviceTier()` folds native reports. */
   readonly serviceTier?: string;
+  /** `"default"` allows an open where the runtime explicitly reports standard service (Codex `serviceTier: null`, Claude `off`/`cooldown` for `fast`); requires `serviceTier`. Aliases, other substitutions, absent reports and errors still fail. */
+  readonly serviceTierFallback?: "default";
   /**
    * JSON Schema for the session's final output, passed through unchanged.
    * Claude applies it at process launch to every turn, including spontaneous
