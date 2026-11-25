@@ -147,6 +147,23 @@ immediately declined so turns never hang.
 | Codex | Omits `-c sandbox_mode=...`, `approvalPolicy`, and `sandbox` on `thread/start`, `thread/resume`, and `thread/fork` (winning over `process.env.OAR_CODEX_SANDBOX` for that session). `thread/start` reads `sandbox_mode`, `approval_policy`, and `approvals_reviewer` from `CODEX_HOME/config.toml` (or `~/.codex/config.toml`); `thread/resume` and `thread/fork` follow Codex's native precedence (persisted rollout permissions before `config.toml`), so omission on a subsequent open is what restores OAR's bypass over a persisted restricted rollout (`read-only` or Windows `workspace-write`) by sending `sandbox` alongside `approvalPolicy: "never"`. Host `launchArgs` (such as `-c sandbox_mode=...`) suppress OAR's RPC `sandbox` override and take CLI precedence on `thread/start` (`thread/resume` restores persisted rollout profiles ahead of CLI `-c`). Requests routed to Codex's own reviewer (`guardian_subagent` / `auto_review`) settle natively; requests reaching OAR (such as `approvals_reviewer = "user"`) are recorded as `toApp` and immediately declined ([details](../runtimes/codex.md#tools-permissions-and-client-callbacks), [vendor test](../../sea-trial/vendor/codex-native-permissions.vendor.test.ts)). |
 | All other runtimes | Refused at open (`refusedSessionOptions.nativePermissions`): no verified per-session inherit switch. |
 
+## User questions
+
+`SessionOptions.userQuestions: "host"` leaves the agent's questions to the
+host: each stays an open `toApp` request, with no deadline, until
+`Session.answerQuestion` answers or declines it, the runtime withdraws it
+(`app_request_cancelled`), or the runtime is gone. Questions only: approvals
+and MCP elicitations keep their automatic refusals. Omission keeps the
+runtime's unattended behavior. Supply it again on resume and fork; it is not
+recorded. Evidence: [probe](../../experiments/user-questions-2026-11-25.md),
+[vendor test](../../sea-trial/vendor/user-questions.vendor.test.ts).
+
+| Runtime | `userQuestions: "host"` |
+|---|---|
+| Claude (`>= 2.1.274`) | Single choice, several choices and free text. Adds `--permission-prompt-tool stdio` and disallows `EnterPlanMode` and `ExitPlanMode`; every `can_use_tool` that is not `AskUserQuestion` is denied. Refused with `--permission-mode` or `--permission-prompts` in `launchArgs`. |
+| Codex (`>= 0.107.0`) | Single choice and free text; several selected options are rejected `unsupported`. Sets `features.default_mode_request_user_input=true`, which Codex marks under development. |
+| All other runtimes, and older or unreported versions | Refused at open (`refusedSessionOptions.userQuestions`). |
+
 ## Session controls
 
 `prompt`, `queue` and `abort` are on every session. `steer`, `withdraw` and `stopTask`
@@ -1034,12 +1051,14 @@ app-server and Grok ([ending a turn's processes](#ending-a-turns-processes-on-ab
 ([native memory default](#native-memory-default)),
 `sessionLogUpload: "off"` everywhere except DSH `>= 0.2.1-rc.5`
 ([session log upload](#session-log-upload)),
-and `nativePermissions: "inherit"` everywhere except Codex
+`nativePermissions: "inherit"` everywhere except Codex
 ([native permissions](#native-permissions)),
+and `userQuestions: "host"` everywhere except Claude and Codex
+([user questions](#user-questions)),
 for want of a verified way to end one aborted turn's processes while the
 session stays usable (in the host process, no process tree of its own to
 read), a below-user default settings layer, a verified vendor session-log
-upload switch, or a verified per-session native permissions inherit path. Claude and Codex accept forks through a chosen turn. OpenCode v2
+upload switch, a verified per-session native permissions inherit path, or a verified way for a host to answer questions. Claude and Codex accept forks through a chosen turn. OpenCode v2
 can copy a whole session. Other adapters refuse `fork`
 ([forking a session](#forking-a-session)). `modelRequests: "latest"` is accepted
 by Claude (`>= 2.1.274`) and Pi SDK, and refused elsewhere

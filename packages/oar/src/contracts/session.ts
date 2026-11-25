@@ -12,6 +12,7 @@ import type { ContextBreakdown } from "./context-breakdown.js";
 import type { FailureClass } from "./failure.js";
 import type { ModelRequest } from "./model-request.js";
 import type { SessionOptions } from "./session-options.js";
+import type { UserQuestionControl } from "./user-questions.js";
 
 export type { GoalControl, AdapterGoalControl, GoalSnapshot, GoalStatus, KnownGoalStatus, GoalSetOptions } from "./goal.js";
 export type { CompactionOptions, CompactionOutcome, ManualCompaction } from "./compaction.js";
@@ -110,8 +111,7 @@ export interface PromptOptions extends InputOptions {
  */
 /**
  * Execution capability entrypoint; composition probes installation first.
- * Rejects only on operational failure (spawn/load/auth errors carry the
- * runtime's message).
+ * Rejects only on operational failure (spawn/load/auth errors carry the runtime's message).
  */
 export type StartSession = (
   installation: AvailableInstallation,
@@ -181,7 +181,7 @@ export interface SessionResources {
  * The SPI face: what an adapter actually builds. The API face extends it
  * with derivations sealSession computes over the stream.
  */
-export interface AdapterSession {
+export interface AdapterSession extends UserQuestionControl {
   /** Optional recorded controls for the runtime's structured goal. */
   readonly goal?: AdapterGoalControl;
   /** Native manual compaction. Waiting limits do not cancel it or free its input slot. */

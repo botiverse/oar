@@ -13,6 +13,7 @@ import { codexInstall, codexInstallPlan } from "./install.js";
 import { codexListModels } from "./list-models.js";
 import { codexCheckUpdate, codexUpgrade } from "./update.js";
 import { codexRefusedSessionOptions } from "./options.js";
+import { codexUserQuestionRefusal } from "./user-questions.js";
 import { codexSession } from "./session.js";
 
 export const codexRuntime = defineRuntime({
@@ -20,6 +21,7 @@ export const codexRuntime = defineRuntime({
   sessionCapabilities: (installation) => ({
     ...(installation.via === "executable" && semverAtLeast(installation.version, "0.158.0") ? { taskEventTypes: ["agent"] } : {}),
     ...(installation.via === "executable" && semverAtLeast(installation.version, "0.169.0") ? { subagentResults: { background: "child_text" } } : {}),
+    refusedSessionOptions: codexUserQuestionRefusal(installation.via === "executable" ? installation.version : undefined),
     steer: true, images: true, mcpTransports: ["stdio", "http"], stopTask: true,
     ...(installation.via === "executable" && semverAtLeast(installation.version, "0.160.1") ? { fileChanges: true } : {}),
     ...(installation.via === "executable" && semverAtLeast(installation.version, "0.169.0") ? { nativeSessionFile: true, mcpStartup: { kind: "per_server", firstModelRequest: "may_start_pending" } } : {}),

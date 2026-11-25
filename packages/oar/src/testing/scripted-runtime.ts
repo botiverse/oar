@@ -291,7 +291,7 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
     id,
     ...(options.brand === undefined ? {} : { brand: options.brand }),
     session: start,
-    refusedSessionOptions: { fork: SCRIPTED_FORK_REFUSAL, modelRequests: SCRIPTED_REQUEST_REFUSAL },
+    refusedSessionOptions: { fork: SCRIPTED_FORK_REFUSAL, modelRequests: SCRIPTED_REQUEST_REFUSAL, userQuestions: "The scripted runtime asks no questions" },
     sessionCapabilities: () => ({ steer: true, images: true }),
     installation: async () => { await Promise.resolve(); return { kind: "available" as const, via: "bundled" as const }; },
   }, { execution: "in_process" });

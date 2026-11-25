@@ -1334,11 +1334,20 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   `appRequestText(type, body)` reads the words of the ask off the recorded
   body (what a question asks, the tool or command an approval is for), and is
   undefined where OAR does not know where they are.
+- A question answered by the host (`Session.answerQuestion`, present only with
+  `SessionOptions.userQuestions: "host"`) is the same pair: the runtime's
+  `toApp` request, then an `answered` response holding the native reply, with
+  the answers to `secret` questions replaced by `[redacted]`. A refused answer
+  writes no record. `userQuestionOf(type, body)` reads the native request into
+  one shape; `appRequestKind(type, body)` needs the body to tell claude's
+  `AskUserQuestion` from its other `can_use_tool` requests.
 - `app_request_cancelled`: the runtime withdrew a `toApp` request it had sent
   and no longer waits on an answer: claude `control_cancel_request` (an
-  interrupt cancels a pending question). Codex's `serverRequest/resolved` is
-  not one: OAR answers every codex request as it arrives, so it follows that
-  answer. SessionView drops the request from `pendingRequests` and marks its part
+  interrupt cancels a pending question), or codex `serverRequest/resolved` for
+  a question the host had not answered (`SessionOptions.userQuestions`). After
+  an answer codex sends the same notification and it has no event. Codex sends
+  it after the interrupted `turn/completed`, so there the cancellation follows
+  `turn_ended`. SessionView drops the request from `pendingRequests` and marks its part
   `cancelled`; the process exit or OAR's release empties `pendingRequests` too. Never inferred
   from a turn ending: a runtime may keep a request open across turns.
 

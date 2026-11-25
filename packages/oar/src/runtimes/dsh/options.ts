@@ -15,6 +15,7 @@ export const dshRefusedSessionOptions: RefusedSessionOptions = {
   endTurnProcessesOnAbort: "DSH cancellation leaves background jobs alive; selected Linux jobs can be killed natively, but complete per-turn process cleanup is not verified",
   nativeMemoryDefault: "DSH exposes no verified below-user default layer for background auto-memory",
   nativePermissions: "This adapter has no verified per-session switch to inherit native permission and sandbox settings",
+  userQuestions: "This adapter has no verified way for a host to answer the agent's questions",
 };
 
 /** Session-scoped directory grants are effective for file and process writes on these platforms. */

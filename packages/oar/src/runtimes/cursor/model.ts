@@ -71,6 +71,7 @@ export const cursorRefusedSessionOptions: RefusedSessionOptions = {
   nativeMemoryDefault: "Cursor exposes no verified below-user default layer for background auto-memory",
   sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
   nativePermissions: "This adapter has no verified per-session switch to inherit native permission and sandbox settings",
+  userQuestions: "This adapter has no verified way for a host to answer the agent's questions",
 };
 
 /**

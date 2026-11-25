@@ -1,3 +1,4 @@
+export type { AnswerQuestionOutcome, AnswerQuestionRejectionCode, UserQuestionAnswer, UserQuestionControl, UserQuestionItem, UserQuestionPrompt } from "./user-questions.js";
 export type { CompactionOptions, CompactionOutcome, ManualCompaction } from "./compaction.js";
 export type { GoalControl, AdapterGoalControl, GoalSnapshot, GoalStatus, KnownGoalStatus, GoalSetOptions } from "./goal.js";
 export type { InventoryScope, InventoryOptions, SkillEntry, CommandEntry, McpServerEntry, ToolEntry, InventoryResult, InventoryReader, RuntimeInventories } from "./inventory.js";

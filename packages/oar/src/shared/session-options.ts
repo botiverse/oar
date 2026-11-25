@@ -39,7 +39,7 @@ export function sessionOptionGiven(options: SessionOptions, key: RefusableSessio
  */
 export function refuseSessionOptions(refused: RefusedSessionOptions, options: SessionOptions): void {
   checkRetainedBytes(options.retainedBytes);
-  for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "partialUserConfiguration", "goals", "endTurnProcessesOnAbort", "fork", "nativeMemoryDefault", "sessionLogUpload", "nativePermissions", "modelRequests"] as const) {
+  for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "partialUserConfiguration", "goals", "endTurnProcessesOnAbort", "fork", "nativeMemoryDefault", "sessionLogUpload", "nativePermissions", "modelRequests", "userQuestions"] as const) {
     const reason = refused[key];
     if (reason === undefined || !sessionOptionGiven(options, key)) {
       continue;
@@ -54,6 +54,7 @@ export function refuseSessionOptions(refused: RefusedSessionOptions, options: Se
   checkFork(options);
   checkNativePermissions(options);
   checkServiceTierFallback(options);
+  checkUserQuestions(options);
 }
 
 /**
@@ -95,6 +96,14 @@ function checkNativePermissions(options: SessionOptions): void {
   const value: unknown = options.nativePermissions;
   if (value !== undefined && value !== "inherit") {
     throw new UnsupportedOptionError("nativePermissions", `nativePermissions must be "inherit" when specified, received ${JSON.stringify(value)}`);
+  }
+}
+
+/** Reject any runtime value but `"host"`, so a typo never opens a session whose questions nobody holds. */
+function checkUserQuestions(options: SessionOptions): void {
+  const value: unknown = options.userQuestions;
+  if (value !== undefined && value !== "host") {
+    throw new UnsupportedOptionError("userQuestions", `userQuestions must be "host" when specified, received ${JSON.stringify(value)}`);
   }
 }
 

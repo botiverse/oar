@@ -985,14 +985,34 @@ Native safety checks still apply: on Windows, 2.1.312 refused an
 approval, and `none` converted that request into a local denial ([observed
 tool result](https://github.com/botiverse/oar/actions/runs/40713945389/job/122906405704)).
 
-`--permission-prompt-tool` is refused before launch because OAR has no
-interface for answering permission requests. A host-supplied
+`--permission-prompt-tool` in `launchArgs` is refused before launch: OAR has no
+interface for answering permission requests, and sets the flag itself for
+[user questions](#user-questions). A host-supplied
 `--permission-prompts` must be `none`; unknown or missing mode values and
 combining a mode with `--dangerously-skip-permissions` are also refused with
 `UnsupportedOptionError` on `launchArgs`. This prevents waiting for a host
 permission answer; it does not bound hooks, model requests, or tools. Unattended
 MCP `elicitation` requests are automatically declined with `{ action: "decline" }`,
 while other unexpected native requests remain recorded and unanswered.
+
+### User questions
+
+`SessionOptions.userQuestions: "host"` adds `--permission-prompt-tool stdio` to
+the bypass flag. Claude then offers `AskUserQuestion`, and each call arrives as
+a `can_use_tool` control request (`requires_user_interaction: true`) that
+waits; Bash and Write still run without one ([env] 2.1.274 and 2.1.332,
+[probe](../../experiments/user-questions-2026-11-25.md)). `answerQuestion`
+replies `{ behavior: "allow", updatedInput: { ...input, answers } }`, `answers`
+keyed by the question's text: one string each, several choices and free text
+joined with `, `. Declining replies `{ behavior: "deny", message }`, and the
+message is the tool result. An interrupt sends `control_cancel_request` for the
+open question before it answers the interrupt.
+
+The prompt target also makes `EnterPlanMode` and `ExitPlanMode` available.
+Entering needs no approval and leaving does, so a session that entered plan
+mode could not edit again; OAR disallows both, as they are without the target.
+Any other `can_use_tool` (a hook's `ask`) is denied at once. The option is
+refused with `--permission-mode` or `--permission-prompts` in `launchArgs`.
 
 **On resume, supply `--permission-mode` again.** OAR does not store
 `launchArgs`. Omitting the mode restores OAR's default bypass, so a previously

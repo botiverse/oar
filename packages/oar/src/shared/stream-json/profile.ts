@@ -1,3 +1,4 @@
+import type { UserQuestionAnswer } from "../../contracts/user-questions.js";
 import type { SessionKernel } from "../session-kernel.js";
 import type { CompactionOperation } from "../manual-compaction.js";
 import type { RuntimeEventBody, TurnOutcome, SessionCapabilities, Session, FrameBody, RequestRecord, ResponseBody } from "../../contracts/session.js";
@@ -67,6 +68,8 @@ export interface StreamJsonSessionProfile<S extends StreamJsonProjectionState> {
   readonly close?: (active: boolean) => Promise<void>;
   readonly lastModelRequest?: Session["lastModelRequest"];
   readonly contextBreakdown?: Session["contextBreakdown"];
+  /** The wire form of a host's answer to a question. Present only when the host answers (SessionOptions.userQuestions). */
+  readonly questionReply?: (requestId: string, request: JsonRecord, answer: UserQuestionAnswer) => JsonRecord;
   /** A native reply to a runtime control_request, already in the runtime's own wire shape; null leaves the request unanswered. */
   readonly appRequestResponse?: (type: string, requestId: string, request: JsonRecord) => JsonRecord | null;
 }

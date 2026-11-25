@@ -286,4 +286,12 @@ export interface SessionOptions {
   readonly sessionLogUpload?: "off";
   /** Leave native permission, approval and sandbox config in charge instead of injecting OAR bypass flags (repeat on resume/fork; not recorded; unhandled approval requests still decline; refused where unsupported). */
   readonly nativePermissions?: "inherit";
+  /**
+   * The host answers the agent's questions: they wait, with no deadline, for
+   * `Session.answerQuestion`, which is present only with this option. Omitted
+   * keeps the runtime's unattended behavior. Questions only, never approvals.
+   * Not recorded; give it again on resume and fork. Refused where unsupported
+   * (`refusedSessionOptions.userQuestions`).
+   */
+  readonly userQuestions?: "host";
 }
