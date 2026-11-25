@@ -32,9 +32,25 @@ function sessionMeta(options: SessionOptions, initialized: JsonRecord): JsonReco
   return { antigravity: { systemPrompt: { append: appendSystemPrompt } } };
 }
 
+/** agy 1.5.16 lists the escaped pathname of a file URL, including an escaped literal percent. */
+export function normalizeAntigravityListedCwd(listedCwd: string, platform: NodeJS.Platform = process.platform): string {
+  // RFC 3986 path characters plus percent escapes. decodeURIComponent validates the escapes and UTF-8.
+  if (!listedCwd.includes("%") || !listedCwd.startsWith("/") || /[^A-Za-z0-9._~!$&'()*+,;=:@/%-]/u.test(listedCwd)) { return listedCwd; }
+  const segments: string[] = [];
+  try {
+    for (const segment of listedCwd.split("/")) {
+      const decoded = decodeURIComponent(segment);
+      if (decoded.includes("/") || decoded.includes("\0") || (platform === "win32" && decoded.includes("\\"))) { return listedCwd; }
+      segments.push(decoded);
+    }
+  } catch { return listedCwd; }
+  return segments.join("/");
+}
+
 export const antigravityAcpProfile: AcpSessionProfile = {
   args: (options) => antigravityAcpArgs(sessionEnvironment(options.env)),
   resumeKeepsSessionCwd: true,
+  normalizeListedCwd: normalizeAntigravityListedCwd,
   // Subagent transport attribution remains unverified. A second native
   // prompt steers the same loop and settles the preceding prompt early.
   capabilities: { queue: { durable: false }, attribution: "opaque" },

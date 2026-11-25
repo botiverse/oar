@@ -240,9 +240,16 @@ Missing listing capability, an incomplete listing and an unlisted id all
 refuse construction rather than silently opening elsewhere
 ([resume-cwd contract](resume-cwd.md)). A listing transport/authentication
 failure retains its existing error classification and prevents resume;
-authentication failure does not mean the saved directory is unusable. On
-Windows, the CLI's URI-style `/D:/path` is compared as `D:\path`; POSIX paths
-and filesystem aliases still use their native directory semantics.
+authentication failure does not mean the saved directory is unusable.
+
+agy 1.5.16 lists the saved cwd as an escaped file URL pathname. For comparison,
+OAR decodes each segment once. A directory named `my project` lists as
+`my%20project`, while its sibling named `my%20project` lists as
+`my%2520project`. The requested cwd keeps its filesystem spelling. Malformed
+pathnames and escapes that would introduce a separator or NUL stay literal.
+On Windows, `/D:/path` is compared as `D:\path`. Filesystem aliases still use
+native directory identity. The [native resume test](../../sea-trial/vendor/antigravity-acp.vendor.test.ts)
+checks each sibling's resumed command working directory.
 
 On 1.5.0, a session closed before its first prompt is absent from the list,
 yet native resume/load can reopen it at the old cwd without reporting that

@@ -77,6 +77,8 @@ export interface AcpSessionProfile extends AcpDerivedSessionHooks, AcpSteerReque
    * cannot be confirmed. No list capability or missing entry is not consent.
    */
   readonly resumeKeepsSessionCwd?: boolean;
+  /** Convert the adapter's session/list cwd spelling for directory identity checks. */
+  readonly normalizeListedCwd?: (listedCwd: string) => string;
   /** Whole-history copies via the advertised session/fork method. */
   readonly wholeSessionFork?: boolean;
   /** A native resume/load error must positively identify a missing session. */
@@ -227,7 +229,7 @@ async function createOrResume(
     const method = savedSessionMethod(options, profile, capabilities, sessionCapabilities);
     if (profile.resumeKeepsSessionCwd === true) {
       if (!hasAcpCapability(sessionCapabilities?.list)) { throw unknownResumeCwd(sessionId, options.cwd, "listing_unavailable"); }
-      await refuseResumeElsewhere(process, sessionId, options.cwd, timeoutMs);
+      await refuseResumeElsewhere(process, sessionId, options.cwd, timeoutMs, profile.normalizeListedCwd);
     }
     const params = { ...baseParams, sessionId };
     const resumed = await withAcpDeadline(process, method, openMethodTimeoutMs(profile, method), (requestOptions) => process.connection.agent.request(method, params, requestOptions))

@@ -58,6 +58,12 @@ listing errors, including authentication, RPC, deadline and process failures,
 keep their own error types and prevent resume; they are not converted to
 `listing_unavailable`.
 
+Antigravity 1.5.16 supplies the saved cwd as an escaped file URL pathname.
+OAR decodes that pathname once for comparison and preserves the original
+spelling in `ResumeCwdError.savedCwd`. Callers always supply a filesystem
+path, including any literal percent signs. Other ACP adapters compare their
+listed filesystem paths directly. See [Antigravity session creation and resume](antigravity.md#session-creation-and-resume).
+
 `not_listed` is not proof that history is gone: agy 1.5.0 omits sessions
 closed before their first prompt, even though native resume can reopen them.
 A host can distinguish an unlisted id from a check that could not finish,

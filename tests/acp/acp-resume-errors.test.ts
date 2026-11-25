@@ -1,8 +1,8 @@
 /* oxlint-disable import/max-dependencies -- Covered ACP runtime profiles plus fixture/helper imports. */
-import { mkdtempSync, realpathSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterEach, expect, test, vi } from "vitest";
 import { inspect } from "node:util";
 import { captureCleanupEvidence, expectCleanupEvidence } from "../fixtures/cleanup-evidence.js";
@@ -47,6 +47,20 @@ test("all ACP profiles that keep saved cwd enable the shared resume-cwd guard", 
   for (const [name, native] of guardedProfiles) {
     expect(native.resumeKeepsSessionCwd, name).toBe(true);
   }
+});
+
+test.each(guardedProfiles.filter(([name]) => name !== "antigravity"))("%s treats percent escapes in session/list as literal", async (_name, native) => {
+  const root = scratch("oar-acp-literal-cwd-");
+  try {
+    const cwd = path.join(root, "my project");
+    mkdirSync(cwd);
+    const savedCwd = pathToFileURL(cwd).pathname;
+    const sessions = [{ sessionId: "missing-session", cwd: savedCwd }];
+    const opening = acpSession({ ...native, args: [fixture] })(installation, { cwd, resume: "missing-session", env: {
+      FAKE_RESUME_CASE: JSON.stringify({ succeed: true, pages: [{ result: { sessions } }] }),
+    } });
+    await expect(opening.then(async (session) => session.dispose())).rejects.toMatchObject({ reason: "other_cwd", requestedCwd: cwd, savedCwd });
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
 // All guarded profiles share acpSession's resumeKeepsSessionCwd path; one profile covers the process checks.

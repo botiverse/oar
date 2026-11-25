@@ -80,7 +80,7 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("agy native ACP",
     } finally { release.resolve(); await session?.dispose(); await env.stop(); }
   }, 60_000);
 
-  test("resume retains the primary cwd and additional directories cannot replace it", async () => {
+  test("additional directories and sessions without a listed cwd are refused", async () => {
     const env = await startAntigravityAimock((mock) => { mock.onMessage(/AGY_WORKSPACE/u, { content: "AGY_WORKSPACE_OK" }); });
     const installation = await antigravityRuntime.installation();
     assert.ok(installation.kind === "available", JSON.stringify(installation));
@@ -97,13 +97,29 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("agy native ACP",
       await session.dispose();
       await expect(antigravityRuntime.session(installation, { cwd: extra, env: env.env, resume: unprompted })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "cwd", reason: "not_listed", sessionId: unprompted, requestedCwd: extra });
       expect(env.raw).toHaveLength(0);
+      await expect(antigravityRuntime.session(installation, { cwd, env: env.env, resume: "oar-missing-session" })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "cwd", reason: "not_listed", sessionId: "oar-missing-session", requestedCwd: cwd });
+    } finally { await session?.dispose(); await env.stop(); }
+  }, 60_000);
+
+  const unicode = "小米 project";
+  const escaped = encodeURIComponent(unicode);
+  test.each([[unicode, escaped], [escaped, unicode]])("resume restores %s and refuses its sibling %s", async (leaf, other) => {
+    const env = await startAntigravityAimock((mock) => { mock.onMessage(/AGY_WORKSPACE/u, { content: "AGY_WORKSPACE_OK" }); });
+    let session: Session | undefined = undefined;
+    try {
+      const installation = await antigravityRuntime.installation();
+      assert.ok(installation.kind === "available", JSON.stringify(installation));
+      const home = env.env.HOME; assert.ok(home !== undefined);
+      const cwd = path.join(home, leaf);
+      const sibling = path.join(home, other);
+      await Promise.all([cwd, sibling].map(async (dir) => mkdir(dir)));
       session = await antigravityRuntime.session(installation, { cwd, env: env.env });
       expect(await promptAndWait(session, "AGY_WORKSPACE_INITIAL")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
       const id = session.id;
       await session.dispose();
       const before = env.raw.length;
       // oxlint-disable-next-line typescript/no-unsafe-assignment -- Vitest asymmetric matcher for the runtime-reported path spelling.
-      await expect(antigravityRuntime.session(installation, { cwd: extra, env: env.env, resume: id })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "cwd", reason: "other_cwd", sessionId: id, requestedCwd: extra, savedCwd: expect.any(String) });
+      await expect(antigravityRuntime.session(installation, { cwd: sibling, env: env.env, resume: id }).then(async (unexpected) => unexpected.dispose())).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "cwd", reason: "other_cwd", sessionId: id, requestedCwd: sibling, savedCwd: expect.stringContaining(`/${encodeURIComponent(leaf)}`) });
       expect(env.raw).toHaveLength(before);
       session = await antigravityRuntime.session(installation, { cwd, env: env.env, resume: id });
       expect(await promptAndWait(session, "AGY_WORKSPACE_RESUME")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
@@ -114,7 +130,6 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("agy native ACP",
       assert.ok(nativeCwd !== undefined, "Native system instructions must report the command cwd");
       // macOS resolves /var to /private/var; Windows paths must not be JSON-escaped.
       expect(sameDirectory(nativeCwd, cwd)).toBe(true);
-      await expect(antigravityRuntime.session(installation, { cwd, env: env.env, resume: "oar-missing-session" })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "cwd", reason: "not_listed", sessionId: "oar-missing-session", requestedCwd: cwd });
     } finally { await session?.dispose(); await env.stop(); }
   }, 60_000);
 });
