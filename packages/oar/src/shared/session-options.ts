@@ -39,7 +39,7 @@ export function sessionOptionGiven(options: SessionOptions, key: RefusableSessio
  */
 export function refuseSessionOptions(refused: RefusedSessionOptions, options: SessionOptions): void {
   checkRetainedBytes(options.retainedBytes);
-  for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "partialUserConfiguration", "goals", "endTurnProcessesOnAbort", "fork", "nativeMemoryDefault", "sessionLogUpload", "modelRequests"] as const) {
+  for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "partialUserConfiguration", "goals", "endTurnProcessesOnAbort", "fork", "nativeMemoryDefault", "sessionLogUpload", "nativePermissions", "modelRequests"] as const) {
     const reason = refused[key];
     if (reason === undefined || !sessionOptionGiven(options, key)) {
       continue;
@@ -52,6 +52,7 @@ export function refuseSessionOptions(refused: RefusedSessionOptions, options: Se
   }
   checkResume(options);
   checkFork(options);
+  checkNativePermissions(options);
 }
 
 /**
@@ -81,6 +82,18 @@ function checkFork(options: SessionOptions): void {
   const through = options.fork.through;
   if (through !== undefined && (through.trim().length === 0 || through.includes("\0"))) {
     throw new UnsupportedOptionError("fork", "fork.through must not be blank or contain NUL characters");
+  }
+}
+
+/**
+ * Reject any runtime value outside the `nativePermissions` union before
+ * anything starts, so a typo or unmodeled value never silently falls back to
+ * OAR's default bypass.
+ */
+function checkNativePermissions(options: SessionOptions): void {
+  const value: unknown = options.nativePermissions;
+  if (value !== undefined && value !== "inherit") {
+    throw new UnsupportedOptionError("nativePermissions", `nativePermissions must be "inherit" when specified, received ${JSON.stringify(value)}`);
   }
 }
 

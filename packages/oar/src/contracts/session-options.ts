@@ -294,4 +294,6 @@ export interface SessionOptions {
    * exists (`refusedSessionOptions.sessionLogUpload`).
    */
   readonly sessionLogUpload?: "off";
+  /** Leave native permission, approval and sandbox config in charge instead of injecting OAR bypass flags (repeat on resume/fork; not recorded; unhandled approval requests still decline; refused where unsupported). */
+  readonly nativePermissions?: "inherit";
 }

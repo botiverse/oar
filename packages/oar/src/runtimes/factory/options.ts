@@ -17,6 +17,7 @@ export const factoryRefusedSessionOptions: RefusedSessionOptions = {
   disallowedTools: "droid's tool deny list (disabledToolIds) has not been verified against OAR's tool names",
   nativeMemoryDefault: "Factory droid exposes no verified below-user default layer for background auto-memory",
   sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
+  nativePermissions: "This adapter has no verified per-session switch to inherit native permission and sandbox settings",
 };
 
 const FACTORY_MANAGED_LAUNCH_ARGS = new Set(["--input-format", "--output-format", "-o", "--session-id", "-s", "--fork", "--cwd", "-f", "--file", "--"]);

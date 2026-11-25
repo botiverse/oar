@@ -98,6 +98,7 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
   const modelParams = options.model === undefined ? {} : { model: options.model };
   const roots = workspaceRoots(options);
   const directoryParams = roots === null ? {} : { runtimeWorkspaceRoots: roots };
+  const approvalParams = options.nativePermissions === "inherit" ? {} : { approvalPolicy: "never" };
   if (options.resume === undefined) {
     return {
       method: "thread/start",
@@ -107,7 +108,7 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
         ...directoryParams,
         ...modelParams,
         ...tierParams,
-        approvalPolicy: "never",
+        ...approvalParams,
         // Required in addition to initialize.experimentalApi. This exposes
         // the completed Responses API reasoning item, whose encrypted_content
         // lets us distinguish redaction from genuinely empty reasoning.
@@ -141,7 +142,7 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
         ...directoryParams,
         ...modelParams,
         ...tierParams,
-        approvalPolicy: "never",
+        ...approvalParams,
         ...instructionParams,
         ...configParams(mcpConfig),
       },
@@ -162,7 +163,7 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
       // oar session owns its own app-server process.
       ...modelParams,
       ...tierParams,
-      approvalPolicy: "never",
+      ...approvalParams,
       ...instructionParams,
       ...configParams(mcpConfig),
     },

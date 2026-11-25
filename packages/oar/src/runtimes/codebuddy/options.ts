@@ -15,6 +15,7 @@ export const codebuddyRefusedSessionOptions: RefusedSessionOptions = {
   additionalDirectories: "CodeBuddy ACP does not advertise additionalDirectories",
   nativeMemoryDefault: "CodeBuddy has no verified settings layer below user configuration for autoMemoryEnabled",
   sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
+  nativePermissions: "This adapter has no verified per-session switch to inherit native permission and sandbox settings",
 };
 
 const CODEBUDDY_MANAGED_LAUNCH_ARGS = new Set([

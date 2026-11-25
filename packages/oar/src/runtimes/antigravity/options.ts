@@ -24,4 +24,5 @@ export const antigravityRefusedSessionOptions: RefusedSessionOptions = {
   mcpServerCredentials: "antigravity stores a session's MCP servers, env and header values included, in plain text in its conversation database, where they outlive the session; it attaches no entry with env or headers (a stdio server inherits SessionOptions.env instead, which agy's own tools can read too: docs/runtimes/antigravity.md#session-mcp-servers)",
   nativeMemoryDefault: "Antigravity has no verified settings layer below user configuration for native memory",
   sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
+  nativePermissions: "This adapter has no verified per-session switch to inherit native permission and sandbox settings",
 };
