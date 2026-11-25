@@ -1,8 +1,8 @@
 import type { OwnQueryProcess } from "../../../shared/executable/query.js";
-import { spawnNodeScript, type NodeScriptExit } from "../../../shared/executable/node-script.js";
+import { spawnIpcChild, spawnNodeScript, type NodeScriptExit } from "../../../shared/executable/node-script.js";
 import { asRecord } from "../../../shared/json.js";
 import { reportedStderr } from "../../../shared/executable/reported-stderr.js";
-import { cursorChildLaunch } from "./child-script.js";
+import { cursorChildLaunch, type CursorChildProcess } from "./child-script.js";
 
 /** What the SDK in the child has, as it reported once loaded. */
 export interface CursorChildFeatures {
@@ -69,10 +69,19 @@ function features(value: unknown): CursorChildFeatures {
  * environment) and wait until it loaded the SDK from `sdkModule`. A child
  * that cannot load it, or exits first, is stopped and the open rejects.
  */
-export async function openCursorChannel(sdkModule: string, env: Readonly<NodeJS.ProcessEnv>, session = false, own?: OwnQueryProcess, redact?: (text: string) => string): Promise<CursorChannel> {
-  const launch = cursorChildLaunch(sdkModule, env);
+export async function openCursorChannel(
+  sdkModule: string,
+  env: Readonly<NodeJS.ProcessEnv>,
+  session = false,
+  own?: OwnQueryProcess,
+  redact?: (text: string) => string,
+  childProcess?: CursorChildProcess,
+): Promise<CursorChannel> {
+  const launch = cursorChildLaunch(sdkModule, env, childProcess !== undefined);
   // The host scans for what a session's child left behind; a one-shot call's child runs no tools, and scans for itself as it exits.
-  const child = spawnNodeScript(launch.script, launch.argument, launch.env, session ? launch.marker : undefined);
+  const child = childProcess === undefined
+    ? spawnNodeScript(launch.script, launch.argument, launch.env, session ? launch.marker : undefined)
+    : spawnIpcChild(childProcess.command, [...(childProcess.args ?? []), launch.argument], launch.env, session ? launch.marker : undefined);
   own?.({ kill: () => { void child.stop(); }, exited: child.exited });
   const replies = new Map<number, { resolve(value: unknown): void; reject(error: Error): void }>();
   const events = new Map<number, (value: unknown) => void>();

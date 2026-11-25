@@ -1,6 +1,7 @@
 import { checkHostEnvironment, currentHostEnvironment, type HostEnvironment } from "../../shared/host-environment.js";
 import { refuseReaderEnvironment } from "../../shared/refuse-environment.js";
 import type { InstallationProbe } from "../../contracts/installation.js";
+import type { CursorChildProcess } from "./subprocess/child-script.js";
 
 /** The platforms `@cursor/sdk` 1.4.1 ships a native companion package for (`optionalDependencies`). */
 const PLATFORMS: ReadonlySet<string> = new Set(["darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64", "win32-x64"]);
@@ -10,15 +11,17 @@ export const CURSOR_MIN_NODE_VERSION = "22.13.0";
 
 export interface CursorInstallationForOptions {
   readonly sdkModule?: string;
+  readonly childProcess?: CursorChildProcess;
   readonly host?: Partial<HostEnvironment>;
 }
 
 /**
  * Cursor runs through `@cursor/sdk`, in process or in a Node subprocess
  * (`createCursorRuntime`). Both modes require a platform with a native
- * companion package and Node 22.13+; subprocess mode also requires a non-SEA,
- * non-standalone-Bun host and a resolvable `sdkModule`. In-process mode does
- * not call the host's `sdk()` loader during discovery.
+ * companion package and Node 22.13+; subprocess mode also requires a
+ * resolvable `sdkModule` and, unless `childProcess` is configured, a non-SEA,
+ * non-standalone-Bun host. In-process mode does not call the host's `sdk()`
+ * loader during discovery.
  */
 export function cursorInstallationFor(
   platform: string,
@@ -36,9 +39,13 @@ export function cursorInstallationFor(
       minNodeVersion: { version: CURSOR_MIN_NODE_VERSION, label: "@cursor/sdk" },
       ...(execution === "subprocess"
         ? {
-          forbidCompiledSingleExecutable: {
-            reason: "Cursor subprocess mode cannot run from a compiled single executable (Node SEA or Bun standalone); use in-process mode instead",
-          },
+          ...(probeConfig.childProcess === undefined
+            ? {
+              forbidCompiledSingleExecutable: {
+                reason: "Cursor subprocess mode cannot run from a compiled single executable (Node SEA or Bun standalone) without childProcess + runCursorChild; supply childProcess or use in-process mode instead",
+              },
+            }
+            : {}),
           ...(probeConfig.sdkModule === undefined ? {} : {
             requiredModule: {
               specifier: probeConfig.sdkModule,

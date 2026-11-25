@@ -10,6 +10,7 @@ import { cursorLoginWith } from "./login.js";
 import { cursorLogoutWith } from "./logout.js";
 import type { CursorSdk } from "./sdk.js";
 import { cursorSessionWith } from "./session.js";
+import type { CursorChildProcess } from "./subprocess/child-script.js";
 
 /** The default mode: the SDK runs in the host process. */
 export interface CursorInProcessOptions {
@@ -25,6 +26,8 @@ export interface CursorInProcessOptions {
   readonly sdk: () => Promise<CursorSdk>;
   /** Subprocess mode only: in process, the SDK's tools always see the host's environment. */
   readonly envBase?: never;
+  /** Subprocess mode only: in process, no child process is spawned. */
+  readonly childProcess?: never;
 }
 
 /** Each session, and each model listing, login, logout and status call, runs the SDK in a Node child process of its own. */
@@ -47,6 +50,14 @@ export interface CursorSubprocessOptions {
    * PATH and HOME.
    */
   readonly envBase?: "inherit" | "clean";
+  /**
+   * Optional custom child command for compiled single-executable hosts (such as
+   * Node SEA) that cannot run `process.execPath -e`. OAR spawns `command` with
+   * `[...(args ?? []), spec]` over a Node IPC channel (`serialization:
+   * "advanced"`), leaves `ELECTRON_RUN_AS_NODE` untouched, and expects the
+   * child entrypoint to hand `spec` to `runCursorChild(spec)`.
+   */
+  readonly childProcess?: CursorChildProcess;
 }
 
 export type CursorRuntimeOptions = CursorInProcessOptions | CursorSubprocessOptions;
@@ -81,12 +92,16 @@ export type CursorRuntime = Runtime & Required<Pick<Runtime, "installation" | "l
  */
 export function createCursorRuntime(options: CursorRuntimeOptions): CursorRuntime {
   if (options.execution === "subprocess") {
-    return cursorRuntime(subprocessAccess(options.sdkModule, options.envBase), options.sdkModule);
+    return cursorRuntime(subprocessAccess(options.sdkModule, options.envBase, options.childProcess), options.sdkModule, options.childProcess);
   }
   return cursorRuntime(inProcessAccess(options.sdk, true));
 }
 
-function cursorRuntime(access: CursorSdkAccess, sdkModule?: string): CursorRuntime {
+function cursorRuntime(access: CursorSdkAccess, sdkModule?: string, childProcess?: CursorChildProcess): CursorRuntime {
+  const probeConfig = {
+    ...(sdkModule === undefined ? {} : { sdkModule }),
+    ...(childProcess === undefined ? {} : { childProcess }),
+  };
   const definition = {
     id: "cursor",
     sessionCapabilities: () => ({ taskEventTypes: [], steer: true, images: true, contextUsage: { tokens: true, contextWindow: false }, mcpTransports: ["stdio", "http"] as const, stopTask: false }),
@@ -106,7 +121,7 @@ function cursorRuntime(access: CursorSdkAccess, sdkModule?: string): CursorRunti
         { kind: "file", defaultDirectory: ".cursor/sdk", path: "auth.json", overridesEnv: false },
       ],
     },
-    installation: cursorInstallationFor(process.platform, process.arch, access.execution, sdkModule === undefined ? {} : { sdkModule }),
+    installation: cursorInstallationFor(process.platform, process.arch, access.execution, probeConfig),
     listModels: cursorListModelsWith(access),
     login: cursorLoginWith(access),
     logout: cursorLogoutWith(access),
@@ -118,3 +133,5 @@ function cursorRuntime(access: CursorSdkAccess, sdkModule?: string): CursorRunti
 }
 
 export { cursorNativeEnvironment } from "./native-environment.js";
+export { runCursorChild } from "./subprocess/child-runner.js";
+export type { CursorChildProcess } from "./subprocess/child-script.js";
