@@ -2048,7 +2048,7 @@ Evidence and verification limits: [tool-denial audit](../../experiments/disallow
 
 ## Launch arguments
 
-`SessionOptions.launchArgs` go after `app-server` and OAR's own `-c` overrides, before `--listen stdio://`; codex reads `-c key=value` there, for example `-c service_tier="fast"`. codex applies `-c` overrides in command-line order (`codex-rs/utils/cli/src/config_override.rs`), so a host `-c` for a key OAR also sets (`sandbox_mode`) is the one that applies. OAR passes them unchecked and never records them; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
+`SessionOptions.launchArgs` go after `app-server` and OAR's own `-c` overrides, before `--listen stdio://`; codex reads `-c key=value` there, for example `-c service_tier="fast"`. codex applies `-c` overrides in command-line order (`codex-rs/utils/cli/src/config_override.rs`), so on new threads a host `-c` for a key OAR also sets (`sandbox_mode`) is the one that applies; on `thread/resume` and `thread/fork`, OAR omits its RPC `sandbox` override when `launchArgs` supply a sandbox override so Codex follows its native CLI and persisted-rollout precedence instead of OAR's RPC value. OAR passes them unchecked and never records them; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
 
 ## Additional directories
 

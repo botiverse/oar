@@ -10,7 +10,7 @@ export const codexRefusedSessionOptions: RefusedSessionOptions = {
 };
 
 const CODEX_SANDBOX_MODES = new Set(["read-only", "workspace-write", "danger-full-access"]);
-const CODEX_SANDBOX_CONFIG_KEY = /^(?:sandbox_mode|default_permissions)\s*=|^permissions(?:\.|\s*=)/u;
+const CODEX_SANDBOX_CONFIG_KEY = /^(?:sandbox_mode|default_permissions|["'](?:sandbox_mode|default_permissions)["'])\s*=|^(?:permissions|["']permissions["'])\s*[.=]/u;
 
 /** Effective sandbox override for this Codex open (`"inherit"` leaves native configuration in charge). */
 export function codexLaunchSandboxMode(options: SessionOptions, env: Readonly<NodeJS.ProcessEnv> = process.env): string {
@@ -18,12 +18,19 @@ export function codexLaunchSandboxMode(options: SessionOptions, env: Readonly<No
   return options.nativePermissions === "inherit" ? "inherit" : env.OAR_CODEX_SANDBOX ?? "danger-full-access";
 }
 
+function inlineConfigOverride(arg: string): string | undefined {
+  if (arg.startsWith("--config=")) { return arg.slice("--config=".length); }
+  if (arg.startsWith("-c=")) { return arg.slice("-c=".length); }
+  if (arg.startsWith("-c") && arg.length > 2) { return arg.slice(2); }
+  return undefined;
+}
+
 function launchArgsOverrideSandbox(launchArgs: readonly string[] | undefined): boolean {
   if (launchArgs === undefined) { return false; }
   for (let index = 0; index < launchArgs.length; index += 1) {
     const arg = launchArgs[index] ?? "";
     if (arg === "--") { return false; }
-    if (arg === "-s" || arg === "--sandbox" || arg === "--full-auto" || arg === "--dangerously-bypass-approvals-and-sandbox" || arg.startsWith("--sandbox=") || arg.startsWith("-s=")) {
+    if ((arg.startsWith("-s") && !arg.startsWith("--")) || arg === "--sandbox" || arg.startsWith("--sandbox=") || arg === "--full-auto" || arg === "--dangerously-bypass-approvals-and-sandbox") {
       return true;
     }
     if (arg === "-c" || arg === "--config") {
@@ -32,7 +39,7 @@ function launchArgsOverrideSandbox(launchArgs: readonly string[] | undefined): b
       index += 1;
       continue;
     }
-    const inline = arg.startsWith("--config=") ? arg.slice("--config=".length) : (arg.startsWith("-c=") ? arg.slice("-c=".length) : undefined);
+    const inline = inlineConfigOverride(arg);
     if (inline !== undefined && CODEX_SANDBOX_CONFIG_KEY.test(inline.trimStart())) { return true; }
   }
   return false;
