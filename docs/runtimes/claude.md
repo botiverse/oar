@@ -61,7 +61,7 @@ provider's echoed authentication header across live delivery and replay.
 | User turn and `result` | The `prompt` request records intent. After native `command_lifecycle queued`, its turn starts at the matching `started`; otherwise the request remains the fallback start. The root `result` frame emits any `service_tier` and `usage` event (the root's tokens from the main loop's `usage`, the session total from `modelUsage` ([tokens](#token-totals)), and the context the root's latest model call sent ([context](#models-instructions-and-context))) before ending the turn with `turn_ended` (`aborted` while OAR's own interrupt is outstanding, `failed` on `is_error`, else `completed`; a model refusal is `model_refused`; a subscription limit is `quota` with any reported reset, [below](#usage-limits)). |
 | Subagent messages (`parent_tool_use_id`) | `agentPath = [...parentPath, taskCallId]` ([details](#observation-children-and-history)); `capabilities.attribution` is `attributed`. |
 | `tool_use` / `tool_result` blocks | A streamed `content_block_start` gives `tool_call_started` (`callId`, `tool`, no input); `input_json_delta.partial_json` gives append-only `tool_call_input_delta`; the completed `tool_use` gives `tool_call_input` with the whole input. Without a partial opening, the completed block gives one `tool_call_started` carrying its input. `tool_call_ended` (`callId`, `content`, `result`): `is_error: true` is `failed`; `false` or an absent field is `ok` ([evidence](#tool-call-outcome-reporting)). |
-| `control_request` / `control_response` | OAR's interrupt is an `abort` request record whose id is the `control_request` id; claude's `control_response` becomes its `accepted`/`rejected` response. A `control_request` from claude is recorded as a Frame plus an unanswered `toApp` request: under `--dangerously-skip-permissions` no `can_use_tool` arrives, but an MCP server's `elicitation` does (2.1.292); `events()` reads it as `app_request` with the request subtype as `type`. A `control_cancel_request` (claude withdrawing a request it sent) reads as `app_request_cancelled`: on 2.1.292 an interrupt while an MCP server's `elicitation` waited was answered, then claude cancelled the elicitation under its `request_id`, then the turn's `result` followed. |
+| `control_request` / `control_response` | OAR's interrupt is an `abort` request record whose id is the `control_request` id; claude's `control_response` becomes its `accepted`/`rejected` response. A `control_request` from claude is recorded as a Frame plus a `toApp` request (`app_request` with the request subtype as `type`). For unattended MCP `elicitation` requests, OAR automatically sends `{ action: "decline" }` (matching Claude's Agent SDK default when no handler is configured) and records the `answered` response (`app_answered`), preventing hangs; other unexpected subtypes (such as `can_use_tool` under skip permissions) remain recorded and unanswered. A `control_cancel_request` (claude withdrawing an unanswered request it sent, observed on 2.1.292 when an interrupt arrived while an `elicitation` waited before auto-decline was added) reads as `app_request_cancelled`. |
 | `system/task_*` | `task_started`, `task_updated`, `task_ended` events for commands, subagents, workflow runs and backgrounded MCP calls (claude moves a main-conversation MCP call past two minutes to the background). A changed `task_progress.description` emits `task_updated`; repeated descriptions do not. `background_tasks_changed` and nested `workflow_progress` stay native. |
 | `command_lifecycle` | Read by `command_uuid` only for inputs OAR wrote as prompts (a `prompt`, a `queue()` written while idle, a held queue message a turn end drains), never for a steer. `queued` gives `input_queued { inputId }`, which only arms the pending input and changes no status; `started` gives `turn_active { inputId }`. `cancelled` before that input has `started` gives `input_dropped { inputId, reason: "turn_interrupted" }`. A replayed user message or `completed` before this write has received either `queued` or `started` proves an ignored duplicate input id and gives `input_dropped` with `reason: "runtime_refused"`, `failure: "invalid_request"` and a diagnostic `message`. Other `completed` frames, steer lifecycle frames, and `cancelled` after `started` remain native-only ([attribution](#prompt-steering-queueing-and-abort)). |
 | `system/init` | The reported model and service tier; additionally `turn_active` without input identity when a root turn starts on its own, including while a host prompt is still natively queued. A repeated init in an active turn gives no second start. |
@@ -984,8 +984,9 @@ interface for answering permission requests. A host-supplied
 `--permission-prompts` must be `none`; unknown or missing mode values and
 combining a mode with `--dangerously-skip-permissions` are also refused with
 `UnsupportedOptionError` on `launchArgs`. This prevents waiting for a host
-permission answer; it does not bound hooks, model requests, tools or MCP
-elicitations. Unexpected native requests remain recorded and unanswered.
+permission answer; it does not bound hooks, model requests, or tools. Unattended
+MCP `elicitation` requests are automatically declined with `{ action: "decline" }`,
+while other unexpected native requests remain recorded and unanswered.
 
 **On resume, supply `--permission-mode` again.** OAR does not store
 `launchArgs`. Omitting the mode restores OAR's default bypass, so a previously
@@ -1752,9 +1753,10 @@ former only.
    approval denial (`--permission-prompts none`); no host approval channel.
    Reapply the mode on resume. Tool blocks map as in the
    [mapping](#high-level-mapping-to-oar); a `control_request` from claude is a
-   `toApp` request nobody answers. Under skip permissions no `can_use_tool`
-   has been observed; an MCP server's `elicitation` has (2.1.292), and claude
-   cancels it on an interrupt. Source: projection.
+   `toApp` request. OAR automatically declines MCP `elicitation` requests with
+   `{ action: "decline" }` (recorded as `answered` / `app_answered`), and leaves
+   other unexpected requests (such as `can_use_tool`) unanswered. Under skip
+   permissions no `can_use_tool` has been observed. Source: projection and session.
 8. **Extension points.** MCP, agents, skills, plugins, hooks, and permission
    callbacks exist natively; OAR passes session MCP servers (`--mcp-config`),
    tool denials (`--disallowed-tools`) and noninteractive native permission

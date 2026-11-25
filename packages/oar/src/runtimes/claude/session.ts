@@ -9,6 +9,16 @@ import { claudeContextBreakdownReader } from "./context-breakdown.js";
 import { launchClaude } from "./launch.js";
 import { claudeProjectionProfile, claudeUsageBaselined, initialClaudeProjection, resumedClaudeProjection } from "./projection.js";
 
+/** Decline unattended MCP elicitations as Claude's Agent SDK does when no handler is set; leave other control requests unanswered. */
+export function claudeAppRequestResponse(type: string, requestId: string): {
+  readonly type: "control_response";
+  readonly response: { readonly subtype: "success"; readonly request_id: string; readonly response: { readonly action: "decline" } };
+} | null {
+  return type === "elicitation"
+    ? { type: "control_response", response: { subtype: "success", request_id: requestId, response: { action: "decline" } } }
+    : null;
+}
+
 /** Claude owns launch flags, private account/settings readbacks and usage baselines. */
 export const claudeSession: StartSession = withSessionCredentials(async (installation, options, credentials) => {
   if (installation.via !== "executable") {
@@ -48,7 +58,8 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
     disposing: () => { requests?.close(); contextBreakdown.exited(); compaction.close(); },
     contextBreakdown: contextBreakdown.read,
     close: async (active) => { if (active) { child.kill(); await child.exited; } else { await closeLineProcess(child); } },
-    // Preserve Claude's existing behavior: permissions are recorded, not answered.
+    // Decline unattended MCP elicitations; keep permission and other control requests recorded-only.
+    appRequestResponse: claudeAppRequestResponse,
   });
   if (requests !== undefined) {
     session.events((event) => { if (event.agentPath.length === 0 && event.kind === "turn_ended") { requests.ended(event.outcome); } });
