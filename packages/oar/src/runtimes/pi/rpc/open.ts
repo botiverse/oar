@@ -32,7 +32,12 @@ export const piRpcRefusedSessionOptions: RefusedSessionOptions = {
   ...piRefusedSessionOptions,
   modelRequests: "Pi runs RPC command-line extensions before user extensions that can replace the provider request",
   launchArgs: "OAR owns Pi's RPC startup arguments; arbitrary CLI flags are not supported",
-  piCompaction: "Pi's RPC execution mode compacts from the settings files its child reads, and its extension API exposes no per-session settings channel (the child's settings manager is not reachable from an extension), so OAR cannot apply a budget there; use the in-process execution mode",
+  // Verified against the bundled 1.6.0 child: its extension API holds exactly
+  // one settings member, `pi.getSettings()`, which returns a copy with no
+  // setter, and the session's settings manager is not reachable from an
+  // extension. The budget Pi applies there comes from the settings files the
+  // child loads. See docs/runtimes/pi.md "The compaction budget in the RPC child".
+  piCompaction: "Pi's RPC execution mode compacts from the settings files its child loads, and its extension API only reads settings back (pi.getSettings() returns a copy and exposes no setter), so no supported channel applies a per-session budget there; use the in-process execution mode, or let the host that owns the child's agent directory declare the budget in its settings file",
 };
 
 /**

@@ -8,7 +8,10 @@ import { refuseSessionOptions } from "../../packages/oar/src/shared/session-opti
  * travels in the private bootstrap document the session's own extension reads
  * over fd 3, never in models.json, a command line, or a file the user can see.
  * SessionOptions.piCompaction stays refused there: that child compacts from the
- * settings files it reads and exposes no per-session settings channel.
+ * settings files it loads, and its extension API reads settings back only
+ * (pi.getSettings() returns a copy and has no setter), so no supported channel
+ * reaches its settings manager. The real child is pinned in
+ * sea-trial/vendor/pi-rpc-compaction-channel.vendor.test.ts.
  */
 
 const provider: PiSessionProvider = {
@@ -75,4 +78,8 @@ test("RPC takes the provider and still refuses the compaction budget", () => {
   expect(piRpcRefusedSessionOptions.piProvider).toBeUndefined();
   expect(() => { refuseSessionOptions(piRpcRefusedSessionOptions, { cwd: "/work", piCompaction: { reserveTokens: 100_000 } }); })
     .toThrow(expect.objectContaining({ name: "UnsupportedOptionError", option: "piCompaction" }));
+  // The reason names the verified cause and the mode that does honor a budget.
+  expect(piRpcRefusedSessionOptions.piCompaction).toMatch(/settings files its child loads/u);
+  expect(piRpcRefusedSessionOptions.piCompaction).toMatch(/getSettings\(\) returns a copy and exposes no setter/u);
+  expect(piRpcRefusedSessionOptions.piCompaction).toMatch(/in-process execution mode/u);
 });

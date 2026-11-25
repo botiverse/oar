@@ -5,8 +5,10 @@
  * plane, and the RPC child's own OAR extension registers it while it loads (no
  * `models.json`, no command line). Every other runtime refuses both options, and
  * so does Pi's RPC mode for the compaction budget: that child compacts from the
- * settings files it reads and exposes no per-session settings channel to an
- * extension (`refusedSessionOptions.piProvider`, `piCompaction`).
+ * settings files it loads, and its extension API only reads settings back —
+ * `pi.getSettings()` returns a copy with no setter — so no supported channel
+ * reaches its settings manager (`refusedSessionOptions.piProvider`,
+ * `piCompaction`).
  */
 
 /** The wire protocols a host-declared provider may speak; Pi's own names for them. */
@@ -125,8 +127,12 @@ export interface PiSessionSelection {
    * every other runtime refuses it. Applied to the session's own settings, so
    * the user's settings file is not modified. Omitted: Pi's own defaults and
    * per-model overrides apply. Refused in Pi's subprocess (RPC) execution mode:
-   * that child compacts from the settings files it reads and no extension API
-   * reaches its settings manager.
+   * that child compacts from the settings files it loads, and its extension API
+   * only reads settings back — `pi.getSettings()` returns a copy and has no
+   * setter — so no supported channel reaches the session's settings manager
+   * there. Writing those files, or shadowing the child's agent directory to
+   * carry an override next to the user's auth and models, is not an override
+   * OAR will make on the user's behalf.
    */
   readonly piCompaction?: PiSessionCompaction;
 }

@@ -1381,18 +1381,56 @@ provider refuses the declaration instead of running another model.
 
 ### The compaction budget in the RPC child
 
-The budget stays refused there. Pi's RPC child compacts from the settings files
-its session loads (`compaction.reserveTokens` / `keepRecentTokens`), and its
-extension API exposes no settings channel: `pi.getSettings()` returns a copy,
-there is no setter, and the session's settings manager is not reachable from an
-extension (extensions load Pi's modules as a separate copy, so even a prototype
-patch would not reach it — checked against the bundled 1.6.0 `rpc-entry`).
-Honoring a budget there would mean writing the child's `settings.json` (the
+The budget stays refused there, and the refusal is measured, not assumed:
+[`pi-rpc-compaction-channel.vendor.test.ts`](../../sea-trial/vendor/pi-rpc-compaction-channel.vendor.test.ts)
+runs the real bundled `rpc-entry` child and pins three facts.
+
+1. **The channel is the child's settings files.** With
+   `compaction.reserveTokens: 190000` / `keepRecentTokens: 500` in the agent
+   directory's `settings.json`, the RPC child compacts at that trigger where
+   Pi's own 16384-token headroom would not, and the run leaves the file byte for
+   byte as it found it. Pi's budget is real; it is the file's.
+2. **OAR refuses before the child exists.** `piCompaction` — a well-formed
+   budget as much as an invalid one — fails the open with the same
+   `UnsupportedOptionError`, before Pi opens a session directory or any settings
+   file is touched.
+3. **The escape hatch does not exist.** The child's extension API holds exactly
+   one settings member, `pi.getSettings()`, and it returns a *copy*: mutating it
+   does not change what the session resolves. There is no writer
+   (`applyOverrides`, `updateSettings`, `setSettings` are all absent) and the
+   extension context carries no settings manager. Extensions also load Pi's
+   modules as a separate copy of the bundled child, so a prototype patch would
+   not reach the live manager anyway. Fact 3 is the tripwire: the day Pi's
+   extension API grows a supported writer, that fixture fails and this section
+   gets rewritten.
+
+Honoring a budget there would mean writing the child's `settings.json` — the
 user's file, or a shadow of the whole agent directory that also carries the
-user's auth and models) or reimplementing Pi's trigger and cut point. OAR does
-neither, so a host that needs a per-session budget uses the in-process execution
-mode, and the RPC mode refuses `piCompaction` with that reason before the child
-starts.
+user's auth and models and would have to keep native resume working — or
+reimplementing Pi's trigger and cut point in an extension and calling the result
+Pi's compaction. OAR does neither, so the RPC mode refuses `piCompaction` with
+that reason, and a host that needs a per-session budget uses the in-process
+execution mode. A host that owns the child's agent directory (its own `HOME`,
+its own `PI_CODING_AGENT_DIR`) can of course put the budget in that directory's
+`settings.json` itself; that is the host's file, and OAR neither writes nor
+claims to verify it.
+
+**Minimal upstream change** that would close this: an extension-API method that
+applies overrides to the session's live settings manager, equivalent to the
+SDK's `SettingsManager.applyOverrides` on the instance the RPC session built —
+for example `pi.applySettingsOverrides(overrides: Partial<Settings>)`, delegated
+to `settingsManager.applyOverrides` the way `pi.getSettings()` is already
+delegated to `settingsManager.getSettings()`
+(`core/agent-session.js` wires both through `ExtensionActions`). It has to run
+after the resource loader's `reload()` — the same ordering the in-process path
+documents — which load-time or `session_start` extension code already satisfies,
+because extensions load after that reload. With it, OAR would carry the budget
+in the same private bootstrap document as the provider declaration, apply it
+from its own extension at load, and read the effective values back
+(`SettingsManager.inMemory(pi.getSettings()).getCompactionSettings(model)`)
+into the `ready` file so a budget the child did not take fails the open — the
+read-back pattern the provider registration already uses. Until such a method
+exists, OAR does not call a guessed one.
 
 ## Verification and open gaps
 
@@ -1420,7 +1458,11 @@ runs a declaration that exists in no `models.json` — a scripted gateway model
 plus one session MCP server — through both execution modes, resumes it with no
 model given, checks the credential is present on the wire and absent from every
 record, and (in process) pins the declared compaction trigger and kept-recent
-window against Pi's defaults; in RPC mode it pins the budget refusal. The
+window against Pi's defaults; in RPC mode it pins the budget refusal, whose
+evidence lives in the
+[RPC compaction-channel test](../../sea-trial/vendor/pi-rpc-compaction-channel.vendor.test.ts)
+(real child: file-driven trigger, untouched settings file, refusal before
+start, and the extension API's read-only settings surface). The
 [replay test](../../tests/replay/pi-projection.test.ts) pins the fold over the
 recorded tool-round fixture and the settled/abort/error classification; the
 unit tests under [`tests/pi/`](../../tests/pi/) pin the session-directory
@@ -1433,8 +1475,9 @@ Open gaps: accepted steering through retry/compaction; distinct queued turns
 under races; extension-generated activity (children, permission gates,
 commands); unavailable saved-model fallback on resume; threshold compaction
 with a real provider; a per-session compaction budget in the RPC execution mode
-(Pi's child reads it from settings files only, see
-[above](#the-compaction-budget-in-the-rpc-child)); session MCP servers on a
+(Pi's child reads it from settings files and its extension API has no writer —
+see [above](#the-compaction-budget-in-the-rpc-child) for the measured facts and
+the minimal upstream change); session MCP servers on a
 real login and model (measured against a scripted provider only); and corrupt
 session files and concurrent writers.
 

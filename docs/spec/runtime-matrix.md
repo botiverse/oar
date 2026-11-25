@@ -1044,7 +1044,10 @@ from Codex's shared-placement refusal.
 Pi honors the provider in both of its execution modes (the RPC child registers it
 from OAR's own extension before the model resolves) and refuses the compaction
 budget in the RPC mode, whose child compacts from the settings files it loads and
-exposes no per-session settings channel to an extension. They let a
+whose extension API only reads settings back (`pi.getSettings()` returns a copy
+with no setter, verified against the real bundled child in
+[the RPC compaction-channel test](../../sea-trial/vendor/pi-rpc-compaction-channel.vendor.test.ts)).
+They let a
 host declare the gateway provider and model a session runs, and that session's
 compaction budget, without writing Pi's `models.json` or the user's settings
 file ([host-declared provider](../runtimes/pi.md#host-declared-provider-and-compaction-budget)).
