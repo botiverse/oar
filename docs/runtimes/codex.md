@@ -70,7 +70,7 @@ ends the turn. The adapter declares `capabilities: { queue: { durable: true
 | Reconnects | `error` with `willRetry: true` → `retry`, with the native message and details as `reason`. `attempt` is OAR's count within that thread's turn: native states it only in display text (`Reconnecting... 1/5`), so `maxAttempts` is absent. These appear in the notification stream and not on stderr on 0.163.0 and 0.167.0; a 503 that codex retried below this level announced nothing ([probe](../../experiments/codex-native-signals/README.md)). An `error` without `willRetry` carries detail into the failed `turn_ended` only. |
 | Control replies | The `turn/start`, `turn/steer`, `turn/interrupt` and `thread/queue/add` replies are the `accepted` / `rejected` responses to prompt / steer / abort / queue, with the reply as `native` (so the queue submission id is retained). A `thread/goal/*` reply is its own frame; the [goal control](#native-goals) response only accepts or rejects. Each response is recorded as the reply line is read, before notifications codex wrote after it. |
 | Effective configuration | `model()`, `effort()` and `serviceTier()` fold the `model` / `effort` / `service_tier` events of the open reply and of `thread/settings/updated` ([models](#models-instructions-and-context)). Most native configuration has no public mutator. |
-| Server requests | Recorded as `toApp` request records (method and params verbatim, the server's own id), then answered at once: `Session` gives a host no way to answer, and an open request would hang the turn. Decisions get their native refusal (`decline`, `denied`, an empty grant or answer set, `success: false`; [table](../../packages/oar/src/runtimes/codex/runtime-requests.ts)); any other method gets JSON-RPC `-32601`. The reply is the `answered` response record, so `events()` reads `app_request` then `app_answered`; the `serverRequest/resolved {threadId, requestId}` that follows has no event. Through OAR (`approvalPolicy: never`) requests are rare: codex declines MCP elicitations itself and `request_user_input` is unavailable in Default mode. Driving 0.160.1 app-server directly, a `requestUserInput` (plan mode) and an MCP tool approval (`mcpServer/elicitation/request` under `on-request`) cut by `turn/interrupt` were each followed by `serverRequest/resolved` right after the interrupted `turn/completed`. |
+| Server requests | Recorded as `toApp` request records (method and params verbatim, the server's own id), then answered at once: an open request would hang the turn. The exception is `item/tool/requestUserInput` under `SessionOptions.userQuestions: "host"`, which waits for `Session.answerQuestion` ([user questions](#user-questions)). Decisions get their native refusal (`decline`, `denied`, an empty grant or answer set, `success: false`; [table](../../packages/oar/src/runtimes/codex/runtime-requests.ts)); any other method gets JSON-RPC `-32601`. The reply is the `answered` response record, so `events()` reads `app_request` then `app_answered`; the `serverRequest/resolved {threadId, requestId}` that follows has no event; for a question not yet answered it is `app_request_cancelled`. Through OAR (`approvalPolicy: never`) requests are rare: codex declines MCP elicitations itself and `request_user_input` is unavailable in Default mode. Driving 0.160.1 app-server directly, a `requestUserInput` (plan mode) and an MCP tool approval (`mcpServer/elicitation/request` under `on-request`) cut by `turn/interrupt` were each followed by `serverRequest/resolved` right after the interrupted `turn/completed`. |
 | Native children | Notifications of another thread are child-session records (`sessionId` = that thread id, a `graph()` node); a collaboration item naming `receiverThreadIds` / `agentThreadId` emits `session_linked` on that frame for the `tool_call` edge from the sender thread; without such an item no edge is fabricated ([children](#observation-children-and-history)). |
 | Process and observation lifetime | The Session owns its process; `dispose` is a request answered by the observed `exited` response (also recorded, pointing at no request, when the app-server dies on its own). The retained log backs the cursor for this process's lifetime. See the [record-stream spec](../spec/record-stream.md#placement-and-release) for resume. |
 
@@ -1101,6 +1101,20 @@ selected `sandbox` (`OAR_CODEX_SANDBOX ?? "danger-full-access"`) on
 `"inherit"` and host `launchArgs` do not override sandbox. `OAR_CODEX_SANDBOX`
 pins a process-wide mode, and `OAR_CODEX_SANDBOX=inherit` skips both the CLI
 and RPC sandbox overrides while keeping `approvalPolicy: "never"`.
+
+<a id="user-questions"></a>
+`SessionOptions.userQuestions: "host"` launches with
+`-c features.default_mode_request_user_input=true` (under development and off
+by default in 0.172.0), so `request_user_input` works in Default mode and sends
+`item/tool/requestUserInput`. A choice goes back as its label and free text as
+`user_note: <text>`, the marker in Codex's own binary; the model receives the
+answers verbatim. Declining is `{ answers: {} }`. An interrupt is followed by
+`turn/completed` (`interrupted`) and then `serverRequest/resolved`. A question's
+own `autoResolutionMs` also ends it that way (reasoned from the schema, not
+run). `isSecret` answers are sent as given and recorded as `[redacted]`. [env]
+0.105.0 ignores the feature, 0.106.0 asks but sends no `serverRequest/resolved`,
+0.107.0 and later sampled versions (0.111.0, 0.118.0, 0.145.0, 0.172.0) do
+both: the floor is 0.107.0 ([probe](../../experiments/user-questions-2026-11-25.md)).
 
 `SessionOptions.nativePermissions: "inherit"` overrides this per session: OAR
 omits `-c sandbox_mode=...`, `approvalPolicy`, and `sandbox` on `thread/start`,

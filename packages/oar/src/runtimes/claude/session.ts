@@ -1,9 +1,13 @@
+/* oxlint-disable import/max-dependencies -- The adapter composes launch, readback and answering mechanisms. */
 import { openClaudeModelRequests } from "./model-requests.js";
 import { claudeCompaction, CLAUDE_COMPACTION_BUSY } from "./compaction.js";
 import type { StartSession } from "../../contracts/session.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
+import { refuseSessionOptions } from "../../shared/session-options.js";
+import type { JsonRecord } from "../../shared/json.js";
 import { streamJsonSession } from "../../shared/stream-json/session.js";
 import { claudeOpenSettings } from "./open-settings.js";
+import { claudePermissionDenial, claudeQuestionReply, claudeUserQuestionRefusal } from "./user-questions.js";
 import { closeLineProcess } from "../../shared/executable/close.js";
 import { claudeContextBreakdownReader } from "./context-breakdown.js";
 import { launchClaude } from "./launch.js";
@@ -24,6 +28,7 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
   if (installation.via !== "executable") {
     throw new Error("The claude session adapter needs an executable installation");
   }
+  refuseSessionOptions(claudeUserQuestionRefusal(installation.version), options);
   // A fork (SessionOptions.fork) runs under a new id OAR assigns, like a new session.
   const sessionId = options.fork === undefined ? options.resume ?? globalThis.crypto.randomUUID() : globalThis.crypto.randomUUID();
   const requests = await openClaudeModelRequests(sessionId, options, installation.version);
@@ -59,7 +64,11 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
     contextBreakdown: contextBreakdown.read,
     close: async (active) => { if (active) { child.kill(); await child.exited; } else { await closeLineProcess(child); } },
     // Decline unattended MCP elicitations; keep permission and other control requests recorded-only.
-    appRequestResponse: claudeAppRequestResponse,
+    // With host questions claude also routes approvals here (a hook's "ask"); no one answers those, so they are denied.
+    appRequestResponse: options.userQuestions === "host"
+      ? (type, requestId): JsonRecord | null => type === "can_use_tool" ? claudePermissionDenial(requestId) : claudeAppRequestResponse(type, requestId)
+      : claudeAppRequestResponse,
+    ...(options.userQuestions === "host" ? { questionReply: claudeQuestionReply } : {}),
   });
   if (requests !== undefined) {
     session.events((event) => { if (event.agentPath.length === 0 && event.kind === "turn_ended") { requests.ended(event.outcome); } });

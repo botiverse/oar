@@ -4,12 +4,13 @@ import { claudeUserConfiguration } from "./user-configuration.js";
 import { claudeServiceTierSettings } from "./service-tier.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import type { SessionOptions } from "../../contracts/index.js";
-import { claudePermissionArgs, claudeSettingsArgs, refuseForkLaunchArgs, refuseManagedLaunchArgs } from "./launch-args.js";
+import { claudePermissionArgs, claudeSettingsArgs, refuseForkLaunchArgs, refuseManagedLaunchArgs, refuseQuestionLaunchArgs } from "./launch-args.js";
 import { resolvedAdditionalDirectories } from "../../shared/additional-directories.js";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { givenMcpServers } from "../../shared/mcp-servers.js";
 import { checkSessionName, refuseSessionOptions } from "../../shared/session-options.js";
 import { handOverMcpConfig, sweepAbandonedMcpConfigs } from "./mcp-config.js";
+import { CLAUDE_QUESTION_ARGS, CLAUDE_QUESTION_DISALLOWED } from "./user-questions.js";
 import { claudePromptFiles } from "./prompt-files.js";
 
 /*
@@ -53,6 +54,8 @@ export function claudeSessionArgs(sessionId: string, options: Pick<SessionOption
 
 function spawnClaude(command: string, sessionId: string, options: SessionOptions, mcpConfig: string | null, tierSettings: JsonRecord, nativeArgs: readonly string[], capture?: string): LineProcess {
   const directories = resolvedAdditionalDirectories(options);
+  const asks = options.userQuestions === "host";
+  const disallowed = [...new Set([...options.disallowedTools ?? [], ...(asks ? CLAUDE_QUESTION_DISALLOWED : [])])];
   const configuration = claudeUserConfiguration(options);
   const settings = { ...tierSettings, ...configuration.settings };
   if (capture !== undefined) {
@@ -73,6 +76,7 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
     ...(options.effort === undefined ? [] : ["--effort", options.effort]),
     ...claudeSettingsArgs(settings, options.launchArgs),
     ...nativeArgs,
+    ...(asks ? CLAUDE_QUESTION_ARGS : []),
     ...configuration.args,
     ...(options.outputSchema === undefined ? [] : ["--json-schema", JSON.stringify(options.outputSchema)]),
     // The host's flags, after managed/permission validation, ahead of
@@ -80,7 +84,7 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
     ...options.launchArgs ?? [],
     ...(directories.length === 0 ? [] : ["--add-dir", ...directories]),
     ...(mcpConfig === null ? [] : ["--mcp-config", mcpConfig]),
-    ...((options.disallowedTools?.length ?? 0) === 0 ? [] : ["--disallowed-tools", ...options.disallowedTools ?? []]),
+    ...(disallowed.length === 0 ? [] : ["--disallowed-tools", ...disallowed]),
   ], {
     cwd: options.cwd,
     // Without the parent session's markers, so print mode chooses sdk-cli and
@@ -104,6 +108,7 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
 export async function launchClaude(command: string, sessionId: string, options: SessionOptions, capture?: string): Promise<ClaudeProcess> {
   refuseManagedLaunchArgs(options.launchArgs);
   refuseForkLaunchArgs(options.launchArgs, options.fork);
+  if (options.userQuestions === "host") { refuseQuestionLaunchArgs(options.launchArgs); }
   const permissions = claudePermissionArgs(options.launchArgs);
   refuseSessionOptions(claudeRefusedSessionOptions, options);
   checkSessionName(options);

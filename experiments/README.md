@@ -1,5 +1,7 @@
 # experiments
 
+- [Questions to the user](user-questions-2026-11-25.md) records what Claude and Codex put on the wire for a question, its answers, a decline and an interrupt.
+
 - [Kimi 2.7.2 KAP wire contract](kimi-kap-wire/README.md) follows session creation through model selection, tool calls, usage, cancellation, compaction and child-agent completion.
 
 - [The next request after an interrupted turn](abort-aftermath/README.md) compares model-visible history after stopping a stream or a running tool.

@@ -1,4 +1,5 @@
 import { asRecord, asRecordList, type JsonRecord } from "../shared/json.js";
+import { claudeQuestion } from "../shared/user-question-prompt.js";
 
 /**
  * What a runtime→app request asks for, read off its `type`: the `type` of an
@@ -58,8 +59,13 @@ const KINDS: ReadonlyMap<string, AppRequestKind> = new Map<string, AppRequestKin
   ["approval", "approval"],
 ]);
 
-/** Classify a runtime→app request by its `type` (an `app_request`'s method or subtype). */
-export function appRequestKind(type: string): AppRequestKind {
+/**
+ * Classify a runtime→app request by its `type` (an `app_request`'s method or
+ * subtype). claude's `can_use_tool` is an approval for every tool but its own
+ * question, which only the `body` tells; without one it stays an approval.
+ */
+export function appRequestKind(type: string, body?: unknown): AppRequestKind {
+  if (claudeQuestion(type, body) !== null) { return "question"; }
   return KINDS.get(type) ?? "unknown";
 }
 
@@ -67,6 +73,10 @@ type Texts = (body: JsonRecord) => unknown;
 
 function text(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() !== "" ? value : undefined;
+}
+
+function questionTexts(body: JsonRecord): string {
+  return asRecordList(body.questions).flatMap((question) => text(question.question) ?? []).join("\n");
 }
 
 /**
@@ -83,7 +93,7 @@ const TEXTS: ReadonlyMap<string, Texts> = new Map<string, Texts>([
   ["elicitation", (body) => asRecord(body.request)?.message],
   ["can_use_tool", (body) => asRecord(body.request)?.tool_name],
   ["mcpServer/elicitation/request", (body) => body.message],
-  ["item/tool/requestUserInput", (body) => asRecordList(body.questions).flatMap((question) => text(question.question) ?? []).join("\n")],
+  ["item/tool/requestUserInput", (body) => questionTexts(body)],
   ["item/commandExecution/requestApproval", (body) => body.command],
   ["elicitation/create", (body) => body.message],
   ["session/request_permission", (body) => asRecord(body.toolCall)?.title],
@@ -97,6 +107,8 @@ const TEXTS: ReadonlyMap<string, Texts> = new Map<string, Texts>([
  * not hold them: never guessed.
  */
 export function appRequestText(type: string, body: unknown): string | undefined {
+  const asked = claudeQuestion(type, body);
+  if (asked !== null) { return text(questionTexts(asked)) ?? "AskUserQuestion"; }
   const record = asRecord(body);
   const read = TEXTS.get(type);
   return read === undefined || record === null ? undefined : text(read(record));
