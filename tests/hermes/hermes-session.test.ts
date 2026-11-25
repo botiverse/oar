@@ -44,7 +44,9 @@ function bareHermes(): string {
   const dir = scratch("oar-hermes-bin-");
   const script = path.join(dir, "hermes-fixture.mjs");
   writeFileSync(script, [
+    'import { appendFileSync } from "node:fs";',
     "const args = process.argv.slice(2);",
+    String.raw`if (process.env.HERMES_TEST_LOG) appendFileSync(process.env.HERMES_TEST_LOG, args.join(" ") + "\n");`,
     String.raw`if (args[0] === 'acp' && args[1] === '--check') { process.stdout.write('Hermes ACP check OK\n'); process.exit(0); }`,
     String.raw`if (args[0] === '--version') { process.stdout.write('Hermes Agent v0.23.3+1139.g084538c (2026.9.24) · stable · local 084538cdb605\n'); process.exit(0); }`,
     "process.exit(2);",
@@ -178,4 +180,16 @@ test("Hermes installation verifies acp --check and reads the version through OAR
     command: bin,
     version: "0.23.3",
   });
+});
+
+test("Hermes reuses the native readiness probe for the same environment", async () => {
+  const { hermesInstallation } = await import("../../packages/oar/src/runtimes/hermes/installation.js");
+  const log = path.join(scratch("oar-hermes-probe-"), "calls.txt");
+  const env = { OAR_HERMES_BIN: bareHermes(), PATH: "", HERMES_TEST_LOG: log };
+  const first = await hermesInstallation({ env });
+  expect(first.kind).toBe("available");
+  expect(await hermesInstallation({ env })).toEqual(first);
+  expect(readFileSync(log, "utf8")).toBe("acp --check\n--version\n");
+  await hermesInstallation({ env: { ...env, HERMES_HOME: path.dirname(log) } });
+  expect(readFileSync(log, "utf8")).toBe("acp --check\n--version\nacp --check\n--version\n");
 });

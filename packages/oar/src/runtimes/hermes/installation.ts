@@ -41,7 +41,7 @@ export function hermesInstalledExecutableCandidates(
  * version is read from `hermes --version`, the same executable OAR launches
  * with the `acp` subcommand.
  */
-export const hermesInstallation = executableInstallation(
+const probeHermes = executableInstallation(
   "OAR_HERMES_BIN",
   "hermes",
   (env) => hermesInstalledExecutableCandidates(process.platform, environmentHome(env), env),
@@ -49,7 +49,6 @@ export const hermesInstallation = executableInstallation(
   {
     readinessTimeoutMs: 60_000,
     versionTimeoutMs: 30_000,
-    readVersion: readHermesVersion,
     identity: {
       vendor: "Hermes Agent",
       help: /Hermes ACP check OK/u,
@@ -57,3 +56,12 @@ export const hermesInstallation = executableInstallation(
     },
   },
 );
+
+// Normalize after the executable probe so the shared cache can reuse its readiness result.
+export const hermesInstallation: typeof probeHermes = async (options) => {
+  const found = await probeHermes(options);
+  if (found.kind !== "available" || found.via !== "executable" || found.version === undefined) return found;
+  const { version: raw, ...installation } = found;
+  const version = readHermesVersion(raw);
+  return version === undefined ? installation : { ...installation, version };
+};
