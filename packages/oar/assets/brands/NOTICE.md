@@ -14,6 +14,8 @@ supplying its own mark rather than an asset taken from a published page. It
 carries its own dark background and is used on both backgrounds. Cybion branding
 belongs to its owner; the LobeHub MIT license below does not cover this asset.
 
+Dim: https://dimagent.com/dimagent-favicon.svg (retrieved 2026-11-26), unmodified official site asset for identification: the DimAgent mark on its brand-green tile, linked from the arcships/dim repository's homepage. It carries its own background and is used on both backgrounds. DimAgent branding belongs to its owner; the LobeHub MIT license below does not cover this asset.
+
 Factory Droid: https://factory.com/favicon.svg (retrieved 2026-11-15), unmodified official site asset for identification. Factory branding belongs to its owner; the LobeHub MIT license below does not cover this asset. It carries its own dark background and is used on both backgrounds.
 
 Pi: https://pi.dev/logo-on-dark.svg (retrieved 2026-09-16), unmodified official site asset for identification on dark backgrounds. Pi branding belongs to its respective owner; the LobeHub MIT license below does not cover this asset.

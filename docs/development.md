@@ -145,7 +145,9 @@ runtimes may legitimately differ.
   `grok-aimock`, `kimi-aimock`, `opencode-aimock`, `codebuddy-aimock`,
   `dsh-aimock`, `factory-aimock`, `antigravity-aimock`; Qoder uses `qoder-native`): the real
   vendor binary and adapter with only the model provider scripted, no login. Use it when you touched a runtime's adapter: it
-  catches real-process integration mistakes the mock cannot.
+  catches real-process integration mistakes the mock cannot. The community
+  `dim-aimock` backend works the same way but has no CI job and is not in
+  `sea-trial/all.ts`'s default list; run it with `dima` installed.
 - `OAR_TEST=scripted pnpm sea-trial`: the public `scriptedRuntime`
   (`@botiverse/oar/testing`) held to the same contract.
 - `pnpm tsx sea-trial/all.ts [backend...]`: several backends, by default

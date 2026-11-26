@@ -110,3 +110,15 @@ test("a process exit after the RPC answer fails immediately while confirmation i
   await vi.advanceTimersByTimeAsync(0); await failure;
   expect(probe.settled()).toBe(true);
 });
+
+test("the wait resolves with the notification that confirmed the value", async () => {
+  const updates = createAcpConfigUpdates();
+  const { signal } = new AbortController();
+  const confirmed = updates.confirm("session", "effort", "low", async wait => {
+    updates.observe({ sessionId: "session", update: { sessionUpdate: "config_option_update", configOptions: [{ id: "effort", currentValue: "high" }] } });
+    const pending = wait(signal);
+    updates.observe({ sessionId: "session", update: { sessionUpdate: "config_option_update", configOptions: [{ id: "model", currentValue: "m" }, { id: "effort", currentValue: "low" }] } });
+    return pending;
+  });
+  await expect(confirmed).resolves.toEqual({ sessionUpdate: "config_option_update", configOptions: [{ id: "model", currentValue: "m" }, { id: "effort", currentValue: "low" }] });
+});
