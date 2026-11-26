@@ -96,6 +96,36 @@ Package-manager-owned or unrecognized Claude installations return
 A kimi native install stages the new binary and swaps it in on its next
 start; the version read back after the upgrade is that start.
 
+## Suggested minimum versions
+
+OAR keeps three distinct version layers apart:
+
+- **`minVersion` (hard floor)**: enforced by `installation()` and adapters.
+  Copies below it fail with `version_unsupported` and cannot open sessions.
+- **`suggestedMinVersion` (recommended threshold)**: maintained per runtime in
+  `packages/oar/assets/suggested-versions.json` (single source of truth;
+  `packages/oar/src/suggested-versions.generated.ts` is derived from it during
+  `pnpm --filter @botiverse/oar build` and exported as `suggestedVersions`
+  alongside `SUGGESTED_VERSIONS_URL`, `parseSuggestedVersions`, and
+  `checkSuggestedVersion` from `@botiverse/oar/suggested-versions`,
+  `@botiverse/oar`, and `@botiverse/oar/browser`). It names a recommended CLI
+  version threshold for the runtime's current flagship models (for example,
+  upstream client-version gating or built-in model catalog recognition), while
+  remaining silent once met so minor patch releases do not nag users.
+- **`checkUpdate` (`latest`)**: queries the runtime's live release channel.
+
+Runtimes with no verified model gate or catalog threshold are omitted from
+`packages/oar/assets/suggested-versions.json`, and `listModels()` remains
+strictly a local live query (already surfacing native disabled model notices
+such as Claude Code's `ModelEntry.disabled.reason`). Being below
+`suggestedMinVersion` does not prove a model cannot run (for example, measured
+Claude Code `2.1.319` already listed and ran `claude-fable-5-2` with an
+unrecognized-model warning before built-in catalog recognition landed), and
+meeting `suggestedMinVersion` does not guarantee account access. Hosts may fetch
+`SUGGESTED_VERSIONS_URL` directly (with ETag caching) to surface recommendations
+without waiting for a package release, falling back silently to the bundled
+`suggestedVersions` or no hint on fetch/parse failure.
+
 ## CLI
 
 `oar upgrade` and `oar upgrade --check` run these from a terminal; their
