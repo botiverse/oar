@@ -1,7 +1,7 @@
 /* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
 import { AcpError } from "./errors.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
-import { asRecord, type JsonRecord } from "../json.js";
+import { asRecord, asRecordList, type JsonRecord } from "../json.js";
 import { acpReportedEffort, acpThoughtLevelOption } from "./model.js";
 import { type AcpProcess, withAcpDeadline } from "./process.js";
 import type { AcpConfigUpdates } from "./config-updates.js";
@@ -18,9 +18,24 @@ function setConfigOption(
     withAcpDeadline(process, "session/set_config_option", context.timeoutMs, async requestOptions => {
       const response = await process.connection.agent.request("session/set_config_option", { sessionId, configId, value }, requestOptions);
       const signals = [process.connection.signal, ...(requestOptions?.cancellationSignal === undefined ? [] : [requestOptions.cancellationSignal])];
-      await wait(AbortSignal.any(signals));
-      return response;
+      const confirmed = await wait(AbortSignal.any(signals));
+      return withConfirmedOptions(response, configId, value, confirmed);
     }));
+}
+
+/**
+ * The answer, unless it still reports the previous value of the option the
+ * confirming notification reports as applied: then that notification's
+ * options. Dim (0.1.0-alpha.29) answers an effort change made right after a
+ * model switch with the previous level and pushes the applied one after it.
+ */
+function withConfirmedOptions(response: unknown, configId: string, value: string, confirmed: JsonRecord): unknown {
+  const answer = asRecord(response);
+  const options = asRecordList(answer?.configOptions);
+  const answered = options.find(option => option.id === configId);
+  if (answered === undefined || answered.currentValue === value) { return response; }
+  const pushed = new Map(asRecordList(confirmed.configOptions).map(option => [option.id, option]));
+  return { ...answer, configOptions: options.map(option => pushed.get(option.id) ?? option) };
 }
 
 /** An RPC error's message plus its `data` (grok puts the reason there: "unknown reasoning_effort value"). */

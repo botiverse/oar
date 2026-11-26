@@ -154,6 +154,14 @@ test("an effort answer alone cannot override a contradictory native notification
   await expect(startAntigravity({ model: "requested-y", effort: "high", env: { FAKE_ACP_WRONG_EFFORT_UPDATE: "1" } }, false, 1000)).rejects.toThrow(/config_option_update left thought_level at low/u);
 });
 
+test("a stale effort answer is superseded by the notification that confirms the requested level", async () => {
+  const session = await startAntigravity({ model: "requested-y", effort: "high", env: { FAKE_ACP_STALE_EFFORT_ANSWER: "1" } }, false, 1000);
+  try {
+    expect(session.model().value).toBe("requested-y");
+    expect(session.effort().value).toBe("high");
+  } finally { await session.dispose(); }
+});
+
 test("a contradictory model notification rejects with a typed error and no invented catalog", async () => {
   const opening = startAntigravity({ model: "requested-y", env: { FAKE_ACP_WRONG_MODEL_UPDATE: "1" } }, false, 1000);
   await expect(opening).rejects.toBeInstanceOf(ModelConfirmationError);
