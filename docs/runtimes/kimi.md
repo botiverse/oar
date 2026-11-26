@@ -770,13 +770,13 @@ message and stack are redacted (`[redacted]`).
 [Host-served tools](../spec/runtime-matrix.md#host-served-tools) attach as
 any http entry. kimi does not hand the server's `instructions` to the model
 (kimi 2.1.1), so guidance the model needs belongs in the tool descriptions.
-`kimiRuntime.mcpToolsListChanged` is `"none"`: after
-`notifications/tools/list_changed` kimi does not list again and its next
-model request offers the opening set (kimi 2.2.0, also checked on 2.6.3 with
-an already discovered catalog;
-[vendor controls](../../sea-trial/vendor/kimi-mcp-catalog.vendor.test.ts)).
+`kimiRuntime.mcpToolsListChanged` is `"none"`. After
+`notifications/tools/list_changed`, Kimi keeps the opening set for its next
+model request. The vendor controls observed this on 2.2.0, on 2.6.3 with an
+already discovered catalog, and on 2.8.0 after cold startup.
+[Vendor controls](../../sea-trial/vendor/kimi-mcp-catalog.vendor.test.ts).
 
-Kimi 2.6.0 through 2.6.3 have a separate startup limitation: tools from an MCP
+Kimi 2.6.0 through 2.7.3 have a separate startup limitation. Tools from an MCP
 server that answers its initial `tools/list` slowly can be missing from the
 model-facing catalog for that session, even though native discovery succeeds.
 OAR cannot repair the native snapshot by waiting before the first prompt.
@@ -786,12 +786,15 @@ The first request omitted the tool even when the prompt followed release.
 The in-process server normally answers promptly. The omission has also
 occurred in CI with no added delay.
 
-Earlier fixed-delay controls pass on 2.4.1, 2.5.2 and 2.5.3. This is tracked
-in [upstream #4904](https://github.com/MoonshotAI/kimi-code/issues/4904), with
-[direct ACP evidence and reproduction](../../experiments/kimi-mcp-startup/README.md).
-CI separates an explicitly prepared native notification control from a cold
-OAR startup control. The latter asserts the observed version boundary; restore
-complete-catalog assertions when a fixed release passes the delayed control.
+Earlier fixed-delay controls passed on 2.4.1, 2.5.2 and 2.5.3.
+Kimi 2.8.0 fixed the initial catalog snapshot. With a one-second delay,
+2.7.3 omitted the tool on both turns of the cold-start control. On 2.8.0,
+both turns offered it. The prepared control offered the tool on both
+versions, and neither version listed tools again after notification.
+[Upstream issue](https://github.com/MoonshotAI/kimi-code/issues/4904),
+[fix](https://github.com/MoonshotAI/kimi-code/pull/5240),
+[direct ACP reproduction](../../experiments/kimi-mcp-startup/README.md),
+[November 25 runtime check](../../experiments/runtime-version-checks/2026-11-25.md#kimi-initial-mcp-tools).
 
 ### Process ownership, installation, and account usage
 
