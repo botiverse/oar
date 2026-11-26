@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { test } from "vitest";
-import { utcInstantFromDate } from "../packages/oar/src/index.js";
-import { renderUsageReport, type UsageReport } from "../packages/cli/src/usage.js";
+import { test, vi } from "vitest";
+import { defineRuntime, utcInstantFromDate } from "../packages/oar/src/index.js";
+import { readUsage, renderUsageReport, type UsageReport } from "../packages/cli/src/usage.js";
 
 type Snapshot = NonNullable<UsageReport["accountUsage"]>;
 const at = utcInstantFromDate(new Date("2026-11-22T07:00:00.000Z"));
@@ -36,4 +36,22 @@ test("reauth, unsupported, missing installation and a failed read each get one l
 
 test("temporarily unavailable usage does not ask the user to sign in", () => {
   assert.deepEqual(renderUsageReport({ runtimeId: "kimi", accountUsage: { kind: "unavailable", reason: "access_token_expired" } }), ["kimi\tusage temporarily unavailable (access_token_expired); no sign-in required"]);
+});
+
+test("readUsage keeps allowPrintMode unset by default and forwards it when enabled", async () => {
+  const accountUsage = vi.fn(async (_inst, opts?: { readonly allowPrintMode?: boolean }) =>
+    opts?.allowPrintMode === true ? ({ kind: "available", rateLimited: false, windows: [] } as const) : ({ kind: "unsupported", reason: "print_mode_disabled" } as const));
+  const fake = defineRuntime({
+    id: "fake",
+    session: async () => { throw new Error("unused"); },
+    installation: async () => ({ kind: "available", via: "executable", command: "fake" }),
+    accountUsage,
+  });
+  const skipped = await readUsage(fake);
+  assert.deepEqual(skipped, { runtimeId: "fake", accountUsage: { kind: "unsupported", reason: "print_mode_disabled" } });
+  assert.equal(accountUsage.mock.calls[0]?.[1], undefined);
+  assert.deepEqual(renderUsageReport(skipped), ["fake\tno usage (print_mode_disabled; pass --allow-print-mode to allow CLI print mode)"]);
+  const allowed = await readUsage(fake, { allowPrintMode: true });
+  assert.deepEqual(allowed, { runtimeId: "fake", accountUsage: { kind: "available", rateLimited: false, windows: [] } });
+  assert.deepEqual(accountUsage.mock.calls[1]?.[1], { allowPrintMode: true });
 });

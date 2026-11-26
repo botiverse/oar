@@ -337,6 +337,7 @@ when the runtime identifies the previous sign-in. Its optional `email` and
 | unsupported | auth_configuration_unavailable | The reader could not resolve the provider/auth configuration; no more specific cause is known. |
 | unsupported | endpoint_unavailable | The provider/runtime does not expose the queried usage endpoint. |
 | unsupported | quota_unavailable | The response does not expose a quota configuration. |
+| unsupported | print_mode_disabled | The reader requires one-shot CLI print mode and `options.allowPrintMode` was omitted or false. |
 | unavailable | access_token_expired | This read has no current access token and cannot safely refresh it. No sign-in action is requested; retry after the runtime refreshes it. |
 | reauth_required | not_authenticated | The runtime requires a login. |
 | reauth_required | credentials_missing | No usable persisted credential was found. |
@@ -385,6 +386,11 @@ and defaults these omitted metrics to zero, preserving the plan and reset time.
 An absent config still returns `quota_unavailable`; present but malformed
 usage metrics still reject.
 
+Antigravity account usage requires `options.allowPrintMode: true`; omitting it
+returns `{ kind: "unsupported", reason: "print_mode_disabled" }` without
+spawning any process. Persistent structured protocols (such as Claude's
+bidirectional `stream-json` control protocol, Codex app-server and Grok ACP)
+and direct billing HTTP readers are unaffected. With `allowPrintMode: true`,
 Antigravity account usage is agy's own `-p "/usage" --output-format json`
 answer (agy 1.1.11 and later), which answers the read-only command with no
 agent turn, quota or conversation (a signed-in 1.5.7 reported

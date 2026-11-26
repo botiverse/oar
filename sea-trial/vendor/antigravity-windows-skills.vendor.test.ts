@@ -26,7 +26,10 @@ test.skipIf(process.env.OAR_TEST !== "antigravity-file-skills" || process.platfo
     await writeFile(hidden, "---\nname: oar-hidden-windows\ndescription: Hidden negative control\ndisable-slash-command: true\n---\nPRIVATE BODY\n");
     const builtins = join(home, ".gemini/antigravity-cli/builtin/skills");
     assert.deepEqual(await readdir(builtins).catch(() => []), []);
-    const result = await antigravityRuntime.skills(installation, { cwd, env });
+    const blocked = await antigravityRuntime.skills(installation, { cwd, env });
+    assert.equal(blocked.kind, "unsupported"); assert.equal(blocked.code, "print_mode_disabled");
+    assert.deepEqual(await readdir(builtins).catch(() => []), []);
+    const result = await antigravityRuntime.skills(installation, { cwd, env, allowPrintMode: true });
     observations.push({ case: "native-fallback", result });
     assert.equal(result.kind, "ok"); assert.equal(result.view, "discovered"); assert.equal(result.partial, false);
     assert.deepEqual(result.items.find(item => item.name === "oar-native-windows"), { name: "oar-native-windows", description: "Native fallback metadata", path, userInvocable: true, disableModelInvocation: true });
@@ -37,7 +40,7 @@ test.skipIf(process.env.OAR_TEST !== "antigravity-file-skills" || process.platfo
     assert.ok(initialized.length > 0, "Native startup initializes builtins; the file reader must not run on Windows");
     assert.ok(!JSON.stringify(result).includes("PRIVATE BODY"));
     await rm(join(home, ".gemini"), { recursive: true, force: true });
-    const unsigned = await antigravityRuntime.skills(installation, { cwd, env: { ...env, GEMINI_API_KEY: null } });
+    const unsigned = await antigravityRuntime.skills(installation, { cwd, env: { ...env, GEMINI_API_KEY: null }, allowPrintMode: true });
     observations.push({ case: "signed-out-native", result: unsigned });
     assert.equal(unsigned.kind, "unavailable"); assert.equal(unsigned.code, "not_authenticated");
     assert.equal(fixture.raw.length, 0);

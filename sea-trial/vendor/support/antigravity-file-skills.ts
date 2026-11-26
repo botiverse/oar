@@ -10,6 +10,13 @@ import { nativeRows } from "../../../packages/oar/src/shared/inventory.js";
 import { antigravitySkillMcpControl } from "./antigravity-skill-mcp.js";
 import { startAntigravityAimock } from "../../harness/aimock-acp.js";
 
+function semverAtLeast(version: string | undefined, minMajor: number, minMinor: number, minPatch: number): boolean {
+  const match = /^(\d+)\.(\d+)\.(\d+)$/u.exec(version ?? "");
+  if (match === null) { return false; }
+  const [major, minor, patch] = [Number(match[1]), Number(match[2]), Number(match[3])];
+  return major !== minMajor ? major > minMajor : (minor !== minMinor ? minor > minMinor : patch >= minPatch);
+}
+
 async function file(path: string, contents: string): Promise<void> { await mkdir(dirname(path), { recursive: true }); await writeFile(path, contents); }
 async function skill(path: string, name: string, description: string, flags = ""): Promise<void> {
   await file(join(path, "SKILL.md"), `---\nname: ${name}\ndescription: ${description}\n${flags}---\nPRIVATE BODY\n`);
@@ -26,7 +33,8 @@ function project(value: unknown): SkillEntry[] {
 export async function compareAntigravityFileSkills(output: string): Promise<void> {
   const installation = await antigravityRuntime.installation();
   assert.equal(installation.kind, "available"); assert.equal(installation.via, "executable");
-  assert.ok(installation.version !== undefined && ["1.5.10", "1.5.11", "1.5.14", "1.5.15"].includes(installation.version), "Select a verified file-reader version");
+  const installedVersion = installation.version;
+  assert.ok(installedVersion !== undefined && semverAtLeast(installedVersion, 1, 5, 10), "Select a verified file-reader version");
   const fixture = await startAntigravityAimock(() => {});
   const home = fixture.env.HOME; assert.ok(home !== undefined);
   const cwd = join(home, "repo", "sub"); await mkdir(cwd, { recursive: true });
@@ -91,6 +99,20 @@ export async function compareAntigravityFileSkills(output: string): Promise<void
         await file(join(globalBase, "skills.json"), JSON.stringify({ entries: [{ path: "declared" }] }));
         await skill(join(home, "outside/child"), "outside-project", "ignored workspace escape");
         await file(join(cwd, ".agent/skills.json"), JSON.stringify({ entries: [{ path: join(home, "outside") }] }));
+        if (semverAtLeast(installedVersion, 1, 5, 16)) {
+          await skill(join(home, ".agents/skills/from-agents"), "from-agents", "global agents root");
+          await skill(join(home, ".agent/skills/ignored-dot-agent"), "ignored-dot-agent", "ignored singular global root");
+          await file(join(home, ".agents/plugins/ignored-p/plugin.json"), JSON.stringify({ name: "Ignored Agents Plugin", version: "1.0.0" }));
+          await skill(join(home, ".agents/plugins/ignored-p/skills/child"), "ignored-agents-plugin", "ignored global agents plugin");
+          await skill(join(home, ".agents/manifest-target/child"), "ignored-agents-manifest", "ignored global agents manifest");
+          await file(join(home, ".agents/skills.json"), JSON.stringify({ entries: [{ path: "manifest-target" }] }));
+          await skill(join(home, ".gemini/skills/global-agents-dup"), "global-agents-dup", "from-gemini-skills");
+          await skill(join(home, ".agents/skills/global-agents-dup"), "global-agents-dup", "from-agents-skills");
+          await skill(join(home, ".gemini/skills/hidden-agents-dup"), "hidden-agents-dup", "hidden in gemini", "disable-slash-command: true\n");
+          await skill(join(home, ".agents/skills/hidden-agents-dup"), "hidden-agents-dup", "visible in agents");
+          await skill(join(home, ".agents/skills/global-declared"), "global-declared", "loses to global manifest");
+          await skill(join(home, ".agents/skills/automation"), "automation", "agents overrides builtin");
+        }
       }
       if (stage === "symlinks") {
         const repo = dirname(cwd); const homeAlias = join(home, "home-alias");
@@ -100,6 +122,10 @@ export async function compareAntigravityFileSkills(output: string): Promise<void
         await symlink(join(repo, "direct/child"), join(cwd, ".agents/skills/link"), "junction");
         await skill(join(home, "global-link-target/g1"), "global-link-outside", "global link allowed");
         await symlink(join(home, "global-link-target/g1"), join(home, ".gemini/skills/g-link"), "junction");
+        if (semverAtLeast(installedVersion, 1, 5, 16)) {
+          await skill(join(home, "global-link-target/g2"), "global-agents-link-outside", "global agents link allowed");
+          await symlink(join(home, "global-link-target/g2"), join(home, ".agents/skills/g-agents-link"), "junction");
+        }
         await skill(join(home, "ws-escape/s1"), "ws-dir-link-outside", "workspace dir link outside");
         await symlink(join(home, "ws-escape/s1"), join(cwd, ".agents/skills/out-dir-link"), "junction");
         await skill(join(home, "ws-escape/s2"), "ws-file-link-outside", "workspace SKILL.md link outside");
@@ -129,7 +155,7 @@ export async function compareAntigravityFileSkills(output: string): Promise<void
       observations.push({ case: stage, nativeRaw: native, config: await readFile(join(home, ".gemini/config/config.json"), "utf8").catch(() => null) });
       const expected = project(asRecord(command.data)?.skills);
       const swarm = expected.find(item => item.scope === "builtin" && item.path === swarmBuiltin);
-      if ((installation.version === "1.5.14" || installation.version === "1.5.15") && swarm !== undefined) {
+      if (semverAtLeast(installedVersion, 1, 5, 14) && swarm !== undefined) {
         assert.equal(swarm.disableModelInvocation, true, "Native marks the mounted swarm builtin as user-invocable only");
       }
       if (stage === "flags-plugins") {

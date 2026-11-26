@@ -122,6 +122,9 @@ export const antigravityAccountUsage: AccountUsageReader = async (installation, 
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "unsupported_installation" };
   }
+  if (options.allowPrintMode !== true) {
+    return { kind: "unsupported", reason: "print_mode_disabled" };
+  }
   const env = antigravityEnvironment(options.env);
   if (!antigravityUsesDefaultState(env)) { return { kind: "unsupported", reason: "unsupported_auth_storage" }; }
   const timeoutMs = options.timeoutMs ?? 30_000;

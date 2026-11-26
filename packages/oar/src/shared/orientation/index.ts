@@ -44,7 +44,7 @@ async function usage(runtime: Runtime, installation: AvailableInstallation, budg
   const reader = runtime.accountUsage;
   if (reader !== undefined && loggedOut) { return { kind: "skipped", because: "logged_out" }; }
   const result = await budget.run(reader === undefined ? undefined : async (timeoutMs): Promise<AccountUsageSnapshot> => {
-    const value = await reader(installation, { timeoutMs, ...(options.env === undefined ? {} : { env: options.env }) });
+    const value = await reader(installation, { timeoutMs, ...(options.env === undefined ? {} : { env: options.env }), ...(options.allowPrintMode === undefined ? {} : { allowPrintMode: options.allowPrintMode }) });
     return value;
   });
   return result;
@@ -55,7 +55,7 @@ async function additional(runtime: Runtime, installation: AvailableInstallation,
   const [accountUsage, modelList, customization] = await Promise.all([
     options.depth === "account" || options.depth === "models" ? usage(runtime, installation, budget, loggedOut, options) : undefined,
     options.depth === "models" ? models(runtime, installation, budget, slots, loggedOut, options) : undefined,
-    options.include?.includes("customization") === true ? readCustomization(runtime, installation, budget, slots, options.env) : undefined,
+    options.include?.includes("customization") === true ? readCustomization(runtime, installation, budget, slots, options.env, options.allowPrintMode) : undefined,
   ]);
   return { ...(accountUsage === undefined ? {} : { accountUsage }), ...(modelList === undefined ? {} : { models: modelList }), ...(customization === undefined ? {} : { customization }) };
 }

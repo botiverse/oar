@@ -119,8 +119,13 @@ account
   .command("usage [runtime]")
   .description("Account usage for each available installation: plan, windows used and their resets")
   .option("--json", "print the AccountUsageSnapshot per runtime as JSON")
-  .action(async (id: string | undefined, flags: { json?: boolean }) => {
-    const reports = await readEach(selected(id), readUsage);
+  .option("--allow-print-mode", "allow runtimes that read usage via one-shot CLI print mode (for example agy -p)")
+  .action(async (id: string | undefined, flags: { json?: boolean; allowPrintMode?: boolean }) => {
+    const usageOptions = flags.allowPrintMode === true ? { allowPrintMode: true } : undefined;
+    const reports = await readEach(selected(id), async (runtime) => {
+      const report = await readUsage(runtime, usageOptions);
+      return report;
+    });
     if (flags.json === true) {
       printEach(reports);
       return;
@@ -137,7 +142,8 @@ program
   .argument("[runtime]")
   .option("--cwd <directory>", "working directory; defaults to process.cwd()")
   .option("--timeout <ms>", "per-runtime timeout in milliseconds")
-  .action(async (kind: keyof typeof inventories, id: string | undefined, flags: { cwd?: string; timeout?: string }) => {
+  .option("--allow-print-mode", "allow runtimes whose inventory fallback uses one-shot CLI print mode")
+  .action(async (kind: keyof typeof inventories, id: string | undefined, flags: { cwd?: string; timeout?: string; allowPrintMode?: boolean }) => {
     const timeoutMs = flags.timeout === undefined ? undefined : Number(flags.timeout);
     if (timeoutMs !== undefined && (!Number.isInteger(timeoutMs) || timeoutMs <= 0)) {
       program.error("--timeout must be a positive integer");
@@ -145,6 +151,7 @@ program
     const options = {
       ...(flags.cwd === undefined ? {} : { cwd: flags.cwd }),
       ...(timeoutMs === undefined ? {} : { timeoutMs }),
+      ...(flags.allowPrintMode === true ? { allowPrintMode: true } : {}),
     };
     const method = inventories[kind];
     printEach(await readEach(selected(id), async (runtime) => {

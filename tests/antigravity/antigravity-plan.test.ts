@@ -176,7 +176,9 @@ test("authStatus populates plan (and email on headless Linux) via one persisted 
 
 test("accountUsage reuses authStatus's single ACP tier probe and caches positive plan reads", async () => {
   const fake = fakeAccountAgy({ persistedMethod: "oauth-personal", tokenJson: { id_token_email: "alice@example.com", token: { access_token: "synthetic-do-not-leak" } } });
-  const usage = await antigravityAccountUsage(fake.installation, { env: fake.env });
+  expect(await antigravityAccountUsage(fake.installation, { env: fake.env })).toEqual({ kind: "unsupported", reason: "print_mode_disabled" });
+  expect(fake.trace()).toEqual([]);
+  const usage = await antigravityAccountUsage(fake.installation, { env: fake.env, allowPrintMode: true });
   expect(usage).toMatchObject({ kind: "available", plan: "Google AI Ultra", rateLimited: false, ...(process.platform === "linux" ? { email: "alice@example.com" } : {}) });
   expect(JSON.stringify(usage)).not.toContain("synthetic-do-not-leak");
   await antigravityAuthStatus(fake.installation, { env: fake.env });
@@ -187,7 +189,7 @@ test("signed out reports lastAccount only when plain token file is authoritative
   const signedOut = fakeAccountAgy({ persistedMethod: "oauth-personal", loggedIn: false, tokenJson: { id_token_email: "alice@example.com" } });
   const expectedLast = process.platform === "linux" ? { lastAccount: { email: "alice@example.com" } } : {};
   expect(await antigravityAuthStatus(signedOut.installation, { env: signedOut.env })).toEqual({ kind: "logged_out", source: "agy models", ...expectedLast });
-  expect(await antigravityAccountUsage(signedOut.installation, { env: signedOut.env })).toEqual({ kind: "reauth_required", reason: "not_authenticated", ...expectedLast });
+  expect(await antigravityAccountUsage(signedOut.installation, { env: signedOut.env, allowPrintMode: true })).toEqual({ kind: "reauth_required", reason: "not_authenticated", ...expectedLast });
   expect(signedOut.trace().filter((entry) => entry.kind === "call").map((entry) => entry.args)).toEqual([["models"], ["models"]]);
 });
 
