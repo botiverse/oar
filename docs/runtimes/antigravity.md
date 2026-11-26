@@ -602,8 +602,15 @@ reads the same executable's version before and after. A version refusal from
 1.5.0 floor can be upgraded while remaining refused for sessions and readers.
 An isolated Linux probe upgraded 1.4.9 to 1.5.9 and then re-probed it as available
 ([reproduction and evidence](../../experiments/old-cli-upgrade/README.md)).
-Existing CLI auto-update behavior is not disabled by the product adapter
-(the test fixture disables it).
+Non-update Antigravity CLI spawns (installation discovery, version preflight,
+auth status, account usage, model listing, login, logout, and ACP sessions)
+default `AGY_CLI_DISABLE_AUTO_UPDATE=true` unless the caller's `env` overlay
+(including `null` removal) or the host environment already defines
+`AGY_CLI_DISABLE_AUTO_UPDATE`. `skills` always forces
+`AGY_CLI_DISABLE_AUTO_UPDATE=true` for native queries, and `upgrade`
+(`agy update`) leaves it unchanged. This prevents the native Windows
+`--bg-updater` child from flashing a visible console window during routine
+probes and reads while preserving explicit caller opt-ins and manual upgrades.
 
 ### Login
 
@@ -840,7 +847,7 @@ is measured and the full comparison passes.
 On Windows and for other versions, print mode can initiate login, so OAR first checks
 `agy models` authentication. Signed-out reads return
 `unavailable/not_authenticated`; unknown authentication returns `query_failed`.
-The authentication and print calls share the query deadline and set
+The authentication and print calls share the query deadline and force
 `AGY_CLI_DISABLE_AUTO_UPDATE=true` (`1` does not disable the native updater).
 OAR validates the native success envelope, empty conversation ID, zero turns
 and command name before mapping metadata. Malformed output fails the query.
