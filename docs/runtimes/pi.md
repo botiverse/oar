@@ -294,7 +294,7 @@ sections describe the default SDK path unless the RPC differences above apply.
 | In-process AgentSession | One OAR Session wrapping the SDK object; no runtime subprocess. |
 | Session file header ID | `Session.id`; resume resolves it to a file in the cwd's session directory. Pi restores model context from the file without replaying prior events. See the [record-stream spec](../spec/record-stream.md#placement-and-release). |
 | Agent run | One OAR turn: from the `prompt` request (accepted once pi emits `agent_start`) to pi's `agent_settled`, whose `turn_ended` event carries the outcome. Several native `turn_start`/`turn_end` pairs, threshold compaction and auto-retries sit inside it. |
-| History tree and replacement APIs | OAR maps resume and refuses `SessionOptions.fork` in both SDK and RPC modes. Branch navigation, import and history access remain unavailable. |
+| History tree and replacement APIs | OAR maps resume in both modes. RPC `SessionOptions.fork: {}` opens a dedicated process on the source, sends Pi's native `clone` command, and reads the replacement session id back before exposing it; anchored `fork.through` and SDK-mode forks remain refused. Branch navigation, import and history access remain unavailable. |
 | ModelRuntime and ResourceLoader | Native services determine models/resources; OAR exposes selected startup options and catalog results. The `pi/session_opened` frame reports the effective model and thinking level as `model` and `effort` events. Outside sessions, `createPiProviderAuth` wraps `ModelRuntime.login`/`logout`/auth status and lists the providers pi's `/login` offers (`loginProviders`), and the internal model catalog wraps `ModelRegistry`; hosts discover models through `piRuntime.listModels`. |
 | SDK event stream | Every `AgentSessionEvent` is exactly one Frame record, verbatim as `native`, with the events OAR reads from it ([table](#observation-history-and-children)). No `spanId` (pi has no native turn id); `agentPath` is always root; capabilities declare `attribution: "none"`. |
 | Control | `prompt`/`steer`/`queue`/`withdraw`/`abort`/`dispose` are request records answered accepted/rejected ([details](#prompt-steering-queueing-and-abort)). |
@@ -400,6 +400,18 @@ file unchanged. The same package-policy matrix runs against SDK and RPC startup.
 
 Both the SDK's `AgentSession.sessionFile` and RPC's `get_state.sessionFile` name the native session file. A fresh session creates the file when it saves its first turn.
 `Session.nativeSessionFile()` returns that path once the file exists.
+
+For RPC, `SessionOptions.fork: {}` is a whole-history native clone. OAR first
+opens a fresh dedicated child attached to `resume`, sends Pi 1.4+'s real RPC
+`clone` command, and then sends `get_state`. Only a non-cancelled result whose
+read-back id is non-empty and different from the source id is exposed as the
+new Session; a missing, same, or otherwise ambiguous id fails closed and the
+child is cleaned up. The source process is never reused or mutated by OAR.
+Pi's RPC command has no verified turn-cut argument, so `fork.through` remains
+refused. The native regression in
+[`pi-rpc.vendor.test.ts`](../../sea-trial/vendor/pi-rpc.vendor.test.ts)
+resumes the source after cloning and checks that both ids remain independently
+usable.
 
 The public SDK opens persisted sessions by **file path**. Given host-selected
 `cwd`, `agentDir`, `sessionDir` and `filePath`, OAR uses this entry shape:
