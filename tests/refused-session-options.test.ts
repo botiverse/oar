@@ -73,7 +73,7 @@ test("the declarations say which options each runtime refuses", () => {
     claude: ["endTurnProcessesOnAbort", "goals", "nativeMemoryDefault", "nativePermissions", "sessionLogUpload"],
     codebuddy: ["additionalDirectories", "appendSystemPrompt", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "serviceTier", "sessionLogUpload", "userConfiguration", "userQuestions"],
     codex: ["modelRequests", "nativeMemoryDefault", "sessionLogUpload", "userConfiguration"],
-    cursor: ["appendSystemPrompt", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "partialUserConfiguration", "serviceTier", "sessionLogUpload", "systemPrompt", "userQuestions"],
+    cursor: ["appendSystemPrompt", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "partialUserConfiguration", "serviceTier", "sessionLogUpload", "systemPrompt", "userQuestions"],
     devin: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "serviceTier", "sessionLogUpload", "systemPrompt", "userConfiguration", "userQuestions"],
     dsh: ["endTurnProcessesOnAbort", "fork", "launchArgs", "modelRequests", "nativeMemoryDefault", "nativePermissions", "outputSchema", "serviceTier", "userConfiguration", "userQuestions"],
     factory: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "serviceTier", "sessionLogUpload", "userConfiguration", "userQuestions"],
@@ -120,7 +120,7 @@ test("entries without credentials are no mcpServerCredentials given, and every r
     }, runtime.id);
   }
   const refusing = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions?.mcpServers !== undefined || runtime.refusedSessionOptions?.mcpServerCredentials !== undefined);
-  expect(refusing.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", "cursor", "devin"]);
+  expect(refusing.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", "devin"]);
 });
 
 // Some runtimes drop a server so named without a word (#395): every runtime

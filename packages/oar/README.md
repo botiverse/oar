@@ -371,7 +371,7 @@ stdio entries with `env` and HTTP entries with `headers` through bridge stdin.
 
 The `pi-durable`, `morph` and `cybion` runtimes refuse `mcpServers`.
 OAR keeps entry `env` and `headers` values out of records and errors.
-Antigravity, Cursor, Devin and Cybion declare `mcpServerCredentials` when
+Antigravity, Devin and Cybion declare `mcpServerCredentials` when
 refusing entries that carry these values. Every runtime refuses the
 names `__proto__`, `__defineGetter__`, `__defineSetter__`, `__lookupGetter__`
 and `__lookupSetter__` (`option: "mcpServers"`), which some runtimes drop
