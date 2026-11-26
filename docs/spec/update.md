@@ -96,6 +96,30 @@ Package-manager-owned or unrecognized Claude installations return
 A kimi native install stages the new binary and swaps it in on its next
 start; the version read back after the upgrade is that start.
 
+## Suggested minimum versions
+
+OAR keeps three distinct version layers apart:
+
+- **`minVersion` (hard floor)**: enforced by `installation()` and adapters.
+  Copies below it fail with `version_unsupported` and cannot open sessions.
+- **`suggestedMinVersion` (soft recommendation)**: maintained per runtime in
+  `packages/oar/assets/suggested-versions.json` (single source of truth;
+  exported as `suggestedVersions` alongside `SUGGESTED_VERSIONS_URL`,
+  `parseSuggestedVersions`, and `checkSuggestedVersion` from
+  `@botiverse/oar/suggested-versions`, `@botiverse/oar`, and
+  `@botiverse/oar/browser`). It names the minimum CLI version verified to
+  unlock the runtime's current flagship models, while remaining silent after
+  that threshold is met so minor patch releases do not nag users.
+- **`checkUpdate` (`latest`)**: queries the runtime's live release channel.
+
+Runtimes with no verified model gate are omitted from
+`packages/oar/assets/suggested-versions.json`, and `listModels()` remains
+strictly a local live query (already surfacing native disabled model notices
+such as Claude Code's `ModelEntry.disabled.reason`). Hosts may fetch
+`SUGGESTED_VERSIONS_URL` directly (with ETag caching) to surface recommendations
+without waiting for a package release, falling back silently to the bundled
+`suggestedVersions` or no hint on fetch/parse failure.
+
 ## CLI
 
 `oar upgrade` and `oar upgrade --check` run these from a terminal; their

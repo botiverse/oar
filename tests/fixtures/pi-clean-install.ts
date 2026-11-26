@@ -68,7 +68,7 @@ assert.deepEqual(auth?.auth, { apiKey: "OAR_SYNTHETIC_AUTH" });
 export const HOST_PROBE = `
 import assert from "node:assert/strict";
 import { createCursorRuntime, createPiRuntime, createQwenProviderAuth, defaultRuntimes } from "@botiverse/oar";
-for (const entry of ["browser", "forms", "observe", "kernel", "brands", "testing", "agents", "agents/report"]) {
+for (const entry of ["browser", "forms", "observe", "kernel", "brands", "suggested-versions", "testing", "agents", "agents/report"]) {
   await import("@botiverse/oar/" + entry);
 }
 const qwenEntry = await import("@botiverse/oar/runtimes/qwen");

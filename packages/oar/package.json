@@ -22,6 +22,10 @@
       "types": "./dist/brands.d.ts",
       "import": "./dist/brands.js"
     },
+    "./suggested-versions": {
+      "types": "./dist/suggested-versions.d.ts",
+      "import": "./dist/suggested-versions.js"
+    },
     "./forms": {
       "types": "./dist/forms/index.d.ts",
       "import": "./dist/forms/index.js"
@@ -47,6 +51,7 @@
       "import": "./dist/community/index.js"
     },
     "./assets/brands/*": "./assets/brands/*",
+    "./assets/suggested-versions.json": "./assets/suggested-versions.json",
     "./browser": {
       "types": "./dist/browser.d.ts",
       "import": "./dist/browser.js"

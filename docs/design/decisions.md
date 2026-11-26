@@ -12,6 +12,35 @@ and contract member, (4) the cheapest regression test and resource cost, and
 (5) a sea-trial case for every new `must` or `never`. If any answer is missing,
 keep the idea in the [roadmap](roadmap.md) or an experiment.
 
+## Suggested minimum version per runtime, not a static model catalog (2026-11-26)
+
+**Considered:** either injecting a static "model id -> minimum CLI version"
+catalog into `listModels()`, or maintaining a full per-model version matrix in
+OAR.
+
+**Refused:** merging static predictions into `listModels()` breaks capability
+honesty and fails in practice. `listModels()` runs on the user's host machine
+(where outdated deployments often run older OAR too) and reports models that are
+actually runnable locally now; missing models also reflect account tier or gateway
+policy rather than CLI version alone (observed on Claude Code 2.1.284-2.1.319
+with Fable 5.2). Maintaining a full per-model matrix also adds per-release
+chore burden for every runtime.
+
+**Accepted:** keep `listModels()` strictly live (preserving native disabled
+entries such as Claude Code's `ModelEntry.disabled.reason`) and expose a tiny,
+zero-I/O per-runtime `suggestedMinVersion` manifest instead
+([spec](../spec/update.md#suggested-minimum-versions)), stored in
+`packages/oar/assets/suggested-versions.json` and exported from
+`@botiverse/oar/suggested-versions` (`SUGGESTED_VERSIONS_URL`,
+`suggestedVersions`, `parseSuggestedVersions`, `checkSuggestedVersion`). Hosts
+can check an installed version offline or refresh the JSON directly from
+GitHub without waiting for a library release, and prompt for an upgrade only
+when a CLI falls below the floor for current flagship models.
+
+**What would reopen it:** runtimes routinely gating multiple active models on
+distinct high CLI versions where a single per-runtime floor forces an
+unwanted major upgrade or causes frequent user confusion.
+
 ## Bounded orientation without readiness policy (2026-11-16)
 
 **Considered:** removing both `orient()` and `usability()`. They were added
