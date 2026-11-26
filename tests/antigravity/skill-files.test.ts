@@ -5,14 +5,14 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { antigravityRuntime } from "../../packages/oar/src/runtimes/antigravity/index.js";
-import { hasAntigravityFileSkills } from "../../packages/oar/src/runtimes/antigravity/skill-files.js";
+import { hasAntigravityFileSkills, readAntigravityFileSkills } from "../../packages/oar/src/runtimes/antigravity/skill-files.js";
 import { antigravitySkillMetadata } from "../../packages/oar/src/runtimes/antigravity/skill-metadata.js";
 
 const mocks = vi.hoisted(() => ({ auth: vi.fn(), run: vi.fn() }));
 vi.mock("../../packages/oar/src/runtimes/antigravity/auth.js", async original => ({ ...await original<object>(), readAntigravityAuthStatus: mocks.auth }));
 vi.mock("../../packages/oar/src/shared/executable/index.js", async original => ({ ...await original<object>(), runExecutable: mocks.run }));
 const fileTest = test.skipIf(process.platform !== "linux" && process.platform !== "darwin");
-const verifiedVersions = ["1.5.10", "1.5.11", "1.5.14", "1.5.15"];
+const verifiedVersions = ["1.5.10", "1.5.11", "1.5.14", "1.5.15", "1.5.16", "1.5.18"];
 const homes: string[] = [];
 const installation = { kind: "available", via: "executable", command: "unused-agy", version: "1.5.11" } as const;
 async function file(path: string, contents: string): Promise<void> { await mkdir(dirname(path), { recursive: true }); await writeFile(path, contents); }
@@ -160,6 +160,41 @@ fileTest.each(verifiedVersions)("%s preserves native paths through cwd, skill an
   expect(mocks.auth).not.toHaveBeenCalled(); expect(mocks.run).not.toHaveBeenCalled();
 });
 
+fileTest("1.5.16 and later read ~/.agents/skills below ~/.gemini manifests and above builtins; pre-1.5.16 and prereleases omit it", async () => {
+  const f = await fixture();
+  await skill(join(f.home, ".agents/skills/from-agents"), "from-agents");
+  await skill(join(f.home, "global-agents-target/linked"), "linked-agents");
+  await symlink(join(f.home, "global-agents-target/linked"), join(f.home, ".agents/skills/g-link"), "junction");
+  await skill(join(f.home, ".agent/skills/ignored-dot-agent"), "ignored-dot-agent");
+  await file(join(f.home, ".agents/plugins/p/plugin.json"), JSON.stringify({ name: "Ignored Plugin" }));
+  await skill(join(f.home, ".agents/plugins/p/skills/child"), "ignored-plugin");
+  await skill(join(f.home, ".agents/manifest-target/child"), "ignored-manifest");
+  await file(join(f.home, ".agents/skills.json"), JSON.stringify({ entries: [{ path: "manifest-target" }] }));
+  await skill(join(f.home, ".gemini/skills/dup-gem"), "dup-gem", "description: gemini\n");
+  await skill(join(f.home, ".agents/skills/dup-gem"), "dup-gem", "description: agents\n");
+  await skill(join(f.home, ".gemini/skills/hidden-agents-dup"), "hidden-agents-dup", "description: hidden-gemini\ndisable-slash-command: true\n");
+  await skill(join(f.home, ".agents/skills/hidden-agents-dup"), "hidden-agents-dup", "description: visible-agents\n");
+  await skill(join(f.home, "declared/dup-manifest"), "dup-manifest", "description: global-manifest\n");
+  await file(join(f.home, ".gemini/config/skills.json"), JSON.stringify({ entries: [{ path: join(f.home, "declared") }] }));
+  await skill(join(f.home, ".agents/skills/dup-manifest"), "dup-manifest", "description: agents\n");
+  await skill(join(f.home, ".gemini/antigravity-cli/builtin/skills/automation"), "automation", "description: builtin\n");
+  await skill(join(f.home, ".agents/skills/automation"), "automation", "description: agents-override\n");
+  const older = await antigravityRuntime.skills({ ...installation, version: "1.5.15" }, f); assert.equal(older.kind, "ok");
+  expect(older.items.map(item => [item.name, item.description])).toEqual([
+    ["automation", "builtin"], ["dup-gem", "gemini"], ["dup-manifest", "global-manifest"],
+  ]);
+  const directPrerelease = await readAntigravityFileSkills(f.home, f.cwd, new AbortController().signal, "1.5.16-rc.1");
+  expect(directPrerelease.items.map(item => [item.name, item.description])).toEqual([
+    ["automation", "builtin"], ["dup-gem", "gemini"], ["dup-manifest", "global-manifest"],
+  ]);
+  for (const version of ["1.5.16", "1.5.18"]) {
+    const newer = await antigravityRuntime.skills({ ...installation, version }, f); assert.equal(newer.kind, "ok");
+    expect(newer.items.map(item => [item.name, item.description])).toEqual([
+      ["automation", "agents-override"], ["dup-gem", "gemini"], ["dup-manifest", "global-manifest"], ["from-agents", undefined], ["linked-agents", undefined],
+    ]);
+  }
+});
+
 test("verified local reader preserves custom state refusal", async () => {
   const f = await fixture();
   const result = await antigravityRuntime.skills(installation, { ...f, env: { ...f.env, GEMINI_HOME: join(f.home, "other") } });
@@ -167,11 +202,11 @@ test("verified local reader preserves custom state refusal", async () => {
   expect(mocks.auth).not.toHaveBeenCalled(); expect(mocks.run).not.toHaveBeenCalled();
 });
 
-test.each(["linux", "darwin", "win32", "freebsd"] as const)("%s admits only a verified file reader", platform => {
-  for (const version of verifiedVersions) {
+test.each(["linux", "darwin", "win32", "freebsd"] as const)("%s admits only stable >= 1.5.10 Linux/macOS file readers", platform => {
+  for (const version of [...verifiedVersions, "1.6.0", "1.10.0", "2.0.0"]) {
     expect(hasAntigravityFileSkills(version, platform)).toBe(platform === "linux" || platform === "darwin");
   }
-  for (const version of [undefined, "1.5.0", "1.5.12", "1.5.13", "1.5.14-rc.1", "1.5.15-rc.1", "1.5.16"]) {
+  for (const version of [undefined, "1.5.0", "1.5.9", "1.5.14-rc.1", "1.5.18-alpha.1", "unreadable"]) {
     expect(hasAntigravityFileSkills(version, platform)).toBe(false);
   }
 });

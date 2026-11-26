@@ -75,7 +75,9 @@ result, the others still report, and the exit code is 1.
   `--timeout <ms>` bounds each query.
 - `oar account usage [runtime]`: account usage for each available
   installation: who is signed in, the plan, each usage window's share used
-  and its reset, and limit resets where the runtime reports them. `--json`
+  and its reset, and limit resets where the runtime reports them. `--allow-print-mode`
+  enables runtimes that query usage via one-shot CLI print mode (for example
+  `agy -p`); by default those runtimes report `print_mode_disabled`. `--json`
   prints the `AccountUsageSnapshot` per runtime.
 - `oar mcp`: serve subagents over MCP on stdio, so an agent (claude, codex,
   any MCP client) can delegate tasks to other runtimes: `run` waits for a
@@ -200,7 +202,9 @@ oar inventory tools pi
 ```
 
 `oar inventory <kind> [runtime]` prints JSON; `kind` is `skills`, `commands`, `mcps` or `tools`. `--cwd` defaults to the current working directory;
-`--timeout <ms>` bounds each runtime. These are independent discovery
+`--timeout <ms>` bounds each runtime. `--allow-print-mode` enables runtimes
+whose inventory fallback uses one-shot CLI print mode (by default they report
+`print_mode_disabled`). These are independent discovery
 queries: no existing agent is inspected and no model prompt is sent, though
 native startup can load extensions and connect configured MCP servers. Check
 `kind`, `view` and `partial` before displaying results: `mcp-only` excludes

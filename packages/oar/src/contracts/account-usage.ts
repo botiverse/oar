@@ -76,7 +76,8 @@ export type AccountUsageUnsupportedReason =
   | "unsupported_auth_storage"
   | "auth_configuration_unavailable"
   | "endpoint_unavailable"
-  | "quota_unavailable";
+  | "quota_unavailable"
+  | "print_mode_disabled";
 export type AccountUsageUnavailableReason = "access_token_expired";
 export type AccountUsageReauthReason =
   | "not_authenticated" | "credentials_missing" | "scope_missing" | "credentials_rejected";
@@ -122,12 +123,11 @@ export interface AccountUsageReadOptions {
    * Default `true`. A runtime that reports no limit resets ignores it.
    */
   readonly limitResetDetails?: boolean;
+  /** Allow one-shot CLI print mode (such as `agy -p "/usage"`). Defaults to `false` (`print_mode_disabled`); persistent structured protocols and HTTP readers are unaffected. */
+  readonly allowPrintMode?: boolean;
 }
 
-export type AccountUsageReader = (
-  installation: AvailableInstallation,
-  options?: AccountUsageReadOptions,
-) => Promise<AccountUsageSnapshot>;
+export type AccountUsageReader = (installation: AvailableInstallation, options?: AccountUsageReadOptions) => Promise<AccountUsageSnapshot>;
 
 export interface LimitResetOptions {
   /**
@@ -283,10 +283,7 @@ export type LimitResetInspection = { readonly onboardingCompleted?: true } & (
  * one at startup, reported to count as subscription usage and possibly to
  * start an idle account's 5-hour window (see `Runtime.inspectLimitResets`).
  */
-export type LimitResetInspector = (
-  installation: AvailableInstallation,
-  options?: LimitResetInspectOptions,
-) => Promise<LimitResetInspection>;
+export type LimitResetInspector = (installation: AvailableInstallation, options?: LimitResetInspectOptions) => Promise<LimitResetInspection>;
 
 /**
  * Spends one of the account's limit resets through the runtime's own call.
@@ -294,7 +291,4 @@ export type LimitResetInspector = (
  * A rejection (timeout, network, malformed answer) leaves unknown whether
  * the reset was spent: retry with the same `idempotencyKey`.
  */
-export type LimitResetRedeemer = (
-  installation: AvailableInstallation,
-  options: LimitResetOptions,
-) => Promise<LimitResetResult>;
+export type LimitResetRedeemer = (installation: AvailableInstallation, options: LimitResetOptions) => Promise<LimitResetResult>;

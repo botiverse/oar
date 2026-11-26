@@ -465,7 +465,7 @@ not list in a directory you do not trust.
 against the runtime's own report. Use `default` to explicitly clear a tier;
 it is not a model catalog entry. `Session.serviceTier()` reports the effective
 tier. Unsupported runtimes reject the option before opening.
-`runtime.accountUsage(installation)` reads account quota on antigravity,
+`runtime.accountUsage(installation, options?)` reads account quota on antigravity (requires `{ allowPrintMode: true }`, defaulting to `print_mode_disabled`),
 claude, codex, factory, grok and kimi; its failure semantics are in the
 [account usage reference](https://github.com/botiverse/oar/blob/main/docs/spec/account-usage.md).
 On codex it also reports the account's limit resets, and
@@ -609,7 +609,7 @@ in the default registry or CLI.
 
 Every runtime exposes `skills(installation, options?)`,
 `commands(installation, options?)`, `mcpServers(installation, options?)`, and `tools(installation, options?)`.
-Options are `{ cwd?: string, timeoutMs?: number, env? }` (`env` is the
+Options are `{ cwd?: string, timeoutMs?: number, env?, allowPrintMode?: boolean }` (`env` is the
 `SessionOptions.env` overlay); cwd defaults to `process.cwd()`. Queries discover native information independently: they do
 not inspect an existing Session or submit a model prompt, though native
 startup can load extensions and connect configured MCP servers.
@@ -656,7 +656,7 @@ A manually constructed `Runtime` must implement the four inventory methods, incl
 
 ### Orientation
 
-`orient(registry, { depth: "local" | "account" | "models", runtimes?, env?, timeoutMs?, signal? })`
+`orient(registry, { depth: "local" | "account" | "models", runtimes?, env?, timeoutMs?, signal?, allowPrintMode? })`
 combines existing readers into timestamped probes, preserving missing and failed
 evidence. Local is the default and skips auth readers without a proven local
 query. Account reads can refresh credentials or execute configured key commands;

@@ -33,7 +33,8 @@ test.each(["1.2.7", "1.4.9", "1.5.0-beta.1", "unreadable"])("direct Antigravity 
   const versions = { ...(version === "unreadable" ? {} : { installedVersion: version }), requiredVersion: antigravityRuntime.minVersion };
   await expect(antigravityRuntime.listModels(installation)).resolves.toMatchObject({ kind: "unsupported", code: "version_unsupported", ...versions });
   await expect(antigravityRuntime.authStatus(installation)).resolves.toMatchObject({ kind: "unknown", code: "version_unsupported", ...versions });
-  await expect(antigravityRuntime.accountUsage(installation)).resolves.toEqual({ kind: "unsupported", reason: "version_unsupported", ...versions });
+  await expect(antigravityRuntime.accountUsage(installation)).resolves.toEqual({ kind: "unsupported", reason: "print_mode_disabled" });
+  await expect(antigravityRuntime.accountUsage(installation, { allowPrintMode: true })).resolves.toEqual({ kind: "unsupported", reason: "version_unsupported", ...versions });
   expect(fake.calls()).toEqual([]);
 });
 
@@ -41,7 +42,7 @@ test.each(["1.2.7", "ambiguous output"])("versionless Antigravity installations 
   const fake = executable(reported);
   const installation = { kind: "available", via: "executable", command: fake.command } as const;
   const [models, status, usage] = await Promise.all([
-    antigravityRuntime.listModels(installation), antigravityRuntime.authStatus(installation), antigravityRuntime.accountUsage(installation),
+    antigravityRuntime.listModels(installation), antigravityRuntime.authStatus(installation), antigravityRuntime.accountUsage(installation, { allowPrintMode: true }),
   ]);
   expect([models, status]).toMatchObject([
     { kind: "unsupported", code: "version_unsupported", requiredVersion: "1.5.0" },
@@ -53,6 +54,12 @@ test.each(["1.2.7", "ambiguous output"])("versionless Antigravity installations 
     else { expect(result).not.toHaveProperty("installedVersion"); }
   }
   expect(fake.calls()).toEqual([["--version"], ["--version"], ["--version"]]);
+});
+
+test("versionless Antigravity accountUsage refuses without spawning when allowPrintMode is omitted", async () => {
+  const fake = executable("1.2.7");
+  expect(await antigravityRuntime.accountUsage({ kind: "available", via: "executable", command: fake.command })).toEqual({ kind: "unsupported", reason: "print_mode_disabled" });
+  expect(fake.calls()).toEqual([]);
 });
 
 test.each([true, false])("direct DSH model reader keeps prerelease refusal and avoids bridge startup (version supplied: %s)", async (supplied) => {

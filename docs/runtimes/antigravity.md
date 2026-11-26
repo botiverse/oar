@@ -8,10 +8,13 @@ Dated versions and platform coverage are in the
 [1.5.0 migration report](../../experiments/antigravity-cli-acp-2026-11-05.md)
 has the native controls, retained limitations and host migration checklist.
 
-Independent inventories are not implemented ([query contract](../spec/inventory.md),
-[native inventory evidence](inventory.md)). Account usage is agy's own
-`/usage` answer ([account usage](../spec/account-usage.md)). Login,
-status and logout drive agy's own ([login](#login)).
+Independent `skills()` reads local metadata directly on Linux and macOS (stable
+1.5.10 and later) and gates the native `--print=/skills` fallback on Windows
+and other versions behind `allowPrintMode: true`; commands, MCP servers and
+tools remain unsupported ([query contract](../spec/inventory.md),
+[native inventory evidence](inventory.md)). Account usage reads agy's own
+`/usage` answer when `allowPrintMode: true` is passed ([account usage](../spec/account-usage.md)).
+Login, status and logout drive agy's own ([login](#login)).
 
 ## Native concepts and calling interfaces
 
@@ -746,11 +749,13 @@ configuration or account/catalog I/O, but submits no prompt. `authStatus`
 runs `agy models`, a remote call (not `localOnly`), plus one silent ACP
 `authenticate` call on `agy acp` (no `session/new`, bounded to 5 s) when
 `cache/acp-auth-state.json` names an OAuth method to read the plan tier (~2.0 s
-total on signed-in Linux agy 1.5.13). `accountUsage` reuses that single
-`authStatus` read for `plan` and `email`, then runs `agy -p "/usage"
---output-format json` (no agent turn, signed-in 1.5.7; ~3.9 s total on 1.5.13),
-and `agy -p "/credits"` only when every model group has a used-up bucket
-([account usage](../spec/account-usage.md)).
+total on signed-in Linux agy 1.5.13). `accountUsage` returns
+`{ kind: "unsupported", reason: "print_mode_disabled" }` without spawning any
+process unless `options.allowPrintMode: true` is passed; with `allowPrintMode:
+true`, it reuses that single `authStatus` read for `plan` and `email`, then runs
+`agy -p "/usage" --output-format json` (no agent turn, signed-in 1.5.7; ~3.9 s
+total on 1.5.13), and `agy -p "/credits"` only when every model group has a
+used-up bucket ([account usage](../spec/account-usage.md)).
 
 ## Reader environment
 
@@ -789,20 +794,26 @@ Their old service conclusions do not describe the new CLI adapter.
 
 ## Independent skill discovery
 
-`skills()` reads local metadata directly for CLI **1.5.10, 1.5.11, 1.5.14 and 1.5.15 on
+`skills()` reads local metadata directly for stable CLI **1.5.10 and later on
 Linux and macOS**.
 It starts no process, performs no authentication query or network request,
 and works while signed out. The result remains `view: "discovered"`; no skill
-body is returned or executed. Windows and unverified versions retain the guarded native
+body is returned or executed. Windows, pre-1.5.10, prerelease and versionless installations
+return `unsupported` with `print_mode_disabled` unless `options.allowPrintMode:
+true` is passed, which enables the guarded native
 `agy --output-format json --print=/skills` reader.
 
 The verified file reader follows workspace aliases (`.agent`, `.agents`,
 `_agent`, `_agents`) from the repository root to the requested directory,
-then the global CLI, config and legacy skill directories. Workspace discovery
+then the global CLI, config and legacy skill directories. For **1.5.16 and
+later**, it also scans `~/.agents/skills` below global `~/.gemini` roots and
+manifests (`~/.gemini/config/skills.json`) and above builtins (`~/.agent/skills`,
+`~/.agents/plugins` and `~/.agents/skills.json` remain ignored, verified on
+1.5.18). Workspace discovery
 uses the physical working directory. Every workspace skill and plugin path must
 resolve within the workspace root, while returned paths keep their declared
 spelling; linked directories within the workspace and under the global
-`~/.gemini` roots are followed. It reads skill and
+`~/.gemini` and `~/.agents/skills` roots are followed. It reads skill and
 plugin manifests, applies native duplicate precedence and invocation flags,
 and includes only the native builtin mounts already materialized on disk.
 `disable-slash-command: true` winners are omitted, while
@@ -835,16 +846,18 @@ mounts, directory precedence and invocation flags. Native listed the
 conditional `swarm` builtin as user-invocable only in all six stages. The
 file reader worked while signed out and launched neither fixture MCP server.
 
-On 1.5.16 OAR uses native discovery. A Linux query found a skill under
-`~/.agents/skills` and preferred `~/.gemini/skills` when both directories
-defined the same name. [Linux comparison](../../experiments/runtime-version-checks/2026-11-23.md#antigravity).
+On 1.5.18 (Linux x64), the full six-stage differential comparison plus
+`~/.agents/skills` direct/symlink/shadowing controls matched all native rows
+(with `swarm` remaining the sole omitted conditional builtin) with zero model
+requests and zero file-reader MCP child launches.
 
 The file-reader CI comparison pins 1.5.11 independently of the ACP baseline.
-Windows CI asserts the native reader and signed-out guard. A Windows junction-cwd comparison exposed different
+Windows CI asserts the `print_mode_disabled` default, the opt-in native reader
+when `allowPrintMode: true` is passed, and the signed-out guard. A Windows junction-cwd comparison exposed different
 workspace discovery; Windows will use the file reader only after that rule
 is measured and the full comparison passes.
 
-On Windows and for other versions, print mode can initiate login, so OAR first checks
+When `allowPrintMode: true` runs on Windows, pre-1.5.10, prerelease or versionless installations, print mode can initiate login, so OAR first checks
 `agy models` authentication. Signed-out reads return
 `unavailable/not_authenticated`; unknown authentication returns `query_failed`.
 The authentication and print calls share the query deadline and force

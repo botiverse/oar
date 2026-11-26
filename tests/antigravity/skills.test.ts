@@ -14,10 +14,24 @@ function serve(skills: unknown = []): void {
 }
 afterEach(() => { vi.resetAllMocks(); vi.useRealTimers(); });
 
+test("native fallback refuses without spawning when allowPrintMode is omitted or false", async () => {
+  serve();
+  await Promise.all([installation, { kind: "available" as const, via: "executable" as const, command: "agy" }].map(async target => {
+    await expect(antigravityRuntime.skills(target, { cwd: "/project", env: { GEMINI_HOME: null } })).resolves.toMatchObject({ kind: "unsupported", code: "print_mode_disabled" });
+  }));
+  const res18 = await antigravityRuntime.skills({ ...installation, version: "1.5.18" }, { cwd: import.meta.dirname, env: { HOME: import.meta.dirname, USERPROFILE: import.meta.dirname, GEMINI_HOME: null }, allowPrintMode: false });
+  if (process.platform === "linux" || process.platform === "darwin") {
+    expect(res18.kind).toBe("ok");
+  } else {
+    expect(res18).toMatchObject({ kind: "unsupported", code: "print_mode_disabled" });
+  }
+  expect(mocks.auth).not.toHaveBeenCalled(); expect(mocks.run).not.toHaveBeenCalled();
+});
+
 test("native skill metadata preserves builtin provenance and invocation flags without inventing scope", async () => {
   serve([{ name: "builtin", description: "native", path: "/built/SKILL.md", builtin: true, model_invocable: true, body: "PRIVATE_BODY" },
     { name: "user", builtin: false, model_invocable: false, plugin: "native-plugin" }, { name: "unknown" }]);
-  const result = await antigravityRuntime.skills(installation, { cwd: "/project", env: { GEMINI_HOME: null, AGY_CLI_DISABLE_AUTO_UPDATE: "false" } });
+  const result = await antigravityRuntime.skills(installation, { cwd: "/project", env: { GEMINI_HOME: null, AGY_CLI_DISABLE_AUTO_UPDATE: "false" }, allowPrintMode: true });
   expect(result).toMatchObject({ kind: "ok", view: "discovered", partial: false, scope: { kind: "workspace", cwd: resolve("/project") }, items: [
     { name: "builtin", description: "native", path: "/built/SKILL.md", scope: "builtin", userInvocable: true, disableModelInvocation: false },
     { name: "user", plugin: "native-plugin", userInvocable: true, disableModelInvocation: true }, { name: "unknown", userInvocable: true },
@@ -30,12 +44,12 @@ test("native skill metadata preserves builtin provenance and invocation flags wi
 
 test("signed-out discovery refuses before print mode can initiate login", async () => {
   serve(); mocks.auth.mockResolvedValue({ kind: "logged_out", source: "agy models" });
-  await expect(antigravityRuntime.skills(installation, { env: { GEMINI_HOME: null } })).resolves.toMatchObject({ kind: "unavailable", code: "not_authenticated", reason: "Sign in to Antigravity to read its skills." });
+  await expect(antigravityRuntime.skills(installation, { env: { GEMINI_HOME: null }, allowPrintMode: true })).resolves.toMatchObject({ kind: "unavailable", code: "not_authenticated", reason: "Sign in to Antigravity to read its skills." });
   expect(mocks.run).not.toHaveBeenCalled();
 });
 test("unknown authentication does not run print mode or expose native diagnostics", async () => {
   serve(); mocks.auth.mockResolvedValue({ kind: "unknown", detail: "PRIVATE_AUTH" });
-  await expect(antigravityRuntime.skills(installation, { env: { GEMINI_HOME: null } })).resolves.toMatchObject({ kind: "unavailable", code: "query_failed" });
+  await expect(antigravityRuntime.skills(installation, { env: { GEMINI_HOME: null }, allowPrintMode: true })).resolves.toMatchObject({ kind: "unavailable", code: "query_failed" });
   expect(mocks.run).not.toHaveBeenCalled();
 });
 test("custom GEMINI_HOME is refused instead of inspecting a different profile", async () => {
@@ -45,12 +59,12 @@ test("custom GEMINI_HOME is refused instead of inspecting a different profile", 
 });
 test("version floor precedes authentication and the query", async () => {
   serve();
-  await expect(antigravityRuntime.skills({ ...installation, version: "1.4.9" }, { env: { GEMINI_HOME: null } })).resolves.toMatchObject({ kind: "unsupported", code: "version_unsupported", requiredVersion: "1.5.0" });
+  await expect(antigravityRuntime.skills({ ...installation, version: "1.4.9" }, { env: { GEMINI_HOME: null }, allowPrintMode: true })).resolves.toMatchObject({ kind: "unsupported", code: "version_unsupported", requiredVersion: "1.5.0" });
   expect(mocks.auth).not.toHaveBeenCalled(); expect(mocks.run).not.toHaveBeenCalled();
 });
 test.each([null, {}, [null], [{}], [{ name: "x", builtin: "yes" }], [{ name: "x", model_invocable: 1 }]])("malformed catalog is unavailable: %j", async skills => {
   serve(skills);
-  await expect(antigravityRuntime.skills(installation, { env: { GEMINI_HOME: null } })).resolves.toEqual({ kind: "unavailable", code: "query_failed", reason: "Antigravity skill query failed." });
+  await expect(antigravityRuntime.skills(installation, { env: { GEMINI_HOME: null }, allowPrintMode: true })).resolves.toEqual({ kind: "unavailable", code: "query_failed", reason: "Antigravity skill query failed." });
 });
 test.each([
   { status: "ERROR", error: "PRIVATE_ERROR" },
@@ -58,16 +72,16 @@ test.each([
   { status: "SUCCESS", conversation_id: "created", num_turns: 1, command: { name: "skills", data: { skills: [] } } },
 ])("unexpected print response cannot become a successful inventory: %j", async payload => {
   serve(); mocks.run.mockResolvedValue({ ok: true, stdout: JSON.stringify(payload), stderr: "", exitCode: 0 });
-  await expect(antigravityRuntime.skills(installation, { env: { GEMINI_HOME: null } })).resolves.toMatchObject({ kind: "unavailable", code: "query_failed" });
+  await expect(antigravityRuntime.skills(installation, { env: { GEMINI_HOME: null }, allowPrintMode: true })).resolves.toMatchObject({ kind: "unavailable", code: "query_failed" });
 });
 test("native failures are sanitized", async () => {
   serve(); mocks.run.mockRejectedValue(new Error("PRIVATE_OUTPUT"));
-  await expect(antigravityRuntime.skills(installation, { env: { GEMINI_HOME: null } })).resolves.toEqual({ kind: "unavailable", code: "query_failed", reason: "Antigravity skill query failed." });
+  await expect(antigravityRuntime.skills(installation, { env: { GEMINI_HOME: null }, allowPrintMode: true })).resolves.toEqual({ kind: "unavailable", code: "query_failed", reason: "Antigravity skill query failed." });
 });
 test("timeout aborts in-flight native work", async () => {
   vi.useFakeTimers(); serve();
   const held = Promise.withResolvers<ExecutableResult>(); mocks.run.mockImplementation(async () => held.promise);
-  const pending = antigravityRuntime.skills(installation, { timeoutMs: 25, env: { GEMINI_HOME: null } });
+  const pending = antigravityRuntime.skills(installation, { timeoutMs: 25, env: { GEMINI_HOME: null }, allowPrintMode: true });
   await vi.advanceTimersByTimeAsync(25);
   await expect(pending).resolves.toMatchObject({ kind: "unavailable", code: "timeout" });
   expect(mocks.run.mock.calls[0]?.[2]?.signal?.aborted).toBe(true);
@@ -78,9 +92,11 @@ test.each([0, -1, Infinity, NaN])("invalid deadline is rejected before native wo
   expect(mocks.auth).not.toHaveBeenCalled(); expect(mocks.run).not.toHaveBeenCalled();
 });
 
-test.skipIf(process.platform !== "win32").each(["1.5.10", "1.5.11", "1.5.14", "1.5.15"])("Windows %s retains the native skill query", async version => {
+test.skipIf(process.platform !== "win32").each(["1.5.10", "1.5.11", "1.5.14", "1.5.15", "1.5.18"])("Windows %s gates native query behind allowPrintMode", async version => {
   serve([{ name: "native-only", model_invocable: true }]);
-  const result = await antigravityRuntime.skills({ ...installation, version }, { env: { GEMINI_HOME: null } });
+  await expect(antigravityRuntime.skills({ ...installation, version }, { env: { GEMINI_HOME: null } })).resolves.toMatchObject({ kind: "unsupported", code: "print_mode_disabled" });
+  expect(mocks.auth).not.toHaveBeenCalled(); expect(mocks.run).not.toHaveBeenCalled();
+  const result = await antigravityRuntime.skills({ ...installation, version }, { env: { GEMINI_HOME: null }, allowPrintMode: true });
   expect(result).toMatchObject({ kind: "ok", partial: false, items: [{ name: "native-only", userInvocable: true, disableModelInvocation: false }] });
   expect(mocks.auth).toHaveBeenCalledOnce();
   expect(mocks.run.mock.calls[0]?.slice(0, 2)).toEqual(["agy", ["--output-format", "json", "--print=/skills"]]);
