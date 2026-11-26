@@ -608,28 +608,37 @@ but never inserted into their tier menus. Omitting the option lets the runtime
 choose; it does not promise to clear a configured choice. There is no per-turn
 setter: reopen the session to change it.
 
-The adapter reads the applied native value before returning. By default, a
-refused, missing or different value fails the open with the requested and actual
-selection. Hosts that render `Session.serviceTier()` rather than echoing the
-request may opt in to `SessionOptions.serviceTierFallback: "default"`: when the
-runtime explicitly reports standard service instead of the requested tier (Codex
-`serviceTier: null` projected as `default`; Claude `fast_mode_state` `off` or
-`cooldown` when `fast` was requested), the open succeeds and reports the actual
-tier. Aliases, other named substitutions, absent reports and RPC errors are
-still refused. `serviceTierFallback` requires `serviceTier` and rejects any
-other value with `UnsupportedOptionError` on `serviceTierFallback` before
-opening. OAR does not normalize aliases: codex's `fast` comes back as
-`priority` and is refused; use the catalog's `priority`. `Session.serviceTier()`
-and `SessionView.serviceTier` report native facts, not the request. Later
-native reports of a changed tier remain visible in records and tier events.
+The adapter reads the applied native value before returning on Codex and Claude.
+By default, a refused, missing or different value fails the open with the
+requested and actual selection. Hosts that render `Session.serviceTier()` rather
+than echoing the request may opt in to `SessionOptions.serviceTierFallback: "default"`:
+when the runtime explicitly reports standard service instead of the requested
+tier (Codex `serviceTier: null` projected as `default`; Claude
+`fast_mode_state` `off` or `cooldown` when `fast` was requested), the open
+succeeds and reports the actual tier. Aliases, other named substitutions, absent
+reports and RPC errors are still refused. `serviceTierFallback` requires
+`serviceTier` and rejects any other value with `UnsupportedOptionError` on
+`serviceTierFallback` before opening. OAR does not normalize aliases: codex's
+`fast` comes back as `priority` and is refused; use the catalog's `priority`.
+`Session.serviceTier()` and `SessionView.serviceTier` report native facts, not
+the request. Later native reports of a changed tier remain visible in records
+and tier events.
 
 Codex uses `thread/start` and `thread/resume`, and enumerates `model/list`.
 Claude uses per-process `--settings` and reads `initialize.fast_mode_state`;
 only models whose `list_models` entry reports `supportsFastMode: true` list
-`fast`. The other runtimes reject with `UnsupportedOptionError` on
-`serviceTier`, from their `refusedSessionOptions` declaration. Evidence and
-resume details: [Codex](../runtimes/codex.md#service-tiers),
+`fast`. Cursor validates `serviceTier` (`"fast"` or `"default"`) against the
+live `Cursor.models.list()` catalog and sends `ModelSelection.params` (`fast:
+"true"` or `"false"`) on the wire (`listModels` emits `serviceTiers: ["fast"]`
+and `defaultServiceTier: "fast"` when the catalog default variant enables fast).
+Because `@cursor/sdk` exposes no independent server-side applied-tier readback,
+Cursor emits no `service_tier` events (`Session.serviceTier()` stays `null`) and
+declares `serviceTierFallback` in `refusedSessionOptions`. The other runtimes
+reject with `UnsupportedOptionError` on `serviceTier`, from their
+`refusedSessionOptions` declaration. Evidence and resume details:
+[Codex](../runtimes/codex.md#service-tiers),
 [Claude](../runtimes/claude.md#service-tiers),
+[Cursor](../runtimes/cursor.md#service-tiers),
 [native tests](../../sea-trial/vendor/service-tier.vendor.test.ts).
 
 ## Session environment
@@ -1118,7 +1127,7 @@ in [user configuration](#user-configuration).
 
 | runtime | refuses | why |
 |---|---|---|
-| cursor | `systemPrompt`, `appendSystemPrompt`, `env` (in process only), `launchArgs`, `serviceTier`, `outputSchema`, `name` | the SDK's local agent fails a run given a system prompt and has no append; in process it runs in the host process with no environment or command line of its own; in subprocess mode `env` is its child's ([execution modes](../runtimes/cursor.md#execution-modes)). MCP credential isolation verified on SDK 1.4.1 Linux x64 ([isolation measurements](../../experiments/mcp-credential-admission/README.md)) |
+| cursor | `systemPrompt`, `appendSystemPrompt`, `env` (in process only), `launchArgs`, `serviceTierFallback`, `outputSchema`, `name` | the SDK's local agent fails a run given a system prompt and has no append; in process it runs in the host process with no environment or command line of its own; in subprocess mode `env` is its child's ([execution modes](../runtimes/cursor.md#execution-modes)); `serviceTier` (`fast` / `default`) sends explicit `params.fast` validated against `Cursor.models.list()`, but `@cursor/sdk` exposes no independent server-side applied-tier readback, so `serviceTierFallback` is refused ([service tiers](../runtimes/cursor.md#service-tiers)). MCP credential isolation verified on SDK 1.4.1 Linux x64 ([isolation measurements](../../experiments/mcp-credential-admission/README.md)) |
 | codebuddy | `appendSystemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified private prompt-append input; replacement uses a private file ([mapping](../runtimes/codebuddy.md)) |
 | devin | `mcpServerCredentials`, `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | `devin acp` has no verified prompt or tool-denial channel, and `initialize` advertises `sessionCapabilities.additionalDirectories` without verified primary-cwd and tool scoping ([mapping](../runtimes/devin.md)). Existing storage evidence covers only its SQLite database. [Isolation measurements](../../experiments/mcp-credential-admission/README.md) |
 | hermes | `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"`; `mcpServerCredentials` on every release except 0.23.3 | the gateway viewer exposes no prompt, tool-denial or arbitrary launch-argument channel, and `additionalDirectories` is not advertised. 0.23.3 is the one release whose editor MCP credential handling OAR measured (a fingerprint in the store, the values in the owner's memory), so only there does an entry with `env` attach; the release-specific refusal is in `sessionCapabilities(installation)`, not in the static map ([mapping](../runtimes/hermes.md#session-mcp-servers)) |

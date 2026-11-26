@@ -69,6 +69,17 @@ export const defaultRuntimes = new RuntimeRegistry([
 ]);
 export { runtimeBrands, runtimeBrandIcon } from "./brands.js";
 export type { RuntimeBrand } from "./brands.js";
+export {
+  SUGGESTED_VERSIONS_URL,
+  checkSuggestedVersion,
+  parseSuggestedVersions,
+  suggestedVersions,
+} from "./suggested-versions.js";
+export type {
+  SuggestedVersionAdvice,
+  SuggestedVersionEntry,
+  SuggestedVersionsManifest,
+} from "./suggested-versions.js";
 export { qoderRuntime } from "./runtimes/qoder/index.js";
 export { orient } from "./shared/orientation/index.js";
 export { userShellEnvironment } from "./shared/shell-environment.js";

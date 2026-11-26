@@ -1,6 +1,5 @@
 import { antigravityUsesDefaultState } from "./state-directory.js";
 import type { AccountUsageReader, AccountUsageSnapshot, AccountUsageWindow } from "../../contracts/account-usage.js";
-import { sessionEnvironment } from "../../shared/environment.js";
 import { runExecutable } from "../../shared/executable/index.js";
 import { withQueryDeadline } from "../../shared/executable/query.js";
 import { remainingMs } from "../../shared/deadline.js";
@@ -8,6 +7,7 @@ import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord, asRecordList, parseJson } from "../../shared/json.js";
 import { usedRatioFromRemaining } from "../../shared/usage-ratio.js";
 import { readAntigravityAuthStatus } from "./auth.js";
+import { antigravityEnvironment } from "./environment.js";
 
 /*
  * Antigravity's own quota answer: `agy -p "/usage" --output-format json`
@@ -122,7 +122,7 @@ export const antigravityAccountUsage: AccountUsageReader = async (installation, 
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "unsupported_installation" };
   }
-  const env = sessionEnvironment(options.env);
+  const env = antigravityEnvironment(options.env);
   if (!antigravityUsesDefaultState(env)) { return { kind: "unsupported", reason: "unsupported_auth_storage" }; }
   const timeoutMs = options.timeoutMs ?? 30_000;
   const deadline = Date.now() + timeoutMs;

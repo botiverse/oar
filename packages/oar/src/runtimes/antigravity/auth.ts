@@ -2,10 +2,10 @@ import { antigravityStateArgs } from "./state-directory.js";
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { LoginOptions, LoginResult } from "../../contracts/login.js";
 import type { ProviderLoginInteraction } from "../../contracts/provider-auth.js";
-import { sessionEnvironment } from "../../shared/environment.js";
 import { antigravityNoBrowserEnv } from "./login-browser.js";
 import { clearAntigravityPlanCache } from "./account.js";
 import { readAntigravityAuthStatus } from "./auth-status.js";
+import { antigravityEnvironment } from "./environment.js";
 import { errorMessage, LoginSecrets, loginBounds, loginExecutable, spawnLoginProcess, stoppedResult, type LoginProcess, type LoginProcessExit, type LoginStop } from "../../shared/login.js";
 
 export { antigravityAuthStatus, readAntigravityAuthStatus } from "./auth-status.js";
@@ -131,16 +131,17 @@ async function runAntigravityLogin(installation: AvailableInstallation, command:
 
 /** Signs Antigravity in with its own `agy acp --login`, relaying the Google URL and writing the pasted code to its stdin. */
 export async function antigravityLogin(installation: AvailableInstallation, interaction: ProviderLoginInteraction, options: LoginOptions = {}): Promise<LoginResult> {
-  const target = loginExecutable(installation, "agy", undefined, sessionEnvironment(options.env));
+  const env = antigravityEnvironment(options.env);
+  const target = loginExecutable(installation, "agy", undefined, env);
   if (target.kind === "settled") { return target.result; }
   if (interaction.signal?.aborted === true) { return { kind: "cancelled" }; }
   let browser: Awaited<ReturnType<typeof antigravityNoBrowserEnv>> | undefined = undefined;
   if (options.openBrowser === false) {
-    try { browser = await antigravityNoBrowserEnv(sessionEnvironment(options.env)); }
+    try { browser = await antigravityNoBrowserEnv(env); }
     catch { return { kind: "unsupported", reason: "browser_suppression_unavailable", detail: "agy opens its own browser and this machine cannot replace its launcher; allow local browser opening" }; }
   }
   try {
-    const result = await runAntigravityLogin(installation, target.installation.command, interaction, options.timeoutMs ?? LOGIN_TIMEOUT_MS, options, browser?.env ?? sessionEnvironment(options.env));
+    const result = await runAntigravityLogin(installation, target.installation.command, interaction, options.timeoutMs ?? LOGIN_TIMEOUT_MS, options, browser?.env ?? env);
     return result;
   } finally { await browser?.dispose(); }
 }

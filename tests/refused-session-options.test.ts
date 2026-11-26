@@ -19,6 +19,7 @@ const given: Readonly<Record<RefusableSessionOption, Partial<SessionOptions>>> =
   additionalDirectories: { additionalDirectories: ["/extra"] },
   outputSchema: { outputSchema: {} },
   serviceTier: { serviceTier: "fast" },
+  serviceTierFallback: { serviceTier: "fast", serviceTierFallback: "default" },
   disallowedTools: { disallowedTools: ["native_tool"] },
   systemPrompt: { systemPrompt: "x" },
   appendSystemPrompt: { appendSystemPrompt: "x" },
@@ -66,7 +67,7 @@ test("every declared refusal is what session() rejects with", async () => {
   const declaring = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions !== undefined);
   assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "claude", "codebuddy", "codex", "cursor", "devin", "dsh", "factory", "grok", "hermes", "kimi", "opencode", "pi", "qoder", "qwen"]);
   for (const runtime of declaring) {
-    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "partialUserConfiguration", "goals", "endTurnProcessesOnAbort", "fork", "nativeMemoryDefault", "sessionLogUpload", "nativePermissions", "questions", "userQuestions", "piProvider", "piCompaction", "dshProvider"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
+    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "serviceTierFallback", "additionalDirectories", "outputSchema", "name", "userConfiguration", "partialUserConfiguration", "goals", "endTurnProcessesOnAbort", "fork", "nativeMemoryDefault", "sessionLogUpload", "nativePermissions", "questions", "userQuestions", "piProvider", "piCompaction", "dshProvider"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
     for (const key of keys) {
       const option = refusalNames[key] ?? key;
       const opening = runtime.session(nowhere(runtime.id), { cwd: "/tmp", ...given[key] });
@@ -103,7 +104,7 @@ test("the declarations say which options each runtime refuses", () => {
     pi: ["additionalDirectories", "dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "launchArgs", "nativeMemoryDefault", "nativePermissions", "outputSchema", "serviceTier", "sessionLogUpload", "userConfiguration", "userQuestions"],
     qwen: ["dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "userConfiguration", "userQuestions"],
     qoder: ["dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "userConfiguration", "userQuestions"],
-    cursor: ["appendSystemPrompt", "dshProvider", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "partialUserConfiguration", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "systemPrompt", "userQuestions"],
+    cursor: ["appendSystemPrompt", "dshProvider", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "partialUserConfiguration", "piCompaction", "piProvider", "serviceTierFallback", "sessionLogUpload", "systemPrompt", "userQuestions"],
   });
 });
 

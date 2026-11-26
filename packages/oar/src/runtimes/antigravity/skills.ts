@@ -9,6 +9,7 @@ import { withQueryDeadline } from "../../shared/executable/query.js";
 import { inventoryOk, named, nativeRows, textField, unavailableInventory, unsupportedInventory, workspaceScope } from "../../shared/inventory.js";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
 import { readAntigravityAuthStatus } from "./auth.js";
+import { ANTIGRAVITY_DISABLE_AUTO_UPDATE_ENV } from "./environment.js";
 import { antigravityUsesDefaultState } from "./state-directory.js";
 import { antigravityVersionPreflight } from "./version.js";
 
@@ -40,7 +41,7 @@ export const antigravitySkills: InventoryReader<SkillEntry> = async (installatio
   const timeoutMs = options.timeoutMs ?? 15_000;
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) { throw new RangeError("timeoutMs must be positive and finite"); }
   // agy compares the literal string "true". "1" still launches its updater.
-  const overlay = { ...options.env, AGY_CLI_DISABLE_AUTO_UPDATE: "true" };
+  const overlay = { ...options.env, [ANTIGRAVITY_DISABLE_AUTO_UPDATE_ENV]: "true" };
   const env = sessionEnvironment(overlay);
   if (!antigravityUsesDefaultState(env)) {
     return unsupportedInventory("scope_unavailable", "agy print mode cannot select GEMINI_HOME; isolate HOME (USERPROFILE on Windows) to read skills.");

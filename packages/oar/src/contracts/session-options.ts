@@ -127,9 +127,9 @@ export interface SessionOptions extends PiSessionSelection, DshSessionSelection 
    * `Session.effort()` is the runtime's report, where it gives one.
    */
   readonly effort?: string;
-  /** Runtime-native service tier (`ModelEntry.serviceTiers` or `default` opt-out); applied at open and strictly read back unless `serviceTierFallback` is set. `Session.serviceTier()` folds native reports. */
+  /** Runtime-native service tier (`ModelEntry.serviceTiers` or `default` opt-out); applied at open. Codex and Claude verify the applied tier at open (unless `serviceTierFallback` is set) and fold native reports into `Session.serviceTier()`; Cursor validates against the live catalog and sends `params.fast` explicitly, keeps `Session.serviceTier()` as `null`, and refuses `serviceTierFallback`. */
   readonly serviceTier?: string;
-  /** `"default"` allows an open where the runtime explicitly reports standard service (Codex `serviceTier: null`, Claude `off`/`cooldown` for `fast`); requires `serviceTier`. Aliases, other substitutions, absent reports and errors still fail. */
+  /** `"default"` allows an open where the runtime explicitly reports standard service (Codex `serviceTier: null`, Claude `off`/`cooldown` for `fast`); requires `serviceTier`. Aliases, other substitutions, absent reports and errors still fail. Refused by runtimes without server-side applied-tier readback (Cursor). */
   readonly serviceTierFallback?: "default";
   /**
    * JSON Schema for the session's final output, passed through unchanged.

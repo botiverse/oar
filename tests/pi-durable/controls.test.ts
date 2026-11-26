@@ -4,7 +4,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { BACKGROUND_CONTEXT, type Context } from "@earendil-works/chord/context";
 import { createModels } from "@earendil-works/pi-ai-durable/models";
 import { fauxAssistantMessage, fauxProvider } from "@earendil-works/pi-ai-durable/providers/faux";
-import { createRegistry, Harness, MemoryStorage, type Conversation, type Submission, type SubmissionDraft, type SubmissionId, type Tx } from "@earendil-works/pi-durable";
+import { createRegistry, Harness, MemoryStorage, type Conversation, type Submission, type SubmissionDraft } from "@earendil-works/pi-durable";
 import { conversationOf } from "../../packages/oar/src/observe/conversation.js";
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import { createPiDurableRuntime } from "../../packages/oar/src/runtimes/pi-durable/index.js";
@@ -79,22 +79,15 @@ test("Pi Durable steer and abort immediately after prompt agree with running sta
 });
 
 function failFirstStatus(conversation: Conversation): void {
-  const original = conversation.submit.bind(conversation);
+  const original: (submission: SubmissionDraft, context: Context) => Promise<Submission> = conversation.submit.bind(conversation);
   let failedOnce = false;
-  function wrapped(submission: SubmissionDraft, context: Context): Promise<Submission>;
-  function wrapped(tx: Tx, submission: SubmissionDraft): Promise<SubmissionId>;
-  async function wrapped(first: SubmissionDraft | Tx, second: Context | SubmissionDraft): Promise<Submission | SubmissionId> {
-    if ("type" in first) {
-      if ("type" in second) { throw new Error("unexpected arguments"); }
-      const submission = await original(first, second);
-      if (!failedOnce) {
-        failedOnce = true;
-        vi.spyOn(submission, "status").mockRejectedValueOnce(new Error("status read failed"));
-      }
-      return submission;
+  async function wrapped(submission: SubmissionDraft, context: Context): Promise<Submission> {
+    const submitted = await original(submission, context);
+    if (!failedOnce) {
+      failedOnce = true;
+      vi.spyOn(submitted, "status").mockRejectedValueOnce(new Error("status read failed"));
     }
-    if (!("type" in second)) { throw new Error("unexpected arguments"); }
-    return original(first, second);
+    return submitted;
   }
   Object.defineProperty(conversation, "submit", { value: wrapped, configurable: true });
 }

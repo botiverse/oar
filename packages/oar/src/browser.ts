@@ -13,3 +13,12 @@ export type { QuestionAnsweringOptions, QuestionAnswers, QuestionDelivery } from
 export * from "./observe/index.js";
 export * from "./agents/report.js";
 export { runtimeBrands, runtimeBrandIcon, type RuntimeBrand } from "./brands.js";
+export {
+  SUGGESTED_VERSIONS_URL,
+  checkSuggestedVersion,
+  parseSuggestedVersions,
+  suggestedVersions,
+  type SuggestedVersionAdvice,
+  type SuggestedVersionEntry,
+  type SuggestedVersionsManifest,
+} from "./suggested-versions.js";

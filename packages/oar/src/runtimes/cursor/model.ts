@@ -34,6 +34,12 @@ export function cursorEffortParameter(model: ModelListItem): { readonly id: stri
   return null;
 }
 
+/** The catalog's `fast` parameter values (`"false"`, `"true"`), when the model exposes fast mode. */
+export function cursorFastParameter(model: ModelListItem): { readonly values: readonly string[] } | null {
+  const parameter = (model.parameters ?? []).find((entry) => entry.id === "fast");
+  return parameter === undefined ? null : { values: parameter.values.map((value) => value.value) };
+}
+
 /** The effort a selection carries, by the same parameter preference. */
 export function cursorSelectionEffort(selection: ModelSelection | undefined): string | null {
   const params = selection?.params ?? [];
@@ -65,7 +71,7 @@ export const cursorRefusedSessionOptions: RefusedSessionOptions = {
   endTurnProcessesOnAbort: "Cursor runs in the host process through its SDK, so OAR owns no runtime process tree to read for one turn",
   outputSchema: "Cursor SDK exposes no final-output schema option",
   name: "cursor exposes no verified session name setting",
-  serviceTier: "cursor exposes no verified per-session service-tier setting and readback",
+  serviceTierFallback: "Cursor exposes no server-side applied service-tier readback, so an open cannot detect a downgrade to standard service",
   systemPrompt: "Cursor's SDK runs no system prompt override for a local agent",
   appendSystemPrompt: "Cursor's SDK runs no system prompt override for a local agent",
   env: "Cursor runs in this process and its SDK takes no environment for the agent's tools; SessionOptions.env is unsupported (the subprocess execution mode takes it)",
@@ -89,36 +95,74 @@ export const cursorSubprocessRefusedSessionOptions: RefusedSessionOptions = {
 /**
  * The selection a session opens with. A local agent always needs one, and a
  * resumed agent does not restore its own, so on resume without a model the
- * agent's latest recorded run says what it ran. A requested effort is
- * checked against the model's own parameter menu, because the SDK passes an
- * unknown value through unchecked and reports it back as given (probed
- * 2026-10-03: `reasoning: "ludicrous"` ran and came back verbatim). It
- * replaces only that parameter: the other parameters stay as the resumed run
- * had them, or as the catalog's default variant sets them (a `thinking`
- * switch stays on beside an `effort` level).
+ * agent's latest recorded run says what it ran. A requested effort or service
+ * tier is checked against the model's own parameter menu, because the SDK
+ * passes an unknown value through unchecked and reports it back as given
+ * (probed 2026-10-03: `reasoning: "ludicrous"` ran and came back verbatim).
+ * Each replaces only its own parameter: the other parameters stay as the
+ * resumed run had them, or as the catalog's default variant sets them (a
+ * `thinking` switch stays on beside an `effort` level; reasoning and context
+ * stay intact beside `fast`).
  */
 export async function cursorModelSelection(sdk: CursorSdk, options: SessionOptions): Promise<ModelSelection> {
+  const tier = options.serviceTier;
+  if (tier !== undefined && tier !== "default" && tier !== "fast") {
+    throw new Error(`cursor cannot apply serviceTier ${tier}; its tiers are default and fast (on supported models)`);
+  }
   const base = options.model === undefined && options.resume !== undefined
     ? await latestRunModel(sdk, options.resume, options.cwd)
     : undefined;
   const id = options.model ?? base?.id ?? CURSOR_DEFAULT_MODEL;
-  if (options.effort === undefined) {
+  if (options.effort === undefined && tier === undefined) {
     return base ?? { id };
   }
   const model = findModel(await sdk.Cursor.models.list(), id);
   if (model === undefined) {
-    throw new Error(`Cursor does not list model ${id}, so effort ${options.effort} cannot be checked`);
+    const requested = options.effort !== undefined
+      ? `effort ${options.effort}`
+      : `serviceTier ${String(tier)}`;
+    throw new Error(`Cursor does not list model ${id}, so ${requested} cannot be checked`);
   }
-  const parameter = cursorEffortParameter(model);
-  if (parameter === null) {
-    throw new Error(`Cursor model ${model.id} has no effort setting; requested effort ${options.effort}`);
+  let effortUpdate: { readonly id: string; readonly value: string } | null = null;
+  if (options.effort !== undefined) {
+    const parameter = cursorEffortParameter(model);
+    if (parameter === null) {
+      throw new Error(`Cursor model ${model.id} has no effort setting; requested effort ${options.effort}`);
+    }
+    if (!parameter.levels.includes(options.effort)) {
+      throw new Error(`Cursor model ${model.id} does not offer effort ${options.effort}; it lists ${parameter.levels.join(", ")}`);
+    }
+    effortUpdate = { id: parameter.id, value: options.effort };
   }
-  if (!parameter.levels.includes(options.effort)) {
-    throw new Error(`Cursor model ${model.id} does not offer effort ${options.effort}; it lists ${parameter.levels.join(", ")}`);
+  let fastUpdate: { readonly id: "fast"; readonly value: "false" | "true" } | null = null;
+  if (tier !== undefined) {
+    const fast = cursorFastParameter(model);
+    if (tier === "fast") {
+      if (fast === null || !fast.values.includes("true")) {
+        throw new Error(`Cursor model ${model.id} does not offer serviceTier fast`);
+      }
+      fastUpdate = { id: "fast", value: "true" };
+    } else if (fast !== null) {
+      if (!fast.values.includes("false")) {
+        throw new Error(`Cursor model ${model.id} does not offer serviceTier default`);
+      }
+      fastUpdate = { id: "fast", value: "false" };
+    }
+  }
+  if (effortUpdate === null && fastUpdate === null) {
+    return base ?? { id: model.id };
   }
   const others = base?.params ?? model.variants?.find((variant) => variant.isDefault === true)?.params ?? [];
-  const kept = others.filter((param) => param.id !== parameter.id);
-  return { id: model.id, params: [...kept, { id: parameter.id, value: options.effort }] };
+  const replaced = new Set<string>([
+    ...(effortUpdate === null ? [] : [effortUpdate.id]),
+    ...(fastUpdate === null ? [] : [fastUpdate.id]),
+  ]);
+  const params = [
+    ...others.filter((param) => !replaced.has(param.id)),
+    ...(effortUpdate === null ? [] : [effortUpdate]),
+    ...(fastUpdate === null ? [] : [fastUpdate]),
+  ];
+  return params.length === 0 ? { id: model.id } : { id: model.id, params };
 }
 
 async function latestRunModel(sdk: CursorSdk, agentId: string, cwd: string): Promise<ModelSelection | undefined> {

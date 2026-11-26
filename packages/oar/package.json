@@ -1,6 +1,6 @@
 {
   "name": "@botiverse/oar",
-  "version": "0.135.0",
+  "version": "0.136.0",
   "description": "A programming interface for all agent harnesses: provider-independent contracts for controlling and observing agent runtimes",
   "type": "module",
   "main": "./dist/index.js",
@@ -21,6 +21,10 @@
     "./brands": {
       "types": "./dist/brands.d.ts",
       "import": "./dist/brands.js"
+    },
+    "./suggested-versions": {
+      "types": "./dist/suggested-versions.d.ts",
+      "import": "./dist/suggested-versions.js"
     },
     "./forms": {
       "types": "./dist/forms/index.d.ts",
@@ -47,6 +51,7 @@
       "import": "./dist/community/index.js"
     },
     "./assets/brands/*": "./assets/brands/*",
+    "./assets/suggested-versions.json": "./assets/suggested-versions.json",
     "./browser": {
       "types": "./dist/browser.d.ts",
       "import": "./dist/browser.js"
@@ -72,7 +77,7 @@
     "assets"
   ],
   "scripts": {
-    "build": "tsrs -p tsconfig.build.json",
+    "build": "node scripts/generate-suggested-versions.mjs && tsrs -p tsconfig.build.json",
     "typecheck": "tsrs --noEmit",
     "prepack": "pnpm run build"
   },

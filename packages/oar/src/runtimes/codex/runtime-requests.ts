@@ -3,7 +3,7 @@ import type { SessionKernel } from "../../shared/session-kernel.js";
 import type { JsonRecord } from "../../shared/json.js";
 import type { NativeReply, UserQuestions } from "../../shared/user-questions.js";
 import type { AppServerClient } from "./app-server-client.js";
-import { CODEX_QUESTION_METHOD, codexQuestionReply } from "./user-questions.js";
+import { CODEX_QUESTION_METHOD, codexQuestionReply, type CodexSecretQuestions } from "./user-questions.js";
 
 const declined = "OAR has no way to answer this request";
 
@@ -30,12 +30,18 @@ export function codexRequestReply(method: string): { readonly result: JsonRecord
 }
 
 /** Record a request codex sent, verbatim, then answer it and record the answer; a question the host answers stays open instead. */
-export function codexServerRequests(kernel: SessionKernel, client: AppServerClient, questions?: UserQuestions) {
+export function codexServerRequests(kernel: SessionKernel, client: AppServerClient, questions?: UserQuestions, secrets?: CodexSecretQuestions) {
   return (id: string, method: string, params: JsonRecord): void => {
     kernel.request("toApp", { kind: "native", type: method, native: params }, { id });
     const prompt = questions === undefined || method !== CODEX_QUESTION_METHOD ? null : userQuestionOf(method, params);
     if (questions !== undefined && prompt !== null) {
-      questions.hold(id, prompt, (answer): NativeReply => ({ send: () => { client.respond(id, codexQuestionReply(prompt, answer)); }, recorded: codexQuestionReply(prompt, answer, true) }));
+      questions.hold(id, prompt, (answer): NativeReply => ({
+        send: () => {
+          secrets?.recordAnswer(params.itemId, prompt, answer);
+          client.respond(id, codexQuestionReply(prompt, answer));
+        },
+        recorded: codexQuestionReply(prompt, answer, true),
+      }));
       return;
     }
     const reply = codexRequestReply(method);

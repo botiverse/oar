@@ -20,9 +20,10 @@ for (const mode of ["prepared-native", "cold-oar"] as const) {
     expect(run.log, why).toContain("tools/list");
     expect(run.relisted, why).toBe(false);
     expect(kimiRuntime.mcpToolsListChanged).toBe("none");
-    // Native startup regression from 2.6.0. Restore [ALPHA] on a fixed release.
-    // https://github.com/MoonshotAI/kimi-code/issues/4904
-    const omitted = mode === "cold-oar" && versionAtLeast(installation.version, "2.6.0");
+    // Kimi 2.8.0 fixed the cold-start snapshot: https://github.com/MoonshotAI/kimi-code/pull/5240
+    const omitted = mode === "cold-oar"
+      && versionAtLeast(installation.version, "2.6.0")
+      && !versionAtLeast(installation.version, "2.8.0");
     expect(run.turns, why).toEqual([[omitted ? [] : [ALPHA]], [omitted ? [] : [ALPHA]]]);
   });
 }

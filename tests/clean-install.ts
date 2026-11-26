@@ -137,12 +137,13 @@ import * as agents from "@botiverse/oar/agents";
 import * as report from "@botiverse/oar/agents/report";
 import type { SubagentReport } from "@botiverse/oar/agents/report";
 import * as brands from "@botiverse/oar/brands";
+import * as suggestedVersions from "@botiverse/oar/suggested-versions";
 import * as kernel from "@botiverse/oar/kernel";
 import * as observe from "@botiverse/oar/observe";
 import * as testing from "@botiverse/oar/testing";
 import { createPiProviderAuth, createPiRuntime, type PiProviderAuthOptions } from "@botiverse/oar/runtimes/pi";
 
-export const entries = [oar, browser, capabilities, forms, agents, report, brands, kernel, observe, testing];
+export const entries = [oar, browser, capabilities, forms, agents, report, brands, suggestedVersions, kernel, observe, testing];
 export const runtimeAuthorHelpers = [kernel.inputImagesRefusal, kernel.withdrawHeld, browser.withdrawHeld];
 export type RuntimeAuthorQueue = kernel.HeldInput[];
 export const hostEntrances = [oar.defaultRuntimes, oar.orient, oar.openVoyage, oar.createRuntimeRegistry, oar.defineRuntime, oar.promptAndWait, testing.scriptedRuntime, createPiRuntime];
