@@ -1,0 +1,12 @@
+{
+  "package": "@botiverse/oar",
+  "version": "0.134.0",
+  "commit": "c341abd86f90e3470a0e2999067f7ee031c20e9b",
+  "official": "v0.134.0",
+  "tarball": {
+    "path": "artifacts/oar-0.134.0-candidate-c341abd8.tgz",
+    "sha256": "a155be8ddf864dfdf51e88642e586ff60a2c08cc71c68c4f1a2965812ee72f31"
+  },
+  "check": "pnpm run typecheck && pnpm run lint && pnpm run test (595 files, 5852 tests)",
+  "builtAt": "2026-11-26T04:11:40Z"
+}
