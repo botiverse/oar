@@ -44,7 +44,8 @@ const catalog: ModelListItem[] = [
     ],
     variants: [{ params: [{ id: "context", value: "500k" }, { id: "reasoning_effort", value: "high" }, { id: "fast", value: "true" }], displayName: "Grok 4.7 High Fast", isDefault: true }],
   },
-  { id: "claude-haiku-4-5", displayName: "Claude Haiku 4.5", parameters: [{ id: "thinking", values: levels("false", "true") }] },
+  { id: "claude-haiku-4-5", displayName: "Claude Haiku 4.5", parameters: [{ id: "thinking", values: levels("false", "true") }], variants: [{ params: [{ id: "thinking", value: "true" }], displayName: "Claude Haiku 4.5", isDefault: true }] },
+  { id: "fast-only", displayName: "Fast Only", parameters: [{ id: "fast", values: levels("true") }], variants: [{ params: [{ id: "fast", value: "true" }], displayName: "Fast Only", isDefault: true }] },
 ];
 
 test("the model list carries each model's reasoning menu, service tiers, and default variant choices", () => {
@@ -54,7 +55,8 @@ test("the model list carries each model's reasoning menu, service tiers, and def
     { id: "claude-opus-5", displayName: "Claude Opus 5", effortLevels: ["low", "medium", "high", "xhigh", "max"], defaultEffort: "high", serviceTiers: ["fast"] },
     { id: "gpt-5.4-mini", displayName: "GPT-5.4 Mini", effortLevels: ["none", "low", "medium", "high"] },
     { id: "grok-4.7", displayName: "Grok 4.7", effortLevels: ["low", "high"], defaultEffort: "high", serviceTiers: ["fast"], defaultServiceTier: "fast" },
-    { id: "claude-haiku-4-5", displayName: "Claude Haiku 4.5", effortLevels: ["false", "true"] },
+    { id: "claude-haiku-4-5", displayName: "Claude Haiku 4.5", effortLevels: ["false", "true"], defaultEffort: "true" },
+    { id: "fast-only", displayName: "Fast Only", serviceTiers: ["fast"], defaultServiceTier: "fast" },
   ]);
 });
 
@@ -146,12 +148,22 @@ test("serviceTier sets explicit params.fast after checking the catalog, preserve
     params: [{ id: "context", value: "500k" }, { id: "reasoning_effort", value: "low" }, { id: "fast", value: "false" }],
   });
   assert.equal(shared.modelListCalls, 1);
-  // Models without a fast parameter accept serviceTier: "default" cleanly without injecting fast, and reject "fast".
+});
+
+test("serviceTier rejects unsupported models, fast-only default opt-out, unknown tiers, and avoids expanding defaults on no-op default", async () => {
+  // Models without a fast parameter accept serviceTier: "default" cleanly without materializing unrelated default-variant params, and reject "fast".
   assert.deepEqual(await cursorModelSelection(sdkWith(), { cwd: "/w", model: "gpt-5.4-mini", serviceTier: "default" }), {
     id: "gpt-5.4-mini",
   });
+  assert.deepEqual(await cursorModelSelection(sdkWith(), { cwd: "/w", model: "claude-haiku-4-5", serviceTier: "default" }), {
+    id: "claude-haiku-4-5",
+  });
   await expect(cursorModelSelection(sdkWith(), { cwd: "/w", model: "gpt-5.4-mini", serviceTier: "fast" })).rejects.toThrow(
     "Cursor model gpt-5.4-mini does not offer serviceTier fast",
+  );
+  // A fast-only model rejects serviceTier: "default" instead of silently running fast.
+  await expect(cursorModelSelection(sdkWith(), { cwd: "/w", model: "fast-only", serviceTier: "default" })).rejects.toThrow(
+    "Cursor model fast-only does not offer serviceTier default",
   );
   // Unknown tier values and unlisted models reject before open.
   await expect(cursorModelSelection(sdkWith(), { cwd: "/w", model: "composer-2.5", serviceTier: "priority" })).rejects.toThrow(

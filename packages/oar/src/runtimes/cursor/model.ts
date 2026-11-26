@@ -139,9 +139,15 @@ export async function cursorModelSelection(sdk: CursorSdk, options: SessionOptio
         throw new Error(`Cursor model ${model.id} does not offer serviceTier fast`);
       }
       fastUpdate = { id: "fast", value: "true" };
-    } else if (fast !== null && fast.values.includes("false")) {
+    } else if (fast !== null) {
+      if (!fast.values.includes("false")) {
+        throw new Error(`Cursor model ${model.id} does not offer serviceTier default`);
+      }
       fastUpdate = { id: "fast", value: "false" };
     }
+  }
+  if (effortUpdate === null && fastUpdate === null) {
+    return base ?? { id: model.id };
   }
   const others = base?.params ?? model.variants?.find((variant) => variant.isDefault === true)?.params ?? [];
   const replaced = new Set<string>([
