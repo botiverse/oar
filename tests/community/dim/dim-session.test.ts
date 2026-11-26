@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { expect, test } from "vitest";
 import { UnsupportedOptionError } from "../../../packages/oar/src/contracts/errors.js";
 import { createDimRuntime } from "../../../packages/oar/src/community/dim/index.js";
-import { dimDaemonArgs } from "../../../packages/oar/src/community/dim/daemon.js";
+import { daemonLogTail, dimDaemonArgs } from "../../../packages/oar/src/community/dim/daemon.js";
 import { readDimVersion } from "../../../packages/oar/src/community/dim/installation.js";
 import { checkDimLaunchArgs } from "../../../packages/oar/src/community/dim/options.js";
-import { dimAcpProfile, dimConfigureModel, hasDimModelOption, needsDimFullAccess } from "../../../packages/oar/src/community/dim/session.js";
+import { dimAcpProfile, dimConfigureModel, dimFailureOutcome, hasDimModelOption, needsDimFullAccess } from "../../../packages/oar/src/community/dim/session.js";
 import type { JsonRecord } from "../../../packages/oar/src/shared/json.js";
 
 // Shapes below are from dimcode 0.1.0-alpha.29 (experiments/dim-acp-probe.ts).
@@ -86,4 +88,24 @@ test("the brand is the distributed asset, inline", () => {
   const svg = decodeURIComponent(brand.icon.slice("data:image/svg+xml,".length));
   assert.equal(svg, readFileSync(new URL("../../../packages/oar/assets/brands/dim.svg", import.meta.url), "utf8"));
   assert.doesNotMatch(svg, /currentColor|<script|<foreignObject|\son\w+=|(?:href|src)=/iu);
+});
+
+test("Dim's credential failures are auth failures that say whether the key was missing or refused", () => {
+  const failed = (message: string) => dimFailureOutcome(Object.assign(new Error(message), { code: -32_001, data: { code: "turn_failed" } }), []);
+  expect(failed("Missing credential environment variable: DEEPSEEK_API_KEY")).toMatchObject({ failure: "auth", credential: "missing" });
+  expect(failed("The provider rejected the credentials: Authentication Fails, Your api key: ****0000 is invalid")).toMatchObject({ failure: "auth", credential: "rejected" });
+  assert.equal(failed("Session or gateway is busy"), null);
+});
+
+test("an App Server that exits at start is explained by the last line of the log it names", async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "oar-dim-log-"));
+  try {
+    const log = path.join(dir, "daemon.log");
+    writeFileSync(log, `${"x".repeat(10_000)}\nstarting\nError: compatible.preset requires openai-compatible\n`);
+    assert.equal(await daemonLogTail(`Error: App Server exited (exit status: 1); see ${log}`), "Error: compatible.preset requires openai-compatible");
+    assert.equal(await daemonLogTail("Error: connection refused"), "");
+    assert.equal(await daemonLogTail(`see ${path.join(dir, "absent", "daemon.log")}`), "");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
