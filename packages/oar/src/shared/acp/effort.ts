@@ -6,36 +6,47 @@ import { acpReportedEffort, acpThoughtLevelOption } from "./model.js";
 import { type AcpProcess, withAcpDeadline } from "./process.js";
 import type { AcpConfigUpdates } from "./config-updates.js";
 
-function setConfigOption(
+type ObserveStep = (step: { readonly method: string; readonly response: JsonRecord }) => void;
+
+/** The verbatim answer, and with confirmation the `config_option_update` that reported the requested value. */
+interface ConfigOptionResult { readonly response: JsonRecord | undefined; readonly confirmed?: JsonRecord }
+
+/**
+ * `session/set_config_option`, its answer observed as it arrives so the record
+ * keeps the wire order (a confirming notification recorded after a stale
+ * answer stays the current value).
+ */
+async function setConfigOption(
   process: AcpProcess, sessionId: string, configId: string, value: string,
-  context: { readonly timeoutMs: number; readonly updates?: AcpConfigUpdates },
-): Promise<unknown> {
-  if (context.updates === undefined) {
-    return withAcpDeadline(process, "session/set_config_option", context.timeoutMs, requestOptions =>
-      process.connection.agent.request("session/set_config_option", { sessionId, configId, value }, requestOptions));
+  context: { readonly timeoutMs: number; readonly updates?: AcpConfigUpdates; readonly observe: ObserveStep },
+): Promise<ConfigOptionResult> {
+  const method = "session/set_config_option";
+  const { updates } = context;
+  if (updates === undefined) {
+    const answer = await withAcpDeadline(process, method, context.timeoutMs, requestOptions =>
+      process.connection.agent.request(method, { sessionId, configId, value }, requestOptions));
+    const response = asRecord(answer) ?? undefined;
+    context.observe({ method, response: response ?? {} });
+    return { response };
   }
-  return context.updates.confirm(sessionId, configId, value, wait =>
-    withAcpDeadline(process, "session/set_config_option", context.timeoutMs, async requestOptions => {
-      const response = await process.connection.agent.request("session/set_config_option", { sessionId, configId, value }, requestOptions);
+  return updates.confirm(sessionId, configId, value, wait =>
+    withAcpDeadline(process, method, context.timeoutMs, async requestOptions => {
+      const response = asRecord(await process.connection.agent.request(method, { sessionId, configId, value }, requestOptions)) ?? undefined;
+      context.observe({ method, response: response ?? {} });
       const signals = [process.connection.signal, ...(requestOptions?.cancellationSignal === undefined ? [] : [requestOptions.cancellationSignal])];
-      const confirmed = await wait(AbortSignal.any(signals));
-      return withConfirmedOptions(response, configId, value, confirmed);
+      return { response, confirmed: await wait(AbortSignal.any(signals)) };
     }));
 }
 
 /**
- * The answer, unless it still reports the previous value of the option the
- * confirming notification reports as applied: then that notification's
- * options. Dim (0.1.0-alpha.29) answers an effort change made right after a
- * model switch with the previous level and pushes the applied one after it.
+ * The options that report the setting: the answer, unless it still shows
+ * another value for `configId` and a notification confirmed the requested one.
+ * Dim (0.1.0-alpha.29) answers an effort change made right after a model
+ * switch with the previous level and pushes the applied one after it.
  */
-function withConfirmedOptions(response: unknown, configId: string, value: string, confirmed: JsonRecord): unknown {
-  const answer = asRecord(response);
-  const options = asRecordList(answer?.configOptions);
-  const answered = options.find(option => option.id === configId);
-  if (answered === undefined || answered.currentValue === value) { return response; }
-  const pushed = new Map(asRecordList(confirmed.configOptions).map(option => [option.id, option]));
-  return { ...answer, configOptions: options.map(option => pushed.get(option.id) ?? option) };
+function reportedOptions({ response, confirmed }: ConfigOptionResult, configId: string, value: string): JsonRecord | undefined {
+  const answered = asRecordList(response?.configOptions).find(option => option.id === configId);
+  return confirmed === undefined || answered?.currentValue === value ? response : confirmed;
 }
 
 /** An RPC error's message plus its `data` (grok puts the reason there: "unknown reasoning_effort value"). */
@@ -68,7 +79,7 @@ export async function applyAcpEffort(
   context: {
     readonly timeoutMs: number;
     readonly updates?: AcpConfigUpdates;
-    readonly observe: (step: { readonly method: string; readonly response: JsonRecord }) => void;
+    readonly observe: ObserveStep;
   },
 ): Promise<JsonRecord> {
   const configId = acpThoughtLevelOption(opened.response)?.id;
@@ -78,16 +89,15 @@ export async function applyAcpEffort(
     throw new UnsupportedOptionError("effort", `${opened.openMethod} advertises no thought_level config option, so effort ${effort} cannot be applied`);
   }
   const method = "session/set_config_option";
-  let answer: unknown = undefined;
+  let result: ConfigOptionResult | undefined = undefined;
   try {
-    answer = await setConfigOption(process, opened.sessionId, configId, effort, context);
+    result = await setConfigOption(process, opened.sessionId, configId, effort, context);
   } catch (error) {
     // The opener adds the owned child's exit diagnostics to transport failures.
     if (error instanceof AcpError) { throw error; }
     throw new Error(`${method} ${configId}=${effort} was refused: ${rpcErrorText(error)}`, { cause: error });
   }
-  const response = asRecord(answer) ?? {};
-  context.observe({ method, response });
+  const response = reportedOptions(result, configId, effort) ?? {};
   const applied = acpReportedEffort(response);
   if (applied !== effort) {
     throw new Error(`${method} left ${configId} at ${applied ?? "an unreported value"} although effort ${effort} was requested`);
@@ -109,18 +119,19 @@ export async function applyAcpModel(
     readonly viaConfigOption: boolean;
     readonly timeoutMs: number;
     readonly updates?: AcpConfigUpdates;
-    readonly observe: (step: { readonly method: string; readonly response: JsonRecord }) => void;
+    readonly observe: ObserveStep;
   },
 ): Promise<JsonRecord | undefined> {
-  const method = context.viaConfigOption ? "session/set_config_option" : "session/set_model";
-  const response = asRecord(await (context.viaConfigOption
-    ? setConfigOption(process, sessionId, "model", model, context)
-    : withAcpDeadline(
+  if (context.viaConfigOption) {
+    return reportedOptions(await setConfigOption(process, sessionId, "model", model, context), "model", model);
+  }
+  const method = "session/set_model";
+  const response = asRecord(await withAcpDeadline(
     process,
     method,
     context.timeoutMs,
     (requestOptions) => process.connection.agent.request(method, { sessionId, modelId: model }, requestOptions),
-  ))) ?? undefined;
+  )) ?? undefined;
   context.observe({ method, response: response ?? {} });
   return response;
 }
