@@ -6,7 +6,7 @@ import { codexRuntime } from "../../packages/oar/src/runtimes/codex/index.js";
 import { codexSession } from "../../packages/oar/src/runtimes/codex/session.js";
 import type { Session } from "../../packages/oar/src/contracts/session.js";
 import { asRecord, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
-import { fakeLineProcess, type FakeLineProcess } from "../fixtures/fake-line-process.js";
+import { fakeLineProcess, type FakeLineProcess, type FakeLineProcessOptions } from "../fixtures/fake-line-process.js";
 
 const spawnLineProcess = vi.hoisted(() => vi.fn());
 vi.mock("../../packages/oar/src/shared/executable/index.js", () => ({ spawnLineProcess }));
@@ -18,7 +18,7 @@ const QUESTIONS = [
 
 interface Opened { readonly session: Session; readonly child: FakeLineProcess; readonly replies: JsonRecord[]; readonly args: readonly string[]; readonly ask: (id: number) => void }
 
-async function open(host = true): Promise<Opened> {
+async function open(host = true, processOptions?: FakeLineProcessOptions): Promise<Opened> {
   const replies: JsonRecord[] = [];
   let args: readonly string[] = [];
   const child = fakeLineProcess((line, fake) => {
@@ -26,7 +26,7 @@ async function open(host = true): Promise<Opened> {
     if (message?.id === undefined) { return; }
     if (message.method === undefined) { replies.push(message); return; }
     fake.emit(`${JSON.stringify({ id: message.id, result: message.method === "thread/start" ? { thread: { id: "thread" } } : {} })}\n`);
-  });
+  }, processOptions);
   spawnLineProcess.mockImplementation((_command: string, given: readonly string[]) => { args = given; return child; });
   const session = await codexSession(installation, { cwd: "/work", ...(host ? { userQuestions: "host" as const } : {}) });
   return { session, child, replies, args, ask: (id) => { child.emit(`${JSON.stringify({ id, method: "item/tool/requestUserInput", params: { threadId: "thread", turnId: "turn", itemId: "call", questions: QUESTIONS, isBlocking: false, autoResolutionMs: null } })}\n`); } };
@@ -227,4 +227,19 @@ test("content-parts output is scrubbed and malformed or unknown secret output fa
   ]);
   for (const needle of ["p1n", "p2n", "p3n"]) { expect(JSON.stringify(frames)).not.toContain(needle); }
   await session.dispose();
+});
+
+test("short PIN flushed in rawResponseItem/completed during dispose() before child exit is still scrubbed", async () => {
+  const { session, child, ask } = await open(true, { ignoreEof: true });
+  ask(0);
+  await session.answerQuestion?.("0", { kind: "answered", answers: { color: { selected: ["Blue"] }, key: { text: "4829" } } });
+  const disposing = session.dispose();
+  await Promise.resolve();
+  rawOutput(child, "call", JSON.stringify({ answers: { color: { answers: ["Blue"] }, key: { answers: ["user_note: 4829"] } } }));
+  child.end(0);
+  await disposing;
+  const frame = session.records().find((record) => record.kind === "frame" && record.body.type === "rawResponseItem/completed");
+  expect(asRecord(asRecord(frame?.kind === "frame" ? frame.body.native : null)?.item)?.output)
+    .toBe(JSON.stringify({ answers: { color: { answers: ["Blue"] }, key: { answers: ["[redacted]"] } } }));
+  expect(JSON.stringify(session.records())).not.toContain("4829");
 });

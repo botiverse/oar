@@ -277,8 +277,8 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       graph: () => kernel.graph(),
       resources: client.resources,
       dispose: async () => {
-        secretQuestions?.clear();
         await kernel.dispose(async () => {
+          // Idle app-server exits on stdin EOF; active turns stop immediately and await exit so codex releases CODEX_HOME sqlite locks.
           if (!busy() && client.close !== undefined) {
             await client.close();
           } else {
@@ -287,6 +287,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
           }
           await turnProcesses.settled();
         });
+        secretQuestions?.clear();
       },
     });
     return session;
