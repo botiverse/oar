@@ -1,3 +1,4 @@
+import { open } from "node:fs/promises";
 import type { SessionOptions } from "../../contracts/session.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { runExecutable } from "../../shared/executable/index.js";
@@ -34,7 +35,30 @@ export async function startDimDaemon(command: string, options: SessionOptions): 
   const args = ["runtime", "list", ...dimDaemonArgs(options.launchArgs)];
   const result = await runExecutable(command, args, { cwd: options.cwd, env: sessionEnvironment(options.env), timeoutMs: 60_000 });
   if (!result.ok) {
-    const detail = result.diagnostics?.stderr.trim() ?? "";
+    const stderr = result.diagnostics?.stderr.trim() ?? "";
+    const detail = [stderr, await daemonLogTail(stderr)].filter((line) => line !== "").join(": ");
     throw new Error(`dima ${args.slice(0, 2).join(" ")} could not reach Dim's App Server${detail === "" ? "" : `: ${detail}`}`);
+  }
+}
+
+/** A server that exits at start names its log (`see <home>/rust/daemon.log`); its last line is the reason. */
+export async function daemonLogTail(stderr: string): Promise<string> {
+  const log = /see (?<log>\S+daemon\.log)\b/u.exec(stderr)?.groups?.log;
+  if (log === undefined) { return ""; }
+  const text = await readTail(log, LOG_TAIL_BYTES).catch(() => "");
+  return text.trimEnd().split("\n").at(-1)?.trim() ?? "";
+}
+
+const LOG_TAIL_BYTES = 4096;
+
+async function readTail(file: string, bytes: number): Promise<string> {
+  const handle = await open(file, "r");
+  try {
+    const { size } = await handle.stat();
+    const length = Math.min(size, bytes);
+    const { buffer } = await handle.read(Buffer.alloc(length), 0, length, size - length);
+    return buffer.toString("utf8");
+  } finally {
+    await handle.close();
   }
 }

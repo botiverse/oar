@@ -1,5 +1,6 @@
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import type { StartSession } from "../../contracts/session.js";
+import { acpErrorReason, type AcpFailureReader } from "../../shared/acp/failure.js";
 import type { AcpModelConfiguration } from "../../shared/acp/model-configuration.js";
 import { acpReportedModel } from "../../shared/acp/model.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
@@ -9,6 +10,18 @@ import { startDimDaemon } from "./daemon.js";
 import { checkDimLaunchArgs, dimRefusedSessionOptions } from "./options.js";
 
 const FULL_ACCESS = "full-access";
+
+// Dim's own words for a turn its provider credential stopped (dimcode 0.1.0-alpha.29).
+const MISSING_CREDENTIAL = "Missing credential environment variable: ";
+const REJECTED_CREDENTIAL = "The provider rejected the credentials: ";
+
+/** A credential failure, with whether the key was missing or refused; null leaves the rest to the generic rules. */
+export const dimFailureOutcome: AcpFailureReader = (error) => {
+  const reason = acpErrorReason(error);
+  if (reason.startsWith(MISSING_CREDENTIAL)) { return { kind: "failed", reason, failure: "auth", credential: "missing" }; }
+  if (reason.startsWith(REJECTED_CREDENTIAL)) { return { kind: "failed", reason, failure: "auth", credential: "rejected" }; }
+  return null;
+};
 
 /** Whether the handshake offers `full-access` and the session is not already in it. */
 export function needsDimFullAccess(response: JsonRecord): boolean {
@@ -63,6 +76,9 @@ export const dimAcpProfile: AcpSessionProfile = {
   isResumeNotFound: (native) => native.code === -32_002,
   // session/close closes the whole Dim Session and a later resume answers -32002.
   detachOnDispose: true,
+  // Dim asks for the context usage once a turn ends and pushes it after the prompt's answer.
+  usageUpdateAfterPrompt: true,
+  failureOutcome: dimFailureOutcome,
   modelViaConfigOption: true,
   configureModel: dimConfigureModel,
   configureSession: async ({ request, sessionId, response }) => {
