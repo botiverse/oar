@@ -132,7 +132,14 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
       }
       catch { /* An exit may race settlement. Keep the native boundary even without a stats reply. */ }
     }
-    const next = foldPiEvent(projection, event, { overflow, ...(context === undefined ? {} : { context }) });
+    // The child reports its own tool list each turn; a session that has not
+    // reported one yet makes no extension claim.
+    const tools = event.type === "tool_execution_end" ? rpc.loadedTools() : undefined;
+    const next = foldPiEvent(projection, event, {
+      overflow,
+      ...(context === undefined ? {} : { context }),
+      ...(tools === undefined || tools.length === 0 ? {} : { loadedTools: tools }),
+    });
     projection = next.state;
     for (const command of next.commands) {
       const unstarted = event.type === "agent_settled" && !nativeActive ? nextOwner : null;

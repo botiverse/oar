@@ -1723,15 +1723,27 @@ extensions that can replace the body. RPC declares a refusal for the option.
 
 Pi ships no checklist tool and sends no plan notification, so OAR reports no
 checklist from Pi itself. A checklist can still be present through an
-**installed extension**: Hikari installs `hikari-todo-write.ts` into the
-session's `.pi/agent/extensions`, and it registers a tool named `TodoWrite`
-taking the whole list in `todos` (`{content, status, activeForm?}`) — the same
-shape claude's built-in tool takes, reused rather than reinvented.
+**installed extension**: a tool that returns the versioned structured result
+documented in [plans](../spec/plans.md#extension-provided-checklists) becomes a
+`plan_changed` event with `evidence: "tool_call"` and
+`channel: "extension"`.
 
-OAR reads that call as `plan_changed` with `evidence: "tool_call"` and
-`channel: "extension"`, naming the call. The call proves the tool ran; it does
-not prove which extension registered it, so OAR claims no identity from a file
-on disk or from a Pi version. What Pi itself reports is available through the
-tool inventory: `runtime.tools` fills each `ToolEntry.source` from Pi's own
-`ToolInfo.sourceInfo`, so a host that must trust the plugin checks there
-([contract](../spec/plans.md), [matrix](../spec/runtime-matrix.md#native-planchecklist)).
+Three rules make that claim verified rather than guessed:
+
+- OAR reads the tool's **result** (`details.oarPlan`, protocol `1`), never the
+  arguments a call asked for, and never a failed call.
+- The **identity** comes from the opened session's own tool report — both
+  execution modes report it: the in-process session reads
+  `getAllTools()` ([src] `ToolInfo.sourceInfo`), and the RPC child sends the
+  same list over its private pipe each turn. In the RPC mode the parent holds
+  the latest report per session, so two concurrent sessions never see each
+  other's extensions.
+- A tool the session did not report, a name reported twice by different
+  sources, or Pi's own builtin of that name means **no** extension claim. OAR
+  never infers one from a tool name, from the Pi version, or from a file it
+  finds on disk, and it installs no extension itself: the host that owns the
+  app directory decides what is loaded.
+
+The event carries `extension: { tool, source, protocol }`; a host that must
+trust the plugin reads the same facts from `runtime.tools`, whose
+`ToolEntry.source` is Pi's own `ToolInfo.sourceInfo.source`.

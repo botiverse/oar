@@ -5,7 +5,7 @@ import type { UserQuestionAnswer } from "../contracts/user-questions.js";
  * The seam between the two answer dialects a host may hand
  * `Session.answerQuestion` (contracts/answer.ts):
  *
- * - `AppQuestionAnswers` is what a Hikari-style host sends: per question id,
+ * - `AppQuestionAnswers` is the receipt-evidence dialect: per question id,
  *   the option label(s) or free text.
  * - `UserQuestionAnswer` is the release OAR dialect: the same answer split
  *   into `selected` / `text`, plus an explicit decline.
@@ -27,8 +27,8 @@ function words(given: { readonly selected?: readonly string[]; readonly text?: s
 }
 
 /**
- * `AppQuestionAnswers` for an adapter built on the Hikari dialect, or the
- * reason it cannot express this answer. An answer the release dialect spells
+ * `AppQuestionAnswers` for an adapter built on the receipt-evidence dialect,
+ * or the reason it cannot express this answer. An answer the release dialect spells
  * out as a decline is refused: this dialect has no "no", and writing an empty
  * answer instead would report an answer nobody gave. A question answered with
  * both option labels and free text keeps both, joined as the runtimes join them.

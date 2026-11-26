@@ -18,6 +18,7 @@ import {
   type PiProjectionState,
 } from "./projection.js";
 import { disposePiAgentSession } from "./lifecycle.js";
+import { piLoadedToolsExtra } from "./tools.js";
 import { openPiAgentSession, piEffectiveModel } from "./open.js";
 
 /** pi's ImageContent: base64 data and its type. */
@@ -164,7 +165,7 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
       if (nativeOwner !== null) { admissions.delete(nativeOwner.request.id); }
       abortStarted = aborted;
     }
-    const extra = event.type === "agent_settled" ? { context: contextOf() } : { overflow: overflowOf(event) };
+    const extra = event.type === "agent_settled" ? { context: contextOf() } : (event.type === "tool_execution_end" ? piLoadedToolsExtra(() => piAgentSession.getAllTools()) : { overflow: overflowOf(event) });
     const { state: nextProjection, commands } = foldPiEvent(projection, event, extra);
     projection = nextProjection;
     if (projection.runStarted) { nativeActive = true; queueBarrier.observeRun(); }

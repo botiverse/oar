@@ -6,10 +6,10 @@
  * No vendor behaviour is inferred: the declaration says what it is, OAR renders
  * the rows itself (structured JSON in a private `--patch`, never YAML text and
  * never a script), and the credential stays the NAME of an environment
- * variable. Rules Hikari-style hosts used to apply themselves — a `/v1` suffix,
- * a protocol suffix on the provider id, a gateway's compatibility defaults —
- * stay in the host: OAR passes the declared endpoint, id and compatibility
- * through unchanged.
+ * variable. Rules a host applies for itself — a `/v1` suffix, a protocol
+ * suffix on the provider id, a gateway's compatibility defaults — stay in the
+ * host: OAR passes the declared endpoint, id and compatibility through
+ * unchanged.
  */
 import type { DshModelCompatibility, DshReasoningEfforts, DshSessionModel, DshSessionProvider } from "../../contracts/dsh-provider.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";

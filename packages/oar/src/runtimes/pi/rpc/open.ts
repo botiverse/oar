@@ -21,6 +21,7 @@ import { checkPiProvider, piProviderEntry, piRequestedModel, type PiProviderEntr
 import { checkPiProjectPackages, reportMissingPiPackages } from "../project.js";
 import { piRpcControl } from "./control.js";
 import { servePiRpcPipe } from "./credentials.js";
+import type { PiLoadedTool } from "../tools.js";
 import { piRpcLaunch } from "./launch.js";
 import { assertPiRpcVersion } from "./version.js";
 import { piRpcExtensionSource } from "./extension.js";
@@ -97,6 +98,12 @@ export interface OpenPiRpc {
   readonly control: ReturnType<typeof piRpcControl>;
   readonly state: RpcSessionState;
   readonly directory: PrivateTempDir;
+  /**
+   * The tool list this child reported from its own session, refreshed every
+   * turn; undefined until it reports one. Only what the child measured counts:
+   * OAR never reads an extension off disk to fill this in.
+   */
+  readonly loadedTools: () => readonly PiLoadedTool[] | undefined;
 }
 
 interface PiRpcReadLifetime {
@@ -163,7 +170,13 @@ export async function openPiRpc(options: SessionOptions, credentials: Credential
     lifetime?.own(child);
     const keyPipe = child.extraPipe;
     if (keyPipe === undefined) { child.kill(); await child.exited; throw new Error("Pi RPC requires a private credential pipe"); }
-    servePiRpcPipe(keyPipe, { config, remember: credentials.add, failed: () => { child.kill(); } });
+    let reportedTools: readonly PiLoadedTool[] | undefined = undefined;
+    servePiRpcPipe(keyPipe, {
+      config,
+      remember: credentials.add,
+      failed: () => { child.kill(); },
+      tools: (tools) => { reportedTools = tools; },
+    });
     const control = piRpcControl(child, receive, credentials.redact);
     try {
       await child.spawned;
@@ -194,7 +207,7 @@ export async function openPiRpc(options: SessionOptions, credentials: Credential
           getAvailableThinkingLevels: () => state.model === undefined ? [] : getSupportedThinkingLevels(state.model),
         }) ?? "Pi did not apply the requested effort");
       }
-      return { child, control, state, directory };
+      return { child, control, state, directory, loadedTools: () => reportedTools };
     } catch (error) {
       child.kill();
       await child.exited;

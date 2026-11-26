@@ -18,7 +18,8 @@ type PlanEventBody = {
   evidence: PlanEvidence;  // which native channel reported it
   callId?: string;         // the tool call that carried it, for evidence: "tool_call"
   channel: PlanChannel;    // the runtime's own channel, or a tool an extension registered
-  extension?: { tool: string; source: string }; // only what the RUNTIME reported about that tool
+  // Only for `channel: "extension"`, and only from verified facts:
+  extension?: { tool: string; source: string; protocol: number };
 };
 ```
 
@@ -45,15 +46,42 @@ the plan, kept only when it gave a non-empty one (codex).
   `tool_call_started` / `tool_call_ended` records without reading `native`.
 
 `channel` is a second, independent claim: `native` means the runtime's own plan
-channel or its own tool, `extension` means a tool an extension registered
-inside the runtime (Pi's plugin-provided `TodoWrite`). OAR can observe the call
-either way — the runtime executed it — but it never claims the extension's
-IDENTITY from a file on disk or from a runtime version. `extension` is filled
-only from what the runtime itself reported about the tool: Pi names each tool's
-source in its own inventory (`runtime.tools`, [src] `ToolInfo.sourceInfo`), and
-a channel whose runtime named no identity leaves the field absent rather than
-guessed. A host that must trust the plugin checks the inventory; a host that
-only renders progress needs nothing more than the event.
+channel or its own tool; `extension` means a tool an extension registered inside
+the runtime.
+
+## Extension-provided checklists
+
+A runtime can track no checklist of its own and still have one, because an
+extension loaded into that session registered a tool that reports a list. That
+channel is opt-in and verified, never inferred:
+
+- **From the result, not the call.** OAR reads the tool's STRUCTURED RESULT —
+  the tool ran and returned — never the arguments a call asked for. A failed
+  call (`isError`), an unreadable result, or a call with no result reports no
+  checklist.
+- **Versioned.** The result carries the contract under `details.oarPlan` with a
+  `protocol` OAR must know. OAR reads protocol `1` and nothing else; a result
+  written in another version is not reinterpreted.
+- **Identity verified in the same session.** `extension.tool` and
+  `extension.source` come from the tool report of the session that ran the
+  call (`runtime.tools` for a host, the adapter's own report internally): Pi
+  names every loaded tool's source ([src] `ToolInfo.sourceInfo`). A tool the
+  session did not report, a name reported twice by different sources, or the
+  runtime's own builtin of that name all mean NO extension claim — OAR does not
+  read a tool name, a runtime version or a file on disk to decide.
+
+```jsonc
+// the tool result an extension returns
+{ "content": [{ "type": "text", "text": "2 steps" }],
+  "details": { "oarPlan": { "protocol": 1,
+    "steps": [{ "step": "Read the wire shape", "status": "in_progress" }],
+    "explanation": "optional, the tool's own words" } } }
+```
+
+`protocol` in the event is the version the result declared, so a host can tell
+which contract produced the list. `steps: []` is the tool's own clear. OAR
+installs no extension and ships no product logic: a session that loads none
+reports nothing here.
 
 ## Empty clear, unsupported, and what is never a checklist
 

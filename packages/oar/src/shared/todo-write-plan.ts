@@ -2,13 +2,15 @@ import type { PlanSnapshot, PlanStep } from "../contracts/plan.js";
 import { asRecord } from "./json.js";
 
 /**
- * The `TodoWrite` checklist tool, in the one shape both a runtime and an
- * extension register it: claude's own built-in ([src] claude 2.1.332, "Update
- * the todo list for the current session") and the Pi extension Hikari installs
- * (`hikari-todo-write.ts`, [src] its `parameters` schema). Its `todos`
- * argument is the COMPLETE list, replacing any previous one, and each item is
- * `{content, status, activeForm?}` with `status` one of `pending`,
- * `in_progress` or `completed`.
+ * claude's own built-in checklist tool ([src] claude 2.1.332, "Update the todo
+ * list for the current session"). Its `todos` argument is the COMPLETE list,
+ * replacing any previous one, and each item is `{content, status, activeForm?}`
+ * with `status` one of `pending`, `in_progress` or `completed`.
+ *
+ * This reads a tool the RUNTIME itself provides. It is not a generic rule: an
+ * extension tool of the same name is a different, unverified claim, so a
+ * runtime that is not known to ship this tool must not be read through it
+ * ([plans](../../../docs/spec/plans.md)).
  */
 export const TODO_WRITE_TOOL = "TodoWrite";
 

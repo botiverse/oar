@@ -68,10 +68,18 @@ export interface PlanEventBody {
   readonly callId?: string;
   readonly channel: PlanChannel;
   /**
-   * The extension a `channel: "extension"` checklist came from, as the RUNTIME
-   * reported the tool: the tool's name and the source the runtime named for it.
-   * Absent when the runtime reported no such identity, which is not the same as
-   * "no extension": OAR never guesses one.
+   * The extension a `channel: "extension"` checklist came from, and the version
+   * of the structured contract its result declared. Every field is verified:
+   * `tool` and `source` are what the OPENED session reported loading
+   * ([pi](../runtimes/pi.md)), never inferred from a tool name, a runtime
+   * version or a file on disk; `protocol` is the version the tool result itself
+   * carries. Absent when the runtime reported no such identity, which is not the
+   * same as "no extension": OAR never guesses one.
    */
-  readonly extension?: { readonly tool: string; readonly source: string };
+  readonly extension?: {
+    readonly tool: string;
+    readonly source: string;
+    /** The structured result contract's version ([plans](../spec/plans.md)), read from the result. */
+    readonly protocol: number;
+  };
 }

@@ -172,7 +172,7 @@ test("Hermes resume maps the gateway's not_found reason to SessionNotFoundError"
 // oxlint-disable-next-line eslint/max-statements -- One exact readback and the associated wire assertions.
 test("Hermes skips setters only for the exact applied model and effort", async () => {
   const log = path.join(scratch("oar-hermes-stable-selectors-"), "calls.txt");
-  const model = "custom:hikari:deepseek-flash";
+  const model = "custom:local:deepseek-flash";
   const modelState = { currentModelId: model, availableModels: [{ modelId: model, name: model }] };
   const session = await open({}, { FAKE_HERMES_MODELS: JSON.stringify(modelState) });
   await session.dispose();

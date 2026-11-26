@@ -16,7 +16,7 @@ test("RPC transport rejection after compaction starts waits for exit without inv
   let receiveNative: (message: Record<string, unknown>) => void = vi.fn<(message: Record<string, unknown>) => void>();
   vi.mocked(openPiRpc).mockImplementation(async (_options, _credentials, receive) => {
     receiveNative = receive;
-    return { child, directory: { path: "/fixture", remove() {} },
+    return { child, directory: { path: "/fixture", remove() {} }, loadedTools: () => undefined,
       control: { request: async (command) => { expect(command).toEqual({ type: "compact" }); return response.promise; } },
       state: { sessionId: "rpc", thinkingLevel: "off", isStreaming: false, isCompacting: false,
         steeringMode: "all", followUpMode: "all", autoCompactionEnabled: true, messageCount: 0, pendingMessageCount: 0 },
@@ -48,7 +48,7 @@ test("Pi RPC compaction end releases the gate before observers see idle", async 
   let receiveNative: (message: Record<string, unknown>) => void = vi.fn<(message: Record<string, unknown>) => void>();
   vi.mocked(openPiRpc).mockImplementation(async (_options, _credentials, receive) => {
     receiveNative = receive;
-    return { child, directory: { path: "/fixture", remove() {} },
+    return { child, directory: { path: "/fixture", remove() {} }, loadedTools: () => undefined,
       control: { request: async command => command.type === "compact" ? reply.promise :
         { type: "response", command: "prompt", success: true, data: { disposition: "started" } } },
       state: { sessionId: "rpc", thinkingLevel: "off", isStreaming: false, isCompacting: false,

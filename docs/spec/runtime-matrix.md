@@ -468,7 +468,7 @@ runtime reports its checklist on its own channel, or reports none.
 | claude | the model's `TodoWrite` tool call, whole `todos` argument | `tool_call` with the call id ([src] 2.1.332 tool description and schema) |
 | grok, kimi, opencode, qwen, qoder, codebuddy, antigravity, devin, factory, hermes | ACP `session/update` `sessionUpdate: "plan"` | `plan_update` ([schema] SDK 1.4.0; no ACP runtime here captured sending one; Hermes sends one only when its own gateway tracks a checklist) |
 | dsh | the model's `todo_write` tool call, whole `todos` argument | `tool_call` with the call id ([env] tool schema) |
-| pi | the `TodoWrite` tool an INSTALLED EXTENSION registers (Hikari's `hikari-todo-write.ts`), whole `todos` argument | `tool_call` with the call id, `channel: "extension"`; Pi names the tool's source in `runtime.tools` ([src] `ToolInfo.sourceInfo`) |
+| pi | a tool an INSTALLED EXTENSION registers, read from its versioned structured result (`details.oarPlan`, protocol 1) | `tool_call` with the call id, `channel: "extension"`; tool and source come from the opened session's own report ([src] `ToolInfo.sourceInfo`), never from a name, a version or a file |
 | cursor, pi-durable, morph | no structured checklist on the adapter's transport | no event |
 
 ## Context breakdown

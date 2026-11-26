@@ -72,6 +72,18 @@ export default async function oarPiRpcExtension(pi) {
       await exchange(auth.apiKey);
     }
   };
+  // The parent will not read an extension off disk: it learns what this session
+  // loaded from this report, taken from the running session's own tool list.
+  // Entries Pi does not describe are dropped rather than repaired.
+  const reportTools = () => ({
+    type: "tools",
+    tools: pi.getAllTools().flatMap((tool) => {
+      const info = tool.sourceInfo ?? {};
+      return typeof tool.name === "string" && typeof info.path === "string" && typeof info.source === "string"
+        ? [{ name: tool.name, path: info.path, source: info.source }]
+        : [];
+    }),
+  });
   pi.on("session_start", async (_event, context) => {
     if (config.resume) {
       // -e loads this extension before user extensions. Reset only native
@@ -82,6 +94,7 @@ export default async function oarPiRpcExtension(pi) {
       pi.setActiveTools([...pi.getActiveTools().filter((name) => !builtinNames.has(name)), ...defaults.filter((name) => builtinNames.has(name))]);
     }
     await remember(context);
+    await exchange(reportTools());
     writeFileSync(path.join(directory, "ready"), JSON.stringify({
       version: VERSION,
       modelRegistered: context.model !== undefined && context.modelRegistry.find(context.model.provider, context.model.id) !== undefined,
@@ -93,6 +106,10 @@ export default async function oarPiRpcExtension(pi) {
       },
     }), { mode: 0o600 });
   });
+  // Extensions bind at session start, in load order, so this is the first
+  // moment the tool list is complete: refresh it once per turn, before any tool
+  // this turn could run.
+  pi.on("before_agent_start", async () => { await exchange(reportTools()); });
   pi.on("model_select", async (_event, context) => { await remember(context); });
 }
 `;
