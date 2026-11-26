@@ -3,7 +3,8 @@ import { ModelConfirmationError } from "../../contracts/model-confirmation-error
 import { acpReportedEffort } from "./model.js";
 import { AcpError } from "./errors.js";
 
-type WaitForConfirmation = (signal: AbortSignal) => Promise<void>;
+/** Resolves with the `config_option_update` that reported the requested value. */
+type WaitForConfirmation = (signal: AbortSignal) => Promise<JsonRecord>;
 
 export interface AcpConfigUpdates {
   observe(notification: unknown): void;
@@ -20,13 +21,14 @@ export function createAcpConfigUpdates(): AcpConfigUpdates {
       for (const listener of listeners) { listener(params.sessionId, update); }
     },
     async confirm(sessionId, configId, value, run) {
-      const state: { observed: boolean; current: unknown; effort?: string | null; changed?: () => void } = { observed: false, current: null };
+      const state: { observed: boolean; current: unknown; update?: JsonRecord; effort?: string | null; changed?: () => void } = { observed: false, current: null };
       const listener = (id: string, update: JsonRecord): void => {
         if (id !== sessionId) { return; }
         const option = asRecordList(update.configOptions).find(entry => entry.id === configId);
         if (option === undefined) { return; }
         state.observed = true;
         state.current = option.currentValue;
+        state.update = update;
         state.effort = acpReportedEffort(update);
         state.changed?.();
       };
@@ -34,7 +36,7 @@ export function createAcpConfigUpdates(): AcpConfigUpdates {
       try {
         return await run(async signal => {
           signal.throwIfAborted();
-          if (state.observed && state.current === value) { return; }
+          if (state.observed && state.current === value && state.update !== undefined) { return state.update; }
           do {
             signal.throwIfAborted();
             const matched = Promise.withResolvers<void>();
@@ -47,7 +49,8 @@ export function createAcpConfigUpdates(): AcpConfigUpdates {
             try { await matched.promise; }
             finally { signal.removeEventListener("abort", aborted); }
           // oxlint-disable-next-line eslint/no-unmodified-loop-condition -- Notifications update the observed state while awaiting.
-          } while (state.current !== value);
+          } while (state.current !== value || state.update === undefined);
+          return state.update;
         });
       } catch (error) {
         // An explicit RPC failure or process exit retains its own classification.

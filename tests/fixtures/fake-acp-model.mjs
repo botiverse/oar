@@ -122,7 +122,9 @@ export function setConfigOption(params, mode) {
   }
   const configOptions = [modelOption(mode === "antigravity" ? selectedAgyModel : EFFECTIVE_MODEL), effortOption(params.value, mode)];
   const update = { sessionUpdate: "config_option_update", configOptions };
-  return { ...(mode === "antigravity" ? { delayedUpdate: update } : { pushedUpdate: update }), response: { configOptions } };
+  // FAKE_ACP_STALE_EFFORT_ANSWER: answer with the previous level and push the applied one (dim 0.1.0-alpha.29 after a model switch).
+  const response = process.env.FAKE_ACP_STALE_EFFORT_ANSWER === "1" ? { configOptions: [configOptions[0], effortOption("low", mode)] } : { configOptions };
+  return { ...(mode === "antigravity" ? { delayedUpdate: update } : { pushedUpdate: update }), response };
 }
 
 /**
