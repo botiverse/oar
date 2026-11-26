@@ -42,7 +42,7 @@ export function cursorSessionWith(source: CursorSdkSource, timings: { readonly a
       throw new Error("The cursor session adapter needs the bundled @cursor/sdk installation");
     }
     rememberEnvironmentCredentials(credentials, access.environment(options.env), CURSOR_CREDENTIAL_ENV);
-    const { lease, agent } = await openCursorSession(access, options);
+    const { lease, agent } = await openCursorSession(access, options, credentials);
     const kernel = credentials.kernel(agent.agentId);
     let projection: CursorProjectionState = initialCursorProjection;
     // A turn is running from an accepted prompt (or a drained queue input)

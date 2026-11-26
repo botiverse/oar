@@ -1074,7 +1074,7 @@ in [user configuration](#user-configuration).
 
 | runtime | refuses | why |
 |---|---|---|
-| cursor | `mcpServerCredentials`, `systemPrompt`, `appendSystemPrompt`, `env` (in process only), `launchArgs`, `serviceTier`, `outputSchema`, `name` | the SDK's local agent fails a run given a system prompt and has no append; in process it runs in the host process with no environment or command line of its own; in subprocess mode `env` is its child's ([execution modes](../runtimes/cursor.md#execution-modes)). Credential isolation on SDK 1.4.1 is unverified in both modes. [Isolation measurements](../../experiments/mcp-credential-admission/README.md) |
+| cursor | `systemPrompt`, `appendSystemPrompt`, `env` (in process only), `launchArgs`, `serviceTier`, `outputSchema`, `name` | the SDK's local agent fails a run given a system prompt and has no append; in process it runs in the host process with no environment or command line of its own; in subprocess mode `env` is its child's ([execution modes](../runtimes/cursor.md#execution-modes)). MCP credential isolation verified on SDK 1.4.1 Linux x64 ([isolation measurements](../../experiments/mcp-credential-admission/README.md)) |
 | codebuddy | `appendSystemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified private prompt-append input; replacement uses a private file ([mapping](../runtimes/codebuddy.md)) |
 | devin | `mcpServerCredentials`, `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | `devin acp` has no verified prompt or tool-denial channel, and `initialize` advertises `sessionCapabilities.additionalDirectories` without verified primary-cwd and tool scoping ([mapping](../runtimes/devin.md)). Existing storage evidence covers only its SQLite database. [Isolation measurements](../../experiments/mcp-credential-admission/README.md) |
 | kimi | `systemPrompt`, `disallowedTools`, `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` (and `appendSystemPrompt` conditionally on ACP fallback) | KAP sends `append_system_prompt` on `POST /sessions` and `:resume`; ACP fallback (`< 2.7.3` non-botiverse) refuses `appendSystemPrompt` via `sessionCapabilities` and lacks session prompt/agent-profile or tool-denylist overrides ([audit](../runtimes/kimi.md#models-instructions-and-context)) |
@@ -1098,7 +1098,7 @@ call an attached server's tool, with the evidence on its runtime page
 |---|---|---|---|---|---|
 | claude | `--mcp-config <path>`: a 0600 FIFO removed once claude has read it (or, where FIFOs are unavailable such as Windows, a 0600 file inside a 0700 dir deleted right after `initialize`); strict host-only configuration when user configuration is excluded | yes | yes | the flag again | the session's server replaces the user's for that process ([claude](../runtimes/claude.md#session-mcp-servers)) |
 | codex | `config.mcp_servers` on `thread/start` and `thread/resume` | yes | yes | the override again | merged into the user's entry field by field; oar's `command` / `url`, `args` and `enabled = true` win ([codex](../runtimes/codex.md#session-mcp-servers)) |
-| cursor | credential-free entries through the SDK's `mcpServers` on `Agent.create` and `Agent.resume` | yes | yes | the record again | not re-checked live; against a stand-in backend the inline entry won ([cursor](../runtimes/cursor.md#session-mcp-servers)) |
+| cursor | the SDK's `mcpServers` on `Agent.create` and `Agent.resume` (in subprocess mode, passed over Node IPC rather than argv or env) | yes | yes | the record again | not re-checked live; against a stand-in backend the inline entry won ([cursor](../runtimes/cursor.md#session-mcp-servers)) |
 | grok | ACP `mcpServers` on `session/new` and `session/resume`; the model reaches the tools through grok's `use_tool` | yes | yes | the param again | the session's replaces the user's `config.toml` entry; the user's others stay ([grok](../runtimes/grok.md#session-mcp-servers)) |
 | codebuddy | ACP `mcpServers` on `session/new` and `session/load` | yes | yes | the param again | conflict precedence unverified; credentialed new/resumed calls and no native HOME persistence verified ([mapping](../runtimes/codebuddy.md)) |
 | devin | credential-free ACP `mcpServers` on `session/new` and `session/load` | yes | yes | the param again | conflict precedence unverified; HTTP/stdio env and credentials are not persisted in `~/.local/share/devin` SQLite ([devin](../runtimes/devin.md#session-mcp-servers)) |
@@ -1283,8 +1283,8 @@ them from a streamable HTTP MCP server inside the host process, on
 `127.0.0.1` behind a random bearer token, and returns `close()` and an `mcpServers`
 entry containing the HTTP URL, authorization header, name and
 `origin: "serveMcpTools"`. Codex and Grok use the origin to wait for native
-startup during open. Claude, Codex, Pi SDK, Pi RPC, Grok, Kimi, OpenCode,
-CodeBuddy, DSH, Factory, Qwen and Qoder accept the entry. Cursor, Devin and Antigravity
+startup during open. Claude, Codex, Cursor, Pi SDK, Pi RPC, Grok, Kimi, OpenCode,
+CodeBuddy, DSH, Factory, Qwen and Qoder accept the entry. Devin and Antigravity
 refuse an entry with `headers` (`mcpServerCredentials`). Pi Durable refuses `mcpServers`.
 A host tells before opening:
 served tools attach unless `refusedSessionOptions` declares `mcpServers` or

@@ -20,7 +20,7 @@ and the [bundled SDK dependencies](../../packages/oar/package.json).
 | Claude | 2.1.326 | Startup FIFO | Linux passed. Windows declares credentials refused. POSIX refuses the open if it cannot create the FIFO. |
 | CodeBuddy | 2.179.3 | ACP session request | Passed. A separate ordinary-tool control used a directly executable fixture in the session directory. |
 | Codex | 0.169.0 | App-server thread configuration | Passed on isolated open. |
-| Cursor | SDK 1.4.1 | SDK create or resume | Refused in both execution modes. Earlier SDK 1.3.1 evidence covers delivery and local storage. Current credential isolation remains unverified. |
+| Cursor | SDK 1.4.1 | SDK create or resume | Passed on Linux x64 (2026-11-26, `gpt-5.4-nano`, direct `in_process` SDK call; `subprocess` passes `mcpServers` over Node IPC rather than argv/env and redacts child stderr before tail truncation): both stdio `env` and loopback HTTP `Authorization` reached the echo servers; ordinary shell `env`, stream events, process-tree `/proc/<pid>/{cmdline,environ}` (outside the stdio server's own `environ`) and isolated `HOME`/`TMPDIR`/workspace files (`agent-transcripts/*.jsonl`, `store.db`/`-wal`, `index.db`/`-wal`) held neither canary (plain or base64). |
 | Devin | No CI pin | ACP session request | Refused. Earlier evidence covers its SQLite store alone. |
 | Factory | 1.12.1 | Native session request | Passed. |
 | Grok | 1.0.70 | ACP session request | Passed. |
@@ -35,7 +35,7 @@ and the [bundled SDK dependencies](../../packages/oar/package.json).
 | Pi Durable, Cybion and Morph | Adapter declarations | No per-session attachment | All three already refuse session MCP servers. |
 
 Hosts using `serveMcpTools` supply a bearer header on every entry. Managed
-MCP tools therefore cannot attach on Cursor, Devin, Pi RPC or Windows Claude
+MCP tools therefore cannot attach on Antigravity or Devin
 with these refusals. Check the installed runtime's refusal declaration before
 opening the session. [Admission contract](../../docs/spec/runtime-matrix.md#refused-session-options)
 
