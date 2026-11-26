@@ -1,6 +1,7 @@
 import { inspect } from "node:util";
 import { afterEach, expect, test, vi } from "vitest";
-import { bundled, fakeCursorRuntime } from "../fixtures/cursor-subprocess.js";
+import type { McpServer } from "../../packages/oar/src/contracts/session.js";
+import { bundled, fakeCursorRuntime, responsesOf, until } from "../fixtures/cursor-subprocess.js";
 
 afterEach(() => { vi.unstubAllEnvs(); });
 
@@ -69,4 +70,43 @@ test.each(["throw", "exit"] as const)("inherited CURSOR_API_KEY in subprocess in
   expect(everything(modelError)).not.toContain(KEY);
   const session = await runtime.session(bundled, { cwd: process.cwd(), env: { OAR_FAKE_LEAK: leak } }).catch((error: unknown) => error);
   expect(everything(session)).not.toContain(KEY);
+});
+
+const MCP_HEAD = "McpHeadHalf";
+const MCP_TAIL = "McpTailHalf42";
+const MCP_SECRET = `${MCP_HEAD}__${MCP_TAIL}`;
+
+const mcpCases: readonly { readonly label: string; readonly server: McpServer }[] = [
+  { label: "http", server: { name: "remote", type: "http", url: "http://127.0.0.1:9/mcp", headers: { Authorization: `Bearer ${MCP_SECRET}` } } },
+  { label: "stdio", server: { name: "local", command: "node", args: ["echo.mjs"], env: { MCP_SECRET } } },
+];
+
+function expectMcpSecretRedacted(seen: string): void {
+  expect(seen).toContain("[redacted]");
+  expect(seen).not.toContain(MCP_SECRET);
+  expect(seen).not.toContain(MCP_HEAD);
+  expect(seen).not.toContain(MCP_TAIL);
+}
+
+test.each(mcpCases)("subprocess open failure redacts $label mcpServers credential in stderr before -1000 truncation", async ({ server }) => {
+  const runtime = fakeCursorRuntime("subprocess", "clean");
+  const failure: unknown = await runtime.session(bundled, {
+    cwd: process.cwd(),
+    env: { OAR_FAKE_MCP_LEAK: "open-exit" },
+    mcpServers: [server],
+  }).catch((error: unknown) => error);
+  expect(failure).toBeInstanceOf(Error);
+  expectMcpSecretRedacted(everything(failure));
+});
+
+test.each(mcpCases)("subprocess child crash redacts $label mcpServers credential in stderr before -1000 truncation", async ({ server }) => {
+  const session = await fakeCursorRuntime("subprocess", "clean").session(bundled, { cwd: process.cwd(), mcpServers: [server] });
+  try {
+    await session.prompt("crash-mcp-stderr");
+    await until(() => responsesOf(session, "exited").length > 0);
+    expect(responsesOf(session, "exited").length).toBeGreaterThan(0);
+    expectMcpSecretRedacted(everything(session.records()));
+  } finally {
+    await session.dispose();
+  }
 });

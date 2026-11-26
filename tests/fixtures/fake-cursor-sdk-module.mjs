@@ -144,10 +144,22 @@ function background(run, file, unmarked = false) {
   shell.once("exit", () => { run.end("finished"); });
 }
 
+function exitWithBisectedMcpStderr(mcpServers) {
+  for (const server of Object.values(mcpServers ?? {})) {
+    const secret = server?.headers?.Authorization ?? Object.values(server?.env ?? {}).find((value) => typeof value === "string");
+    if (typeof secret === "string") { process.stderr.write(`${"p".repeat(1200)}${secret}${"s".repeat(990)}\n`); break; }
+  }
+  process.exit(3);
+}
+
 const behaviors = {
   echo,
   shell: (run, command) => { run.end("finished", execSync(command, { encoding: "utf8" }).trim()); },
   crash,
+  "crash-mcp-stderr": (run, _argument, agent) => {
+    run.delta({ type: "text-delta", text: "about to crash with mcp stderr" });
+    setTimeout(() => { exitWithBisectedMcpStderr(agent.mcpServers); }, 20);
+  },
   throw: (run) => {
     run.delta({ type: "text-delta", text: "about to throw" });
     setTimeout(() => { throw new Error("fake SDK failure"); }, 20);
@@ -224,9 +236,11 @@ class FakeAgent {
 
 async function opened(agentId, options) {
   await Promise.resolve();
+  if (process.env.OAR_FAKE_MCP_LEAK === "open-exit") { exitWithBisectedMcpStderr(options.mcpServers); }
   if (resolvedKey(options) === REJECTED_KEY) { throw refused(); }
   const agent = new FakeAgent(agentId, options.model);
   agent.apiKey = options.apiKey;
+  agent.mcpServers = options.mcpServers;
   return agent;
 }
 

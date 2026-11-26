@@ -870,19 +870,22 @@ OAR passes stdio (`env`) and HTTP (`headers`) entries to `Agent.create` and
 [open tests](../../tests/cursor/cursor-mcp-servers.test.ts) and
 [isolation measurements](../../experiments/mcp-credential-admission/README.md).
 
-**Live evidence** (SDK 1.4.1, Linux x64, `gpt-5.4-nano`, isolated `HOME`,
-`TMPDIR` and workspace, 2026-11-26): one stdio (`env.OAR_ECHO_TOKEN`) and one
-loopback HTTP (`Authorization: Bearer`) entry of the repo's echo MCP server,
-each carrying a distinct canary value, plus an ordinary shell command
-(`env > tool-shell-env.txt`) in the same turn. Both MCP tools ran and returned
-the matching SHA-256 fingerprints. Neither canary (plain or base64), nor
-`Authorization` / `Bearer` / `OAR_ECHO_TOKEN` / `mcpServers` / `127.0.0.1`,
-appeared in the ordinary shell's environment, in any stream/delta/wait event,
-or in any file under the isolated `HOME` (`agent-transcripts/*.jsonl`,
-`sdk-agent-store/.../store.db` + `-wal`, `index.db` + `-wal`), workspace, or
-`TMPDIR`. Process-tree `/proc/<pid>/{cmdline,environ}` snapshots saw the stdio
-canary only in the stdio MCP server's own `environ` and saw the HTTP canary in
-no process. Earlier [probe](../../experiments/cursor-mcp.ts) (SDK 1.3.1, Linux
+**Live evidence** (SDK 1.4.1, Linux x64, `gpt-5.4-nano`, direct `in_process`
+SDK call, isolated `HOME`, `TMPDIR` and workspace, 2026-11-26): one stdio
+(`env.OAR_ECHO_TOKEN`) and one loopback HTTP (`Authorization: Bearer`) entry of
+the repo's echo MCP server, each carrying a distinct canary value, plus an
+ordinary shell command (`env > tool-shell-env.txt`) in the same turn. Both MCP
+tools ran and returned the matching SHA-256 fingerprints. Neither canary (plain
+or base64), nor `Authorization` / `Bearer` / `OAR_ECHO_TOKEN` / `mcpServers` /
+`127.0.0.1`, appeared in the ordinary shell's environment, in any
+stream/delta/wait event, or in any file under the isolated `HOME`
+(`agent-transcripts/*.jsonl`, `sdk-agent-store/.../store.db` + `-wal`,
+`index.db` + `-wal`), workspace, or `TMPDIR`. Process-tree
+`/proc/<pid>/{cmdline,environ}` snapshots saw the stdio canary only in the
+stdio MCP server's own `environ` and saw the HTTP canary in no process. In
+`subprocess` mode OAR passes `mcpServers` to the child over Node IPC (never
+argv or env) and redacts MCP credentials from child stderr before tail
+truncation. Earlier [probe](../../experiments/cursor-mcp.ts) (SDK 1.3.1, Linux
 x64, `gpt-5.4-nano`, 2026-11-11) also verified delivery on both create and
 `Agent.resume`. Whether the SDK sends a local agent's MCP entries to Cursor's
 servers (its cloud agents send them with each run) is not observed.
