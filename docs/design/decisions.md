@@ -30,12 +30,16 @@ chore burden for every runtime.
 entries such as Claude Code's `ModelEntry.disabled.reason`) and expose a tiny,
 zero-I/O per-runtime `suggestedMinVersion` manifest instead
 ([spec](../spec/update.md#suggested-minimum-versions)), stored in
-`packages/oar/assets/suggested-versions.json` and exported from
+`packages/oar/assets/suggested-versions.json`, embedded at build time into
+`packages/oar/src/suggested-versions.generated.ts`, and exported from
 `@botiverse/oar/suggested-versions` (`SUGGESTED_VERSIONS_URL`,
 `suggestedVersions`, `parseSuggestedVersions`, `checkSuggestedVersion`). Hosts
 can check an installed version offline or refresh the JSON directly from
 GitHub without waiting for a library release, and prompt for an upgrade only
-when a CLI falls below the floor for current flagship models.
+when a CLI falls below the recommended threshold for current flagship models
+(covering both strict client-version gating as in Codex and built-in model
+catalog recognition as in Claude Code `2.1.321` versus `2.1.319`), never as a
+binary claim about whether a specific model can run.
 
 **What would reopen it:** runtimes routinely gating multiple active models on
 distinct high CLI versions where a single per-runtime floor forces an

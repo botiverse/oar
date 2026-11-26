@@ -12,10 +12,13 @@ import {
   type SuggestedVersionsManifest,
 } from "../packages/oar/src/suggested-versions.js";
 
-test("bundled suggestedVersions matches packages/oar/assets/suggested-versions.json", () => {
+test("bundled suggestedVersions matches packages/oar/assets/suggested-versions.json and stays frozen", () => {
   const rawText = readFileSync(new URL("../packages/oar/assets/suggested-versions.json", import.meta.url), "utf8");
   const parsed = parseSuggestedVersions(parseJson(rawText));
   expect(parsed).toEqual(suggestedVersions);
+  expect(Object.isFrozen(suggestedVersions)).toBe(true);
+  expect(Object.isFrozen(suggestedVersions.runtimes)).toBe(true);
+  expect(Object.isFrozen(suggestedVersions.runtimes.codex)).toBe(true);
   expect(SUGGESTED_VERSIONS_URL).toBe(
     "https://raw.githubusercontent.com/botiverse/oar/main/packages/oar/assets/suggested-versions.json",
   );
@@ -151,6 +154,7 @@ test("the suggested-versions entry bundles for browsers with no externals or Nod
   expect(Object.values(result.metafile.outputs).flatMap((output) => output.imports)).toEqual([]);
   expect(Object.keys(result.metafile.inputs).toSorted()).toEqual([
     "packages/oar/src/shared/semver.ts",
+    "packages/oar/src/suggested-versions.generated.ts",
     "packages/oar/src/suggested-versions.ts",
   ]);
   expect(result.outputFiles[0]?.text).toContain("checkSuggestedVersion");

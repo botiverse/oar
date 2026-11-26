@@ -10,7 +10,7 @@
     },
     "claude": {
       "version": "2.1.321",
-      "reason": "Supports Claude Fable 5.2 (claude-fable-5-2)",
+      "reason": "Built-in catalog recognition for Claude Fable 5.2 (claude-fable-5-2)",
       "verifiedAt": "2026-11-26",
       "evidence": "https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md#21321"
     }

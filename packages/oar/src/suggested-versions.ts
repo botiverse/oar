@@ -1,5 +1,6 @@
 /** Pure per-runtime suggested minimum versions for latest upstream models. */
 import { compareSemver, extractSemver, parseSemver } from "./shared/semver.js";
+import bundledSuggestedVersionsRaw from "./suggested-versions.generated.js";
 
 /** Public raw manifest URL in the OAR repository for out-of-band host refreshes. */
 export const SUGGESTED_VERSIONS_URL =
@@ -24,30 +25,6 @@ export interface SuggestedVersionAdvice {
   readonly suggestedMinVersion: string;
   readonly reason: string;
 }
-
-function freezeEntry(entry: SuggestedVersionEntry): SuggestedVersionEntry {
-  return Object.freeze(entry);
-}
-
-/** Bundled fallback matching `packages/oar/assets/suggested-versions.json`. */
-export const suggestedVersions: SuggestedVersionsManifest = Object.freeze({
-  schemaVersion: 1,
-  updatedAt: "2026-11-26",
-  runtimes: Object.freeze({
-    codex: freezeEntry({
-      version: "0.166.0",
-      reason: "Supports GPT-6.2 models (gpt-6.2-sol, gpt-6.2-astra)",
-      verifiedAt: "2026-11-26",
-      evidence: "https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json",
-    }),
-    claude: freezeEntry({
-      version: "2.1.321",
-      reason: "Supports Claude Fable 5.2 (claude-fable-5-2)",
-      verifiedAt: "2026-11-26",
-      evidence: "https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md#21321",
-    }),
-  }),
-});
 
 function asPlainObject(value: unknown): Record<string, unknown> | null {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
@@ -113,6 +90,17 @@ export function parseSuggestedVersions(raw: unknown): SuggestedVersionsManifest 
   }
   return Object.freeze({ schemaVersion: 1, updatedAt, runtimes });
 }
+
+function loadBundledManifest(): SuggestedVersionsManifest {
+  const manifest = parseSuggestedVersions(bundledSuggestedVersionsRaw);
+  if (manifest === null) {
+    throw new Error("Bundled suggested-versions manifest is invalid");
+  }
+  return manifest;
+}
+
+/** Bundled fallback derived from `packages/oar/assets/suggested-versions.json`. */
+export const suggestedVersions: SuggestedVersionsManifest = loadBundledManifest();
 
 /** Return upgrade advice when `installedVersion` is readable and strictly below the runtime's suggested floor. */
 export function checkSuggestedVersion(
