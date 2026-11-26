@@ -59,7 +59,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     // and an open that fails reports no credential they carry.
     const withoutCredentials = acpMcpOpenGuard(options.mcpServers, credentials.redact);
     const args = acpLaunchArgs(profile, options);
-    const environment = sessionEnvironment(options.env);
+    const environment = profile.environment?.(options) ?? sessionEnvironment(options.env);
     const initializeStartedAt = profile.acquireStartup === undefined ? undefined : performance.now();
     const releaseStartup = profile.acquireStartup === undefined ? undefined : await profile.acquireStartup(options, profile.initializeTimeoutMs ?? 60_000);
     try {

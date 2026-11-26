@@ -1,9 +1,9 @@
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { AuthStatus, AuthStatusOptions } from "../../contracts/login.js";
-import { sessionEnvironment } from "../../shared/environment.js";
 import { runExecutable } from "../../shared/executable/index.js";
 import { withQueryDeadline } from "../../shared/executable/query.js";
 import { readAntigravityAccount } from "./account.js";
+import { antigravityEnvironment } from "./environment.js";
 import { rememberedAntigravityAccount } from "./token-email.js";
 import { antigravityUsesDefaultState, ANTIGRAVITY_STATE_QUERY_UNAVAILABLE } from "./state-directory.js";
 import { antigravityVersionPreflight } from "./version.js";
@@ -16,7 +16,7 @@ export async function readAntigravityAuthStatus(
   options: AuthStatusOptions & { readonly signal?: AbortSignal; readonly includeAccount?: boolean } = {},
 ): Promise<AuthStatus> {
   if (installation.via !== "executable") { return { kind: "unknown", detail: "not a machine-installed executable" }; }
-  const env = sessionEnvironment(options.env);
+  const env = antigravityEnvironment(options.env);
   if (!antigravityUsesDefaultState(env)) { return { kind: "unknown", detail: ANTIGRAVITY_STATE_QUERY_UNAVAILABLE }; }
   const timeoutMs = options.timeoutMs ?? 30_000;
   const deadline = Date.now() + timeoutMs;
@@ -30,7 +30,7 @@ export async function readAntigravityAuthStatus(
   });
   if (result.ok) {
     const account = options.includeAccount === true
-      ? await readAntigravityAccount(installation.command, env, { timeoutMs: Math.max(deadline - Date.now(), 0), ...(options.signal === undefined ? {} : { signal: options.signal }) })
+      ? await readAntigravityAccount(installation.command, env, { timeoutMs: Math.max(deadline - Date.now(), 0), preserveAutoUpdateEnv: true, ...(options.signal === undefined ? {} : { signal: options.signal }) })
       : undefined;
     return { kind: "logged_in", ...(account === undefined ? {} : { account }), source: SOURCE };
   }

@@ -2,6 +2,7 @@ import { client, methods, PROTOCOL_VERSION } from "@agentclientprotocol/sdk";
 import type { LoginAccount } from "../../contracts/login.js";
 import { environmentHome } from "../../shared/environment-home.js";
 import { environmentValue, sessionEnvironment } from "../../shared/environment.js";
+import { antigravityEnvironment } from "./environment.js";
 import { withQueryDeadline } from "../../shared/executable/query.js";
 import { asRecord, asRecordList } from "../../shared/json.js";
 import { startAcpProcess, type AcpProcess } from "../../shared/acp/process.js";
@@ -31,6 +32,16 @@ export function projectAntigravityTier(payload: unknown): string | undefined {
   return typeof tier?.name === "string" && tier.name.trim() !== "" ? tier.name.trim() : undefined;
 }
 
+function silentAuthEnv(env: Readonly<NodeJS.ProcessEnv>, preserveAutoUpdateEnv: boolean): NodeJS.ProcessEnv {
+  const existingSsh = environmentValue(env, "SSH_CONNECTION");
+  const overlay = {
+    SSH_CONNECTION: existingSsh !== undefined && existingSsh !== "" ? existingSsh : "1",
+    DISPLAY: null,
+    WAYLAND_DISPLAY: null,
+  };
+  return preserveAutoUpdateEnv ? sessionEnvironment(overlay, env) : antigravityEnvironment(overlay, env);
+}
+
 /**
  * Defense-in-depth child environment for agy's silent ACP tier read:
  * `[sym]` + `[env]` agy 1.5.13 `google3/third_party/jetski/cli/acp/auth/auth.browserUnavailableReason`
@@ -42,15 +53,7 @@ export function projectAntigravityTier(payload: unknown): string | undefined {
  * short deadline that kills the child process.
  */
 export function antigravitySilentAuthEnv(env: Readonly<NodeJS.ProcessEnv>): NodeJS.ProcessEnv {
-  const existingSsh = environmentValue(env, "SSH_CONNECTION");
-  return sessionEnvironment(
-    {
-      SSH_CONNECTION: existingSsh !== undefined && existingSsh !== "" ? existingSsh : "1",
-      DISPLAY: null,
-      WAYLAND_DISPLAY: null,
-    },
-    env,
-  );
+  return silentAuthEnv(env, false);
 }
 
 async function requestTier(process: AcpProcess, methodId: string, signal: AbortSignal): Promise<string | undefined> {
@@ -86,7 +89,7 @@ async function requestTier(process: AcpProcess, methodId: string, signal: AbortS
 export async function readAntigravityPlan(
   command: string,
   env: Readonly<NodeJS.ProcessEnv>,
-  options: { readonly timeoutMs: number; readonly signal?: AbortSignal; readonly email?: string },
+  options: { readonly timeoutMs: number; readonly signal?: AbortSignal; readonly email?: string; readonly preserveAutoUpdateEnv?: boolean },
 ): Promise<string | undefined> {
   const budgetMs = Math.min(options.timeoutMs, PLAN_TIMEOUT_MS);
   if (budgetMs <= 0 || options.signal?.aborted === true) { return undefined; }
@@ -101,7 +104,7 @@ export async function readAntigravityPlan(
     async (signal, own) => {
       try {
         const runtime = own(startAcpProcess(command, ["acp", ...antigravityStateArgs(env)], client({ name: "oar" }), {
-          env: antigravitySilentAuthEnv(env),
+          env: silentAuthEnv(env, options.preserveAutoUpdateEnv === true),
           inheritStderr: false,
           redact: () => "Antigravity tier query failed",
         }));
@@ -123,7 +126,7 @@ export async function readAntigravityPlan(
 export async function readAntigravityAccount(
   command: string,
   env: Readonly<NodeJS.ProcessEnv>,
-  options: { readonly timeoutMs: number; readonly signal?: AbortSignal },
+  options: { readonly timeoutMs: number; readonly signal?: AbortSignal; readonly preserveAutoUpdateEnv?: boolean },
 ): Promise<LoginAccount | undefined> {
   const email = await readAntigravityTokenEmail(env);
   const plan = await readAntigravityPlan(command, env, { ...options, ...(email === undefined ? {} : { email }) });

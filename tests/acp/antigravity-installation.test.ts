@@ -6,6 +6,7 @@ import path from "node:path";
 import { antigravityInstall, antigravityInstallPlan } from "../../packages/oar/src/runtimes/antigravity/install.js";
 import { afterEach, expect, test, vi } from "vitest";
 import type { ExecutableRunner } from "../../packages/oar/src/shared/executable/run.js";
+import { antigravityEnvironment } from "../../packages/oar/src/runtimes/antigravity/environment.js";
 import { antigravityInstallation, antigravityInstalledExecutableCandidates, readAntigravityVersion } from "../../packages/oar/src/runtimes/antigravity/installation.js";
 import { antigravityReleaseSource } from "../../packages/oar/src/runtimes/antigravity/update.js";
 
@@ -46,8 +47,8 @@ test.each([
     if (version === undefined) { expect(result).not.toHaveProperty("installedVersion"); }
     else { expect(result.installedVersion).toBe(version); }
   }
-  expect(runExecutable).toHaveBeenNthCalledWith(1, process.execPath, ["--help"], { env: process.env });
-  expect(runExecutable).toHaveBeenNthCalledWith(2, process.execPath, ["--version"], { timeoutMs: 30_000, env: process.env });
+  expect(runExecutable).toHaveBeenNthCalledWith(1, process.execPath, ["--help"], { env: antigravityEnvironment(undefined) });
+  expect(runExecutable).toHaveBeenNthCalledWith(2, process.execPath, ["--version"], { timeoutMs: 30_000, env: antigravityEnvironment(undefined) });
 });
 
 test("off-PATH discovery follows the official POSIX and Windows install directories", () => {

@@ -2,7 +2,7 @@
 import { antigravityQuotaError, antigravityQuotaNotice } from "./quota.js";
 import { wholePromptTokenUsage } from "../../shared/acp/token-usage.js";
 import { configureAntigravityModel } from "./model-selection.js";
-import { sessionEnvironment } from "../../shared/environment.js";
+import { antigravityEnvironment } from "./environment.js";
 import { antigravityStateArgs } from "./state-directory.js";
 import type { SessionOptions } from "../../contracts/session.js";
 import { antigravityRefusedSessionOptions } from "./options.js";
@@ -48,7 +48,8 @@ export function normalizeAntigravityListedCwd(listedCwd: string, platform: NodeJ
 }
 
 export const antigravityAcpProfile: AcpSessionProfile = {
-  args: (options) => antigravityAcpArgs(sessionEnvironment(options.env)),
+  args: (options) => antigravityAcpArgs(antigravityEnvironment(options.env)),
+  environment: (options) => antigravityEnvironment(options.env),
   resumeKeepsSessionCwd: true,
   normalizeListedCwd: normalizeAntigravityListedCwd,
   // Subagent transport attribution remains unverified. A second native

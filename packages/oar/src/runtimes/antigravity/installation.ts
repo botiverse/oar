@@ -1,7 +1,9 @@
 import path from "node:path";
+import type { InstallationProbe } from "../../contracts/installation.js";
 import { environmentValue } from "../../shared/environment.js";
 import { environmentHome } from "../../shared/environment-home.js";
 import { executableInstallation } from "../../shared/installation.js";
+import { antigravityEnvOverlay } from "./environment.js";
 import { ANTIGRAVITY_MINIMUM_VERSION, antigravityVersionRefusal, readAntigravityVersion } from "./version.js";
 
 export { readAntigravityVersion } from "./version.js";
@@ -25,7 +27,7 @@ export function antigravityInstalledExecutableCandidates(
  * verifies Antigravity CLI identity while the version policy enforces the 1.5.0
  * native ACP floor (and lets an official install win over an older PATH copy).
  */
-export const antigravityInstallation = executableInstallation(
+const probeAntigravityInstallation = executableInstallation(
   "OAR_ANTIGRAVITY_BIN",
   "agy",
   (env) => antigravityInstalledExecutableCandidates(process.platform, environmentHome(env), env),
@@ -49,3 +51,9 @@ export const antigravityInstallation = executableInstallation(
     },
   },
 );
+
+/** Probe the installed `agy` executable without launching its background auto-updater by default. */
+export const antigravityInstallation: InstallationProbe = async (options = {}) => {
+  const snapshot = await probeAntigravityInstallation({ ...options, env: antigravityEnvOverlay(options.env) });
+  return snapshot;
+};

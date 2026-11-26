@@ -1,6 +1,6 @@
 /* oxlint-disable import/max-dependencies -- Model discovery combines native controls, projections and the shared query deadline. */
 import { withQueryDeadline, type OwnQueryProcess } from "../../shared/executable/query.js";
-import { sessionEnvironment } from "../../shared/environment.js";
+import { antigravityEnvironment } from "./environment.js";
 /* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
 import {
   client as createClient,
@@ -70,7 +70,7 @@ export const antigravityListModels: ModelLister = async (installation, options =
   const timeoutMs = options.timeoutMs ?? 30_000;
   try {
     return await withQueryDeadline("Antigravity model listing", timeoutMs, async (signal, own) => {
-      const env = sessionEnvironment(options.env);
+      const env = antigravityEnvironment(options.env);
       const version = await antigravityVersionPreflight(installation, env, { timeoutMs, signal });
       if (version.kind === "unsupported") { return version; }
       const models = await readNewSession(installation.command, listingCwd(options), version.timeoutMs, env, own);

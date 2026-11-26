@@ -7,6 +7,7 @@ import { loginExecutable } from "../../shared/login.js";
 import { confirmedLogout, statusAfterLogout, type NativeLogout } from "../../shared/logout.js";
 import { clearAntigravityPlanCache } from "./account.js";
 import { readAntigravityAuthStatus } from "./auth.js";
+import { antigravityEnvOverlay } from "./environment.js";
 
 /**
  * Antigravity's own sign-out: ACP `logout` on `agy acp`, which agy 1.5.5
@@ -18,10 +19,11 @@ import { readAntigravityAuthStatus } from "./auth.js";
  */
 export async function antigravityLogout(installation: AvailableInstallation, options: LogoutOptions = {}): Promise<LogoutResult> {
   const startedAt = Date.now();
-  const env = sessionEnvironment(options.env);
+  const overlay = antigravityEnvOverlay(options.env);
+  const env = sessionEnvironment(overlay);
   const target = loginExecutable(installation, "agy", undefined, env);
   if (target.kind === "settled") { return target.result; }
-  const result = await queryAcpAuth(target.installation.command, { method: "logout" }, "Antigravity", { ...options, args: ["acp", ...antigravityStateArgs(env)], timeoutMs: options.timeoutMs ?? 60_000 }).catch(() => "failed" as const);
+  const result = await queryAcpAuth(target.installation.command, { method: "logout" }, "Antigravity", { ...options, env: overlay, args: ["acp", ...antigravityStateArgs(env)], timeoutMs: options.timeoutMs ?? 60_000 }).catch(() => "failed" as const);
   clearAntigravityPlanCache();
   if (result === "unsupported") { return { kind: "unsupported", reason: "version_unsupported", detail: "This agy build has no ACP logout" }; }
   const native: NativeLogout = result === "ok" ? { kind: "done" } : {
