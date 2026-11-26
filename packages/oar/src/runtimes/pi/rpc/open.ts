@@ -6,7 +6,7 @@ import { writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 import type { RpcSessionState, RpcResponse } from "@earendil-works/pi-coding-agent";
-import type { RefusedSessionOptions, SessionOptions } from "../../../contracts/index.js";
+import { UnsupportedOptionError, type RefusedSessionOptions, type SessionOptions } from "../../../contracts/index.js";
 import { environmentValue, sessionEnvironment } from "../../../shared/environment.js";
 import { spawnLineProcess, type LineProcess } from "../../../shared/executable/index.js";
 import { privateTempDir, type PrivateTempDir } from "../../../shared/private-temp.js";
@@ -29,8 +29,10 @@ import { piRpcPromptFiles } from "./prompt-files.js";
 import { RuntimeFailureError } from "../../../contracts/runtime-failure-error.js";
 import { ModelConfirmationError } from "../../../contracts/model-confirmation-error.js";
 
+const { fork: _piForkRefusal, ...piRpcBaseRefusals } = piRefusedSessionOptions;
+
 export const piRpcRefusedSessionOptions: RefusedSessionOptions = {
-  ...piRefusedSessionOptions,
+  ...piRpcBaseRefusals,
   modelRequests: "Pi runs RPC command-line extensions before user extensions that can replace the provider request",
   launchArgs: "OAR owns Pi's RPC startup arguments; arbitrary CLI flags are not supported",
   // Verified against the bundled 1.6.0 child: its extension API holds exactly
@@ -93,6 +95,26 @@ export function piRpcState(response: RpcResponse): RpcSessionState {
   return response.data;
 }
 
+/**
+ * Pi's RPC clone operates on the leaf of the session opened in this process.
+ * The child is therefore deliberately resumed first, then cloned natively;
+ * the new process state is read back before OAR exposes the copy. A cancelled
+ * clone or an absent/same id is ambiguous and must never become a Session.
+ */
+export async function piRpcClone(
+  control: ReturnType<typeof piRpcControl>,
+  sourceSessionId: string,
+): Promise<RpcSessionState> {
+  const cloned = await control.request({ type: "clone" });
+  if (!cloned.success) { throw new Error(`Pi RPC clone failed: ${cloned.error}`); }
+  if (cloned.command !== "clone") { throw new Error("Pi replied to a different command while cloning"); }
+  if (cloned.data.cancelled) { throw new Error("Pi RPC clone was cancelled; the new session id was not confirmed"); }
+  const state = piRpcState(await control.request({ type: "get_state" }));
+  if (state.sessionId.trim().length === 0) { throw new Error("Pi RPC clone returned no session id"); }
+  if (state.sessionId === sourceSessionId) { throw new Error(`Pi RPC clone kept the source session id ${sourceSessionId}`); }
+  return state;
+}
+
 export interface OpenPiRpc {
   readonly child: LineProcess;
   readonly control: ReturnType<typeof piRpcControl>;
@@ -117,6 +139,9 @@ export async function openPiRpc(options: SessionOptions, credentials: Credential
   const signal = lifetime?.signal;
   signal?.throwIfAborted();
   refuseSessionOptions(piRpcRefusedSessionOptions, options);
+  if (options.fork?.through !== undefined) {
+    throw new UnsupportedOptionError("fork", "Pi RPC native clone copies the whole resumed session and has no verified turn-cut channel");
+  }
   checkSessionName(options);
   checkPiSystemPrompt(options.systemPrompt);
   // Removals are already applied to the RPC child's environment. Only the
@@ -181,7 +206,7 @@ export async function openPiRpc(options: SessionOptions, credentials: Credential
     try {
       await child.spawned;
       const response = await control.request({ type: "get_state" });
-      const state = piRpcState(response);
+      let state = piRpcState(response);
       if (!existsSync(path.join(directory.path, "ready"))) { throw new Error(`Pi did not load the OAR RPC extension: ${reportedStderr(child.diagnostics(), credentials.redact)}`); }
       // oxlint-disable-next-line typescript/no-unsafe-assignment -- Written only by the bundled extension into this private directory.
       const ready: { modelRegistered: boolean; version: string; provider?: { id: string; models: number } | null } = JSON.parse(readFileSync(path.join(directory.path, "ready"), "utf8"));
@@ -199,6 +224,10 @@ export async function openPiRpc(options: SessionOptions, credentials: Credential
         throw new RuntimeFailureError("model_unavailable", `pi model ${requestedModel} is not registered in the native model registry`);
       }
       if (options.resume !== undefined && state.sessionId !== options.resume) { throw new Error(`Pi resumed a different session: ${state.sessionId}`); }
+      if (options.fork !== undefined) {
+        const sourceSessionId = state.sessionId;
+        state = await piRpcClone(control, sourceSessionId);
+      }
       const effective = state.model === undefined ? null : `${state.model.provider}/${state.model.id}`;
       if (requestedModel !== undefined && requestedModel !== effective) { throw new ModelConfirmationError(`pi did not apply model ${requestedModel}: the session reports ${effective ?? "no model"}`, { requested: requestedModel, reported: effective }); }
       if (options.effort !== undefined && options.effort !== state.thinkingLevel) {

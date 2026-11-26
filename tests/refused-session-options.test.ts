@@ -263,7 +263,7 @@ test.each(["", "   ", "-c", "--continue", "--help", "id\0secret"])("an empty, da
 test("subprocess Pi accepts a declared provider and credentialed mcpServers, and declares only its non-credential refusals", async () => {
   const rpc = createPiRuntime({ execution: "subprocess" });
   expect(Object.keys(rpc.refusedSessionOptions ?? {}).toSorted()).toEqual([
-    "additionalDirectories", "dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "launchArgs",
+    "additionalDirectories", "dshProvider", "endTurnProcessesOnAbort", "goals", "launchArgs",
     "modelRequests", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "serviceTier", "sessionLogUpload", "userConfiguration", "userQuestions",
   ]);
   expect(() => {

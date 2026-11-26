@@ -76,6 +76,7 @@ test("a declaration Pi cannot honour is refused before the child starts", () => 
 test("RPC takes the provider and still refuses the compaction budget", () => {
   expect(() => { refuseSessionOptions(piRpcRefusedSessionOptions, { cwd: "/work", piProvider: provider }); }).not.toThrow();
   expect(piRpcRefusedSessionOptions.piProvider).toBeUndefined();
+  expect(piRpcRefusedSessionOptions.fork).toBeUndefined();
   expect(() => { refuseSessionOptions(piRpcRefusedSessionOptions, { cwd: "/work", piCompaction: { reserveTokens: 100_000 } }); })
     .toThrow(expect.objectContaining({ name: "UnsupportedOptionError", option: "piCompaction" }));
   // The reason names the verified cause and the mode that does honor a budget.
