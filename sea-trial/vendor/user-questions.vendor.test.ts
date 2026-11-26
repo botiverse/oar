@@ -80,3 +80,39 @@ describe.each(["claude", "codex"] as const)("%s host questions", (vendor) => {
     } finally { await run.stop(); }
   }, 60_000);
 });
+
+test.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex secret question answers reach the model and stay redacted across session.records()", async () => {
+  const results: string[] = [];
+  const pin = "73915";
+  const secretToken = "CODEX_SECRET_ANSWER_CANARY_987654";
+  const provider = await startCodexAimock((mock) => {
+    mock.onMessage(/[\s\S]*/u, (request) => {
+      const last = request.messages.findLast((message) => message.role === "tool");
+      if (last !== undefined) { results.push(JSON.stringify(last.content)); return { content: `model noted ${secretToken}` }; }
+      return { toolCalls: [{ id: "call_secret_question", name: "request_user_input", arguments: JSON.stringify({ questions: [
+        { id: "pub", header: "Public", question: "Public color?", isOther: true, isSecret: false, options: [{ label: "Red", description: "r" }, { label: "Blue", description: "b" }] },
+        { id: "pin", header: "PIN", question: "Short PIN?", isOther: true, isSecret: true, options: [{ label: "Skip", description: "s" }] },
+        { id: "tok", header: "Token", question: "Secret token?", isOther: true, isSecret: true, options: [{ label: "None", description: "n" }] },
+      ] }) }] };
+    });
+  });
+  const temporary = await mkdtemp(path.join(tmpdir(), "oar-secret-questions-"));
+  const cwd = await realpath(temporary);
+  const installation = await codexRuntime.installation();
+  expectAvailable(installation, "codex");
+  const session = await codexRuntime.session(installation, { cwd, userQuestions: "host", env: { ...provider.env } });
+  try {
+    const prompt = await session.prompt("ASK_SECRET");
+    await expect.poll(() => session.records().some((record) => record.kind === "request" && record.direction === "toApp"), { timeout: 25_000 }).toBe(true);
+    const request = session.records().find((record) => record.kind === "request" && record.direction === "toApp");
+    if (request?.kind !== "request") { throw new Error("no native request"); }
+    expect(await session.answerQuestion?.(request.id, { kind: "answered", answers: { pub: { selected: ["Blue"] }, pin: { text: pin }, tok: { text: secretToken } } })).toMatchObject({ kind: "answered" });
+    expect(await awaitTurnEnd(session, prompt.seq)).toMatchObject({ kind: "completed" });
+    expect(results.join("\n")).toContain(pin);
+    expect(results.join("\n")).toContain(secretToken);
+    const recorded = JSON.stringify(session.records());
+    expect(recorded).toContain("Blue");
+    expect(recorded).not.toContain(pin);
+    expect(recorded).not.toContain(secretToken);
+  } finally { await session.dispose(); await provider.stop(); await rm(cwd, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); }
+}, 60_000);

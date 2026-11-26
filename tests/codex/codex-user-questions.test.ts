@@ -153,3 +153,78 @@ test.each(["0.106.0", undefined])("version %s refuses the option before anything
     .rejects.toMatchObject({ name: "UnsupportedOptionError", option: "userQuestions" });
   expect(spawnLineProcess).not.toHaveBeenCalled();
 });
+
+const rawOutput = (child: FakeLineProcess, callId: string, output: unknown): void => {
+  child.emit(`${JSON.stringify({ method: "rawResponseItem/completed", params: { threadId: "thread", turnId: "turn", item: { type: "function_call_output", call_id: callId, output } } })}\n`);
+};
+
+test("secret short PIN (< 8 chars) and mixed public answer are scrubbed in rawResponseItem/completed without globally redacting short PINs", async () => {
+  const { session, child, ask } = await open();
+  ask(0);
+  await session.answerQuestion?.("0", { kind: "answered", answers: { color: { selected: ["Blue"] }, key: { text: "4829" } } });
+  rawOutput(child, "call", JSON.stringify({ answers: { color: { answers: ["Blue"] }, key: { answers: ["user_note: 4829"] } } }));
+  child.emit(`${JSON.stringify({ method: "item/agentMessage/delta", params: { threadId: "thread", turnId: "turn", itemId: "m1", delta: "port 4829" } })}\n`);
+  const frame = session.records().find((record) => record.kind === "frame" && record.body.type === "rawResponseItem/completed");
+  const native = frame?.kind === "frame" ? asRecord(frame.body.native) : null;
+  expect(asRecord(native?.item)?.output).toBe(JSON.stringify({ answers: { color: { answers: ["Blue"] }, key: { answers: ["[redacted]"] } } }));
+  expect(JSON.stringify(frame)).not.toContain("4829");
+  // Short PINs stay scrubbed structurally, without global substring redaction on unrelated frames.
+  expect(JSON.stringify(session.records())).toContain("port 4829");
+  await session.dispose();
+});
+
+test("long secret free text is scrubbed in rawResponseItem/completed and redacted if echoed in later frames", async () => {
+  const { session, child, ask } = await open();
+  const token = "SECRET_LONG_TOKEN_987654321";
+  ask(0);
+  await session.answerQuestion?.("0", { kind: "answered", answers: { color: { selected: ["Red"] }, key: { text: token } } });
+  rawOutput(child, "call", JSON.stringify({ answers: { color: { answers: ["Red"] }, key: { answers: [`user_note: ${token}`] } } }));
+  child.emit(`${JSON.stringify({ method: "item/agentMessage/delta", params: { threadId: "thread", turnId: "turn", itemId: "m1", delta: `echoed ${token}` } })}\n`);
+  expect(JSON.stringify(session.records())).not.toContain(token);
+  expect(JSON.stringify(session.records())).toContain("echoed [redacted]");
+  await session.dispose();
+});
+
+test("secret selected option label is scrubbed in function_call_output without globally redacting normal text", async () => {
+  const { session, child } = await open();
+  const secretOpt = "OPTION_SECRET_LABEL_ALPHA";
+  child.emit(`${JSON.stringify({ id: 0, method: "item/tool/requestUserInput", params: { threadId: "thread", turnId: "turn", itemId: "call_sel", questions: [
+    { id: "sec", header: "Sec", question: "Pick?", isOther: false, isSecret: true, options: [{ label: secretOpt, description: "a" }] },
+  ] } })}\n`);
+  await session.answerQuestion?.("0", { kind: "answered", answers: { sec: { selected: [secretOpt] } } });
+  rawOutput(child, "call_sel", JSON.stringify({ answers: { sec: { answers: [secretOpt] } } }));
+  child.emit(`${JSON.stringify({ method: "item/agentMessage/delta", params: { threadId: "thread", turnId: "turn", itemId: "m1", delta: `selected ${secretOpt}` } })}\n`);
+  const frame = session.records().find((record) => record.kind === "frame" && record.body.type === "rawResponseItem/completed");
+  expect(JSON.stringify(frame)).not.toContain(secretOpt);
+  expect(asRecord(asRecord(frame?.kind === "frame" ? frame.body.native : null)?.item)?.output).toBe(JSON.stringify({ answers: { sec: { answers: ["[redacted]"] } } }));
+  expect(JSON.stringify(session.records())).toContain(`selected ${secretOpt}`);
+  await session.dispose();
+});
+
+test("content-parts output is scrubbed and malformed or unknown secret output fails closed", async () => {
+  const { session, child } = await open();
+  const emitQuestion = (id: number, itemId: string): void => {
+    child.emit(`${JSON.stringify({ id, method: "item/tool/requestUserInput", params: { threadId: "thread", turnId: "turn", itemId, questions: QUESTIONS } })}\n`);
+  };
+  emitQuestion(1, "call_parts");
+  await session.answerQuestion?.("1", { kind: "answered", answers: { color: { selected: ["Red"] }, key: { text: "p1n" } } });
+  rawOutput(child, "call_parts", [{ type: "input_text", text: JSON.stringify({ answers: { color: { answers: ["Red"] }, key: { answers: ["user_note: p1n"] } } }) }]);
+
+  emitQuestion(2, "call_bad_json");
+  await session.answerQuestion?.("2", { kind: "answered", answers: { key: { text: "p2n" } } });
+  rawOutput(child, "call_bad_json", "not-json containing p2n");
+
+  emitQuestion(3, "call_bad_parts");
+  await session.answerQuestion?.("3", { kind: "answered", answers: { key: { text: "p3n" } } });
+  rawOutput(child, "call_bad_parts", [{ type: "input_image", url: "p3n" }]);
+
+  const frames = session.records().filter((record) => record.kind === "frame" && record.body.type === "rawResponseItem/completed");
+  const outputs = frames.map((frame) => asRecord(asRecord(frame.kind === "frame" ? frame.body.native : null)?.item)?.output);
+  expect(outputs).toEqual([
+    [{ type: "input_text", text: JSON.stringify({ answers: { color: { answers: ["Red"] }, key: { answers: ["[redacted]"] } } }) }],
+    "[redacted]",
+    "[redacted]",
+  ]);
+  for (const needle of ["p1n", "p2n", "p3n"]) { expect(JSON.stringify(frames)).not.toContain(needle); }
+  await session.dispose();
+});
