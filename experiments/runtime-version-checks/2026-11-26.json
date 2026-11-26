@@ -1,0 +1,497 @@
+{
+  "window": {
+    "windowStart": "2026-11-25T21:08:00Z",
+    "windowEnd": "2026-11-26T21:07:59Z"
+  },
+  "workflowStats": {
+    "ci.yml": {
+      "runs": 36,
+      "attempts": 39,
+      "uniqueJobs": 821,
+      "outcomes": {
+        "success": 768,
+        "skipped": 26,
+        "cancelled": 24,
+        "failure": 3
+      },
+      "zeroJobAttempts": [
+        {
+          "run": 45870529383,
+          "attempt": 1,
+          "conclusion": "failure"
+        },
+        {
+          "run": 45864264228,
+          "attempt": 1,
+          "conclusion": "action_required"
+        },
+        {
+          "run": 45849144283,
+          "attempt": 1,
+          "conclusion": "failure"
+        },
+        {
+          "run": 45841852182,
+          "attempt": 1,
+          "conclusion": "action_required"
+        }
+      ]
+    },
+    "acp-windows.yml": {
+      "runs": 14,
+      "attempts": 14,
+      "uniqueJobs": 42,
+      "outcomes": {
+        "success": 28,
+        "skipped": 14
+      },
+      "zeroJobAttempts": []
+    },
+    "runtime-latest.yml": {
+      "runs": 1,
+      "attempts": 1,
+      "uniqueJobs": 52,
+      "outcomes": {
+        "success": 46,
+        "failure": 6
+      },
+      "zeroJobAttempts": []
+    },
+    "platform-matrix.yml": {
+      "runs": 1,
+      "attempts": 1,
+      "uniqueJobs": 7,
+      "outcomes": {
+        "success": 7
+      },
+      "zeroJobAttempts": []
+    }
+  },
+  "originalFailures": [
+    {
+      "run": 45764827252,
+      "attempt": 1,
+      "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+      "job": "https://github.com/botiverse/oar/actions/runs/45764827252/job/139723163186",
+      "step": [
+        "Run pnpm run sea-trial"
+      ],
+      "retry": "https://github.com/botiverse/oar/actions/runs/45764827252/job/139725474435",
+      "case": "session.capabilities-match-declaration",
+      "trace": "https://github.com/botiverse/oar/actions/runs/45764827252/artifacts/15090923705",
+      "observation": "OpenCode 2.2.7 reported a disk I/O error in configure database."
+    },
+    {
+      "run": 45768939956,
+      "attempt": 1,
+      "name": "sdk (pi, ubuntu-latest, pi-aimock, all)",
+      "job": "https://github.com/botiverse/oar/actions/runs/45768939956/job/139736701793",
+      "step": [
+        "SDK types and unit contracts"
+      ],
+      "observation": "Typecheck rejected Tx as SubmissionDraft in tests/pi-durable/controls.test.ts:97."
+    },
+    {
+      "run": 45768939956,
+      "attempt": 1,
+      "name": "sdk (pi, macos-latest, pi-aimock, all)",
+      "job": "https://github.com/botiverse/oar/actions/runs/45768939956/job/139736701807",
+      "step": [
+        "SDK types and unit contracts"
+      ],
+      "observation": "Typecheck rejected Tx as SubmissionDraft in tests/pi-durable/controls.test.ts:97."
+    },
+    {
+      "run": 45768939956,
+      "attempt": 1,
+      "name": "sdk (pi, windows-latest, pi-aimock, all)",
+      "job": "https://github.com/botiverse/oar/actions/runs/45768939956/job/139736701830",
+      "step": [
+        "SDK types and unit contracts"
+      ],
+      "observation": "Typecheck rejected Tx as SubmissionDraft in tests/pi-durable/controls.test.ts:97."
+    },
+    {
+      "run": 45768939956,
+      "attempt": 1,
+      "name": "native (qwen-aimock, macos-latest, behavior)",
+      "job": "https://github.com/botiverse/oar/actions/runs/45768939956/job/139736702242",
+      "step": [
+        "Native vendor contracts"
+      ],
+      "observation": "Two auto-memory assertions expected the former catalog heading in model requests."
+    },
+    {
+      "run": 45768939956,
+      "attempt": 1,
+      "name": "native (qwen-aimock, windows-latest, behavior)",
+      "job": "https://github.com/botiverse/oar/actions/runs/45768939956/job/139736702248",
+      "step": [
+        "Native vendor contracts"
+      ],
+      "observation": "Two auto-memory assertions expected the former catalog heading in model requests."
+    },
+    {
+      "run": 45768939956,
+      "attempt": 1,
+      "name": "native (qwen-aimock, ubuntu-latest, behavior)",
+      "job": "https://github.com/botiverse/oar/actions/runs/45768939956/job/139736702282",
+      "step": [
+        "Native vendor contracts"
+      ],
+      "observation": "Two auto-memory assertions expected the former catalog heading in model requests."
+    },
+    {
+      "run": 45772251155,
+      "attempt": 1,
+      "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+      "job": "https://github.com/botiverse/oar/actions/runs/45772251155/job/139747485205",
+      "step": [
+        "Run pnpm run sea-trial"
+      ],
+      "retry": "https://github.com/botiverse/oar/actions/runs/45772251155/job/139749890071",
+      "case": "session.effort-never-substituted",
+      "trace": "https://github.com/botiverse/oar/actions/runs/45772251155/artifacts/15094712155",
+      "observation": "OpenCode 2.2.7 reported a disk I/O error in configure database."
+    },
+    {
+      "run": 45802545947,
+      "attempt": 1,
+      "name": "check-windows (2)",
+      "job": "https://github.com/botiverse/oar/actions/runs/45802545947/job/139849228907",
+      "step": [
+        "Windows unit tests (shard 2/2)"
+      ],
+      "retry": "https://github.com/botiverse/oar/actions/runs/45802545947/job/139854747261",
+      "observation": "Factory listModels deadline test found the fixture process still running after reclamation."
+    }
+  ],
+  "windowsPiRpc": {
+    "skipped": 20,
+    "success": 14,
+    "cancelled": 1
+  },
+  "frozen": {
+    "generatedAt": "2026-11-26T06:32:58.029Z",
+    "artifact": "https://github.com/botiverse/oar/actions/runs/45768939956/artifacts/15093590652",
+    "native": {
+      "claude-aimock": "2.1.332",
+      "codex-aimock": "0.172.0",
+      "qwen-aimock": "0.28.6",
+      "factory-aimock": "1.21.1",
+      "kimi-aimock": "2.8.0",
+      "grok-aimock": "1.0.92",
+      "codebuddy-aimock": "2.187.0",
+      "opencode-aimock": "1.19.6",
+      "opencode-cleanup": "2.4.2",
+      "kimi-login": "2.8.0",
+      "kimi-skills": "2.8.0",
+      "antigravity-aimock": "1.5.18"
+    },
+    "sdks": {
+      "cursor": {
+        "@cursor/sdk": "1.5.2"
+      },
+      "pi": {
+        "@earendil-works/pi-coding-agent": "1.6.1",
+        "undici": "8.12.4",
+        "@earendil-works/pi-ai": "1.6.1",
+        "@earendil-works/pi-durable": "1.6.1",
+        "@earendil-works/chord": "1.6.1"
+      }
+    },
+    "antigravityJobs": [
+      {
+        "name": "native (antigravity-aimock, macos-latest, acp)",
+        "job": "https://github.com/botiverse/oar/actions/runs/45768939956/job/139736702347",
+        "conclusion": "success"
+      },
+      {
+        "name": "native (antigravity-aimock, ubuntu-latest, acp)",
+        "job": "https://github.com/botiverse/oar/actions/runs/45768939956/job/139736702377",
+        "conclusion": "success"
+      },
+      {
+        "name": "native (antigravity-aimock, windows-latest, acp)",
+        "job": "https://github.com/botiverse/oar/actions/runs/45768939956/job/139736702486",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "antigravity": {
+    "accepted": "1.5.18",
+    "release": {
+      "tag_name": "1.5.18",
+      "published_at": "2026-11-26T05:52:00Z",
+      "html_url": "https://github.com/google-antigravity/antigravity-cli/releases/tag/1.5.18"
+    },
+    "manifests": {
+      "Linux-X64": {
+        "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json",
+        "version": "1.5.18",
+        "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.18-6386224290725888/linux-x64/cli_linux_x64.tar.gz",
+        "sha512": "ef379ec869719112f696e8c7cfddf776618712e58fc38e53df80801d6528abb4677782c7c8778f9c09c9123fa44c2c32675d228c06f2a8f7a8f4214e75f5bb26"
+      },
+      "macOS-ARM64": {
+        "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/darwin_arm64.json",
+        "version": "1.5.18",
+        "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.18-6386224290725888/darwin-arm/cli_mac_arm64.tar.gz",
+        "sha512": "d10e124f5eb4da94ebb6c494cd2e7b38744f9f66e8e87145d2cbad1cbd3c4160fd88a79cd4220dfce7c9da0ddead652346bcc839914575f6447438ae8d1d5dcc"
+      },
+      "macOS-X64": {
+        "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/darwin_amd64.json",
+        "version": "1.5.18",
+        "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.18-6386224290725888/darwin-x64/cli_mac_x64.tar.gz",
+        "sha512": "c6ab39b41511ee0951223b6c178e0571e83105800701041d9abc520161ef0381724425ec6e9273fbc609411941c8986ed9aafd711b1a3f86857c705efe3ac2a0"
+      },
+      "Windows-X64": {
+        "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/windows_amd64.json",
+        "version": "1.5.18",
+        "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.18-6386224290725888/windows-x64/cli_windows_x64.exe",
+        "sha512": "53605db7013dfed51e8c416d51e0c17a3b5ad0750c13da5669954ba4a281318746be0cf8cde2b256cfdb4bfbdade4badad1a0503931f8458416184549afa06b6"
+      }
+    }
+  },
+  "inventoryCheckedAt": "2026-11-26T21:09:29.294Z",
+  "inventory": [
+    {
+      "runtime": "antigravity",
+      "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json",
+      "latest": "1.5.18",
+      "previousObservation": "1.5.17",
+      "publishedInWindow": []
+    },
+    {
+      "runtime": "claude",
+      "source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest",
+      "latest": "2.1.332",
+      "previousObservation": "2.1.332",
+      "publishedInWindow": []
+    },
+    {
+      "runtime": "codex",
+      "source": "https://registry.npmjs.org/@openai/codex/latest",
+      "latest": "0.172.0",
+      "previousObservation": "0.172.0",
+      "publishedInWindow": []
+    },
+    {
+      "runtime": "cursor",
+      "source": "https://registry.npmjs.org/@cursor/sdk/latest",
+      "latest": "1.5.2",
+      "previousObservation": "1.5.2",
+      "publishedInWindow": [
+        [
+          "1.5.1",
+          "2026-11-25T22:16:22.712Z"
+        ],
+        [
+          "1.5.2",
+          "2026-11-26T02:27:20.361Z"
+        ]
+      ]
+    },
+    {
+      "runtime": "dsh",
+      "source": "https://registry.npmjs.org/@deepseek-ai/dsh/latest",
+      "latest": "0.2.2-rc.5",
+      "previousObservation": "0.2.2-rc.5",
+      "publishedInWindow": []
+    },
+    {
+      "runtime": "factory",
+      "source": "https://registry.npmjs.org/droid/latest",
+      "latest": "1.21.1",
+      "previousObservation": "1.21.0",
+      "publishedInWindow": [
+        [
+          "1.21.0",
+          "2026-11-25T23:39:48.095Z"
+        ],
+        [
+          "1.21.1",
+          "2026-11-26T05:26:22.593Z"
+        ]
+      ]
+    },
+    {
+      "runtime": "grok",
+      "source": "https://x.ai/cli/stable",
+      "latest": "1.0.92",
+      "previousObservation": "1.0.92",
+      "publishedInWindow": []
+    },
+    {
+      "runtime": "kimi",
+      "source": "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest",
+      "latest": "2.8.1",
+      "previousObservation": "2.8.0",
+      "publishedInWindow": [
+        [
+          "2.8.1",
+          "2026-11-26T11:55:36.675Z"
+        ]
+      ]
+    },
+    {
+      "runtime": "opencode",
+      "line": "v1",
+      "source": "https://registry.npmjs.org/opencode-ai/latest",
+      "latest": "1.19.6",
+      "previousObservation": "1.19.6",
+      "publishedInWindow": []
+    },
+    {
+      "runtime": "opencode",
+      "line": "v2",
+      "source": "https://registry.npmjs.org/@opencode/cli/latest",
+      "latest": "2.4.2",
+      "previousObservation": "2.4.2",
+      "publishedInWindow": [
+        [
+          "2.4.2",
+          "2026-11-26T00:46:05.780Z"
+        ]
+      ]
+    },
+    {
+      "runtime": "codebuddy",
+      "source": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest",
+      "latest": "2.187.0",
+      "previousObservation": "2.187.0",
+      "publishedInWindow": []
+    },
+    {
+      "runtime": "qoder",
+      "source": "https://registry.npmjs.org/@qoder-ai/qodercli/latest",
+      "latest": "1.1.99",
+      "previousObservation": "1.1.98",
+      "publishedInWindow": [
+        [
+          "1.1.99",
+          "2026-11-26T11:31:02.437Z"
+        ]
+      ]
+    },
+    {
+      "runtime": "qwen",
+      "source": "https://registry.npmjs.org/@qwen-code/qwen-code/latest",
+      "latest": "0.28.7",
+      "previousObservation": "0.28.4",
+      "publishedInWindow": [
+        [
+          "0.28.6",
+          "2026-11-26T05:06:56.292Z"
+        ],
+        [
+          "0.28.7",
+          "2026-11-26T18:58:13.495Z"
+        ]
+      ]
+    },
+    {
+      "runtime": "pi",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/latest",
+      "latest": "1.6.1",
+      "previousObservation": "1.6.1",
+      "publishedInWindow": []
+    },
+    {
+      "runtime": "pi-durable",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-durable/latest",
+      "latest": "1.6.1",
+      "previousObservation": "1.6.1",
+      "publishedInWindow": []
+    }
+  ],
+  "localLinux": {
+    "revision": "c8792876",
+    "runtimes": {
+      "Antigravity": {
+        "version": "1.5.18",
+        "behavior": {
+          "passed": 18,
+          "skipped": 2,
+          "failed": 0
+        },
+        "vendor": {
+          "passed": 22
+        }
+      },
+      "Factory": {
+        "version": "1.21.1",
+        "behavior": {
+          "passed": 20,
+          "skipped": 0,
+          "failed": 0
+        },
+        "vendor": {
+          "passed": 13
+        }
+      },
+      "Kimi": {
+        "version": "2.8.1",
+        "behavior": {
+          "passed": 16,
+          "skipped": 4,
+          "failed": 0
+        },
+        "vendor": {
+          "passed": 19
+        }
+      },
+      "Qwen": {
+        "version": "0.28.7",
+        "behavior": {
+          "passed": 17,
+          "skipped": 3,
+          "failed": 0
+        },
+        "vendor": {
+          "passed": 27
+        }
+      }
+    },
+    "piSdk": {
+      "typecheck": "passed",
+      "controlsPassed": 3,
+      "versions": {
+        "@earendil-works/pi-coding-agent": "1.6.1",
+        "undici": "8.12.4",
+        "@earendil-works/pi-ai": "1.6.1",
+        "@earendil-works/pi-durable": "1.6.1",
+        "@earendil-works/chord": "1.6.1"
+      }
+    },
+    "qwen": {
+      "nativeFreshAndResume": true,
+      "distinctPresetKeyNames": 14,
+      "lock": [
+        {
+          "phase": "warm-home initialize with held lock",
+          "elapsedMs": 5125,
+          "requests": 0
+        },
+        {
+          "phase": "first prompt blocked after initialize",
+          "lockHeld": true,
+          "requests": 0
+        },
+        {
+          "phase": "first prompt after releasing lock",
+          "outcome": "completed"
+        },
+        {
+          "phase": "ordinary later prompt with held lock",
+          "outcome": "completed"
+        }
+      ]
+    },
+    "kimiLoginPassed": 5,
+    "qoder": {
+      "version": "1.1.99",
+      "status": "no_offline_replay_requires_real_account",
+      "submittedPrompts": 0
+    }
+  }
+}
