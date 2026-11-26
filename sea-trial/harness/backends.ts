@@ -25,6 +25,8 @@ import { MOCK_DEFAULT_EFFORT, MOCK_EFFORT_LEVELS, startMockSession } from "../fi
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "./aimock.js";
 import { acpBackend } from "./acp-backends.js";
 import { grokSharedBackend } from "./grok-shared.js";
+import { createDimRuntime } from "../../packages/oar/src/community/dim/index.js";
+import { startDimAimock } from "./dim-aimock.js";
 import { opencodeSharedBackend } from "./opencode-shared.js";
 
 const claudeSession = claudeRuntime.session;
@@ -170,6 +172,21 @@ export async function selectBackend(target: string): Promise<Backend> {
         return listed.kind === "ok" ? { kind: "ok", models: listed.models.filter(model => model.id === FACTORY_AIMOCK_MODEL) } : listed;
       };
       return { aimock, runtime: { ...factoryRuntime, id: target, session: open, listModels } };
+    }
+    case "dim-aimock": {
+      // Community runtime: run locally against an installed `dima`; no CI job installs it.
+      const dim = createDimRuntime();
+      const aimock = await startDimAimock((mock) => {
+        mock.onMessage(/slow/u, { content: "ok" }, { latency: 900 });
+        mock.onMessage(/^(?![\s\S]*slow)[\s\S]*$/u, { content: "ok" }, { latency: 80 });
+      });
+      const open: Runtime["session"] = async (installation, options) => {
+        const session = await dim.session(installation, {
+          ...options, env: { ...options.env, ...aimock.env }, launchArgs: [...options.launchArgs ?? [], ...aimock.launchArgs],
+        });
+        return session;
+      };
+      return { aimock, runtime: { ...dim, id: target, session: open } };
     }
     case "antigravity-aimock": return acpBackend("antigravity");
     case "kimi-aimock": return acpBackend("kimi");

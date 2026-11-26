@@ -165,6 +165,11 @@ host adds one with its own deployment and credentials, so they are not in
         Cybion
       </a>
     </td>
+    <td align="center" width="112">
+      <a href="docs/runtimes/dim.md">
+        Dim
+      </a>
+    </td>
   </tr>
 </table>
 
