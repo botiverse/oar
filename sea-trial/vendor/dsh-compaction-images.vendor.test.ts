@@ -89,8 +89,15 @@ test.skipIf(!dshEnabled).each([true, false])("DSH abort reaches the active compa
       expect(await session.compact()).toMatchObject({ kind: "rejected", code: "busy" });
       expect(await session.abort()).toMatchObject({ kind: "accepted" });
     } finally { hold = false; provider.release(); }
-    if (!timeout) { expect(await wait).toMatchObject({ kind: "aborted" }); }
-    await expect.poll(() => session.status().value.kind).toBe("idle");
+    const outcome = await wait;
+    if (!timeout) { expect(outcome.kind).toBe("aborted"); }
+    // The caller can stop waiting before DSH delivers the terminal reply for this compact request.
+    const terminalReply = () => session.records().find(record =>
+      record.kind === "frame" && record.body.responseTo === outcome.request.id);
+    await expect.poll(terminalReply, { timeout: 30_000 }).toMatchObject({
+      body: { type: "dsh/compact/error", native: { name: "AbortError" } },
+    });
+    expect(session.status().value.kind).toBe("idle");
     await prompt(session, "after cancellation");
   }, { ...vision, homePatch: [{ id: "compaction-basic", config: { auto: false, retainTokens: 200, headroomTokens: 128, maxTokens: 1024 } }] });
 }, 90_000);
