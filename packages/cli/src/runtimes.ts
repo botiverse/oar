@@ -1,5 +1,5 @@
 import { createCursorRuntime, createRuntimeRegistry, defaultRuntimes as builtInRuntimes } from "@botiverse/oar";
-import { createMorphRuntime } from "@botiverse/oar/community";
+import { createDimRuntime, createMorphRuntime } from "@botiverse/oar/community";
 
 /**
  * Cursor on the `@cursor/sdk` this CLI depends on: in this process by
@@ -25,4 +25,5 @@ export const runtimes = createRuntimeRegistry([
   ...builtInRuntimes.list(),
   cursorRuntime(),
   createMorphRuntime(),
+  createDimRuntime(),
 ]);
