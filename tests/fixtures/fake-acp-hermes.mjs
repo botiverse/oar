@@ -211,9 +211,13 @@ function handleCancel(message) {
 
 function initializeResult(id) {
   log("initialize");
+  const meta = {
+    ...(process.env.FAKE_HERMES_STEER === undefined ? {} : { "hermes/steer": true }),
+    ...(process.env.FAKE_HERMES_COMPACT === undefined ? {} : { "hermes/compact": true }),
+  };
   result(id, {
     protocolVersion: 1,
-    ...(process.env.FAKE_HERMES_STEER === undefined ? {} : { _meta: { "hermes/steer": true } }),
+    ...(Object.keys(meta).length === 0 ? {} : { _meta: meta }),
     agentCapabilities: {
       loadSession: true,
       promptCapabilities: { image: true },
@@ -262,6 +266,22 @@ async function newSession(message) {
   afterAttach();
 }
 
+function handleCompact(message) {
+  log(`compact:${message.params?.sessionId}`);
+  const mode = process.env.FAKE_HERMES_COMPACT;
+  if (mode === "committed") {
+    result(message.id, { status: "committed", revision: 2, execution_generation: 2, target_session_id: "local-compacted-target" });
+  } else if (mode === "noop") {
+    result(message.id, { status: "noop" });
+  } else if (mode === "refused") {
+    result(message.id, { status: "refused", reason: "session_busy" });
+  } else if (mode === "malformed") {
+    result(message.id, { status: "committed" });
+  } else {
+    error(message.id, { code: -32_601, message: "unknown method: hermes/session/compact" });
+  }
+}
+
 function handleSteer(message) {
   log(`steer:${message.params.sessionId}:${message.params.text}`);
   if (process.env.FAKE_HERMES_STEER === "lost") {
@@ -291,6 +311,7 @@ function handleRequest(message) {
     case "session/set_config_option": configResult(message); break;
     case "session/prompt": handlePrompt(message); break;
     case "_hermes/session/steer": handleSteer(message); break;
+    case "_hermes/session/compact": handleCompact(message); break;
     case "session/cancel": handleCancel(message); break;
     default: error(message.id, { code: -32_601, message: `unknown method: ${message.method}` }); break;
   }

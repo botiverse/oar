@@ -5,11 +5,6 @@ import { hermesInstallation } from "./installation.js";
 import { hermesInstallationRefusals, hermesMeasuredMcpCredentials } from "./mcp-credentials.js";
 import { hermesRefusedSessionOptions } from "./options.js";
 
-const NO_MANUAL_COMPACTION = {
-  kind: "unsupported" as const,
-  reason: "Hermes exposes `/compress` in its ACP command list, but no structured completion or attribution contract has been verified.",
-};
-
 export const hermesRuntime = defineRuntime({
   id: "hermes",
   // `initialize` advertises image prompts and the gateway publishes
@@ -27,10 +22,8 @@ export const hermesRuntime = defineRuntime({
     // OAR measured (mcp-credentials.ts).
     mcpTransports: ["stdio"],
     mcpServerCredentialsVerified: hermesMeasuredMcpCredentials(installation),
-    manualCompaction: NO_MANUAL_COMPACTION,
     refusedSessionOptions: hermesInstallationRefusals(installation),
   }),
-  manualCompaction: NO_MANUAL_COMPACTION,
   brand: runtimeBrands.hermes,
   // Hermes owns provider authentication in its profile: API keys in
   // `$HERMES_HOME/.env`, OAuth/account credentials in `auth.json`, and the

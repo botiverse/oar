@@ -5,6 +5,7 @@ import { acpReportedEffort, acpReportedModel } from "../../shared/acp/model.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
 import { hermesInstallationRefusals } from "./mcp-credentials.js";
+import { hermesCompaction, hermesCompactionAdvertised } from "./compaction.js";
 import { hermesRefusedSessionOptions } from "./options.js";
 
 /**
@@ -37,6 +38,8 @@ export const hermesAcpProfile: AcpSessionProfile = {
   args: hermesAcpArgs,
   // A second session/prompt can become a new turn. Only the structured extension fences a steer.
   capabilities: { queue: { durable: false }, attribution: "opaque" },
+  compaction: hermesCompaction,
+  compactionAdvertised: hermesCompactionAdvertised,
   // oxlint-disable-next-line eslint/no-underscore-dangle -- ACP extension capability envelope.
   steerRequestAdvertised: initialized => asRecord(initialized._meta)?.["hermes/steer"] === true,
   steerRequest: ({ sessionId, input }) => ({ method: "_hermes/session/steer", params: { sessionId, text: input } }),

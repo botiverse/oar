@@ -85,18 +85,45 @@ test.each([false, true])("Hermes steers the branch without a second prompt (imag
   } finally { await session.dispose(); }
 });
 
-test.each(["lost", "idle"])("Hermes does not claim injection when the native receipt is %s", async mode => {
-  const logPath = path.join(scratch("oar-hermes-steer-receipt-"), "calls");
-  const session = await open({}, { FAKE_HERMES_STEER: mode, FAKE_HERMES_CALL_LOG: logPath });
+// oxlint-disable-next-line eslint/max-statements -- The three vendor outcomes and the no-prompt assertion share one negotiated control test.
+test.each(["committed", "noop", "refused"] as const)("Hermes negotiated native compaction reports the gateway mutation result: %s", async mode => {
+  const log = path.join(scratch(`oar-hermes-compact-${mode}-`), "calls.txt");
+  const session = await open({}, { FAKE_HERMES_COMPACT: mode, FAKE_HERMES_CALL_LOG: log });
+  // oxlint-disable-next-line typescript/unbound-method -- Bind the optional session control before invoking it.
+  const runCompact = session.compact?.bind(session);
   try {
-    const prompt = await session.prompt("hold");
-    assert.equal(prompt.kind, "accepted");
-    await expect.poll(() => readFileSync(logPath, "utf8")).toContain("prompt:hold");
-    const result = await session.steerOrQueue("correction");
-    assert.equal(result.landed, mode === "lost" ? "rejected" : "queued");
-    assert.equal(readFileSync(logPath, "utf8").includes("prompt:correction"), false);
+    assert.equal(typeof runCompact, "function");
+    const outcome = await runCompact?.();
+    if (mode === "committed") {
+      expect(outcome).toMatchObject({ kind: "completed" });
+    } else if (mode === "noop") {
+      expect(outcome).toMatchObject({ kind: "failed", code: "not_compacted" });
+    } else {
+      expect(outcome).toMatchObject({ kind: "rejected", code: "runtime_refused" });
+    }
+    const calls = readFileSync(log, "utf8");
+    expect(calls).toContain("compact:local-fake-hermes");
+    expect(calls).not.toContain("prompt:");
   } finally { await session.dispose(); }
 });
+
+test("Hermes without the negotiated compact extension has no compact member", async () => {
+  const session = await open();
+  try {
+    assert.equal("compact" in session, false);
+  } finally { await session.dispose(); }
+});
+
+test("Hermes does not release the turn fence after a malformed compression receipt", async () => {
+  const session = await open({}, { FAKE_HERMES_COMPACT: "malformed" });
+  try {
+    expect(await session.compact?.()).toMatchObject({ kind: "unconfirmed", code: "observation_failed" });
+    expect(await session.prompt("must not be dispatched")).toMatchObject({ response: { body: { kind: "rejected", code: "busy" } } });
+    assert.equal(session.records().some(record => record.kind === "frame"
+      && record.body.events.some(event => event.kind === "compaction_ended")), false);
+  } finally { await session.dispose(); }
+});
+
 
 afterEach(() => {
   for (const dir of tempDirs.splice(0)) {

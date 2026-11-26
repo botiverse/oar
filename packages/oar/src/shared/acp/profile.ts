@@ -25,6 +25,8 @@ export { acpMcpOpenGuard } from "./mcp-servers.js";
 export interface AcpSessionProfile extends AcpDerivedSessionHooks, AcpSteerRequestHooks {
   /** Native compaction control, absent when the installed protocol cannot prove completion. */
   readonly compaction?: (kernel: SessionKernel, runtime: AcpProcess, promptUsage: (response: JsonRecord) => RuntimeEventBody | null) => CompactionOperation;
+  /** Whether the initialized ACP connection advertised the profile's native compaction extension. */
+  readonly compactionAdvertised?: (initialized: JsonRecord) => boolean;
   /** Vendor facts on an extension notification; its envelope retains native attribution. */
   readonly projectExtension?: (method: string, params: JsonRecord) => readonly RuntimeEventBody[];
   /** Additional vendor facts on a session update; attribution remains the recorder's responsibility. */

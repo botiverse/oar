@@ -1,4 +1,5 @@
 /* oxlint-disable import/max-dependencies -- Session assembly wires the environment, process, terminal host, recorder and control machinery. */
+/* oxlint-disable max-lines -- ACP session assembly is intentionally kept in one lifecycle boundary. */
 import type { SessionCleanup } from "../../contracts/placement.js";
 import { appendCleanupFailure, cleanupFailureReason } from "../executable/process-cleanup.js";
 import { reportedStderr } from "../executable/reported-stderr.js";
@@ -125,7 +126,10 @@ export function finishAcpSession(
   // Bound only now: frames queued since the open answer may start a native turn, which needs the driver above.
   recorder.bind(kernel);
   const turnTerminals = acpTurnTerminals(options.endTurnProcessesOnAbort === true, kernel, terminalHost, () => turns.active());
-  const createCompaction = profile.compaction;
+  const createCompaction = profile.compaction !== undefined
+    && (profile.compactionAdvertised === undefined || profile.compactionAdvertised(opened.initialized))
+    ? profile.compaction
+    : undefined;
   if (createCompaction !== undefined) {
     compaction = manualCompaction(kernel, {
       busy: () => turns.active() !== null || turns.queued() || turns.pendingCancellation() !== null,

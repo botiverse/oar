@@ -54,9 +54,12 @@ consumed the text. With the extension, image attachments are referenced by their
 local paths in the steer text; the normal prompt still uses native image blocks.
 If no active turn takes the steer, queueing keeps the original images.
 OAR does not issue `/steer` as a second prompt or resend an ambiguous receipt.
-`Session.stopTask` is absent. Manual compaction
-is declared unsupported: `/compress` is advertised, but there is no structured
-completion or attribution contract.
+`Session.stopTask` is absent. Manual compaction is negotiated per connection:
+`initialize._meta["hermes/compact"]` must be `true` to expose `Session.compact`.
+The dedicated ACP control must return a committed mutation receipt, including
+the revision, execution generation and target identity. A native no-op is not
+completion. An ambiguous result leaves input blocked until the session is
+released; no request is replayed. Advertising `/compress` alone proves nothing.
 
 ## Session MCP servers
 
