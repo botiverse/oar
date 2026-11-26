@@ -1,27 +1,35 @@
 import { withQueryDeadline } from "../../shared/executable/query.js";
 import { refuseReaderEnvironment } from "../../shared/refuse-environment.js";
 import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
-import { cursorEffortParameter } from "./model.js";
+import { cursorEffortParameter, cursorFastParameter } from "./model.js";
 import { callRedaction, cursorSdkAccess, type CursorSdkSource } from "./access.js";
 import type { ModelListItem } from "./sdk.js";
 
 /**
- * Project `Cursor.models.list()` (SDK 1.0.35): `id` is the selector the SDK
- * accepts, the effort menu is the model's reasoning parameter
- * (`cursorEffortParameter`), and the default effort is that parameter's
- * value in the variant the catalog marks `isDefault`.
+ * Project `Cursor.models.list()` (SDK 1.0.35 / 1.4.1): `id` is the selector the
+ * SDK accepts, the effort menu is the model's reasoning parameter
+ * (`cursorEffortParameter`), `serviceTiers` carries `"fast"` when the model
+ * exposes parameter `fast` with value `"true"`, and `defaultEffort` /
+ * `defaultServiceTier` come from the variant the catalog marks `isDefault`.
  */
 export function projectCursorModels(models: readonly ModelListItem[]): ModelEntry[] {
   return models.map((model) => {
     const parameter = cursorEffortParameter(model);
+    const defaultVariant = model.variants?.find((variant) => variant.isDefault === true);
     const defaultEffort = parameter === null
       ? undefined
-      : model.variants?.find((variant) => variant.isDefault === true)?.params.find((param) => param.id === parameter.id)?.value;
+      : defaultVariant?.params.find((param) => param.id === parameter.id)?.value;
+    const fast = cursorFastParameter(model);
+    const supportsFast = fast?.values.includes("true") === true;
+    const defaultFast = supportsFast
+      && defaultVariant?.params.find((param) => param.id === "fast")?.value === "true";
     return {
       id: model.id,
       ...(model.displayName === "" || model.displayName === model.id ? {} : { displayName: model.displayName }),
       ...(parameter === null || parameter.levels.length === 0 ? {} : { effortLevels: parameter.levels }),
       ...(defaultEffort === undefined ? {} : { defaultEffort }),
+      ...(supportsFast ? { serviceTiers: ["fast"] } : {}),
+      ...(defaultFast ? { defaultServiceTier: "fast" } : {}),
     };
   });
 }

@@ -19,6 +19,7 @@ const given: Readonly<Record<RefusableSessionOption, Partial<SessionOptions>>> =
   additionalDirectories: { additionalDirectories: ["/extra"] },
   outputSchema: { outputSchema: {} },
   serviceTier: { serviceTier: "fast" },
+  serviceTierFallback: { serviceTier: "fast", serviceTierFallback: "default" },
   disallowedTools: { disallowedTools: ["native_tool"] },
   systemPrompt: { systemPrompt: "x" },
   appendSystemPrompt: { appendSystemPrompt: "x" },
@@ -54,7 +55,7 @@ test("every declared refusal is what session() rejects with", async () => {
   const declaring = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions !== undefined);
   assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "claude", "codebuddy", "codex", "cursor", "devin", "dsh", "factory", "grok", "kimi", "opencode", "pi", "qoder", "qwen"]);
   for (const runtime of declaring) {
-    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "partialUserConfiguration", "goals", "endTurnProcessesOnAbort", "fork", "nativeMemoryDefault", "sessionLogUpload", "nativePermissions", "userQuestions"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
+    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "serviceTierFallback", "additionalDirectories", "outputSchema", "name", "userConfiguration", "partialUserConfiguration", "goals", "endTurnProcessesOnAbort", "fork", "nativeMemoryDefault", "sessionLogUpload", "nativePermissions", "userQuestions"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
     for (const key of keys) {
       const option = refusalNames[key] ?? key;
       const opening = runtime.session(nowhere(runtime.id), { cwd: "/tmp", ...given[key] });
@@ -73,7 +74,7 @@ test("the declarations say which options each runtime refuses", () => {
     claude: ["endTurnProcessesOnAbort", "goals", "nativeMemoryDefault", "nativePermissions", "sessionLogUpload"],
     codebuddy: ["additionalDirectories", "appendSystemPrompt", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "serviceTier", "sessionLogUpload", "userConfiguration", "userQuestions"],
     codex: ["modelRequests", "nativeMemoryDefault", "sessionLogUpload", "userConfiguration"],
-    cursor: ["appendSystemPrompt", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "partialUserConfiguration", "serviceTier", "sessionLogUpload", "systemPrompt", "userQuestions"],
+    cursor: ["appendSystemPrompt", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "partialUserConfiguration", "serviceTierFallback", "sessionLogUpload", "systemPrompt", "userQuestions"],
     devin: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "serviceTier", "sessionLogUpload", "systemPrompt", "userConfiguration", "userQuestions"],
     dsh: ["endTurnProcessesOnAbort", "fork", "launchArgs", "modelRequests", "nativeMemoryDefault", "nativePermissions", "outputSchema", "serviceTier", "userConfiguration", "userQuestions"],
     factory: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "serviceTier", "sessionLogUpload", "userConfiguration", "userQuestions"],
