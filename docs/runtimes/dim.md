@@ -109,9 +109,22 @@ session's config options.
 Dim pushes every applied setting as `config_option_update`, and right after
 a model switch it answers an effort change with the previous level, pushing
 the applied one about a millisecond later. The profile therefore sets
-`confirmConfigOptionUpdates`: each setting waits for its notification, and
-an answer that still shows the previous value is read through the
-notification that confirmed the new one.
+`confirmConfigOptionUpdates`: each setting waits for its notification. The
+answer is recorded verbatim as it arrives, so the confirming notification
+recorded after it is what `effort()` reports, and the setting is checked
+against that notification.
+
+### Session MCP servers
+
+OAR accepts credential-free stdio and HTTP entries; `dima acp` advertises
+HTTP and SSE as well as stdio, and binds the entries to that session only.
+Entries with `env` or `headers` are refused (`mcpServerCredentials`)
+because where Dim keeps them is unverified. Server names are checked before
+the App Server starts.
+
+Dim names each MCP tool `mcp_temporary_<id>` for the model, without the
+server's name, so a prompt that names a server may cost the model a lookup
+before it picks the tool.
 
 ### Authentication and environment
 
@@ -134,7 +147,8 @@ A turn Dim stops for its credential is an `auth` failure that says which:
 `credential: "missing"` for "Missing credential environment variable",
 `credential: "rejected"` for "The provider rejected the credentials". An
 App Server that cannot start (an invalid model config, for example) fails
-the open with the last line of its log.
+the open with the last line of its log; the session's credentials are
+redacted from that message.
 
 `SessionOptions.env` reaches `dima acp` and the `dima runtime list` call
 that may start the App Server. Provider keys a model config reads
@@ -151,12 +165,8 @@ are a different CLI and are not candidates. `oar install dim` runs
 
 ## Known gaps
 
-- **Refused options**: `fork`, `systemPrompt`, `appendSystemPrompt`,
-  `additionalDirectories`, `disallowedTools`, `outputSchema`, `serviceTier`,
-  `name`, `goals`, `userConfiguration`, `nativePermissions`,
-  `userQuestions`, `modelRequests`, `mcpServerCredentials` and
-  `endTurnProcessesOnAbort` (reasons in
-  [options.ts](../../packages/oar/src/community/dim/options.ts)).
+- **Refused options**: the list and each reason are in
+  [options.ts](../../packages/oar/src/community/dim/options.ts).
 - **No steer, login, account usage, model listing, update check, compaction
   or session listing** through OAR, although the gateway advertises `session/list`,
   `session/fork` and `session/delete`.
@@ -188,6 +198,10 @@ are a different CLI and are not candidates. `oar install dim` runs
     across a resume, `deepseek-flash` with `max`, an unlisted level and an
     unknown model refused, and `oar run --model deepseek-v4-pro --effort
     max` writing a file with Dim's `write` tool, then resumed.
+  - MCP: a stdio and an HTTP echo server
+    (`tests/fixtures/echo-mcp-server.mjs`) in one session's `mcpServers`;
+    the model called both tools and answered with the strings only those
+    servers produce, and no server process outlived the session.
   - Images: a logging proxy showed the image reaching DeepSeek byte for
     byte; DeepSeek reads a real picture correctly through Dim. It misreads
     a tiny solid-color test image only behind Dim's long system prompt, the

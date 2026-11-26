@@ -1,14 +1,16 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test } from "vitest";
 import { UnsupportedOptionError } from "../../../packages/oar/src/contracts/errors.js";
+import { ModelConfirmationError } from "../../../packages/oar/src/contracts/model-confirmation-error.js";
 import { createDimRuntime } from "../../../packages/oar/src/community/dim/index.js";
 import { daemonLogTail, dimDaemonArgs } from "../../../packages/oar/src/community/dim/daemon.js";
 import { readDimVersion } from "../../../packages/oar/src/community/dim/installation.js";
 import { checkDimLaunchArgs } from "../../../packages/oar/src/community/dim/options.js";
-import { dimAcpProfile, dimConfigureModel, dimFailureOutcome, hasDimModelOption, needsDimFullAccess } from "../../../packages/oar/src/community/dim/session.js";
+import { dimConfigureModel, hasDimModelOption } from "../../../packages/oar/src/community/dim/model.js";
+import { dimAcpProfile, dimFailureOutcome, dimSession, needsDimFullAccess } from "../../../packages/oar/src/community/dim/session.js";
 import type { JsonRecord } from "../../../packages/oar/src/shared/json.js";
 
 // Shapes below are from dimcode 0.1.0-alpha.29 (experiments/dim-acp-probe.ts).
@@ -108,4 +110,53 @@ test("an App Server that exits at start is explained by the last line of the log
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// A fake `dima` whose failing `runtime list` echoes the session's key on stderr and in the log it names.
+function failingDima(dir: string): string {
+  const command = path.join(dir, "dima");
+  const log = path.join(dir, "a home", "daemon.log");
+  writeFileSync(command, `#!${process.execPath}
+const fs = require("node:fs");
+fs.mkdirSync(${JSON.stringify(path.dirname(log))}, { recursive: true });
+fs.writeFileSync(${JSON.stringify(log)}, "Error: provider rejected " + process.env.DEEPSEEK_API_KEY + "\\n");
+fs.writeFileSync(${JSON.stringify(path.join(dir, "started"))}, "");
+process.stderr.write("Error: key " + process.env.DEEPSEEK_API_KEY + " App Server exited (exit status: 1); see ${log}\\n");
+process.exit(1);
+`);
+  chmodSync(command, 0o755);
+  return command;
+}
+
+test.skipIf(process.platform === "win32")("a failed App Server start redacts the session's credentials from stderr and the log", async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "oar-dim-redact-"));
+  const key = "sk-test-0123456789abcdef0123456789";
+  try {
+    const opening = dimSession({ kind: "available", via: "executable", command: failingDima(dir), version: "0.1.0-alpha.29" }, { cwd: dir, env: { DEEPSEEK_API_KEY: key } });
+    const error = await opening.then(() => null, (rejection: unknown) => rejection);
+    assert.ok(error instanceof Error);
+    expect(error.message).toContain("[redacted] App Server exited");
+    expect(error.message).toContain("Error: provider rejected [redacted]");
+    expect(`${error.message}${error.stack ?? ""}`).not.toContain(key);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test.skipIf(process.platform === "win32")("an invalid MCP server name is refused before an App Server starts", async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "oar-dim-mcp-"));
+  try {
+    const opening = dimSession({ kind: "available", via: "executable", command: failingDima(dir), version: "0.1.0-alpha.29" }, { cwd: dir, mcpServers: [{ name: "", command: "x" }] });
+    await expect(opening).rejects.toThrow("empty name");
+    assert.equal(existsSync(path.join(dir, "started")), false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a model the option does not confirm is a ModelConfirmationError", async () => {
+  const response = { configOptions: [{ id: "model", category: "model", currentValue: "a", options: [{ value: "a" }, { value: "b" }] }] };
+  const opening = dimConfigureModel({ options: { cwd: "/w", model: "b" }, response, setModel: async () => response, setEffort: async () => ({}) });
+  await expect(opening).rejects.toBeInstanceOf(ModelConfirmationError);
+  await expect(opening).rejects.toMatchObject({ requested: "b", reported: "a" });
 });
