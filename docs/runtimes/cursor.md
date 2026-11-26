@@ -753,11 +753,45 @@ life of the session (`cursor`); OAR enumerates no native history.
 
 ### Service tiers
 
-`SessionOptions.serviceTier` is explicitly refused with
-`UnsupportedOptionError`, declared in `Runtime.refusedSessionOptions`.
-No per-session native setting plus applied-state readback has been verified
-for this adapter; `listModels` therefore advertises no service tiers. OAR
-does not silently ignore a requested tier or alter a global default.
+`SessionOptions.serviceTier` accepts `"fast"` and `"default"` (explicit opt-out)
+at open and resume, validated against the live `Cursor.models.list()` catalog:
+
+- **Discovery (`listModels`):** models whose `parameters` include `id === "fast"`
+  with value `"true"` expose `serviceTiers: ["fast"]`. When the catalog's
+  `isDefault: true` variant carries `{ id: "fast", value: "true" }` (for example
+  `composer-2`, `composer-2.5`, `grok-4.7`, `gpt-5.3-codex` on SDK 1.4.1),
+  `listModels` also exposes `defaultServiceTier: "fast"`.
+- **Control:** `"fast"` requires the resolved model (including aliases) to offer
+  `fast: "true"` and sends `{ id: "fast", value: "true" }` in
+  `ModelSelection.params`; `"default"` requires the model to be listed and sends
+  `{ id: "fast", value: "false" }` when the model exposes `fast: "false"` (or
+  accepts cleanly without injecting `fast` when the model has no `fast`
+  parameter). Other default or resumed parameters (`thinking`, `context`,
+  reasoning) are preserved. Omitting `serviceTier` preserves the SDK's catalog
+  default on new sessions and `latestRunModel` parameters on resume. Any other
+  tier value rejects before open.
+- **Readback boundary:** `@cursor/sdk@1.4.1` forwards `ModelSelection.params`
+  into `AgentRunRequest.requested_model.parameters` and records caller params in
+  `agent.model` / `run.wait().model` / `runs.model_params_json`, but exposes no
+  independent server-side applied-tier readback (`InteractionUpdate` carries no
+  tier field). OAR therefore emits **no** `service_tier` events on Cursor
+  (`Session.serviceTier()` and `SessionView.serviceTier` stay `null`;
+  `cursor/agent_opened` and `cursor/run_result` retain verbatim `model` +
+  `params` in `native`) and declares `serviceTierFallback` in
+  `Runtime.refusedSessionOptions`.
+- **Live evidence (2026-11-26, `@cursor/sdk@1.4.1`, Linux x64, `in_process`):**
+  `listModels()` reported `serviceTiers: ["fast"]` with
+  `defaultServiceTier: "fast"` on `composer-2`, `composer-2.5` and
+  `gpt-5.3-codex`, and `serviceTiers: ["fast"]` without `defaultServiceTier` on
+  `claude-opus-5-5`. Live turns verified `composer-2` with
+  `serviceTier: "default"` (`fast: "false"`), resume without `serviceTier`
+  (preserved `fast: "false"`), resume with `serviceTier: "fast"` (flipped to
+  `fast: "true"`), fresh `serviceTier: "fast"`, and `gpt-5.3-codex` with
+  `serviceTier: "default"` alone (`reasoning: "high"`, `fast: "false"`) and with
+  `effort: "low"` + `serviceTier: "default"` (`reasoning: "low"`,
+  `fast: "false"`). In every run `Session.serviceTier().value` stayed `null`
+  with zero `service_tier` events, and `serviceTierFallback: "default"` rejected
+  before open with `UnsupportedOptionError`.
 
 ### Models, instructions, and context
 
@@ -810,7 +844,7 @@ including a map whose only entries are `null` removals. In subprocess mode
 ([child environment](#child-environment)), and the agent's tools inherit
 it. `refusedSessionOptions` declares the in-process `env` refusal, and in
 both modes `fork`, `goals`, `endTurnProcessesOnAbort`, `outputSchema`, `name`,
-`serviceTier`, `systemPrompt`, `appendSystemPrompt` and `launchArgs`
+`serviceTierFallback`, `systemPrompt`, `appendSystemPrompt` and `launchArgs`
 ([refused session options](../spec/runtime-matrix.md#refused-session-options)),
 before any session opens. The
 `@botiverse/oar/agents` crew passes its depth variable through `env`, so it

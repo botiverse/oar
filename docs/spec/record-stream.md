@@ -1322,7 +1322,10 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   on maps to `fast`, off or cooldown to `default`. Its initialization
   readback confirms an open option privately, produces no event and is not
   recorded because it carries account details. The native turn frame
-  retains the reason for a downgrade.
+  retains the reason for a downgrade. Cursor emits no `service_tier` events
+  because `@cursor/sdk` only echoes caller-supplied `ModelSelection.params`
+  and exposes no independent server-side applied-tier report (`cursor/agent_opened`
+  and `cursor/run_result` retain verbatim `model` + `params` in `native`).
   `Session.serviceTier()` and `SessionView.serviceTier` read
   the latest root report, with null before any. Child reports do not change
   the root's selection. The voyage header's optional `serviceTier` is the
