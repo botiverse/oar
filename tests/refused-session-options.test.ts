@@ -103,7 +103,7 @@ test("the declarations say which options each runtime refuses", () => {
     pi: ["additionalDirectories", "dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "launchArgs", "nativeMemoryDefault", "nativePermissions", "outputSchema", "serviceTier", "sessionLogUpload", "userConfiguration", "userQuestions"],
     qwen: ["dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "userConfiguration", "userQuestions"],
     qoder: ["dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "userConfiguration", "userQuestions"],
-    cursor: ["appendSystemPrompt", "dshProvider", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "partialUserConfiguration", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "systemPrompt", "userQuestions"],
+    cursor: ["appendSystemPrompt", "dshProvider", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "partialUserConfiguration", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "systemPrompt", "userQuestions"],
   });
 });
 
@@ -144,7 +144,7 @@ test("entries without credentials are no mcpServerCredentials given, and every r
     const declared = declaredFor(runtime.id);
     return declared.mcpServers !== undefined || declared.mcpServerCredentials !== undefined;
   });
-  expect(refusing.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", "cursor", "devin", "hermes"]);
+  expect(refusing.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", "devin", "hermes"]);
 });
 
 // Some runtimes drop a server so named without a word (#395): every runtime

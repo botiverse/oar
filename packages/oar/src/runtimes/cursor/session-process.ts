@@ -1,4 +1,5 @@
 import type { RequestRecord, SessionOptions } from "../../contracts/session.js";
+import type { CredentialRedactor } from "../../shared/credential-redactor.js";
 import type { SessionKernel } from "../../shared/session-kernel.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
 import type { CursorSdkAccess, CursorSdkLease } from "./access.js";
@@ -11,9 +12,13 @@ import type { CursorChildExit } from "./subprocess/channel.js";
  * session's own child, which also answers the model and run lookups the open
  * makes; an open that fails ends it.
  */
-export async function openCursorSession(access: CursorSdkAccess, options: SessionOptions): Promise<{ readonly lease: CursorSdkLease; readonly agent: CursorAgent }> {
+export async function openCursorSession(
+  access: CursorSdkAccess,
+  options: SessionOptions,
+  credentials?: CredentialRedactor,
+): Promise<{ readonly lease: CursorSdkLease; readonly agent: CursorAgent }> {
   refuseSessionOptions(access.refusedSessionOptions, options);
-  const lease = await access.lease(options.env, "session");
+  const lease = await access.lease(options.env, "session", undefined, credentials);
   try {
     const agent = await openCursorAgent(lease.sdk, options);
     return { lease, agent };

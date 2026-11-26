@@ -864,27 +864,31 @@ bundled SDKs.
 
 ### Session MCP servers
 
-OAR passes credential-free stdio and HTTP entries to `Agent.create` and
-`Agent.resume`, keyed by name. Both execution modes refuse entries with
-nonempty `env` or `headers`. The credential isolation of SDK 1.4.1 has
-not been verified. The earlier SDK measurement below predates this refusal.
-[Mapping](../../packages/oar/src/runtimes/cursor/model.ts) and
-[open tests](../../tests/cursor/cursor-mcp-servers.test.ts).
+OAR passes stdio (`env`) and HTTP (`headers`) entries to `Agent.create` and
+`Agent.resume`, keyed by name, in both execution modes.
+[Mapping](../../packages/oar/src/runtimes/cursor/model.ts),
+[open tests](../../tests/cursor/cursor-mcp-servers.test.ts) and
+[isolation measurements](../../experiments/mcp-credential-admission/README.md).
 
-**Live evidence** ([probe](../../experiments/cursor-mcp.ts); SDK 1.3.1,
-Linux x64, `gpt-5.4-nano`, an existing login, 2026-11-11): one stdio and one
-http entry of the repo's echo MCP server, each with a synthetic credential.
-Asked to call both, Cursor's agent called both tools and their results came
-back, on create and again after `Agent.resume`; each echo carried the
-fingerprint of its entry's credential, so `env` and the `Authorization`
-header reached the servers; and no credential value appeared in any stream
-message or delta. After the run, neither synthetic credential was found as
-plain text in Cursor's local storage (`~/.cursor`, including the agent's
-`index.db`, `store.db` and their WAL files, `~/.config/cursor`, and its
-caches), where [antigravity](antigravity.md#session-mcp-servers) keeps them.
-That search does not rule out another encoding. Whether the SDK sends a
-local agent's MCP entries to Cursor's servers (its cloud agents send them
-with each run) is not observed.
+**Live evidence** (SDK 1.4.1, Linux x64, `gpt-5.4-nano`, direct `in_process`
+SDK call, isolated `HOME`, `TMPDIR` and workspace, 2026-11-26): one stdio
+(`env.OAR_ECHO_TOKEN`) and one loopback HTTP (`Authorization: Bearer`) entry of
+the repo's echo MCP server, each carrying a distinct canary value, plus an
+ordinary shell command (`env > tool-shell-env.txt`) in the same turn. Both MCP
+tools ran and returned the matching SHA-256 fingerprints. Neither canary (plain
+or base64), nor `Authorization` / `Bearer` / `OAR_ECHO_TOKEN` / `mcpServers` /
+`127.0.0.1`, appeared in the ordinary shell's environment, in any
+stream/delta/wait event, or in any file under the isolated `HOME`
+(`agent-transcripts/*.jsonl`, `sdk-agent-store/.../store.db` + `-wal`,
+`index.db` + `-wal`), workspace, or `TMPDIR`. Process-tree
+`/proc/<pid>/{cmdline,environ}` snapshots saw the stdio canary only in the
+stdio MCP server's own `environ` and saw the HTTP canary in no process. In
+`subprocess` mode OAR passes `mcpServers` to the child over Node IPC (never
+argv or env) and redacts MCP credentials from child stderr before tail
+truncation. Earlier [probe](../../experiments/cursor-mcp.ts) (SDK 1.3.1, Linux
+x64, `gpt-5.4-nano`, 2026-11-11) also verified delivery on both create and
+`Agent.resume`. Whether the SDK sends a local agent's MCP entries to Cursor's
+servers (its cloud agents send them with each run) is not observed.
 
 Earlier, against a hand-scripted stand-in for Cursor's backend
 (`CURSOR_BACKEND_URL`, Connect/protobuf; not in the repo), network-isolated:

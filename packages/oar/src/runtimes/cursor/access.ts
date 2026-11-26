@@ -1,7 +1,7 @@
 import type { OwnQueryProcess } from "../../shared/executable/query.js";
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type { SessionOptions } from "../../contracts/session.js";
-import { readEnvironmentCredential, rememberEnvironmentCredentials, sessionCredentialRedactor } from "../../shared/credential-redactor.js";
+import { readEnvironmentCredential, rememberEnvironmentCredentials, sessionCredentialRedactor, type CredentialRedactor } from "../../shared/credential-redactor.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { cursorRefusedSessionOptions, cursorSubprocessRefusedSessionOptions } from "./model.js";
 import { cursorSdkLoader, type CursorSdk } from "./sdk.js";
@@ -40,7 +40,7 @@ export interface CursorSdkAccess {
    * cannot be loaded. `session`: the lease is a session's, whose tools the
    * host ends after the child (one-shot calls run no tools).
    */
-  lease(env: SessionOptions["env"], use?: "session" | "call", own?: OwnQueryProcess): Promise<CursorSdkLease>;
+  lease(env: SessionOptions["env"], use?: "session" | "call", own?: OwnQueryProcess, credentials?: CredentialRedactor): Promise<CursorSdkLease>;
 }
 
 /** Why the in-process mode refuses a nonempty `env` for login, logout and the status. */
@@ -85,9 +85,9 @@ export function subprocessAccess(sdkModule: string, envBase: "inherit" | "clean"
     execution: "subprocess",
     refusedSessionOptions: cursorSubprocessRefusedSessionOptions,
     environment,
-    async lease(overlay, use, own) {
+    async lease(overlay, use, own, sessionCredentials) {
       const env = environment(overlay);
-      const credentials = sessionCredentialRedactor(overlay === undefined ? {} : { env: overlay });
+      const credentials = sessionCredentials ?? sessionCredentialRedactor(overlay === undefined ? {} : { env: overlay });
       const apiKey = readEnvironmentCredential(env, "CURSOR_API_KEY", credentials);
       const childEnv = apiKey === undefined ? env : sessionEnvironment({ CURSOR_API_KEY: null }, env);
       const channel = await openCursorChannel(sdkModule, childEnv, use === "session", own, credentials.redact, childProcess);

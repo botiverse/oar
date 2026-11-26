@@ -31,6 +31,18 @@ function windowMs(window: unknown): number | undefined {
   return undefined;
 }
 
+/**
+ * agy's `/usage` buckets report `remaining_fraction` and name each bucket
+ * "... Remaining" (for example "Weekly Limit Remaining"). OAR converts the
+ * fraction to `usedRatio`, so drop a trailing "Remaining" from the display
+ * label so hosts never show a used percentage under a "Remaining" title.
+ */
+function bucketLabel(raw: unknown): string {
+  if (typeof raw !== "string") { return "Limit"; }
+  const cleaned = raw.trim().replace(/(?:^|\s+)remaining$/iu, "").trim();
+  return cleaned === "" ? "Limit" : cleaned;
+}
+
 interface UsageReading {
   readonly windows: readonly AccountUsageWindow[];
   /** Every model group has a used-up bucket: no model has quota left. */
@@ -53,7 +65,7 @@ function readUsage(payload: unknown): UsageReading {
     for (const bucket of asRecordList(group.buckets)) {
       const remaining = asNumber(bucket.remaining_fraction);
       if (remaining === null || remaining < 0 || remaining > 1) { continue; }
-      const name = typeof bucket.name === "string" && bucket.name.trim() !== "" ? bucket.name.trim() : "Limit";
+      const name = bucketLabel(bucket.name);
       const reset = typeof bucket.reset_time === "string" ? utcInstantFromDate(new Date(bucket.reset_time)) : null;
       const durationMs = windowMs(bucket.window);
       groupExhausted ||= remaining <= 0;
