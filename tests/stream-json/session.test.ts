@@ -1,4 +1,6 @@
 import { expect, test } from "vitest";
+import { eventsOf } from "../../packages/oar/src/observe/events.js";
+import { viewOf } from "../../packages/oar/src/observe/session-view.js";
 import { claudeProjectionProfile, initialClaudeProjection, type ClaudeProjectionState } from "../../packages/oar/src/runtimes/claude/projection.js";
 import { withSessionCredentials } from "../../packages/oar/src/shared/session-credentials.js";
 import { streamJsonSession } from "../../packages/oar/src/shared/stream-json/session.js";
@@ -21,20 +23,49 @@ async function open(child: FakeLineProcess, overrides: Partial<typeof profile> =
   return session;
 }
 
+function expectAnsweredPermission(session: Awaited<ReturnType<typeof open>>, reply: Record<string, unknown>) {
+  expect(session.records().filter((record) => record.kind === "request")).toMatchObject([{ direction: "toRuntime", body: { kind: "open", placement: "auto" } }, { id: "permission", direction: "toApp", body: { kind: "native", type: "can_use_tool" } }]);
+  expect(session.records().filter((record) => record.kind === "response")).toMatchObject([{ body: { kind: "opened", placement: "isolated" } }, { requestId: "permission", body: { kind: "answered", native: reply } }]);
+  expect(session.records().flatMap((record) => eventsOf(record)).filter((event) => event.kind.startsWith("app_"))).toMatchObject([
+    { kind: "app_request", requestId: "permission", type: "can_use_tool" },
+    { kind: "app_answered", requestId: "permission" },
+  ]);
+  expect(viewOf(session.records()).pendingRequests).toEqual([]);
+  expect(Object.hasOwn(session, "steer")).toBe(false);
+}
+
 for (const answer of [{ behavior: "allow", updatedInput: { command: "echo ok" } }, { allowed: true }]) {
   test(`permission reply uses the profile's wire shape: ${JSON.stringify(answer)}`, async () => {
     const child = fakeLineProcess();
-    const session = await open(child, { permissionResponse: (id) => ({ type: "control_response", response: { subtype: "success", request_id: id, response: answer } }) });
+    const session = await open(child, {
+      appRequestResponse: (type, id) => type === "can_use_tool"
+        ? { type: "control_response", response: { subtype: "success", request_id: id, response: answer } }
+        : null,
+    });
     try {
       child.emit(`${JSON.stringify({ type: "control_request", request_id: "permission", request: { subtype: "can_use_tool", input: { command: "echo ok" } } })}\n`);
       const reply = { type: "control_response", response: { subtype: "success", request_id: "permission", response: answer } };
       expect(child.written).toEqual([`${JSON.stringify(reply)}\n`]);
-      expect(session.records().filter((record) => record.kind === "request")).toMatchObject([{ direction: "toRuntime", body: { kind: "open", placement: "auto" } }, { id: "permission", direction: "toApp", body: { kind: "native", type: "can_use_tool" } }]);
-      expect(session.records().filter((record) => record.kind === "response")).toMatchObject([{ body: { kind: "opened", placement: "isolated" } }, { requestId: "permission", body: { kind: "accepted", native: reply } }]);
-      expect(Object.hasOwn(session, "steer")).toBe(false);
+      expectAnsweredPermission(session, reply);
     } finally { await session.dispose(); }
   });
 }
+
+test("appRequestResponse handles non-permission subtypes, respects null, and leaves missing request_id unanswered", async () => {
+  const child = fakeLineProcess();
+  const session = await open(child, {
+    appRequestResponse: (type, id) => type === "elicitation"
+      ? { type: "control_response", response: { subtype: "success", request_id: id, response: { action: "decline" } } }
+      : null,
+  });
+  try {
+    child.emit(`${JSON.stringify({ type: "control_request", request_id: "elicit-1", request: { subtype: "elicitation", message: "Pick" } })}\n`);
+    child.emit(`${JSON.stringify({ type: "control_request", request_id: "perm-1", request: { subtype: "can_use_tool" } })}\n`);
+    child.emit(`${JSON.stringify({ type: "control_request", request: { subtype: "elicitation", message: "No id" } })}\n`);
+    expect(child.written).toEqual([`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: "elicit-1", response: { action: "decline" } } })}\n`]);
+    expect(viewOf(session.records()).pendingRequests.map((pending) => pending.type)).toEqual(["can_use_tool", "elicitation"]);
+  } finally { await session.dispose(); }
+});
 
 test("an absent permission policy preserves Claude's record-only behavior", async () => {
   const child = fakeLineProcess();

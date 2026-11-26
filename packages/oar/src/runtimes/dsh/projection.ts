@@ -1,3 +1,4 @@
+/* oxlint-disable eslint/max-lines -- One projection: the DSH wire frames, the events they become and the turn state they advance read together. */
 import type { FailureClass, FrameBody, RuntimeEventBody, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { asNumber, asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
 import { failureFromStatus } from "../../shared/failure-class.js";

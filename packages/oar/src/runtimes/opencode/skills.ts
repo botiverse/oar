@@ -1,11 +1,9 @@
 /* oxlint-disable oxc/no-map-spread -- Project only native metadata, never skill bodies or plugin errors. */
-import { randomBytes } from "node:crypto";
 import type { InventoryReader, SkillEntry } from "../../contracts/inventory.js";
 import { sessionEnvironment } from "../../shared/environment.js";
-import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { boolField, inventoryOk, inventoryRead, named, nativeRows, textField, unsupportedInventory, workspaceScope } from "../../shared/inventory.js";
-import { serveEnvironment } from "./provider-auth-server.js";
+import { openDiscoveryServer } from "./discovery-server.js";
 import { legacySkills } from "./skills-v1.js";
 import { opencodeVersionLine, parseOpencodeVersionLine, type OpencodeRelease } from "./version.js";
 import { opencodeSkillScopes } from "./skill-scope.js";
@@ -20,31 +18,6 @@ function projectSkills(value: unknown, major: 1 | 2): SkillEntry[] {
       ...boolField("disableModelInvocation", typeof skill.autoinvoke === "boolean" ? !skill.autoinvoke : undefined),
     };
   });
-}
-
-async function endpoint(child: LineProcess, signal: AbortSignal): Promise<string> {
-  const ready = Promise.withResolvers<string>();
-  signal.addEventListener("abort", () => { ready.reject(new Error("OpenCode discovery stopped")); }, { once: true });
-  child.onExit(() => { ready.reject(new Error("OpenCode discovery exited")); });
-  child.onLine((line) => {
-    const match = /^server listening on http:\/\/127\.0\.0\.1:([0-9]+)\/?$/u.exec(line);
-    const port = Number(match?.[1]);
-    if (Number.isInteger(port) && port > 0 && port <= 65_535) { ready.resolve(`http://127.0.0.1:${String(port)}`); }
-  });
-  const value = await ready.promise;
-  return value;
-}
-
-async function query(origin: string, password: string, cwd: string, signal: AbortSignal, path: string): Promise<JsonRecord[]> {
-  const response = await fetch(`${origin}${path}`, {
-    signal, redirect: "error", headers: {
-      authorization: `Basic ${Buffer.from(`opencode:${password}`).toString("base64")}`,
-      "x-opencode-directory": encodeURIComponent(cwd),
-    },
-  });
-  if (!response.ok) { throw new Error("OpenCode discovery HTTP failure"); }
-  const envelope = asRecord(await response.json());
-  return nativeRows(envelope?.data);
 }
 
 function pluginFailed(plugin: JsonRecord): boolean {
@@ -77,17 +50,7 @@ export const opencodeSkills: InventoryReader<SkillEntry> = async (installation, 
     if (release.major === 1) {
       return legacySkills(installation.command, scope, env, signal, async value => { const skills = await scopedSkills(value, release, scope.cwd, env); return skills; });
     }
-    const password = randomBytes(24).toString("base64url");
-    const child = own(spawnLineProcess(installation.command, ["serve", "--hostname", "127.0.0.1", "--port", "0"], {
-      cwd: scope.cwd, env: serveEnvironment(env, password), killTree: true, inheritStderr: false,
-    }));
-    const ready = endpoint(child, signal);
-    // Observe an early process failure before awaiting startup.
-    // oxlint-disable-next-line promise/prefer-await-to-then -- Readiness and process startup can reject independently.
-    void ready.catch(() => {});
-    await child.spawned;
-    const origin = await ready;
-    const read = async (path: string): Promise<JsonRecord[]> => { const rows = await query(origin, password, scope.cwd, signal, path); return rows; };
+    const read = await openDiscoveryServer(installation.command, scope.cwd, env, "skills", signal, own);
     // From 2.2.7 until 2.4.0, provider.list awaits Plugin.awaitActivation.
     // A successful empty provider catalog is also a completed activation barrier.
     await read("/api/provider");

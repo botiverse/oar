@@ -2,13 +2,25 @@ import { appendFile, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { claudeInstallation, defineRuntime, type RawEvent, claudeRuntime, codexRuntime } from "../../packages/oar/src/index.js";
+import { claudeInstallation, defineRuntime, eventsOf, initialSessionView, type RawEvent, reduceSessionView, claudeRuntime, codexRuntime } from "../../packages/oar/src/index.js";
 
 import { asRecord } from "../../packages/oar/src/shared/json.js";
-import { namespaceMcpToolCalls, startClaudeAimock, startCodexAimock, type RawProviderRequest } from "../harness/aimock.js";
+import { type LLMock, namespaceMcpToolCalls, startClaudeAimock, startCodexAimock, type RawProviderRequest } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
-import { CLASH_ECHO, ECHO_SERVER, echoesReceived, echoServers, EXPECTED_ECHOES, leakedCredentials, scriptEchoes, startHttpEcho, stdioEcho, STDIO_TOKEN } from "./support/echo-mcp.js";
+import { CLASH_ECHO, currentTurnSays, ECHO_SERVER, echoesReceived, echoServers, EXPECTED_ECHOES, leakedCredentials, scriptEchoes, startHttpEcho, stdioEcho, STDIO_TOKEN } from "./support/echo-mcp.js";
 import { structuralToolRound } from "./support/tool-round.js";
+
+const ELICITATION_SERVER = path.join(import.meta.dirname, "..", "..", "tests", "fixtures", "elicitation-mcp-server.mts");
+
+function scriptElicitations(mock: LLMock): void {
+  mock.on({ predicate: currentTurnSays(/call both elicit tools/u), hasToolResult: false }, {
+    toolCalls: [{ name: "mcp__elicit__ask", arguments: JSON.stringify({ mode: "form" }), id: "call_elicit_form" }],
+  });
+  mock.on({ hasToolResult: true, toolCallId: "call_elicit_form" }, {
+    toolCalls: [{ name: "mcp__elicit__ask", arguments: JSON.stringify({ mode: "url" }), id: "call_elicit_url" }],
+  });
+  mock.on({ hasToolResult: true, toolCallId: "call_elicit_url" }, { content: "elicitation handled" });
+}
 
 const claudeSession = claudeRuntime.session;
 const codexInstallation = codexRuntime.installation;
@@ -146,6 +158,49 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude mcpServers", (
       // writing under CLAUDE_CONFIG_DIR as they exit (ENOTEMPTY on rmdir, CI
       // 2026-10-07); retry like the other vendor tests' scratch directories.
       await rm(configDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+    }
+  }, 120_000);
+
+  test("an unattended MCP elicitation (form and url) is declined automatically without hanging the turn", async () => {
+    const env = await startClaudeAimock(scriptElicitations, { captureRaw: true });
+    try {
+      const session = await runtimeUnderTest(runtime, env.env).startSession({
+        mcpServers: [{ name: "elicit", command: process.execPath, args: [ELICITATION_SERVER] }],
+      });
+      try {
+        expect(await structuralToolRound(session, env.mock, "please call both elicit tools")).toEqual([
+          "request:prompt",
+          "response:accepted",
+          "tool_call_started:mcp__elicit__ask",
+          "request:native",
+          "response:answered",
+          "tool_call_ended",
+          "tool_call_started:mcp__elicit__ask",
+          "request:native",
+          "response:answered",
+          "tool_call_ended",
+          "turn_ended:completed",
+        ]);
+        const bodiesText = env.raw.map((request) => JSON.stringify(request.body)).join("\n");
+        expect(bodiesText).toContain("elicit:form action=decline");
+        expect(bodiesText).toContain("elicit:url action=decline");
+        const events = session.records().flatMap((entry) => eventsOf(entry));
+        const requestIds = events.flatMap((event) => event.kind === "app_request" && event.type === "elicitation" ? [event.requestId] : []);
+        const answerIds = events.flatMap((event) => event.kind === "app_answered" ? [event.requestId] : []);
+        expect(requestIds).toHaveLength(2);
+        expect(answerIds).toEqual(requestIds);
+        const view = session.records().reduce((acc, entry) => reduceSessionView(acc, entry), initialSessionView());
+        expect(view.pendingRequests).toEqual([]);
+        const parts = view.messages.flatMap((message) => message.kind === "turn"
+          ? message.sections.flatMap((section) => section.parts.filter((part) => part.kind === "app_request"))
+          : []);
+        expect(parts).toHaveLength(2);
+        expect(parts.every((part) => part.answered)).toBe(true);
+      } finally {
+        await session.dispose();
+      }
+    } finally {
+      await env.stop();
     }
   }, 120_000);
 });

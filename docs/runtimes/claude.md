@@ -61,7 +61,7 @@ provider's echoed authentication header across live delivery and replay.
 | User turn and `result` | The `prompt` request records intent. After native `command_lifecycle queued`, its turn starts at the matching `started`; otherwise the request remains the fallback start. The root `result` frame emits any `service_tier` and `usage` event (the root's tokens from the main loop's `usage`, the session total from `modelUsage` ([tokens](#token-totals)), and the context the root's latest model call sent ([context](#models-instructions-and-context))) before ending the turn with `turn_ended` (`aborted` while OAR's own interrupt is outstanding, `failed` on `is_error`, else `completed`; a model refusal is `model_refused`; a subscription limit is `quota` with any reported reset, [below](#usage-limits)). |
 | Subagent messages (`parent_tool_use_id`) | `agentPath = [...parentPath, taskCallId]` ([details](#observation-children-and-history)); `capabilities.attribution` is `attributed`. |
 | `tool_use` / `tool_result` blocks | A streamed `content_block_start` gives `tool_call_started` (`callId`, `tool`, no input); `input_json_delta.partial_json` gives append-only `tool_call_input_delta`; the completed `tool_use` gives `tool_call_input` with the whole input. Without a partial opening, the completed block gives one `tool_call_started` carrying its input. `tool_call_ended` (`callId`, `content`, `result`): `is_error: true` is `failed`; `false` or an absent field is `ok` ([evidence](#tool-call-outcome-reporting)). |
-| `control_request` / `control_response` | OAR's interrupt is an `abort` request record whose id is the `control_request` id; claude's `control_response` becomes its `accepted`/`rejected` response. A `control_request` from claude is recorded as a Frame plus an unanswered `toApp` request (or, with `questions: "ask"`, a host-owned question / an auto-denied approval): under `--dangerously-skip-permissions` no `can_use_tool` arrives, but an MCP server's `elicitation` does (2.1.292); `events()` reads it as `app_request` with the request subtype as `type`. A `control_cancel_request` (claude withdrawing a request it sent) reads as `app_request_cancelled`: on 2.1.292 an interrupt while an MCP server's `elicitation` waited was answered, then claude cancelled the elicitation under its `request_id`, then the turn's `result` followed. |
+| `control_request` / `control_response` | OAR's interrupt is an `abort` request record whose id is the `control_request` id; claude's `control_response` becomes its `accepted`/`rejected` response. A `control_request` from claude is recorded as a Frame plus a `toApp` request (`app_request` with the request subtype as `type`). For unattended MCP `elicitation` requests, OAR automatically sends `{ action: "decline" }` (matching Claude's Agent SDK default when no handler is configured) and records the `answered` response (`app_answered`), preventing hangs; other unexpected subtypes (such as `can_use_tool` under skip permissions) remain recorded and unanswered. A `control_cancel_request` (claude withdrawing an unanswered request it sent, observed on 2.1.292 when an interrupt arrived while an `elicitation` waited before auto-decline was added) reads as `app_request_cancelled`. |
 | `system/task_*` | `task_started`, `task_updated`, `task_ended` events for commands, subagents, workflow runs and backgrounded MCP calls (claude moves a main-conversation MCP call past two minutes to the background). A changed `task_progress.description` emits `task_updated`; repeated descriptions do not. `background_tasks_changed` and nested `workflow_progress` stay native. |
 | `command_lifecycle` | Read by `command_uuid` only for inputs OAR wrote as prompts (a `prompt`, a `queue()` written while idle, a held queue message a turn end drains), never for a steer. `queued` gives `input_queued { inputId }`, which only arms the pending input and changes no status; `started` gives `turn_active { inputId }`. `cancelled` before that input has `started` gives `input_dropped { inputId, reason: "turn_interrupted" }`. A replayed user message or `completed` before this write has received either `queued` or `started` proves an ignored duplicate input id and gives `input_dropped` with `reason: "runtime_refused"`, `failure: "invalid_request"` and a diagnostic `message`. Other `completed` frames, steer lifecycle frames, and `cancelled` after `started` remain native-only ([attribution](#prompt-steering-queueing-and-abort)). |
 | `system/init` | The reported model and service tier; additionally `turn_active` without input identity when a root turn starts on its own, including while a host prompt is still natively queued. A repeated init in an active turn gives no second start. |
@@ -642,9 +642,15 @@ changes no user settings file. Any other tier is refused before launch.
 only when it is true. `default` is an opt-out, never a menu entry.
 
 Before returning the session, OAR requires `on` for fast or `off` for
-default. `off`, `cooldown`, an absent report or a native rejection cannot
-confirm requested fast, and opening fails with both the request and native
-status/reason. The wait has the same 30-second active budget and bounded
+default. By default, `off`, `cooldown`, an absent report or a native rejection
+cannot confirm requested fast, and opening fails with both the request and
+native status/reason. With `SessionOptions.serviceTierFallback: "default"`,
+a successful `initialize` reporting `fast_mode_state` `off` or `cooldown` when
+`serviceTier: "fast"` was requested is accepted; absent/unknown states, unknown
+tier names, `initialize` errors, and timeouts still fail the open. Private
+`initialize` remains unrecorded, so `Session.serviceTier()` stays `null` until
+turn 1's `system/init` or `result` reports `default` or `fast`. The wait has
+the same 30-second active budget and bounded
 [SessionStart hook pause](#opening-with-sessionstart-hooks); failure stops the child.
 Native error answers to this `initialize` or the effort `get_settings`
 call are retained as `{ method, native }` in the thrown error's `cause`,
@@ -979,29 +985,34 @@ Native safety checks still apply: on Windows, 2.1.312 refused an
 approval, and `none` converted that request into a local denial ([observed
 tool result](https://github.com/botiverse/oar/actions/runs/40713945389/job/122906405704)).
 
-`--permission-prompt-tool` is refused before launch because OAR answers no
-tool approval. A host-supplied `--permission-prompts` must be `none`; unknown
-or missing mode values and combining a mode with `--dangerously-skip-permissions`
-are also refused with `UnsupportedOptionError` on `launchArgs`. This prevents
-waiting for a host permission answer; it does not bound hooks, model requests,
-tools or MCP elicitations. Unexpected native requests remain recorded and
-unanswered.
+`--permission-prompt-tool` in `launchArgs` is refused before launch: OAR has no
+interface for answering permission requests, and sets the flag itself for
+[user questions](#user-questions). A host-supplied
+`--permission-prompts` must be `none`; unknown or missing mode values and
+combining a mode with `--dangerously-skip-permissions` are also refused with
+`UnsupportedOptionError` on `launchArgs`. This prevents waiting for a host
+permission answer; it does not bound hooks, model requests, or tools. Unattended
+MCP `elicitation` requests are automatically declined with `{ action: "decline" }`,
+while other unexpected native requests remain recorded and unanswered.
 
-**Questions are the one host-answered channel** (`SessionOptions.questions:
-"ask"`, claude 2.1.284 and later; probed on 2.1.309 with a scripted provider,
-[question experiment](../../experiments/app-request-answering/README.md#questions-claude-root-agent-verified-2026-11-24)).
-The option sets `--permission-mode default --permission-prompt-tool stdio`
-itself and refuses a host permission flag beside it. Claude's question tool
-`AskUserQuestion` then arrives as a `can_use_tool` control request with
-`input.questions` and `requires_user_interaction`; `Session.answerQuestion`
-writes `{behavior: "allow", updatedInput: {...input, answers}}` keyed by the
-question text, and the model reads the answer back in the same turn. Claude
-acknowledges no reply, so the outcome is `unconfirmed`. The gate also routes
-tool APPROVALS: OAR denies each one natively and records the answer, never
-grants it, and `Session.answer` stays absent. A subagent's `AskUserQuestion`
-is refused by Claude itself ("not available inside subagents"), so only root
-questions occur. A question left unanswered stays pending; OAR has no policy
-answer for it.
+### User questions
+
+`SessionOptions.userQuestions: "host"` adds `--permission-prompt-tool stdio` to
+the bypass flag. Claude then offers `AskUserQuestion`, and each call arrives as
+a `can_use_tool` control request (`requires_user_interaction: true`) that
+waits; Bash and Write still run without one ([env] 2.1.274 and 2.1.332,
+[probe](../../experiments/user-questions-2026-11-25.md)). `answerQuestion`
+replies `{ behavior: "allow", updatedInput: { ...input, answers } }`, `answers`
+keyed by the question's text: one string each, several choices and free text
+joined with `, `. Declining replies `{ behavior: "deny", message }`, and the
+message is the tool result. An interrupt sends `control_cancel_request` for the
+open question before it answers the interrupt.
+
+The prompt target also makes `EnterPlanMode` and `ExitPlanMode` available.
+Entering needs no approval and leaving does, so a session that entered plan
+mode could not edit again; OAR disallows both, as they are without the target.
+Any other `can_use_tool` (a hook's `ask`) is denied at once. The option is
+refused with `--permission-mode` or `--permission-prompts` in `launchArgs`.
 
 **On resume, supply `--permission-mode` again.** OAR does not store
 `launchArgs`. Omitting the mode restores OAR's default bypass, so a previously
@@ -1766,14 +1777,12 @@ former only.
 7. **Tools and permissions.** Default `--dangerously-skip-permissions`, or
    explicit `default`, `dontAsk`, `acceptEdits` or `plan` with native local
    approval denial (`--permission-prompts none`); no host approval channel.
-   `questions: "ask"` is the one host-answered channel: Claude's own question
-   tool goes to `Session.answerQuestion`, while tool approvals are denied and
-   recorded.
    Reapply the mode on resume. Tool blocks map as in the
    [mapping](#high-level-mapping-to-oar); a `control_request` from claude is a
-   `toApp` request nobody answers. Under skip permissions no `can_use_tool`
-   has been observed; an MCP server's `elicitation` has (2.1.292), and claude
-   cancels it on an interrupt. Source: projection.
+   `toApp` request. OAR automatically declines MCP `elicitation` requests with
+   `{ action: "decline" }` (recorded as `answered` / `app_answered`), and leaves
+   other unexpected requests (such as `can_use_tool`) unanswered. Under skip
+   permissions no `can_use_tool` has been observed. Source: projection and session.
 8. **Extension points.** MCP, agents, skills, plugins, hooks, and permission
    callbacks exist natively; OAR passes session MCP servers (`--mcp-config`),
    tool denials (`--disallowed-tools`) and noninteractive native permission

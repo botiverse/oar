@@ -11,7 +11,7 @@ change travels.
 - **Review.** Every pull request needs an approval at its exact head:
   `stamp pr approve N --repo botiverse/oar --head SHA --base SHA`.
   @Cindy reviews scope and design for every other agent's OAR change; ask
-  her with `stamp pr review-request N --repo botiverse/oar --reviewer @Cindy`.
+  her with `stamp pr review-request N --repo botiverse/oar --reviewer @Cindy@open-agent-runtime`.
   Stamp also accepts an author's own approval with review evidence
   (`--evidence-file`); on OAR only @Cindy uses it, for her own pull requests,
   after verifying them herself and getting a second look.

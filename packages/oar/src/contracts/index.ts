@@ -1,3 +1,4 @@
+export type { AnswerQuestionOutcome, AnswerQuestionRejectionCode, UserQuestionAnswer, UserQuestionControl, UserQuestionItem, UserQuestionPrompt } from "./user-questions.js";
 export type { CompactionOptions, CompactionOutcome, ManualCompaction } from "./compaction.js";
 export type { AnswerOptions, AnswerOutcome, AnswerRejectionCode, AppQuestionAnswers, AppRequestAnswering, AppRequestDecision, AppRequestKind, QuestionAnswerOutcome } from "./answer.js";
 export type { GoalControl, AdapterGoalControl, GoalSnapshot, GoalStatus, KnownGoalStatus, GoalSetOptions } from "./goal.js";

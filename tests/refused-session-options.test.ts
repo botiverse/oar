@@ -33,6 +33,7 @@ const given: Readonly<Record<RefusableSessionOption, Partial<SessionOptions>>> =
   nativePermissions: { nativePermissions: "inherit" },
   modelRequests: { modelRequests: "latest" },
   questions: { questions: "ask" },
+  userQuestions: { userQuestions: "host" },
   piProvider: { piProvider: { id: "probe", api: "openai-completions", baseUrl: "http://127.0.0.1:9/v1", models: [{ id: "probe", contextWindow: 1000, maxTokens: 10 }] } },
   piCompaction: { piCompaction: { reserveTokens: 100 } },
   dshProvider: { dshProvider: { id: "probe", api: "openai-completions", baseUrl: "http://127.0.0.1:9/v1", models: [{ id: "probe", contextWindow: 1000 }] } },
@@ -65,7 +66,7 @@ test("every declared refusal is what session() rejects with", async () => {
   const declaring = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions !== undefined);
   assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "claude", "codebuddy", "codex", "cursor", "devin", "dsh", "factory", "grok", "hermes", "kimi", "opencode", "pi", "qoder", "qwen"]);
   for (const runtime of declaring) {
-    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "partialUserConfiguration", "goals", "endTurnProcessesOnAbort", "fork", "nativeMemoryDefault", "sessionLogUpload", "nativePermissions", "piProvider", "piCompaction", "dshProvider"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
+    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "partialUserConfiguration", "goals", "endTurnProcessesOnAbort", "fork", "nativeMemoryDefault", "sessionLogUpload", "nativePermissions", "questions", "userQuestions", "piProvider", "piCompaction", "dshProvider"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
     for (const key of keys) {
       const option = refusalNames[key] ?? key;
       const opening = runtime.session(nowhere(runtime.id), { cwd: "/tmp", ...given[key] });
@@ -88,21 +89,21 @@ test("the declarations say which options each runtime refuses", () => {
   // that depends on the release is in the installation's answer instead.
   const refused = Object.fromEntries(allRuntimes.list().map((runtime) => [runtime.id, Object.keys(runtime.refusedSessionOptions ?? {}).toSorted()]));
   assert.deepEqual(refused, {
-    antigravity: ["additionalDirectories", "disallowedTools", "dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "systemPrompt", "userConfiguration"],
+    antigravity: ["additionalDirectories", "disallowedTools", "dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "systemPrompt", "userConfiguration", "userQuestions"],
     claude: ["dshProvider", "endTurnProcessesOnAbort", "goals", "nativeMemoryDefault", "nativePermissions", "piCompaction", "piProvider", "sessionLogUpload"],
-    codebuddy: ["additionalDirectories", "appendSystemPrompt", "dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "userConfiguration"],
     codex: ["dshProvider", "modelRequests", "nativeMemoryDefault", "piCompaction", "piProvider", "sessionLogUpload", "userConfiguration"],
-    cursor: ["appendSystemPrompt", "dshProvider", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "partialUserConfiguration", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "systemPrompt"],
-    devin: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "systemPrompt", "userConfiguration"],
-    dsh: ["endTurnProcessesOnAbort", "fork", "launchArgs", "modelRequests", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "userConfiguration"],
-    factory: ["additionalDirectories", "disallowedTools", "dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "userConfiguration"],
-    grok: ["additionalDirectories", "disallowedTools", "dshProvider", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "userConfiguration"],
+    codebuddy: ["additionalDirectories", "appendSystemPrompt", "dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "userConfiguration", "userQuestions"],
+    devin: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "systemPrompt", "userConfiguration", "userQuestions"],
+    dsh: ["endTurnProcessesOnAbort", "fork", "launchArgs", "modelRequests", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "userConfiguration", "userQuestions"],
+    factory: ["additionalDirectories", "disallowedTools", "dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "userConfiguration", "userQuestions"],
+    grok: ["additionalDirectories", "disallowedTools", "dshProvider", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "userConfiguration", "userQuestions"],
     hermes: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "dshProvider", "endTurnProcessesOnAbort", "goals", "launchArgs", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "systemPrompt", "userConfiguration"],
-    kimi: ["disallowedTools", "dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "systemPrompt", "userConfiguration"],
-    opencode: ["disallowedTools", "dshProvider", "endTurnProcessesOnAbort", "goals", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "userConfiguration"],
-    pi: ["additionalDirectories", "dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "launchArgs", "nativeMemoryDefault", "nativePermissions", "outputSchema", "serviceTier", "sessionLogUpload", "userConfiguration"],
-    qoder: ["dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "userConfiguration"],
-    qwen: ["dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "userConfiguration"],
+    kimi: ["disallowedTools", "dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "systemPrompt", "userConfiguration", "userQuestions"],
+    opencode: ["disallowedTools", "dshProvider", "endTurnProcessesOnAbort", "goals", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "userConfiguration", "userQuestions"],
+    pi: ["additionalDirectories", "dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "launchArgs", "nativeMemoryDefault", "nativePermissions", "outputSchema", "serviceTier", "sessionLogUpload", "userConfiguration", "userQuestions"],
+    qwen: ["dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "userConfiguration", "userQuestions"],
+    qoder: ["dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "userConfiguration", "userQuestions"],
+    cursor: ["appendSystemPrompt", "dshProvider", "endTurnProcessesOnAbort", "env", "fork", "goals", "launchArgs", "mcpServerCredentials", "modelRequests", "name", "nativeMemoryDefault", "nativePermissions", "outputSchema", "partialUserConfiguration", "piCompaction", "piProvider", "serviceTier", "sessionLogUpload", "systemPrompt", "userQuestions"],
   });
 });
 
@@ -228,7 +229,7 @@ test("claude, codex and opencode can take fork, and they refuse one without resu
 
 test("the scripted runtime declares and refuses fork: a script keeps no conversation to copy", async () => {
   const runtime = scriptedRuntime({ turn: () => assert.fail("never opened") });
-  expect(runtime.refusedSessionOptions).toEqual({ fork: "a scripted runtime keeps no saved conversation to fork", modelRequests: "The scripted runtime sends no provider request" });
+  expect(runtime.refusedSessionOptions).toEqual({ fork: "a scripted runtime keeps no saved conversation to fork", modelRequests: "The scripted runtime sends no provider request", userQuestions: "The scripted runtime asks no questions" });
   await expect(runtime.session({ kind: "available", via: "bundled" }, { cwd: "/tmp", resume: "source", fork: {} })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "fork", message: "a scripted runtime keeps no saved conversation to fork" });
 });
 
@@ -263,7 +264,7 @@ test("subprocess Pi accepts a declared provider and credentialed mcpServers, and
   const rpc = createPiRuntime({ execution: "subprocess" });
   expect(Object.keys(rpc.refusedSessionOptions ?? {}).toSorted()).toEqual([
     "additionalDirectories", "dshProvider", "endTurnProcessesOnAbort", "fork", "goals", "launchArgs",
-    "modelRequests", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "serviceTier", "sessionLogUpload", "userConfiguration",
+    "modelRequests", "nativeMemoryDefault", "nativePermissions", "outputSchema", "piCompaction", "serviceTier", "sessionLogUpload", "userConfiguration", "userQuestions",
   ]);
   expect(() => {
     refuseSessionOptions(rpc.refusedSessionOptions ?? {}, { cwd: "/tmp", ...given.mcpServerCredentials });

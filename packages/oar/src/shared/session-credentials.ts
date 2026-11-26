@@ -39,6 +39,7 @@ function sessionCredentials(options: SessionOptions, context: SessionOpenContext
       ...(adapter.steer === undefined ? {} : { steer: guard(adapter.steer.bind(adapter), clean) }),
       ...(adapter.withdraw === undefined ? {} : { withdraw: guard(adapter.withdraw.bind(adapter), clean) }),
       ...(adapter.stopTask === undefined ? {} : { stopTask: guard(adapter.stopTask.bind(adapter), clean) }),
+      ...(adapter.answerQuestion === undefined ? {} : { answerQuestion: guard(adapter.answerQuestion.bind(adapter), clean) }),
       abort: guard(adapter.abort.bind(adapter), clean),
       dispose: guard(adapter.dispose.bind(adapter), clean),
       ...(adapter.lastModelRequest === undefined ? {} : { lastModelRequest: guard(adapter.lastModelRequest.bind(adapter), clean, true) }),

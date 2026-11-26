@@ -59,7 +59,8 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude host-answered 
 
       const outcome = await answerQuestion(request.requestId, { answers: { [question]: "Blue" } });
       expect(outcome.kind).toBe("unconfirmed"); // claude acknowledges no reply
-      expect(outcome.response?.body).toMatchObject({ kind: "answered", by: "host" });
+      const recorded = "response" in outcome ? outcome.response : undefined;
+      expect(recorded?.body).toMatchObject({ kind: "answered", by: "host" });
 
       await expect(awaitTurnEnd(session, prompt.seq)).resolves.toMatchObject({ kind: "completed" });
       const answered = events.find((event) => event.kind === "app_answered");

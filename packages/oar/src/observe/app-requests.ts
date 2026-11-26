@@ -1,7 +1,5 @@
 import { asRecord, asRecordList, type JsonRecord } from "../shared/json.js";
-import type { AppRequestKind } from "../contracts/answer.js";
-
-export type { AppRequestKind } from "../contracts/answer.js";
+import { claudeQuestion } from "../shared/user-question-prompt.js";
 
 /**
  * What a runtime→app request asks for, read off its `type`: the `type` of an
@@ -10,9 +8,7 @@ export type { AppRequestKind } from "../contracts/answer.js";
  * differently (ACP `session/request_permission`, codex
  * `item/commandExecution/requestApproval`, claude `can_use_tool`); only OAR
  * knows the mapping, so it lives here, as `classifyTool`'s does. Pure: the
- * request record stays the source of truth. The kind vocabulary itself is
- * part of the answer contract (contracts/answer.ts), so a host and an
- * adapter read the same words.
+ * request record stays the source of truth.
  *
  * - `approval`: may the agent go ahead with an action (a tool call, a command, a file change)?
  * - `question`: the agent, or an MCP server through it, asks the user for input.
@@ -21,6 +17,7 @@ export type { AppRequestKind } from "../contracts/answer.js";
  *   methods), so an unrecognised type is `unknown` rather than force-fit, and a
  *   host keeps showing it.
  */
+export type AppRequestKind = "approval" | "question" | "service" | "unknown";
 
 /**
  * Type → kind. The names are distinct across runtimes, so the type alone
@@ -62,8 +59,13 @@ const KINDS: ReadonlyMap<string, AppRequestKind> = new Map<string, AppRequestKin
   ["approval", "approval"],
 ]);
 
-/** Classify a runtime→app request by its `type` (an `app_request`'s method or subtype). */
-export function appRequestKind(type: string): AppRequestKind {
+/**
+ * Classify a runtime→app request by its `type` (an `app_request`'s method or
+ * subtype). claude's `can_use_tool` is an approval for every tool but its own
+ * question, which only the `body` tells; without one it stays an approval.
+ */
+export function appRequestKind(type: string, body?: unknown): AppRequestKind {
+  if (claudeQuestion(type, body) !== null) { return "question"; }
   return KINDS.get(type) ?? "unknown";
 }
 
@@ -71,6 +73,10 @@ type Texts = (body: JsonRecord) => unknown;
 
 function text(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() !== "" ? value : undefined;
+}
+
+function questionTexts(body: JsonRecord): string {
+  return asRecordList(body.questions).flatMap((question) => text(question.question) ?? []).join("\n");
 }
 
 /**
@@ -87,11 +93,10 @@ const TEXTS: ReadonlyMap<string, Texts> = new Map<string, Texts>([
   ["elicitation", (body) => asRecord(body.request)?.message],
   ["can_use_tool", (body) => asRecord(body.request)?.tool_name],
   ["mcpServer/elicitation/request", (body) => body.message],
-  ["item/tool/requestUserInput", (body) => asRecordList(body.questions).flatMap((question) => text(question.question) ?? []).join("\n")],
+  ["item/tool/requestUserInput", (body) => questionTexts(body)],
   ["item/commandExecution/requestApproval", (body) => body.command],
   ["elicitation/create", (body) => body.message],
   ["session/request_permission", (body) => asRecord(body.toolCall)?.title],
-  ["approval", (body) => body.tool ?? body.tool_name],
 ]);
 
 /**
@@ -102,6 +107,8 @@ const TEXTS: ReadonlyMap<string, Texts> = new Map<string, Texts>([
  * not hold them: never guessed.
  */
 export function appRequestText(type: string, body: unknown): string | undefined {
+  const asked = claudeQuestion(type, body);
+  if (asked !== null) { return text(questionTexts(asked)) ?? "AskUserQuestion"; }
   const record = asRecord(body);
   const read = TEXTS.get(type);
   return read === undefined || record === null ? undefined : text(read(record));

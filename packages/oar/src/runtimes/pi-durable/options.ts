@@ -32,6 +32,7 @@ export const piDurableRefusedSessionOptions: RefusedSessionOptions = {
   nativeMemoryDefault: "pi-durable has no built-in background auto-memory feature or below-user default layer",
   sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
   nativePermissions: "This adapter has no verified per-session switch to inherit native permission and sandbox settings",
+  userQuestions: "This adapter has no verified way for a host to answer the agent's questions",
 };
 
 function conversationId(value: number): value is ConversationId {

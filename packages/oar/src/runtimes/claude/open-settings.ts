@@ -42,14 +42,14 @@ function refusalFor(answer: JsonRecord | Error, option: Option, requested: strin
   }
   if (option === "modelRequests") { return "Claude could not confirm its model request capture settings"; }
   if (option === "effort") { return claudeEffortRefusal(requested, answer); }
-  if (option === "serviceTier") { return claudeServiceTierRefusal(requested, answer); }
+  if (option === "serviceTier") { return claudeServiceTierRefusal(requested, answer, options.serviceTierFallback); }
   const response = asRecord(answer.response);
   if (response?.subtype !== "success") {
     return option === "mcpServers"
       ? `claude could not initialize MCP config (${typeof response?.error === "string" ? response.error : "no success answer"})`
       : `claude could not resume ${requested} (initialize: ${typeof response?.error === "string" ? response.error : "no success answer"})`;
   }
-  return options.serviceTier === undefined || option === "mcpServers" ? null : claudeServiceTierRefusal(options.serviceTier, answer);
+  return options.serviceTier === undefined || option === "mcpServers" ? null : claudeServiceTierRefusal(options.serviceTier, answer, options.serviceTierFallback);
 }
 
 /** Successful readbacks contain private configuration or account details, never error diagnostics. */

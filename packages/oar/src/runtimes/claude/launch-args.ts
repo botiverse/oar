@@ -18,7 +18,7 @@ const MANAGED: ReadonlyMap<string, string> = new Map([
   ["-r", "use SessionOptions.resume"],
   ["--session-id", "OAR assigns the session id"],
   ["--fork-session", "use SessionOptions.fork with resume: OAR assigns the fork's id so Session.id reports it"],
-  ["--permission-prompt-tool", "OAR has no interface for answering permission requests"],
+  ["--permission-prompt-tool", "OAR sets it for SessionOptions.userQuestions, and has no interface for answering permission requests"],
   ["--print", "OAR drives claude in print mode over stream-json already"],
   ["-p", "OAR drives claude in print mode over stream-json already"],
   ["--input-format", "OAR drives claude over stream-json"],
@@ -63,6 +63,14 @@ export function claudeSettingsArgs(settings: JsonRecord, launchArgs: readonly st
     throw new UnsupportedOptionError("launchArgs", "claude launchArgs cannot include --settings when OAR supplies session settings");
   }
   return ["--settings", JSON.stringify(settings)];
+}
+
+/** A permission mode brings `--permission-prompts none`, under which claude asks no one. */
+export function refuseQuestionLaunchArgs(launchArgs: readonly string[] | undefined): void {
+  const flag = (launchArgs ?? []).map((arg) => arg.split("=", 1)[0]).find((name) => name === "--permission-mode" || name === "--permission-prompts");
+  if (flag !== undefined) {
+    throw new UnsupportedOptionError("userQuestions", `claude cannot ask questions with ${flag} in launchArgs: it turns permission prompts off`);
+  }
 }
 
 /** Keep explicit native modes noninteractive; omission preserves OAR's default bypass. */

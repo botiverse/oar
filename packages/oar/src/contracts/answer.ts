@@ -1,3 +1,4 @@
+import type { AnswerQuestionOutcome, UserQuestionAnswer } from "./user-questions.js";
 import type { RequestRecord, ResponseRecord } from "./records.js";
 
 /**
@@ -61,6 +62,26 @@ export type AppRequestDecision =
 export interface AppQuestionAnswers {
   readonly answers: Readonly<Record<string, string | readonly string[]>>;
 }
+
+/**
+ * What a host hands `Session.answerQuestion`, in either of the two dialects a
+ * host may hold questions in:
+ *
+ * - `AppQuestionAnswers` (this contract): per question id, the option label(s)
+ *   or free text. Selected by `SessionOptions.questions: "ask"`, whose outcome
+ *   carries OAR's receipt evidence (`QuestionAnswerOutcome`).
+ * - `UserQuestionAnswer` (contracts/user-questions.ts): the same answer, or an
+ *   explicit decline. Selected by `SessionOptions.userQuestions: "host"`,
+ *   whose outcome is `AnswerQuestionOutcome`.
+ *
+ * Both dialects are accepted by either option, so a host never has to know
+ * which mechanism an adapter was built on; the ANSWER an adapter writes to the
+ * runtime is the same one.
+ */
+export type HostQuestionAnswer = AppQuestionAnswers | UserQuestionAnswer;
+
+/** The outcome a host reads: `QuestionAnswerOutcome` for `questions: "ask"`, `AnswerQuestionOutcome` for `userQuestions: "host"`. */
+export type HostQuestionAnswerOutcome = QuestionAnswerOutcome | AnswerQuestionOutcome;
 
 /** Bounds one `Session.answer` / `Session.answerQuestion` call. Neither cancels work the runtime already began. */
 export interface AnswerOptions {

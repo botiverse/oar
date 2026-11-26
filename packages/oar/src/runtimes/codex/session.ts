@@ -12,6 +12,7 @@ import { acceptCodexSteer, codexUserInput, codexQueueRefusal } from "./input-del
 import { inputImagesRefusal } from "../../shared/input-images.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
+import { refuseSessionOptions } from "../../shared/session-options.js";
 import { newSessionLinks } from "../../shared/session-links.js";
 import { startAppServerClient, type RpcOutcome } from "./app-server-client.js";
 import { CODEX_SETTINGS_REPORT_MS, codexLaunchSandboxMode, codexOpenReadback, codexResumeEffortRefusal, codexThreadName, codexThreadOpen } from "./open.js";
@@ -20,12 +21,11 @@ import { prepareCodexOpenParams } from "./open-config.js";
 import { missingDirectoryError, nameThread, openThread, rpcControl, updateThreadEffort, type RpcControlPlan } from "./rpc-control.js";
 import { codexControlRefusal, codexVersion } from "./refusal.js";
 import { codexServerRequests } from "./runtime-requests.js";
+import { createUserQuestions, userQuestionAnswering } from "../../shared/user-questions.js";
+import { CODEX_QUESTION_CONFIG, codexQuestionWithdrawn, codexUserQuestionRefusal } from "./user-questions.js";
 import { codexTurnProcesses, refuseSharedTurnProcesses } from "./turn-processes.js";
-/*
- * App-server v2: RPC replies answer controls synchronously before later notifications.
- * Model/effort read-back: open.ts. Reachability: recorded exit/dispose.
- * Native mappings: docs/runtimes/codex.md.
- */
+/* App-server v2: RPC replies answer controls synchronously before later notifications. Model/effort read-back: open.ts.
+ * Reachability: recorded exit/dispose. Native mappings: docs/runtimes/codex.md. */
 interface CodexSessionState {
   /** The prompt request whose turn is running; null while idle or during a spontaneous turn. */
   active: RequestRecord | null;
@@ -40,12 +40,13 @@ interface CodexSessionState {
 export const codexSession: StartSession = withSessionCredentials(async (installation, options, credentials, context) => {
   if (installation.via !== "executable") { throw new Error("The codex session adapter needs an executable installation"); }
   refuseSharedTurnProcesses(options, context);
+  refuseSessionOptions(codexUserQuestionRefusal(installation.version), options);
   // Threads persist so a later SessionOptions.resume can reattach; the thread
   // id is the runtime-native identity and becomes Session.id (open.ts builds
   // the request, and refuses what it cannot build before anything starts).
   const sandboxMode = codexLaunchSandboxMode(options);
   const { method: openMethod, params: openParams, redact } = codexThreadOpen(options, sandboxMode);
-  const configOverrides = { ...(sandboxMode === "inherit" ? {} : { sandbox_mode: `"${sandboxMode}"` }), ...(options.goals === true ? { "features.goals": "true" } : {}) };
+  const configOverrides = { ...(sandboxMode === "inherit" ? {} : { sandbox_mode: `"${sandboxMode}"` }), ...(options.goals === true ? { "features.goals": "true" } : {}), ...(options.userQuestions === "host" ? CODEX_QUESTION_CONFIG : {}) };
   // Client errors redact the MCP credentials carried by the open config.
   const client = startAppServerClient(installation.command, options.env, configOverrides, options.cwd, { redact, ...(options.launchArgs === undefined ? {} : { launchArgs: options.launchArgs }) });
   const cleanup: { reason?: string } = {};
@@ -90,6 +91,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       // baseline this Session's token totals count from (projection.ts, #169).
       projection: initialCodexProjection(threadId, openMethod),
     };
+    const questions = options.userQuestions === "host" ? createUserQuestions(kernel) : undefined;
     const tasks = codexTaskControl(kernel, client, () => state.projection.subagents);
     const nativeBusy = (): boolean => state.active !== null || state.spontaneous;
     let compactOperation: ReturnType<typeof codexCompaction> | null = null;
@@ -126,11 +128,12 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       }
       const { state: nextProjection, commands } = foldCodexNotification(state.projection, method, params);
       state.projection = nextProjection;
+      const withdrawn = codexQuestionWithdrawn(questions, method, params);
       const links = newSessionLinks(kernel, commands.flatMap((command) => command.kind === "link" ? [command.edge] : []));
       for (const command of commands) {
         switch (command.kind) {
           case "frame":
-            kernel.frame({ ...command.body, events: [...command.body.events, ...links] }, {
+            kernel.frame({ ...command.body, events: [...command.body.events, ...withdrawn, ...links] }, {
               ...(command.sessionId === undefined ? {} : { sessionId: command.sessionId }),
               ...(command.spanId === undefined ? {} : { spanId: command.spanId }),
             });
@@ -144,10 +147,9 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       if (isRoot && method === "turn/completed") { turnProcesses.turnCompleted(params); }
       if (isRoot && method === "thread/settings/updated") { settingsWaiter?.(params); }
     };
-    const onServerRequest = codexServerRequests(kernel, client);
-    // Registering flushes everything held so far in wire order: the frames
-    // from before the thread existed, then the open event (the mark placed at
-    // the reply), then whatever codex wrote after the reply.
+    const onServerRequest = codexServerRequests(kernel, client, questions);
+    // Registering flushes everything held so far in wire order: the frames from before the thread existed,
+    // then the open event (the mark placed at the reply), then whatever codex wrote after the reply.
     client.handle({ onNotification, onServerRequest });
     client.onExit((code, reason) => {
       abortFallback.clear();
@@ -268,6 +270,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       // No withdraw: the queue is codex's own, and thread/queue/delete is experimental and not live-verified (docs/runtimes/input-cancellation.md).
       abort: via(turnProcesses.aborting(abortPlan)),
       stopTask: tasks.stop,
+      ...(questions === undefined ? {} : { answerQuestion: userQuestionAnswering(questions) }),
       rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
       records: () => kernel.records(),
       graph: () => kernel.graph(),

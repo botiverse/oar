@@ -19,6 +19,7 @@ export const grokRefusedSessionOptions: RefusedSessionOptions = {
   nativeMemoryDefault: "Grok has no verified settings layer below user configuration for cross-session memory",
   sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
   nativePermissions: "This adapter has no verified per-session switch to inherit native permission and sandbox settings",
+  userQuestions: "This adapter has no verified way for a host to answer the agent's questions",
 };
 
 export function grokSessionCapabilities(installation: AvailableInstallation): SessionCapabilityDeclaration {

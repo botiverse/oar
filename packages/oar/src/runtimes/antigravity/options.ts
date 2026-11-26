@@ -28,4 +28,5 @@ export const antigravityRefusedSessionOptions: RefusedSessionOptions = {
   nativeMemoryDefault: "Antigravity has no verified settings layer below user configuration for native memory",
   sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
   nativePermissions: "This adapter has no verified per-session switch to inherit native permission and sandbox settings",
+  userQuestions: "This adapter has no verified way for a host to answer the agent's questions",
 };

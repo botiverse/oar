@@ -1,5 +1,6 @@
 import { appendStartupStderr, sessionExitReason } from "../executable/reported-stderr.js";
 import { streamJsonAppRequest } from "./permission.js";
+import { createUserQuestions, userQuestionAnswering } from "../user-questions.js";
 import { streamJsonResultReadback } from "./result-readback.js";
 import { writeHeldInput, type HeldStreamJsonInput } from "./held-input.js";
 import { streamJsonTaskControl } from "./task-control.js";
@@ -28,6 +29,8 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
 ): Promise<Session> {
   const kernel = profile.kernel ?? credentials.kernel(sessionId);
   const tasks = profile.stopTask === undefined ? undefined : streamJsonTaskControl(kernel, child, profile.stopTask);
+  const questions = profile.questionReply === undefined ? undefined : createUserQuestions(kernel);
+  const answerQuestion: Session["answerQuestion"] = profile.answerQuestion ?? (questions === undefined ? undefined : userQuestionAnswering(questions));
   const userMessage = profile.userMessage ?? streamJsonUserMessage;
   const state: StreamJsonSessionState<S> = { child, active: null, projection: profile.initial };
   // Hold queues until turn end; active-turn writes may steer or become an irreversible native queue.
@@ -102,6 +105,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
             writtenQueues.delete(cancelled.inputId);
             if (state.active !== null && cancelled.inputId === (state.active.body.kind === "compact" ? state.active.id : ("inputId" in state.active.body ? state.active.body.inputId : undefined))) { state.active = null; }
           }
+          for (const event of command.body.events) { if (event.kind === "app_request_cancelled") { questions?.withdraw(event.requestId); } }
           const record = kernel.frame(correlated ? { ...command.body, responseTo: nativeResponse } : command.body, { agentPath: command.agentPath, receivedAt });
           if (record.agentPath.length > 0) { break; }
           ended ||= closes;
@@ -124,7 +128,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
         }
         case "toApp":
           if (profile.appRequest?.(command.id, command.type, message) !== true) {
-            streamJsonAppRequest(kernel, child, command.id, command.type, message, profile.permissionResponse);
+            streamJsonAppRequest(kernel, child, command.id, command.type, message, profile, questions);
           }
           break;
         default:
@@ -184,6 +188,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     capabilities,
     ...(compaction === null ? {} : { compact: compaction.compact }),
     ...(tasks === undefined ? {} : { stopTask: tasks.stop }),
+    ...(answerQuestion === undefined ? {} : { answerQuestion }),
     prompt: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
       if (observingCancellation !== null) { await waitForCancellation(); }
       const body = { kind: "prompt" as const, input, ...inputOptions };
@@ -282,7 +287,6 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     resources: child.resources,
     ...(profile.lastModelRequest === undefined ? {} : { lastModelRequest: profile.lastModelRequest }),
     ...(profile.contextBreakdown === undefined ? {} : { contextBreakdown: profile.contextBreakdown }),
-    ...(profile.answerQuestion === undefined ? {} : { answerQuestion: profile.answerQuestion }),
     dispose: async () => {
       await kernel.dispose(async () => {
         profile.disposing();

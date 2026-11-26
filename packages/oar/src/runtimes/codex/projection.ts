@@ -202,8 +202,8 @@ function viewsFor(state: CodexProjectionState, reporter: string, method: string,
       return typeof params.itemId === "string"
         ? [{ kind: "tool_call_progress", callId: params.itemId, ...(typeof params.delta === "string" ? { outputDelta: params.delta } : {}) }]
         : [];
-    // OAR answers every request as it arrives, so this follows that answer.
-    // It withdraws nothing; the answer is the request's response record.
+    // After OAR's own answer this withdraws nothing; for a question the host
+    // has not answered yet, session.ts adds the cancellation to this frame.
     case "serverRequest/resolved":
       return [];
     case "thread/compacted":

@@ -41,34 +41,18 @@ export interface NodeScriptChild {
 const STDERR_DRAIN_MS = 250;
 
 /**
- * Run `script` with this host's own Node (`process.execPath -e script
- * argument`), stdin ignored, stdout and stderr piped (stdout is drained
- * unread, stderr kept as a tail), and a Node IPC channel with `advanced`
- * serialization. The child is spawned detached on every platform. On POSIX
- * it leads its own process group. On Windows Node otherwise puts it in a job
- * object that ends it together with a dying host, before it can end its own
- * tree; the cost is that a detached Windows child has no console, so a
- * console program it starts without `windowsHide` may open a visible window
- * (process-signals.ts). The script itself must end its tree when its IPC
- * channel disconnects (the host died, SIGKILL included): nothing in the host
- * can then. It is tracked with `trackOwnedProcess`, so a host that calls
- * `process.exit` still ends it and its descendants. On any exit the child's
- * process group is sent SIGKILL (POSIX), which reaches what is left of it.
- * With `marker` (an `environment-marker.ts` entry the caller put in `env`),
- * every process of this user still carrying it is sent SIGKILL once the
- * child exited, for whatever reason (an asynchronous `/proc` scan, repeated
- * until a pass finds none, at most five), and from the host's own `exit`
- * hook (Linux only). The
- * caller sets the environment, including `ELECTRON_RUN_AS_NODE=1` when
- * `process.execPath` may be Electron. Throws in a compiled single executable
- * host (node-eval.ts), which cannot run one.
+ * Spawn `command` with `args`, stdin ignored, stdout and stderr piped (stdout
+ * drained unread, stderr kept as an 8 KiB tail), and a Node IPC channel with
+ * `advanced` serialization. The child is spawned detached on every platform:
+ * on POSIX it leads its own process group; on Windows Node otherwise puts it
+ * in a job object that ends it together with a dying host before it can end
+ * its own tree (process-signals.ts). The child itself must end its tree when
+ * its IPC channel disconnects. Tracked with `trackOwnedProcess`,
+ * `processShutdown({ killTree: true })`, and optional Linux environment marker
+ * sweeping (`marker`).
  */
-export function spawnNodeScript(script: string, argument: string, env: NodeJS.ProcessEnv, marker?: string): NodeScriptChild {
-  const node = nodeEvalExecutable();
-  if (node === null) {
-    throw new Error("this host is a compiled single executable (Node SEA or Bun standalone): its executable would start the application again instead of a Node script, so it cannot run a Node script child");
-  }
-  const child = spawnChecked(() => spawn(node, ["-e", script, argument], {
+export function spawnIpcChild(command: string, args: readonly string[], env: NodeJS.ProcessEnv, marker?: string): NodeScriptChild {
+  const child = spawnChecked(() => spawn(command, [...args], {
     env,
     stdio: ["ignore", "pipe", "pipe", "ipc"],
     serialization: "advanced",
@@ -147,4 +131,17 @@ export function spawnNodeScript(script: string, argument: string, env: NodeJS.Pr
       return exit;
     },
   };
+}
+
+/**
+ * Run `script` with this host's own Node (`process.execPath -e script
+ * argument`) over `spawnIpcChild`. Throws in a compiled single executable
+ * host (node-eval.ts), which cannot run one.
+ */
+export function spawnNodeScript(script: string, argument: string, env: NodeJS.ProcessEnv, marker?: string): NodeScriptChild {
+  const node = nodeEvalExecutable();
+  if (node === null) {
+    throw new Error("this host is a compiled single executable (Node SEA or Bun standalone): its executable would start the application again instead of a Node script, so it cannot run a Node script child");
+  }
+  return spawnIpcChild(node, ["-e", script, argument], env, marker);
 }

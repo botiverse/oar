@@ -1,6 +1,6 @@
 /* oxlint-disable import/max-dependencies -- Session composes the independently owned control and observation contracts. */
 import type { AdapterGoalControl, GoalControl } from "./goal.js";
-import type { AnswerOptions, AnswerOutcome, AppQuestionAnswers, AppRequestAnswering, AppRequestDecision, QuestionAnswerOutcome } from "./answer.js";
+import type { AnswerOptions, AnswerOutcome, AppRequestAnswering, AppRequestDecision, HostQuestionAnswer, HostQuestionAnswerOutcome } from "./answer.js";
 import type { CompactionOptions, CompactionOutcome } from "./compaction.js";
 import type { ContextUsage, Cursor, Event, RawEvent, SessionGraph } from "./records.js";
 import type { ControlOutcome, ControlResult, SteerOrQueueResult } from "./control.js";
@@ -15,7 +15,7 @@ import type { SessionOptions } from "./session-options.js";
 import type { SessionUsage } from "./session-usage.js";
 
 export type { GoalControl, AdapterGoalControl, GoalSnapshot, GoalStatus, KnownGoalStatus, GoalSetOptions } from "./goal.js";
-export type { AnswerOptions, AnswerOutcome, AnswerRejectionCode, AppRequestAnswering, AppRequestDecision, AppRequestKind } from "./answer.js";
+export type { AnswerOptions, AnswerOutcome, AnswerRejectionCode, AppQuestionAnswers, AppRequestAnswering, AppRequestDecision, AppRequestKind, HostQuestionAnswer, HostQuestionAnswerOutcome, QuestionAnswerOutcome } from "./answer.js";
 export type { CompactionOptions, CompactionOutcome, ManualCompaction } from "./compaction.js";
 export type { ControlResult, ControlOutcome, SteerOrQueueResult } from "./control.js";
 export type { SessionUsage } from "./session-usage.js";
@@ -116,8 +116,7 @@ export interface PromptOptions extends InputOptions {
  */
 /**
  * Execution capability entrypoint; composition probes installation first.
- * Rejects only on operational failure (spawn/load/auth errors carry the
- * runtime's message).
+ * Rejects only on operational failure (spawn/load/auth errors carry the runtime's message).
  */
 export type StartSession = (
   installation: AvailableInstallation,
@@ -202,8 +201,8 @@ export interface AdapterSession {
   withdraw?(inputId: string): Promise<ControlResult>; // take a held input (a queue request's `inputId`) back before it is sent; ABSENT where OAR cannot remove held input (codex, whose queue is the runtime's own): its presence is the capability. Accepted means the entry was removed before dispatch and the caller owns the input again; rejected `not_queued` when no held input with this id is waiting (already sent, never queued here, or already withdrawn). Atomic against the drain: never accepted when the input may already have been sent. The queue request and its response stay in the stream unchanged.
   /** Answer ONE host-owned approval request by its request record id; ABSENT where no approval waits for a host. OAR writes the native reply and records `answered` with `by: "host"`; one answer per request, never guessed (contracts/answer.ts). */
   answer?(requestId: string, decision: AppRequestDecision, options?: AnswerOptions): Promise<AnswerOutcome>;
-  /** Answer ONE host-owned question request by its request record id. ABSENT where no question waits for a host. An approval decision never carries these answers (contracts/answer.ts). */
-  answerQuestion?(requestId: string, answers: AppQuestionAnswers, options?: AnswerOptions): Promise<QuestionAnswerOutcome>;
+  /** Answer ONE host-owned question request by its request record id. ABSENT where no question waits for a host. An approval decision never carries these answers (contracts/answer.ts). `HostQuestionAnswer` takes either answer dialect; the outcome vocabulary follows the option that opened the session (`SessionOptions.questions: "ask"` gives `QuestionAnswerOutcome`, `SessionOptions.userQuestions: "host"` gives `AnswerQuestionOutcome`). */
+  answerQuestion?(requestId: string, answer: HostQuestionAnswer, options?: AnswerOptions): Promise<HostQuestionAnswerOutcome>;
   /** Stop one native task without aborting its parent or peers. Accepted is only the native acknowledgement, never a task-ended fact. Absent without native single-task control. */
   stopTask?(taskId: string): Promise<ControlResult>;
   abort(): Promise<ControlResult>; // interrupt the active turn; accepted means the interrupt was delivered, the outcome is the runtime's own turn_ended event. Rejected when nothing is active; a late abort is a normal race, not an error. Ending the turn does not promise that processes it started have stopped (codex keeps commands across turns; docs/spec/runtime-matrix.md#what-abort-stops); isolated dispose stops the owned process; shared cleanup can leave native work running; a borrowed Pi Durable harness keeps its own lifetime.
@@ -241,7 +240,7 @@ export interface Session extends AdapterSession {
   /** Present only where the adapter hands approvals to a host (`capabilities.appRequests`); the SPI face is bound here. */
   answer?(requestId: string, decision: AppRequestDecision, options?: AnswerOptions): Promise<AnswerOutcome>;
   /** Present only where the adapter hands the runtime's questions to a host (`capabilities.appRequests.questions`). */
-  answerQuestion?(requestId: string, answers: AppQuestionAnswers, options?: AnswerOptions): Promise<QuestionAnswerOutcome>;
+  answerQuestion?(requestId: string, answer: HostQuestionAnswer, options?: AnswerOptions): Promise<HostQuestionAnswerOutcome>;
   stopTask?(taskId: string): Promise<ControlOutcome>;
   abort(): Promise<ControlOutcome>;
   /**

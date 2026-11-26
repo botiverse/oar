@@ -69,7 +69,7 @@ export const qwenSession: StartSession = withSessionCredentials(async (installat
         projection.report({ type: "control_response", native: answer, events });
       },
       exited: () => { control.end(); context.end(); }, disposing: () => { control.end(); context.end("disposed"); },
-      permissionResponse: qwenPermissionResponse,
+      appRequestResponse: (type, id, request) => type === "can_use_tool" ? qwenPermissionResponse(id, request) : null,
       close: async (active) => { if (active) { child.kill(); await child.exited; } else { await closeLineProcess(child); } },
     });
   } catch (error) { await closeLineProcess(child); throw appendCleanupFailure(error, cleanupFailureReason(child.diagnostics().cleanup)); }

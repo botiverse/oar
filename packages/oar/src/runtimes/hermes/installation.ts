@@ -60,7 +60,7 @@ const probeHermes = executableInstallation(
 // Normalize after the executable probe so the shared cache can reuse its readiness result.
 export const hermesInstallation: typeof probeHermes = async (options) => {
   const found = await probeHermes(options);
-  if (found.kind !== "available" || found.via !== "executable" || found.version === undefined) return found;
+  if (found.kind !== "available" || found.via !== "executable" || found.version === undefined) { return found; }
   const { version: raw, ...installation } = found;
   const version = readHermesVersion(raw);
   return version === undefined ? installation : { ...installation, version };

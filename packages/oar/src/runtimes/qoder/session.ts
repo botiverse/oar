@@ -92,7 +92,7 @@ export const qoderSession: StartSession = withSessionCredentials(async (installa
           events: effort === null ? [] : [{ kind: "effort", effort }] });
       },
       exited: control.end, disposing: control.end, exitReason: () => qoderTerminationReason(child),
-      permissionResponse: qoderPermissionResponse,
+      appRequestResponse: (type, id, request) => type === "can_use_tool" ? qoderPermissionResponse(id, request) : null,
       close: async (active) => { if (active) { child.kill(); await child.exited; } else { await closeLineProcess(child); } },
     });
   } catch (error) {

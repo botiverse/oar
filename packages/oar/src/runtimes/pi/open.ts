@@ -115,6 +115,7 @@ export const piRefusedSessionOptions: RefusedSessionOptions = {
   nativeMemoryDefault: "Pi has no built-in background auto-memory feature or below-user default layer",
   sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
   nativePermissions: "This adapter has no verified per-session switch to inherit native permission and sandbox settings",
+  userQuestions: "This adapter has no verified way for a host to answer the agent's questions",
 };
 
 /** Pi 1.4.0's truthy customPrompt check replaces an empty string with its default. */

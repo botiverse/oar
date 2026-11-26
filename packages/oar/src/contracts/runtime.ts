@@ -31,7 +31,7 @@ import { UnsupportedOptionError } from "./errors.js";
  * `"include"` and omission keep native behavior. `fork` is any
  * `SessionOptions.fork`, with or without `through`.
  */
-export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "env" | "mcpServers" | "mcpServerCredentials" | "disallowedTools" | "launchArgs" | "serviceTier" | "additionalDirectories" | "outputSchema" | "name" | "userConfiguration" | "partialUserConfiguration" | "goals" | "endTurnProcessesOnAbort" | "fork" | "nativeMemoryDefault" | "sessionLogUpload" | "nativePermissions" | "modelRequests" | "questions" | "piProvider" | "piCompaction" | "dshProvider";
+export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "env" | "mcpServers" | "mcpServerCredentials" | "disallowedTools" | "launchArgs" | "serviceTier" | "additionalDirectories" | "outputSchema" | "name" | "userConfiguration" | "partialUserConfiguration" | "goals" | "endTurnProcessesOnAbort" | "fork" | "nativeMemoryDefault" | "sessionLogUpload" | "nativePermissions" | "modelRequests" | "questions" | "userQuestions" | "piProvider" | "piCompaction" | "dshProvider";
 
 /**
  * The options a runtime refuses when they are given (`env`, `mcpServers`, `disallowedTools`, `launchArgs`, `additionalDirectories`: a
@@ -255,11 +255,16 @@ export function defineRuntime<const T extends RuntimeDefinition>(runtime: T, opt
       },
       execution: options.execution ?? null,
       withPlacement: create,
-      // `questions` is opt-in per runtime: a runtime that has not verified a
-      // host-answered question channel refuses it rather than dropping it.
+      // `questions` and its release synonym `userQuestions` are opt-in per
+      // runtime: a runtime that has not verified a host-answered question
+      // channel refuses them rather than dropping them.
       session: async (installation, sessionOptions, context) => {
-        if (sessionOptions.questions !== undefined && runtime.sessionCapabilities?.(installation).questions !== true) {
-          throw new UnsupportedOptionError("questions", "This runtime has no verified host-answered question channel");
+        const asked = sessionOptions.questions === undefined ? "userQuestions" : "questions";
+        // A runtime that declares its own refusal answers for itself: its
+        // reason is the one a host reads, and it names the release that fixes it.
+        const declared = installedSessionCapabilities(runtime, installation).refusedSessionOptions?.[asked] !== undefined;
+        if (sessionOptions[asked] !== undefined && !declared && runtime.sessionCapabilities?.(installation).questions !== true) {
+          throw new UnsupportedOptionError(asked, "This runtime has no verified host-answered question channel");
         }
         const opened = await open(installation, sessionOptions, context);
         return opened;

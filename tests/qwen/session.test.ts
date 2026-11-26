@@ -24,6 +24,8 @@ function checkPermissionReply(child: ReturnType<typeof fakeLineProcess>, session
   });
   const request = session.records().find((record) => record.kind === "request" && record.direction === "toApp");
   expect(request?.body).toMatchObject({ type: "can_use_tool" });
+  const answer = session.records().find((record) => record.kind === "response" && record.requestId === permissionId);
+  expect(answer?.body).toMatchObject({ kind: "answered" });
 }
 
 test("a dialect without command_lifecycle drains once, withdraws held input, aborts and becomes usable again", async () => {
