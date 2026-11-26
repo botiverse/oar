@@ -5,7 +5,7 @@ import { describe, expect, test } from "vitest";
 import { promptAndWait, qwenRuntime } from "../../packages/oar/src/index.js";
 import { QWEN_DEFAULTS_PREFIX } from "../../packages/oar/src/runtimes/qwen/native-memory.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
-import { startQwenAimock } from "../harness/qwen-aimock.js";
+import { QWEN_AUTO_MEMORY_CATALOG_REMINDER, startQwenAimock } from "../harness/qwen-aimock.js";
 import type { Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
 
 async function open(env: Awaited<ReturnType<typeof startQwenAimock>>, options: Omit<SessionOptions, "cwd"> = {}, extraEnv: Record<string, string> = {}): Promise<Session> {
@@ -38,7 +38,7 @@ describe.skipIf(process.env.OAR_TEST !== "qwen-aimock")("Qwen nativeMemoryDefaul
         await turn(session, "what is 2 + 2");
       } finally { await session.dispose(); }
       expect(env.raw).toHaveLength(2);
-      expect(JSON.stringify(env.raw)).not.toContain("# Current auto-memory catalog");
+      expect(JSON.stringify(env.raw)).not.toMatch(QWEN_AUTO_MEMORY_CATALOG_REMINDER);
       expect(await ownDefaultsDirs()).toEqual([]);
     } finally { await env.stop(); }
   }, 90_000);
@@ -54,7 +54,7 @@ describe.skipIf(process.env.OAR_TEST !== "qwen-aimock")("Qwen nativeMemoryDefaul
         expect(session.capabilities.nativeMemory).toBe("on");
         await turn(session, "hello from user-enabled memory");
       } finally { await session.dispose(); }
-      expect(JSON.stringify(env.raw)).toContain("# Current auto-memory catalog");
+      expect(JSON.stringify(env.raw)).toMatch(QWEN_AUTO_MEMORY_CATALOG_REMINDER);
       expect(await ownDefaultsDirs()).toEqual([]);
     } finally { await env.stop(); }
   }, 90_000);
@@ -72,7 +72,7 @@ describe.skipIf(process.env.OAR_TEST !== "qwen-aimock")("Qwen nativeMemoryDefaul
       } finally { await session.dispose(); }
       expect(await readFile(defaultsPath, "utf8")).toBe(original);
       expect(env.raw).toHaveLength(1);
-      expect(JSON.stringify(env.raw)).not.toContain("# Current auto-memory catalog");
+      expect(JSON.stringify(env.raw)).not.toMatch(QWEN_AUTO_MEMORY_CATALOG_REMINDER);
       expect(await ownDefaultsDirs()).toEqual([]);
     } finally { await env.stop(); }
   }, 90_000);

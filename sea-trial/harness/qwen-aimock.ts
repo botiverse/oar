@@ -5,6 +5,9 @@ import { LLMock } from "@copilotkit/aimock";
 import { startRawCapture, type ResponseRewrite } from "./raw-capture.js";
 import type { AimockEnv } from "./aimock.js";
 
+/** Matches Qwen's managed auto-memory prompt injection across both pre-0.28.6 and 0.28.6+ (where an empty catalog omits the user-message snapshot). */
+export const QWEN_AUTO_MEMORY_CATALOG_REMINDER = /# auto memory|# Current auto-memory catalog|The auto-memory catalog is empty\./u;
+
 /** Qwen's real stream-json harness, with all home/project state isolated from local logins. */
 export async function startQwenAimock(configure?: (mock: LLMock) => void, rewriteResponse?: ResponseRewrite): Promise<AimockEnv & { readonly cwd: string; readonly env: Readonly<Record<string, string>> }> {
   const mock = new LLMock({ port: 0 });

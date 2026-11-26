@@ -5,7 +5,7 @@ import { describe, expect, test, onTestFailed } from "vitest";
 import { promptAndWait, qwenRuntime } from "../../packages/oar/src/index.js";
 import { readQwenModels } from "../../packages/oar/src/runtimes/qwen/list-models.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
-import { startQwenAimock } from "../harness/qwen-aimock.js";
+import { QWEN_AUTO_MEMORY_CATALOG_REMINDER, startQwenAimock } from "../harness/qwen-aimock.js";
 import type { Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
 import { echoServers, echoesReceived, expectedEchoes, leakedCredentials, currentTurnSays, startHttpEcho, STDIO_TOKEN, HTTP_AUTHORIZATION } from "./support/echo-mcp.js";
 
@@ -171,13 +171,13 @@ describe.skipIf(process.env.OAR_TEST !== "qwen-aimock")("Qwen stream-json 0.26.0
         expect(await turn(session, "call both echo tools")).toEqual({ kind: "completed" });
         expect(leakedCredentials(session)).toEqual([]);
         // This reminder exists only in the provider request, not as a host input.
-        expect(JSON.stringify(env.raw)).toContain("# Current auto-memory catalog");
+        expect(JSON.stringify(env.raw)).toMatch(QWEN_AUTO_MEMORY_CATALOG_REMINDER);
         const userFrames = session.records().filter((record) => record.kind === "frame" && record.body.type === "user");
         expect(userFrames.length).toBeGreaterThan(0);
         for (const frame of userFrames) {
           if (frame.kind !== "frame") { throw new Error("Expected a native frame"); }
           expect(frame.body.events.every((event) => event.kind === "tool_call_ended")).toBe(true);
-          expect(JSON.stringify(frame.body.native)).not.toContain("# Current auto-memory catalog");
+          expect(JSON.stringify(frame.body.native)).not.toMatch(QWEN_AUTO_MEMORY_CATALOG_REMINDER);
         }
         expect(session.records().flatMap((record) => record.kind === "frame" ? record.body.events : []).filter((event) => event.kind === "user_message")).toEqual([]);
       } finally { await session.dispose(); }
