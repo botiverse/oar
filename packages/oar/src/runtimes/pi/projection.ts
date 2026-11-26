@@ -9,6 +9,7 @@ import type {
 import { piFailure, type PiProviderError } from "./failure.js";
 import { asNumber, asRecord } from "../../shared/json.js";
 import { addTokens, cacheParts, noTokens, reasoningPart } from "../../shared/token-totals.js";
+import { todoWriteChecklist } from "../../shared/todo-write-plan.js";
 import { toolContent } from "../../shared/tool-output.js";
 
 /**
@@ -66,6 +67,20 @@ export function piRunOutcome(state: PiProjectionState, aborted: boolean): TurnOu
  * failed assistant message the event carries is a context overflow (pi-ai's
  * `isContextOverflow`, which the adapter loads with the SDK).
  */
+/**
+ * The checklist a Pi tool call carries. Pi itself registers no checklist tool:
+ * this reads the `TodoWrite` shape an installed extension registers (Hikari's
+ * `hikari-todo-write.ts`), so the event says `channel: "extension"` and
+ * `evidence: "tool_call"`. No extension identity is claimed here — the call
+ * proves the tool ran, not which extension provided it; a host that must trust
+ * the plugin reads Pi's own tool report (`runtime.tools`), where Pi names each
+ * tool's source ([src] pi-coding-agent `ToolInfo.sourceInfo`).
+ */
+function piChecklistEvents(tool: string, callId: string, args: unknown): RuntimeEventBody[] {
+  const plan = todoWriteChecklist(tool, args);
+  return plan === null ? [] : [{ kind: "plan_changed", plan, evidence: "tool_call", callId, channel: "extension" }];
+}
+
 export interface PiFoldExtra {
   readonly context?: ContextUsage | null;
   readonly overflow?: boolean;
@@ -169,9 +184,12 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
       return accumulate(state, event.message);
     case "tool_execution_start": {
       const input = jsonDetail(event.args);
-      return { state, events: [input === undefined
-        ? { kind: "tool_call_started", callId: event.toolCallId, tool: event.toolName }
-        : { kind: "tool_call_started", callId: event.toolCallId, tool: event.toolName, input }] };
+      return { state, events: [
+        input === undefined
+          ? { kind: "tool_call_started", callId: event.toolCallId, tool: event.toolName }
+          : { kind: "tool_call_started", callId: event.toolCallId, tool: event.toolName, input },
+        ...piChecklistEvents(event.toolName, event.toolCallId, event.args),
+      ] };
     }
     case "tool_execution_update": {
       const output = jsonDetail(event.partialResult);

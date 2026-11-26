@@ -23,7 +23,7 @@ test("an ACP plan update is the agent's whole checklist: content, priority and s
   expect(projection({ sessionUpdate: "plan", entries: [
     { content: "Read the wire shape", priority: "high", status: "in_progress" },
     { content: "Write the checklist spec", priority: "low", status: "pending" },
-  ] })).toEqual([{ kind: "plan_changed", evidence: "plan_update", plan: { steps: [
+  ] })).toEqual([{ kind: "plan_changed", channel: "native", evidence: "plan_update", plan: { steps: [
     { step: "Read the wire shape", status: "in_progress", priority: "high" },
     { step: "Write the checklist spec", status: "pending", priority: "low" },
   ] } }]);
@@ -31,7 +31,7 @@ test("an ACP plan update is the agent's whole checklist: content, priority and s
 
 test("the empty list is the agent's own clear, and an observation oar cannot read is left as native only", () => {
   // [schema] Plan.entries required: `entries: []` is a reported empty checklist, never a missing one.
-  expect(projection({ sessionUpdate: "plan", entries: [] })).toEqual([{ kind: "plan_changed", evidence: "plan_update", plan: { steps: [] } }]);
+  expect(projection({ sessionUpdate: "plan", entries: [] })).toEqual([{ kind: "plan_changed", channel: "native", evidence: "plan_update", plan: { steps: [] } }]);
   // Not an array, or an entry without the required content/status: the frame stays the record.
   expect(projection({ sessionUpdate: "plan", entries: null })).toEqual([]);
   expect(projection({ sessionUpdate: "plan" })).toEqual([]);
@@ -76,15 +76,15 @@ test("a real ACP session records each plan update verbatim and reads it as plan_
   const { records } = await planTurn();
   const frames = records.filter((record) => record.kind === "frame" && record.body.type === "plan");
   expect(frames.map((record) => record.kind === "frame" ? record.body.events : [])).toEqual([
-    [{ kind: "plan_changed", evidence: "plan_update", plan: { steps: [
+    [{ kind: "plan_changed", channel: "native", evidence: "plan_update", plan: { steps: [
       { step: "Read the wire shape", status: "in_progress", priority: "high" },
       { step: "Write the checklist spec", status: "pending", priority: "medium" },
     ] } }],
-    [{ kind: "plan_changed", evidence: "plan_update", plan: { steps: [
+    [{ kind: "plan_changed", channel: "native", evidence: "plan_update", plan: { steps: [
       { step: "Read the wire shape", status: "completed", priority: "high" },
       { step: "Write the checklist spec", status: "completed", priority: "medium" },
     ] } }],
-    [{ kind: "plan_changed", evidence: "plan_update", plan: { steps: [] } }],
+    [{ kind: "plan_changed", channel: "native", evidence: "plan_update", plan: { steps: [] } }],
   ]);
   // The frame keeps the whole notification untouched.
   const [first] = frames;

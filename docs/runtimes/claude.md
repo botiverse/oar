@@ -2167,6 +2167,25 @@ authentication and sessions. Native queries retain Claude's parent-marker
 cleanup; installation readiness and version commands use the supplied overlay.
 See [reader environments](../spec/orientation.md#environment).
 
+## Native plan/checklist
+
+claude sends no plan notification of its own. Its only native checklist is the
+model's own `TodoWrite` tool call: the tool Claude Code describes as "Update
+the todo list for the current session" ([src] 2.1.332), whose `todos` argument
+is the COMPLETE list — `[{content, status, activeForm?}]` with `status` one of
+`pending`, `in_progress`, `completed`. OAR reads that call off the completed
+assistant message and records `plan_changed` beside it, with
+`evidence: "tool_call"` and the call's id, because it is the model's claim and
+not runtime-tracked state. `todos: []` is the model's own clear; a call whose
+`todos` OAR cannot read (not an array, an item without `content` and `status`)
+leaves the tool call recorded and reports no checklist, never an invented
+empty one. `Read`, `Bash` and every other tool carry no checklist.
+
+The streamed input fragments are never accumulated, so a half-sent list is
+never reported as a whole one, and the same rule reads the same checklist from
+a recorded frame in replay. Nothing here is opt-in, editable, prompted for or
+fed back into the turn ([contract](../spec/plans.md)).
+
 ## Native task control
 
 `stopTask(taskId)` sends native `stop_task`, records its acknowledgement,

@@ -259,12 +259,8 @@ export function defineRuntime<const T extends RuntimeDefinition>(runtime: T, opt
       // runtime: a runtime that has not verified a host-answered question
       // channel refuses them rather than dropping them.
       session: async (installation, sessionOptions, context) => {
-        const asked = sessionOptions.questions === undefined ? "userQuestions" : "questions";
-        // A runtime that declares its own refusal answers for itself: its
-        // reason is the one a host reads, and it names the release that fixes it.
-        const declared = installedSessionCapabilities(runtime, installation).refusedSessionOptions?.[asked] !== undefined;
-        if (sessionOptions[asked] !== undefined && !declared && runtime.sessionCapabilities?.(installation).questions !== true) {
-          throw new UnsupportedOptionError(asked, "This runtime has no verified host-answered question channel");
+        if (sessionOptions.questions !== undefined && runtime.sessionCapabilities?.(installation).questions !== true) {
+          throw new UnsupportedOptionError("questions", "This runtime has no verified host-answered question channel");
         }
         const opened = await open(installation, sessionOptions, context);
         return opened;

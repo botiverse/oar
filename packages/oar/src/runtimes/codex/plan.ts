@@ -50,5 +50,5 @@ export function codexPlanEvents(method: string, params: JsonRecord): RuntimeEven
     return [];
   }
   const plan = codexPlanSnapshot(params);
-  return plan === undefined ? [] : [{ kind: "plan_changed", plan, evidence: "plan_update" }];
+  return plan === undefined ? [] : [{ kind: "plan_changed", plan, evidence: "plan_update", channel: "native" }];
 }

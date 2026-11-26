@@ -49,7 +49,7 @@ test("a DSH todo_write call reads as the call plus one whole-list plan_changed",
   const { events, frame } = read(line);
   expect(events).toEqual([
     { kind: "tool_call_started", callId: "todo-1", tool: "todo_write", input: JSON.stringify({ todos: [{ content: "Read the wire shape", status: "in_progress" }, { content: "Write the spec", status: "pending" }] }) },
-    { kind: "plan_changed", evidence: "tool_call", callId: "todo-1", plan: { steps: [
+    { kind: "plan_changed", channel: "native", evidence: "tool_call", callId: "todo-1", plan: { steps: [
       { step: "Read the wire shape", status: "in_progress" },
       { step: "Write the spec", status: "pending" },
     ] } },
@@ -61,7 +61,7 @@ test("a DSH todo_write call reads as the call plus one whole-list plan_changed",
 
 test("an empty todos list is the model's own clear; other tools, unreadable arguments and streamed deltas yield no plan", () => {
   expect(read(todoCall([])).events.filter((event) => event.kind === "plan_changed"))
-    .toEqual([{ kind: "plan_changed", evidence: "tool_call", callId: "todo-1", plan: { steps: [] } }]);
+    .toEqual([{ kind: "plan_changed", channel: "native", evidence: "tool_call", callId: "todo-1", plan: { steps: [] } }]);
   // Not the checklist tool: only the call is read.
   expect(read(toolCall({ callId: "bash-1", name: "bash", arguments: '{"todos":[]}' })).events.map((event) => event.kind)).toEqual(["tool_call_started"]);
   // Arguments that do not parse, no todos, or an item without content/status: the frame stays native only.
@@ -79,6 +79,6 @@ test("a checklist in a child session keeps that session's attribution and adds n
   const { frame } = read(toolCall({ turn: 1, step: 1, callId: "todo-child", name: "todo_write", arguments: '{"todos":[{"content":"Child step","status":"pending"}]}' }, "child"));
   expect(frame.sessionId).toBe("child");
   const plan = frame.body.events.filter((event) => event.kind === "plan_changed");
-  expect(plan).toEqual([{ kind: "plan_changed", evidence: "tool_call", callId: "todo-child", plan: { steps: [{ step: "Child step", status: "pending" }] } }]);
+  expect(plan).toEqual([{ kind: "plan_changed", channel: "native", evidence: "tool_call", callId: "todo-child", plan: { steps: [{ step: "Child step", status: "pending" }] } }]);
   assert.ok(!frame.body.events.some((event) => event.kind === "user_message" || event.kind === "text_delta" || event.kind === "task_started"));
 });

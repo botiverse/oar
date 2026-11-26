@@ -8,6 +8,7 @@ asks the model for one, edits one, or runs a plan loop.
 
 ```ts
 type PlanEvidence = "plan_update" | "tool_call";
+type PlanChannel = "native" | "extension";
 type KnownPlanStepStatus = "pending" | "in_progress" | "completed";
 interface PlanStep { step: string; status: PlanStepStatus; priority?: string }
 interface PlanSnapshot { steps: readonly PlanStep[]; explanation?: string }
@@ -16,6 +17,8 @@ type PlanEventBody = {
   plan: PlanSnapshot;      // the WHOLE list; every native channel replaces the previous one
   evidence: PlanEvidence;  // which native channel reported it
   callId?: string;         // the tool call that carried it, for evidence: "tool_call"
+  channel: PlanChannel;    // the runtime's own channel, or a tool an extension registered
+  extension?: { tool: string; source: string }; // only what the RUNTIME reported about that tool
 };
 ```
 
@@ -36,9 +39,21 @@ the plan, kept only when it gave a non-empty one (codex).
 - `plan_update`: checklist state the runtime itself tracks and re-sends whole
   (codex `turn/plan/updated`, the ACP `plan` session update).
 - `tool_call`: the model's own checklist tool call, read from the complete
-  arguments it chose to send (DSH `todo_write`). `callId` names that call so a
-  host can pair the checklist with the call's own `tool_call_started` /
-  `tool_call_ended` records without reading `native`.
+  arguments it chose to send (DSH `todo_write`, claude's built-in `TodoWrite`,
+  a Pi `TodoWrite` registered by an installed extension). `callId` names that
+  call so a host can pair the checklist with the call's own
+  `tool_call_started` / `tool_call_ended` records without reading `native`.
+
+`channel` is a second, independent claim: `native` means the runtime's own plan
+channel or its own tool, `extension` means a tool an extension registered
+inside the runtime (Pi's plugin-provided `TodoWrite`). OAR can observe the call
+either way — the runtime executed it — but it never claims the extension's
+IDENTITY from a file on disk or from a runtime version. `extension` is filled
+only from what the runtime itself reported about the tool: Pi names each tool's
+source in its own inventory (`runtime.tools`, [src] `ToolInfo.sourceInfo`), and
+a channel whose runtime named no identity leaves the field absent rather than
+guessed. A host that must trust the plugin checks the inventory; a host that
+only renders progress needs nothing more than the event.
 
 ## Empty clear, unsupported, and what is never a checklist
 

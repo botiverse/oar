@@ -44,6 +44,7 @@ function planEvents(data: JsonRecord): RuntimeEventBody[] {
     kind: "plan_changed",
     plan: { steps },
     evidence: "tool_call",
+    channel: "native",
     ...(typeof data.callId === "string" ? { callId: data.callId } : {}),
   }];
 }

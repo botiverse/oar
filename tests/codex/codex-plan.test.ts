@@ -25,16 +25,16 @@ function planFrame(params: JsonRecord, rootThreadId = CAPTURED_THREAD): Frame {
 test("every captured codex plan notification reads as one plan_changed event and keeps its native verbatim", () => {
   expect(captured.codex).toBe("codex-cli 0.171.0");
   expect(captured.frames.map((frame) => frame.events)).toEqual([
-    [{ kind: "plan_changed", evidence: "plan_update", plan: { steps: [
+    [{ kind: "plan_changed", channel: "native", evidence: "plan_update", plan: { steps: [
       { step: "Collect the native facts", status: "in_progress" },
       { step: "Write the checklist spec", status: "pending" },
     ], explanation: "Two steps to prove the wire" } }],
-    [{ kind: "plan_changed", evidence: "plan_update", plan: { steps: [
+    [{ kind: "plan_changed", channel: "native", evidence: "plan_update", plan: { steps: [
       { step: "Collect the native facts", status: "completed" },
       { step: "Write the checklist spec", status: "completed" },
     ] } }],
     // codex sends `plan: []` for its own clear: a reported empty checklist, not missing evidence.
-    [{ kind: "plan_changed", evidence: "plan_update", plan: { steps: [] } }],
+    [{ kind: "plan_changed", channel: "native", evidence: "plan_update", plan: { steps: [] } }],
   ]);
   for (const frame of captured.frames) {
     const folded = planFrame(asRecord(frame.native) ?? {});
@@ -54,7 +54,7 @@ test("codex's model-facing status words and its app-server's differ by spelling,
   expect(asRecord(Array.isArray(reportedPlan) ? reportedPlan[0] : undefined)?.status).toBe("inProgress");
   // An unfamiliar status word stays visible unchanged; an explanation is kept only when non-empty.
   const future = planFrame({ threadId: CAPTURED_THREAD, plan: [{ step: "future", status: "deferred" }], explanation: null });
-  expect(future.body.events).toEqual([{ kind: "plan_changed", evidence: "plan_update", plan: { steps: [{ step: "future", status: "deferred" }] } }]);
+  expect(future.body.events).toEqual([{ kind: "plan_changed", channel: "native", evidence: "plan_update", plan: { steps: [{ step: "future", status: "deferred" }] } }]);
 });
 
 test("an observation oar cannot read stays a frame with no event, and never becomes another kind", () => {
@@ -70,7 +70,7 @@ test("replay reads the same plan facts from the recorded frame, with the same at
   const recorded = planFrame(asRecord(captured.frames[0]?.native) ?? {});
   const replayed = eventsOf(recorded);
   expect(replayed).toHaveLength(1);
-  expect(replayed[0]).toMatchObject({ kind: "plan_changed", sessionId: CAPTURED_THREAD, agentPath: [], spanId: asRecord(captured.frames[0]?.native)?.turnId });
+  expect(replayed[0]).toMatchObject({ kind: "plan_changed", channel: "native", sessionId: CAPTURED_THREAD, agentPath: [], spanId: asRecord(captured.frames[0]?.native)?.turnId });
   // A checklist is state, not transcript: no text, user message or task event is read out of it.
   expect(replayed.map((event) => event.kind)).toEqual(["plan_changed"]);
 });

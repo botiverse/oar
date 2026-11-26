@@ -5,6 +5,7 @@ import type { RuntimeEventBody, TurnOutcome, SessionCapabilities, Session, Frame
 import type { LoadedImage } from "../input-images.js";
 import type { JsonRecord } from "../json.js";
 import type { StreamJsonProjectionState } from "./state.js";
+import type { StreamJsonChecklistTool } from "./plan.js";
 
 export interface StreamJsonUpdate<S> {
   readonly state: S;
@@ -27,6 +28,8 @@ export interface StreamJsonProjectionProfile<S extends StreamJsonProjectionState
   readonly partialMessageIds?: boolean;
   /** The next single-block assistant is the completed block's snapshot, even with a new id. */
   readonly assistantFollowsBlockStop?: boolean;
+  /** The dialect's own checklist tool, read from a completed assistant message's tool call (`evidence: "tool_call"`). */
+  readonly checklistTool?: StreamJsonChecklistTool;
   /** CLI-generated errors have native records but no model content. */
   readonly isAssistantError?: (message: JsonRecord) => boolean;
   readonly assistant: (state: S, message: JsonRecord, agentPath: readonly string[]) => S;

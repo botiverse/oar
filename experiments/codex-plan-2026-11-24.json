@@ -86,7 +86,8 @@
             ],
             "explanation": "Two steps to prove the wire"
           },
-          "evidence": "plan_update"
+          "evidence": "plan_update",
+          "channel": "native"
         }
       ],
       "spanId": "01a20cff-ed1f-74f2-b046-a2a1f6b889b7"
@@ -122,7 +123,8 @@
               }
             ]
           },
-          "evidence": "plan_update"
+          "evidence": "plan_update",
+          "channel": "native"
         }
       ],
       "spanId": "01a20cff-ed1f-74f2-b046-a2a1f6b889b7"
@@ -140,7 +142,8 @@
           "plan": {
             "steps": []
           },
-          "evidence": "plan_update"
+          "evidence": "plan_update",
+          "channel": "native"
         }
       ],
       "spanId": "01a20cff-ed63-7c81-acda-252b064f020f"
@@ -164,7 +167,8 @@
       },
       "evidence": "plan_update",
       "spanId": "01a20cff-ed1f-74f2-b046-a2a1f6b889b7",
-      "seq": 19
+      "seq": 19,
+      "channel": "native"
     },
     {
       "kind": "plan_changed",
@@ -182,7 +186,8 @@
       },
       "evidence": "plan_update",
       "spanId": "01a20cff-ed1f-74f2-b046-a2a1f6b889b7",
-      "seq": 25
+      "seq": 25,
+      "channel": "native"
     },
     {
       "kind": "plan_changed",
@@ -191,7 +196,8 @@
       },
       "evidence": "plan_update",
       "spanId": "01a20cff-ed63-7c81-acda-252b064f020f",
-      "seq": 49
+      "seq": 49,
+      "channel": "native"
     }
   ]
 }

@@ -11,6 +11,7 @@ import { foldStreamJsonStdout, type ProjectionCommand } from "../../shared/strea
 import { initialStreamJsonProjection, streamJsonAbortRequested, type StreamJsonProjectionState } from "../../shared/stream-json/state.js";
 import type { StreamJsonProjectionProfile } from "../../shared/stream-json/profile.js";
 import { contentBlocks } from "../../shared/stream-json/content.js";
+import { claudeChecklistTool } from "./plan.js";
 
 export type { ProjectionCommand } from "../../shared/stream-json/projection.js";
 
@@ -126,6 +127,7 @@ function assistantAnchor(previous: string | null, message: JsonRecord): string |
 export const claudeProjectionProfile: StreamJsonProjectionProfile<ClaudeProjectionState> = {
   name: "claude",
   childAssistantModel: true,
+  checklistTool: claudeChecklistTool,
   compactingStatus: true,
   duplicateReason: "claude ignored the input: its inputId was already used in this session",
   isAssistantError: claudeSyntheticAssistant,

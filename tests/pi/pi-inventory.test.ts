@@ -37,8 +37,9 @@ function session() {
       getCommandDiagnostics: (): unknown[] => [],
     },
     getAllTools: () => [
-      { name: "read", description: "Read", parameters: { type: "object" } },
-      { name: "write", description: "Write", parameters: { type: "object" } },
+      { name: "read", description: "Read", parameters: { type: "object" }, sourceInfo: { source: "builtin", scope: "builtin", origin: "builtin", path: "builtin:read" } },
+      { name: "write", description: "Write", parameters: { type: "object" }, sourceInfo: { source: "builtin", scope: "builtin", origin: "builtin", path: "builtin:write" } },
+      { name: "TodoWrite", description: "Checklist", parameters: { type: "object" }, sourceInfo: { source: "hikari-todo-write", scope: "user", origin: "extension", path: "/home/.pi/agent/extensions/hikari-todo-write.ts" } },
     ],
     getActiveToolNames: () => ["read"],
     dispose: vi.fn(),
@@ -123,8 +124,11 @@ test("Pi registered tools retain schema and distinguish inactive from absent", a
   expect(result).toMatchObject({
     kind: "ok", view: "registered", partial: false,
     items: [
-      { name: "read", description: "Read", active: true, inputSchema: { type: "object" } },
-      { name: "write", description: "Write", active: false, inputSchema: { type: "object" } },
+      { name: "read", description: "Read", active: true, inputSchema: { type: "object" }, source: "builtin" },
+      { name: "write", description: "Write", active: false, inputSchema: { type: "object" }, source: "builtin" },
+      // The source Pi itself named for an extension-provided tool: how a host
+      // verifies which plugin a checklist channel came from.
+      { name: "TodoWrite", description: "Checklist", active: false, inputSchema: { type: "object" }, source: "hikari-todo-write" },
     ],
   });
   expect(agent.dispose).toHaveBeenCalledOnce();

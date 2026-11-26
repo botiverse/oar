@@ -1718,3 +1718,20 @@ Google's hook held SDK parameters that the Google client converted into a
 different JSON document. RPC runs OAR's CLI extension before configured
 extensions that can replace the body. RPC declares a refusal for the option.
 [Provider comparisons](../../sea-trial/vendor/pi-model-requests.vendor.test.ts)
+
+## Native plan/checklist
+
+Pi ships no checklist tool and sends no plan notification, so OAR reports no
+checklist from Pi itself. A checklist can still be present through an
+**installed extension**: Hikari installs `hikari-todo-write.ts` into the
+session's `.pi/agent/extensions`, and it registers a tool named `TodoWrite`
+taking the whole list in `todos` (`{content, status, activeForm?}`) — the same
+shape claude's built-in tool takes, reused rather than reinvented.
+
+OAR reads that call as `plan_changed` with `evidence: "tool_call"` and
+`channel: "extension"`, naming the call. The call proves the tool ran; it does
+not prove which extension registered it, so OAR claims no identity from a file
+on disk or from a Pi version. What Pi itself reports is available through the
+tool inventory: `runtime.tools` fills each `ToolEntry.source` from Pi's own
+`ToolInfo.sourceInfo`, so a host that must trust the plugin checks there
+([contract](../spec/plans.md), [matrix](../spec/runtime-matrix.md#native-planchecklist)).

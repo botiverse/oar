@@ -30,5 +30,5 @@ export function acpPlanEvents(update: JsonRecord): RuntimeEventBody[] {
     }
     steps.push(parsed);
   }
-  return [{ kind: "plan_changed", plan: { steps }, evidence: "plan_update" }];
+  return [{ kind: "plan_changed", plan: { steps }, evidence: "plan_update", channel: "native" }];
 }

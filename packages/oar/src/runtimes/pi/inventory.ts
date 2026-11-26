@@ -47,8 +47,13 @@ function piInventories(session: AgentSession, scope: InventoryScope): PiReaders 
       const active = new Set(session.getActiveToolNames());
       const items: ToolEntry[] = session.getAllTools().map((tool) => {
         const schema = asRecord(tool.parameters);
+        // Pi's own report of where the tool came from (a built-in or an
+        // extension), never OAR reading the file: `builtin` means the runtime's
+        // own tool, anything else names the source Pi loaded it from.
+        const source = asRecord(tool.sourceInfo)?.source;
         return { name: tool.name, description: tool.description, active: active.has(tool.name),
-          ...(schema === null ? {} : { inputSchema: schema }) };
+          ...(schema === null ? {} : { inputSchema: schema }),
+          ...(typeof source === "string" ? { source } : {}) };
       });
       return inventoryOk(scope, "registered", items);
     },
