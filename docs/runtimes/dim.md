@@ -2,8 +2,9 @@
 
 **Community runtime**, maintained by [@wey-gu](https://github.com/wey-gu).
 Verified against the real `dima` binary with a scripted model provider (the
-shared behavior suite and a raw ACP probe, 2026-11-26); not yet against a
-signed-in managed provider.
+shared behavior suite and a raw ACP probe) and with DeepSeek's own API
+through both bring-your-own-key paths, 2026-11-26; not yet against a Dim
+account or another managed provider's login.
 
 It lives in `packages/oar/src/community/dim/` and is exported from
 `@botiverse/oar/community`, not `defaultRuntimes`; a host adds it with
@@ -58,8 +59,9 @@ this gateway.
 | Session | `Session.id` is Dim's session id; `resume` is ACP `session/resume`. |
 | Prompt | One ACP `session/prompt`, one turn. |
 | Permission mode | `full-access`, set with `session/set_mode` after open. |
-| Model | `SessionOptions.model` through the `model` config option (catalog homes only), confirmed by its `currentValue`. |
-| Effort | `SessionOptions.effort` through the `thought_level` config option, which exists only for a model that declares reasoning. |
+| Model | `SessionOptions.model` through the `model` config option (catalog homes only), confirmed by the `config_option_update` Dim pushes. |
+| Effort | `SessionOptions.effort` through the `thought_level` config option (id `effort`), which exists only for a catalog model that declares reasoning; confirmed the same way. |
+| Context usage | Dim's `usage_update` (estimated input tokens and the context window), which it pushes right after each prompt's answer; the profile waits for it (`usageUpdateAfterPrompt`). |
 | Subagents | `capabilities.attribution: "opaque"`: the gateway serves the root session only. |
 
 `capabilities` are `{ queue: { durable: false }, attribution: "opaque" }`;
@@ -98,14 +100,41 @@ home's provider catalog. With `--model-config` there is none, and a `model`
 request is refused before any request is sent. An id the option does not
 list is refused by Dim (`Invalid params`) and surfaces as
 `model_unavailable`. Effort is refused when the model publishes no
-`thought_level` option. `listModels` is unsupported: Dim has no model
-listing outside a session's config options.
+`thought_level` option, and a level the option does not list is refused by
+Dim. With DeepSeek's catalog the effort levels are `provider-default`,
+`none`, `low`, `high` and `max`; a `--model-config` file never has the
+option. `listModels` is unsupported: Dim has no model listing outside a
+session's config options.
+
+Dim pushes every applied setting as `config_option_update`, and right after
+a model switch it answers an effort change with the previous level, pushing
+the applied one about a millisecond later. The profile therefore sets
+`confirmConfigOptionUpdates`: each setting waits for its notification, and
+an answer that still shows the previous value is read through the
+notification that confirmed the new one.
 
 ### Authentication and environment
 
 OAR has no login or account usage for Dim; sign in with `dima` itself
-(`/login` or `/connect` in the TUI). An ACP `auth_required` error
-(`-32000`, a managed provider without an account) is an `auth` failure.
+(`/login`, or `/connect` in the TUI for an API key). An ACP `auth_required`
+error (`-32000`, a managed provider without an account) is an `auth`
+failure.
+
+A key can come from either side of the bring-your-own-key choice:
+
+- **Dim's catalog**: `/connect` in the TUI stores the key in the home (for
+  DeepSeek, the built-in `deepseek` provider). Sessions on that home need no
+  environment, and they get the `model` and effort options.
+- **`--model-config`**: the file names the provider (for DeepSeek, `kind:
+  "openai-compatible"` with `compatible.preset: "deepseek"`) and an
+  `apiKeyEnv` variable; pass the file with `launchArgs` and the key in
+  `SessionOptions.env`.
+
+A turn Dim stops for its credential is an `auth` failure that says which:
+`credential: "missing"` for "Missing credential environment variable",
+`credential: "rejected"` for "The provider rejected the credentials". An
+App Server that cannot start (an invalid model config, for example) fails
+the open with the last line of its log.
 
 `SessionOptions.env` reaches `dima acp` and the `dima runtime list` call
 that may start the App Server. Provider keys a model config reads
@@ -149,8 +178,25 @@ are a different CLI and are not candidates. `oar install dim` runs
 - `oar run dim` on a catalog home over aimock: a default-model turn, a turn
   on a switched catalog model, an unlisted model refused as
   `model_unavailable`, effort refused without a `thought_level` option.
+- DeepSeek's API with a real key, 2026-11-26:
+  - `--model-config` (`deepseek-flash`): a shell-tool turn, recall in the
+    next turn, abort during a tool call, resume with its history, context
+    usage current at each turn's end, model and effort refused, and a wrong
+    or missing key ending the turn as `auth` with `rejected` or `missing`.
+  - A catalog home after TUI `/connect`: the default model and effort read
+    back, a read-tool turn with reasoning, `deepseek-v4-pro` with `low`
+    across a resume, `deepseek-flash` with `max`, an unlisted level and an
+    unknown model refused, and `oar run --model deepseek-v4-pro --effort
+    max` writing a file with Dim's `write` tool, then resumed.
+  - Images: a logging proxy showed the image reaching DeepSeek byte for
+    byte; DeepSeek reads a real picture correctly through Dim. It misreads
+    a tiny solid-color test image only behind Dim's long system prompt, the
+    same way when that request is replayed without Dim.
 - Unit tests: [session](../../tests/community/dim/dim-session.test.ts) for
   the version reader, `launchArgs` checks, App Server selection, mode and
-  model handling and the resume rule; the shared
+  model handling, credential failures, the App Server log reading and the
+  resume rule; the shared
   [detach test](../../tests/acp/acp-detach-on-dispose.test.ts) for
-  `detachOnDispose`.
+  `detachOnDispose`, and the shared
+  [config confirmation tests](../../tests/acp/config-updates.test.ts) with
+  the antigravity fixture's stale-answer case.

@@ -80,6 +80,9 @@ export const dimAcpProfile: AcpSessionProfile = {
   usageUpdateAfterPrompt: true,
   failureOutcome: dimFailureOutcome,
   modelViaConfigOption: true,
+  // Dim pushes every applied setting as config_option_update; right after a
+  // model switch its effort answer still reports the previous level.
+  confirmConfigOptionUpdates: true,
   configureModel: dimConfigureModel,
   configureSession: async ({ request, sessionId, response }) => {
     if (needsDimFullAccess(response)) {
