@@ -1,3 +1,4 @@
+/* oxlint-disable eslint/max-lines -- One ACP projection: the session updates, tool lifecycle and the events they become read together. */
 import type {
   ContextUsage,
   RuntimeEventBody,
@@ -10,6 +11,7 @@ import { addTokens } from "../token-totals.js";
 import { toolContent } from "../tool-output.js";
 import { AcpError } from "./errors.js";
 import { acpReportedEffort, acpReportedModel } from "./model.js";
+import { acpPlanEvents } from "./plan.js";
 
 /** Vendor-specific tool result reading when closing `tool_call_update.content` is absent. */
 export type AcpRawToolOutputReader = (rawOutput: unknown, status: unknown) => readonly ToolOutputPart[] | undefined;
@@ -88,12 +90,7 @@ function toolName(update: JsonRecord): string {
   if (typeof update.toolName === "string") {
     return update.toolName;
   }
-  // ACP's `kind` is a category (execute, other, …), never a tool's name; the
-  // OPENING `tool_call` frame's `title` is the closest thing the protocol has
-  // (kimi 0.42.0: title "Bash"/"Agent" with kind "execute"/"other" for the
-  // two tools observed; grok: title "run_terminal_command" and no kind). A
-  // later `tool_call_update` retitles the call with progress text ("Running:
-  // …", kimi seq 25), so a call first seen on an update falls back to `kind`.
+  // ACP opening titles name the tool; later titles can be progress text.
   if (update.sessionUpdate === "tool_call" && typeof update.title === "string") {
     return update.title;
   }
@@ -107,6 +104,15 @@ function projectTool(state: AcpProjectionState, update: JsonRecord, rawToolOutpu
   }
   const events: RuntimeEventBody[] = [];
   let tool = state.tools.get(callId);
+  const terminal = update.status === "completed" || update.status === "failed" || update.status === "cancelled";
+  // ACP can close a permission card with only its id and status. Without an
+  // opening or tool evidence, keep the native frame but do not invent a call.
+  if (tool === undefined && terminal && update.sessionUpdate === "tool_call_update"
+    && ![update.name, update.toolName, update.title].some(value => typeof value === "string" && value.trim() !== "")
+    && [update.rawInput, update.rawOutput].every(value => value === null || value === undefined)
+    && !(Array.isArray(update.content) && update.content.length > 0)) {
+    return [];
+  }
   const opening = tool === undefined;
   if (tool === undefined) {
     const input = inputDetail(update.rawInput);
@@ -129,9 +135,6 @@ function projectTool(state: AcpProjectionState, update: JsonRecord, rawToolOutpu
       events.push({ kind: "tool_call_input", callId, input });
     }
   }
-  const terminal = update.status === "completed"
-    || update.status === "failed"
-    || update.status === "cancelled";
   if (!tool.ended && !terminal && !opening && update.rawOutput !== undefined) {
     // A later non-terminal update with rawOutput is streamed output. `content`
     // is NOT used here: kimi streams the call's ARGUMENTS as content while
@@ -252,6 +255,10 @@ export function projectAcpUpdate(state: AcpProjectionState, update: JsonRecord, 
     case "tool_call":
     case "tool_call_update":
       events.push(...projectTool(state, update, rawToolOutput));
+      break;
+    case "plan":
+      // The agent's whole checklist replaces the previous one; an empty list is its own clear.
+      events.push(...acpPlanEvents(update));
       break;
     default:
       break;

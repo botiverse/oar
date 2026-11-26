@@ -23,7 +23,10 @@ const durable = (type: string, data: JsonRecord, options: { readonly sessionId?:
 const message = (id: string): JsonRecord => ({ id, role: "user", content: [{ type: "text", text: id }], source: { kind: "user" } });
 const eventsOf = (lines: readonly JsonRecord[]): readonly RuntimeEventBody[] => replay(lines, "root").frames.flatMap((frame) => frame.body.events);
 
-const captures = [["0.2.1-rc.5", rc], ["0.2.2-alpha.2", alpha]] as const;
+const captures = [
+  ["0.2.1-rc.5", rc, "24660b7d-7ce3-47c4-a5b2-3a91754ff699"],
+  ["0.2.2-alpha.2", alpha, "c4803bbd-ac24-4a0b-b58c-87a128c81f1e"],
+] as const;
 
 test.each(captures)("replaying the captured native tool turn of %s keeps every payload verbatim", (_version, evidence) => {
   const { frames } = replay(evidence.basicNativeFrames, "oar-basic");
@@ -36,11 +39,13 @@ test.each(captures)("replaying the captured native tool turn of %s keeps every p
   }
 });
 
-test.each(captures)("replaying the captured native tool turn of %s reads one copy of the text and the runtime's turn end", (_version, evidence) => {
+test.each(captures)("replaying the captured native tool turn of %s reads one copy of the text and the runtime's turn end", (_version, evidence, inputId) => {
   const { state, frames } = replay(evidence.basicNativeFrames, "oar-basic");
   const events = frames.flatMap((frame) => frame.body.events);
   expect(events.flatMap((event) => event.kind === "text_delta" ? [event.text] : []).join("")).toBe("native final answer");
-  expect(events.filter((event) => event.kind === "turn_ended")).toEqual([{ kind: "turn_ended", outcome: { kind: "completed" } }]);
+  expect(events.filter((event) => event.kind === "turn_ended")).toEqual([
+    { kind: "turn_ended", outcome: { kind: "completed" }, inputIds: [inputId] },
+  ]);
   expect(events.flatMap((event) => event.kind === "tool_call_started" || event.kind === "tool_call_ended" ? [event.kind] : [])).toEqual(["tool_call_started", "tool_call_ended"]);
   expect(events.find((event) => event.kind === "model")).toEqual({ kind: "model", model: "oar-probe/probe-model" });
   const session = state.sessions["oar-basic"];
@@ -147,6 +152,17 @@ test("a prompt behind input a crashed process left waiting is held until its own
 
 test("a turn with no waiting input is an active turn with no input id", () => {
   expect(eventsOf([durable("turn/start", { turn: 3 })])).toEqual([{ kind: "turn_active" }]);
+});
+
+test("DSH completion carries only durable user IDs observed in that native turn", () => {
+  const turn = (n: number) => durable("turn/start", { turn: n });
+  const end = (n: number) => durable("turn/end", { turn: n, reason: { kind: "completed" } });
+  const user = (id: string) => durable("user/message", { id, source: { kind: "user" } });
+  const events = eventsOf([user("outside"), turn(1), user("root-message"), user("insert"), user("insert"), end(1), turn(2), end(2)]);
+  expect(events.filter(event => event.kind === "turn_ended")).toEqual([
+    { kind: "turn_ended", outcome: { kind: "completed" }, inputIds: ["root-message", "insert"] },
+    { kind: "turn_ended", outcome: { kind: "completed" } },
+  ]);
 });
 
 test("a native message id is the input id; runtime context is no user message", () => {

@@ -6,6 +6,7 @@ import { readPiRpcCredentials, servePiRpcPipe } from "../../packages/oar/src/run
 function pipeHarness(config?: string) {
   const replies: string[] = [];
   const received: string[] = [];
+  const reports: (readonly unknown[])[] = [];
   let failed = 0;
   const pipe = new Duplex({
     read() { /* Data is pushed below, as if received from the native hook. */ },
@@ -16,8 +17,9 @@ function pipeHarness(config?: string) {
     ...(config === undefined ? {} : { config }),
     remember: (key) => { received.push(key); },
     failed: () => { failed += 1; },
+    tools: (tools) => { reports.push(tools); },
   });
-  return { pipe, replies, received, failures: () => failed };
+  return { pipe, replies, received, reports, failures: () => failed };
 }
 
 test("a peer closing before the credential acknowledgment fails without an unhandled readline error", async () => {
@@ -81,4 +83,31 @@ test("servePiRpcPipe rejects config requests when no config was supplied or on i
   await setImmediate();
   expect(h.replies).toEqual([]);
   expect(h.failures()).toBe(2);
+});
+
+test("the child's tool report is kept and acknowledged without touching startup config", async () => {
+  const h = pipeHarness('{"servers":[]}');
+  h.pipe.push('{"type":"tools","tools":[{"name":"read","path":"builtin:read","source":"builtin"},{"name":"Checklist","path":"/ext/checklist.ts","source":"checklist"}]}\n');
+  await setImmediate();
+  // The report asks for nothing back but its acknowledgement, and it must not
+  // consume the one startup config the child still expects.
+  expect(h.replies).toEqual(["ok\n"]);
+  expect(h.failures()).toBe(0);
+  expect(h.reports).toHaveLength(1);
+  expect(h.reports[0]).toEqual([
+    { name: "read", path: "builtin:read", source: "builtin" },
+    { name: "Checklist", path: "/ext/checklist.ts", source: "checklist" },
+  ]);
+  h.pipe.push('{"type":"config"}\n');
+  await setImmediate();
+  expect(h.replies.at(-1)).toEqual('{"servers":[]}\n');
+});
+
+test("a report OAR cannot read is acknowledged and records nothing, never a guessed extension", async () => {
+  const h = pipeHarness();
+  h.pipe.push('{"type":"tools","tools":[{"name":"half"}]}\n');
+  await setImmediate();
+  expect(h.replies).toEqual(["ok\n"]);
+  expect(h.failures()).toBe(0);
+  expect(h.reports).toEqual([[]]);
 });

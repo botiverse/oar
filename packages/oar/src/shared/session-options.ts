@@ -10,6 +10,27 @@ function credentialEntries(options: SessionOptions): readonly string[] {
   return (options.mcpServers ?? []).filter((server) => hasMcpCredentials(server)).map((server) => server.name);
 }
 
+/**
+ * The refusals every runtime but Pi declares for Pi's two provider options
+ * (`SessionOptions.piProvider`, `piCompaction`). A runtime spreads this into its
+ * own map, so a host handing a Pi provider declaration to another runtime is
+ * refused instead of silently ignored.
+ */
+export const piOnlyRefusals: RefusedSessionOptions = {
+  piProvider: "Only the Pi runtime takes a host-declared provider: this runtime resolves its providers natively",
+  piCompaction: "Only the Pi runtime takes a host-declared compaction budget: this runtime configures compaction natively",
+};
+
+/**
+ * The refusal every runtime but DSH declares for DSH's host-declared provider
+ * (`SessionOptions.dshProvider`). A runtime spreads this into its own map, so a
+ * host handing a DSH provider declaration to another runtime is refused instead
+ * of silently ignored.
+ */
+export const dshOnlyRefusals: RefusedSessionOptions = {
+  dshProvider: "Only the DSH runtime takes a host-declared provider, through its own profile patch: this runtime resolves its providers natively",
+};
+
 /** Whether `options` gives `key`: any defined value (including an empty schema), a non-empty map for `env`, a non-empty list for list options, an entry carrying a credential for `mcpServerCredentials`, `exclude` for `userConfiguration`, true for `goals` and `endTurnProcessesOnAbort`, any value for `fork`. */
 export function sessionOptionGiven(options: SessionOptions, key: RefusableSessionOption): boolean {
   if (key === "goals") { return options.goals === true; }
@@ -39,7 +60,7 @@ export function sessionOptionGiven(options: SessionOptions, key: RefusableSessio
  */
 export function refuseSessionOptions(refused: RefusedSessionOptions, options: SessionOptions): void {
   checkRetainedBytes(options.retainedBytes);
-  for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "serviceTierFallback", "additionalDirectories", "outputSchema", "name", "userConfiguration", "partialUserConfiguration", "goals", "endTurnProcessesOnAbort", "fork", "nativeMemoryDefault", "sessionLogUpload", "nativePermissions", "modelRequests", "userQuestions"] as const) {
+  for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "serviceTierFallback", "additionalDirectories", "outputSchema", "name", "userConfiguration", "partialUserConfiguration", "goals", "endTurnProcessesOnAbort", "fork", "nativeMemoryDefault", "sessionLogUpload", "nativePermissions", "modelRequests", "questions", "userQuestions", "piProvider", "piCompaction", "dshProvider"] as const) {
     const reason = refused[key];
     if (reason === undefined || !sessionOptionGiven(options, key)) {
       continue;
@@ -99,11 +120,19 @@ function checkNativePermissions(options: SessionOptions): void {
   }
 }
 
-/** Reject any runtime value but `"host"`, so a typo never opens a session whose questions nobody holds. */
+/**
+ * Reject any runtime value but `"host"`, so a typo never opens a session
+ * whose questions nobody holds, and reject giving BOTH question options: they
+ * are two dialects of one channel, and a session with two would answer in one
+ * vocabulary and describe the other.
+ */
 function checkUserQuestions(options: SessionOptions): void {
   const value: unknown = options.userQuestions;
   if (value !== undefined && value !== "host") {
     throw new UnsupportedOptionError("userQuestions", `userQuestions must be "host" when specified, received ${JSON.stringify(value)}`);
+  }
+  if (value !== undefined && options.questions !== undefined) {
+    throw new UnsupportedOptionError("userQuestions", 'give either questions: "ask" or userQuestions: "host", not both: they are two dialects of one host-answered question channel');
   }
 }
 

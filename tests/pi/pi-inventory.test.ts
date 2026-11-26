@@ -37,8 +37,9 @@ function session() {
       getCommandDiagnostics: (): unknown[] => [],
     },
     getAllTools: () => [
-      { name: "read", description: "Read", parameters: { type: "object" } },
-      { name: "write", description: "Write", parameters: { type: "object" } },
+      { name: "read", description: "Read", parameters: { type: "object" }, sourceInfo: { source: "builtin", scope: "builtin", origin: "builtin", path: "builtin:read" } },
+      { name: "write", description: "Write", parameters: { type: "object" }, sourceInfo: { source: "builtin", scope: "builtin", origin: "builtin", path: "builtin:write" } },
+      { name: "Checklist", description: "Checklist", parameters: { type: "object" }, sourceInfo: { source: "team-checklist", scope: "user", origin: "top-level", path: "/home/.pi/agent/extensions/checklist.ts" } },
     ],
     getActiveToolNames: () => ["read"],
     dispose: vi.fn(),
@@ -123,8 +124,11 @@ test("Pi registered tools retain schema and distinguish inactive from absent", a
   expect(result).toMatchObject({
     kind: "ok", view: "registered", partial: false,
     items: [
-      { name: "read", description: "Read", active: true, inputSchema: { type: "object" } },
-      { name: "write", description: "Write", active: false, inputSchema: { type: "object" } },
+      { name: "read", description: "Read", active: true, inputSchema: { type: "object" }, source: "builtin" },
+      { name: "write", description: "Write", active: false, inputSchema: { type: "object" }, source: "builtin" },
+      // The source Pi itself named for an extension-provided tool: how a host
+      // verifies which plugin a checklist channel came from.
+      { name: "Checklist", description: "Checklist", active: false, inputSchema: { type: "object" }, source: "team-checklist" },
     ],
   });
   expect(agent.dispose).toHaveBeenCalledOnce();

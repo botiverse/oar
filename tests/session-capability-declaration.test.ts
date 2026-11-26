@@ -18,7 +18,7 @@ describe("Runtime.sessionCapabilities", () => {
       expect(runtime.sessionCapabilities, runtime.id).toBeTypeOf("function");
       const declared = runtime.sessionCapabilities?.(executable("1.0.0"));
       expect(declared, runtime.id).not.toBeInstanceOf(Promise);
-      const known = new Set(["steer", "images", "refusedSessionOptions", "manualCompaction", "taskEventTypes", "subagentResults", "compactionEvents", "contextUsage", "mcpTransports", "mcpStartup", "stopTask", "fileChanges", "nativeSessionFile", "sideQuestion"]);
+      const known = new Set(["steer", "images", "refusedSessionOptions", "manualCompaction", "taskEventTypes", "subagentResults", "compactionEvents", "contextUsage", "mcpTransports", "mcpServerCredentialsVerified", "mcpStartup", "stopTask", "fileChanges", "nativeSessionFile", "sideQuestion", "dshProvider"]);
       expect(Object.keys(declared ?? {}).every((key) => known.has(key)), runtime.id).toBe(true);
       // The static declarations are always part of the answer, and the answer is plain data a host can send on.
       expect(declared?.refusedSessionOptions ?? {}, runtime.id).toMatchObject(runtime.refusedSessionOptions ?? {});
@@ -68,7 +68,7 @@ it("offers side questions only on verified Claude installations", () => {
 describe("SessionCapabilityDeclaration.contextUsage", () => {
   it("declares per-installation contextUsage across default built-in runtimes", () => {
     const byId = new Map(allRuntimes.list().map((runtime) => [runtime.id, runtime.sessionCapabilities?.(executable("2.3.2")).contextUsage]));
-    for (const id of ["antigravity", "claude", "codex", "dsh", "factory", "kimi", "opencode", "pi", "qwen"]) {
+    for (const id of ["antigravity", "claude", "codex", "dsh", "factory", "hermes", "kimi", "opencode", "pi", "qwen"]) {
       expect(byId.get(id), id).toEqual({ tokens: true, contextWindow: true });
     }
     expect(byId.get("grok")).toEqual({ tokens: true, contextWindow: false });
@@ -116,7 +116,7 @@ describe("SessionCapabilityDeclaration.stopTask", () => {
     for (const id of ["claude", "codex", "dsh", "qoder"]) {
       expect(byId.get(id), id).toBe(true);
     }
-    for (const id of ["antigravity", "codebuddy", "devin", "factory", "grok", "kimi", "opencode", "pi", "qwen"]) {
+    for (const id of ["antigravity", "codebuddy", "devin", "factory", "grok", "hermes", "kimi", "opencode", "pi", "qwen"]) {
       expect(byId.get(id), id).toBe(false);
     }
     expect(opencodeRuntime.sessionCapabilities(executable()).stopTask).toBe(false);
@@ -144,15 +144,17 @@ describe("Codex MCP startup declarations", () => {
   });
 });
 
+const mcpTransports = (id: string): unknown => allRuntimes.require(id).sessionCapabilities?.(executable("2.178.1")).mcpTransports;
+
 describe("SessionCapabilityDeclaration.mcpTransports", () => {
   it("declares verified mcpTransports across default built-in runtimes", () => {
-    const byId = new Map(allRuntimes.list().map((runtime) => [runtime.id, runtime.sessionCapabilities?.(executable("2.178.1")).mcpTransports]));
     for (const id of ["antigravity", "claude", "codebuddy", "codex", "grok", "kimi", "opencode", "pi", "qoder", "qwen"]) {
-      expect(byId.get(id), id).toEqual(["stdio", "http"]);
+      expect(mcpTransports(id), id).toEqual(["stdio", "http"]);
     }
-    expect(byId.get("dsh")).toEqual(["stdio", "http"]);
-    expect(byId.get("devin")).toBeUndefined();
-    expect(byId.get("factory")).toBeUndefined();
+    expect(mcpTransports("dsh")).toEqual(["stdio", "http"]);
+    expect(mcpTransports("hermes")).toEqual(["stdio"]);
+    expect(mcpTransports("devin")).toBeUndefined();
+    expect(mcpTransports("factory")).toBeUndefined();
   });
 
   it("declares mcpTransports on constructed built-in runtimes", async () => {

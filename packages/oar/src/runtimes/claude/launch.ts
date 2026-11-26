@@ -109,7 +109,7 @@ export async function launchClaude(command: string, sessionId: string, options: 
   refuseManagedLaunchArgs(options.launchArgs);
   refuseForkLaunchArgs(options.launchArgs, options.fork);
   if (options.userQuestions === "host") { refuseQuestionLaunchArgs(options.launchArgs); }
-  const permissions = claudePermissionArgs(options.launchArgs);
+  const permissions = claudePermissionArgs(options.launchArgs, options.questions);
   refuseSessionOptions(claudeRefusedSessionOptions, options);
   checkSessionName(options);
   const tierSettings = claudeServiceTierSettings(options.serviceTier);

@@ -180,13 +180,15 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
       });
     },
     step(method, response) {
+      // Handshake frames are buffered until the session identity is bound.
+      const receivedAt = Date.now();
       write((kernel) => {
         const model = acpReportedModel(response);
         const effort = acpReportedEffort(response);
         kernel.frame({ type: method, native: response, events: [
           ...(model === null ? [] : [{ kind: "model" as const, model }]),
           ...(effort === null ? [] : [{ kind: "effort" as const, effort }]),
-        ] });
+        ] }, { receivedAt });
       });
     },
     requested(id, method, params, receivedAt) {

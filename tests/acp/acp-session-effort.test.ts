@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { expect, test } from "vitest";
 import { acpReportedEffort, acpThoughtLevelOption } from "../../packages/oar/src/shared/acp/model.js";
+import { asRecord, asRecordList } from "../../packages/oar/src/shared/json.js";
 import { describe, fixture, start } from "../fixtures/acp-session-support.js";
 
 // The effort channel on ACP is the agent's `thought_level` config option,
@@ -37,11 +38,44 @@ test("a resumed session takes the requested effort too", async () => {
 });
 
 test.each([
-  { name: "the agent refuses the level", mode: "session", effort: "bogus", message: "session/set_config_option fixture_effort=bogus was refused: Invalid params (unknown fixture_effort value)" },
-  { name: "the agent applies another level", mode: "session", effort: "sticky", message: "session/set_config_option left fixture_effort at medium although effort sticky was requested" },
+  // An agent that publishes no menu is the one case where only its own refusal can decide.
+  { name: "the agent refuses the level", mode: "no-effort-menu", effort: "bogus", message: "session/set_config_option fixture_effort=bogus was refused: Invalid params (unknown fixture_effort value)" },
+  { name: "the agent applies another level", mode: "sticky", effort: "sticky", message: "session/set_config_option left fixture_effort at medium although effort sticky was requested" },
   { name: "the agent offers no thought_level option", mode: "no-thought-level", effort: "high", message: "session/new advertises no thought_level config option, so effort high cannot be applied" },
 ])("the open is refused when $name", async ({ mode, effort, message }) => {
   await expect(start({ args: [fixture, mode] }, undefined, undefined, effort)).rejects.toThrow(message);
+});
+
+test("a level the selected model does not offer is refused before any native write", async () => {
+  const opened = await start();
+  await opened.dispose();
+  // The agent advertises low/medium/high for its selected model; "xhigh" is a
+  // level another model of the same family may have, never a request to send.
+  await expect(start({}, undefined, undefined, "xhigh")).rejects.toMatchObject({
+    name: "UnsupportedOptionError",
+    option: "effort",
+    message: "the selected model offers effort low, medium, high; xhigh is not one of them",
+  });
+});
+
+// oxlint-disable-next-line max-statements -- One level at a time: open, write, read back, dispose.
+test("low and high both take effect, each read back by the agent in the same session shape", async () => {
+  const readbacks: string[] = [];
+  for (const level of ["low", "high"]) {
+    // oxlint-disable-next-line no-await-in-loop -- one level at a time keeps each readback attributable.
+    const session = await start({}, undefined, undefined, level);
+    const writes = session.records().filter((record) => record.kind === "frame" && record.body.type === "session/set_config_option");
+    assert.equal(writes.length, 1, `${level}: exactly one native write`);
+    const [written] = writes;
+    assert.ok(written?.kind === "frame");
+    const recorded = asRecordList(asRecord(written.body.native)?.configOptions).find((option) => option.id === "fixture_effort");
+    assert.equal(recorded?.currentValue, level, `${level}: the agent answered with that level`);
+    assert.equal(session.effort().value, level);
+    readbacks.push(String(session.effort().value));
+    // oxlint-disable-next-line no-await-in-loop -- one level at a time keeps each readback attributable.
+    await session.dispose();
+  }
+  assert.deepEqual(readbacks, ["low", "high"]);
 });
 
 test("acpThoughtLevelOption finds the effort selector by category, whatever its id", () => {

@@ -1,0 +1,11 @@
+{
+  "package": "@botiverse/oar",
+  "version": "0.135.0",
+  "commit": "34c1cadd14f45517fbd4a73ef7bbb2631f735058",
+  "official": "v0.135.0",
+  "tarball": {
+    "path": "artifacts/oar-0.135.0-candidate-34c1cadd.tgz",
+    "sha256": "3abe81cad5bc2b08f121c597a02f64a1352c48c37741c16dd5082d36b8d65968"
+  },
+  "check": "pnpm run typecheck, lint, test (5858 passed), mock sea-trial (21 passed), build"
+}

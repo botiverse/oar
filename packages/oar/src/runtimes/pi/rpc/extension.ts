@@ -55,6 +55,14 @@ export default async function oarPiRpcExtension(pi) {
     await createMcpExtension({ loadConfig: () => ({ servers: [], errors: [] }), logPath: path.join(config.agentDir, "mcp.log") })(pi);
     for (const server of config.servers) { pi.registerMcpServer(server.name, server.config); }
   }
+  // SessionOptions.piProvider: a load-time registration is queued and applied
+  // when Pi binds its model plane, before --model and the session's model
+  // resolve. Nothing is written to models.json, and the credential is the
+  // $NAME reference the host sent, which Pi resolves at request time.
+  if (config.provider !== undefined) {
+    if (typeof pi.registerProvider !== "function") { throw new Error("This Pi cannot register a provider from an extension, which SessionOptions.piProvider needs"); }
+    pi.registerProvider(config.provider.id, config.provider.entry);
+  }
   const remember = async (context) => {
     if (context.model === undefined) { return; }
     const auth = await context.modelRegistry.getApiKeyAndHeaders(context.model);
@@ -64,6 +72,18 @@ export default async function oarPiRpcExtension(pi) {
       await exchange(auth.apiKey);
     }
   };
+  // The parent will not read an extension off disk: it learns what this session
+  // loaded from this report, taken from the running session's own tool list.
+  // Entries Pi does not describe are dropped rather than repaired.
+  const reportTools = () => ({
+    type: "tools",
+    tools: pi.getAllTools().flatMap((tool) => {
+      const info = tool.sourceInfo ?? {};
+      return typeof tool.name === "string" && typeof info.path === "string" && typeof info.source === "string"
+        ? [{ name: tool.name, path: info.path, source: info.source }]
+        : [];
+    }),
+  });
   pi.on("session_start", async (_event, context) => {
     if (config.resume) {
       // -e loads this extension before user extensions. Reset only native
@@ -74,11 +94,22 @@ export default async function oarPiRpcExtension(pi) {
       pi.setActiveTools([...pi.getActiveTools().filter((name) => !builtinNames.has(name)), ...defaults.filter((name) => builtinNames.has(name))]);
     }
     await remember(context);
+    await exchange(reportTools());
     writeFileSync(path.join(directory, "ready"), JSON.stringify({
       version: VERSION,
       modelRegistered: context.model !== undefined && context.modelRegistry.find(context.model.provider, context.model.id) !== undefined,
+      // What the model plane holds for a declared provider: the parent compares
+      // this with the declaration and fails closed when it is short.
+      provider: config.provider === undefined ? null : {
+        id: config.provider.id,
+        models: context.modelRegistry.getAll().filter((model) => model.provider === config.provider.id).length,
+      },
     }), { mode: 0o600 });
   });
+  // Extensions bind at session start, in load order, so this is the first
+  // moment the tool list is complete: refresh it once per turn, before any tool
+  // this turn could run.
+  pi.on("before_agent_start", async () => { await exchange(reportTools()); });
   pi.on("model_select", async (_event, context) => { await remember(context); });
 }
 `;

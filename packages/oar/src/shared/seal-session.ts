@@ -12,11 +12,12 @@ import { observeWithPrefix } from "../observe/cursor.js";
 import { statusOf } from "../observe/agent-status.js";
 import { coalesceText, eventsReader } from "../observe/events.js";
 import { contextUsageOf, effortOf, modelOf, serviceTierOf, usageOf } from "../observe/usage.js";
-import { deliverInto } from "./deliver.js";
+import { deliverInto, failureOf } from "./deliver.js";
+import { isInputId } from "./input-id.js";
 
 const identify = (options: InputOptions = {}): InputOptions => {
   const inputId = options.inputId ?? globalThis.crypto.randomUUID();
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(inputId)) {
+  if (!isInputId(inputId)) {
     throw new Error("inputId must be a UUID");
   }
   return { ...options, inputId };
@@ -80,6 +81,8 @@ export function sealSession(adapterSession: AdapterSession): Session {
   const adapterStopTask = adapterSession.stopTask?.bind(adapterSession);
   const stopTask = adapterStopTask === undefined ? undefined
     : async (taskId: string): Promise<ControlOutcome> => controlOutcomeOf(await adapterStopTask(taskId));
+  // A host answer is already the reported outcome; only the receiver is bound.
+  const answer = adapterSession.answer?.bind(adapterSession);
   const abort = async (): Promise<ControlOutcome> => controlOutcomeOf(await adapterSession.abort());
   const steerOrQueue = async (input: string, options?: InputOptions): Promise<SteerOrQueueResult> => {
     const identified = identify(options);
@@ -87,6 +90,9 @@ export function sealSession(adapterSession: AdapterSession): Session {
       const steered = await steer(input, identified);
       if (steered.kind === "accepted") {
         return { landed: "steered", result: steered };
+      }
+      if (steered.code !== "unsupported" && steered.code !== "no_active_turn") {
+        return { landed: "rejected", code: steered.code, reason: steered.reason, ...failureOf(steered), result: steered };
       }
     }
     const queued = await queue(input, identified);
@@ -107,6 +113,7 @@ export function sealSession(adapterSession: AdapterSession): Session {
     ...(steer === undefined ? {} : { steer }),
     queue,
     ...(withdraw === undefined ? {} : { withdraw }),
+    ...(answer === undefined ? {} : { answer }),
     ...(stopTask === undefined ? {} : { stopTask }),
     abort,
     events: (observer, options = {}) => {

@@ -2,6 +2,7 @@
 /* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
 import type { CompactionOperation } from "../manual-compaction.js";
 import type { SessionKernel } from "../session-kernel.js";
+import type { AvailableInstallation } from "../../contracts/installation.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { methods } from "@agentclientprotocol/sdk";
 import type { ContextUsage, RawEvent, RuntimeEventBody, SessionCapabilities, SessionOptions, TokenTotals, TurnOutcome } from "../../contracts/session.js";
@@ -24,6 +25,8 @@ export { acpMcpOpenGuard } from "./mcp-servers.js";
 export interface AcpSessionProfile extends AcpDerivedSessionHooks, AcpSteerRequestHooks {
   /** Native compaction control, absent when the installed protocol cannot prove completion. */
   readonly compaction?: (kernel: SessionKernel, runtime: AcpProcess, promptUsage: (response: JsonRecord) => RuntimeEventBody | null) => CompactionOperation;
+  /** Whether the initialized ACP connection advertised the profile's native compaction extension. */
+  readonly compactionAdvertised?: (initialized: JsonRecord) => boolean;
   /** Vendor facts on an extension notification; its envelope retains native attribution. */
   readonly projectExtension?: (method: string, params: JsonRecord) => readonly RuntimeEventBody[];
   /** Additional vendor facts on a session update; attribution remains the recorder's responsibility. */
@@ -89,7 +92,13 @@ export interface AcpSessionProfile extends AcpDerivedSessionHooks, AcpSteerReque
   /** Native metadata on every prompt RPC, including held queue entries and steer. */
   readonly promptMeta?: (options: SessionOptions) => JsonRecord | undefined;
   readonly selectAuthMethod?: (initialized: JsonRecord) => string | undefined;
-  readonly validateOptions?: (options: SessionOptions) => void;
+  /**
+   * Refusals decided at open. `installation` is the probed one, so a profile
+   * can refuse an option on the releases whose native behavior it did not
+   * measure (hermes' session MCP credentials) and accept it on the one it did;
+   * `sessionCapabilities()` reads the same rule.
+   */
+  readonly validateOptions?: (options: SessionOptions, installation: AvailableInstallation) => void;
   readonly configureSession?: (context: {
     /** Each native call retains its own deadline and protocol error context. */
     readonly request: (method: string, params: JsonRecord) => Promise<unknown>;

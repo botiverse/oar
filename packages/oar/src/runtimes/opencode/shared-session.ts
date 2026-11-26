@@ -76,7 +76,7 @@ export function createOpenCodeSharedSession(diagnostic: (entry: AcpUnattributed)
     cleanup: closeAcpSession, diagnostic,
   });
   return withSessionCredentials(async (installation, options, _credentials, context) => {
-    opencodeV2AcpProfile.validateOptions?.(options);
+    opencodeV2AcpProfile.validateOptions?.(options, installation);
     checkMcpServerNames(options.mcpServers ?? []);
     if (installation.via !== "executable") { throw new Error("opencode requires an executable installation"); }
     // Session prompts travel in the process's own OPENCODE_CONFIG_CONTENT, which a shared process cannot carry per session.

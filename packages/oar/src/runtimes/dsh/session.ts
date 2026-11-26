@@ -25,6 +25,7 @@ import { dshEnvironment, launchDsh } from "./launch.js";
 import { isBackgroundShellJob } from "./jobs.js";
 import { dshGoalControl } from "./goal.js";
 import { dshMcpConfigs } from "./mcp.js";
+import { checkDshProvider, dshProviderAudit, dshProviderPatchRow } from "./provider.js";
 import { dshAgentOptions, dshDirectoryRefusal, dshRefusedSessionOptions, dshSessionLogUploadRefusal, dshSupportsNativeSessionFile, type DshAgentOptions } from "./options.js";
 import { dshOpenedFrame, foldDsh, initialDshProjection } from "./projection.js";
 
@@ -32,12 +33,12 @@ const OPEN_TIMEOUT_MS = 60_000;
 const DISPOSE_TIMEOUT_MS = 8000;
 
 /** Typed opening refusals from native evidence; anything else keeps its own message and native error as cause. */
-function openFailure(error: unknown, sessionId: string, resuming: boolean): unknown {
-  if (!(error instanceof DshCommandError)) { return error; }
+function openFailure(error: unknown, sessionId: string, resuming: boolean): Error {
+  if (!(error instanceof DshCommandError)) { return error instanceof Error ? error : new Error(String(error)); }
   if (error.native.name === "SessionPersistenceNotFoundError") {
     return new SessionNotFoundError(sessionId, `DSH has no saved session ${sessionId}`, { method: "sessionPersistence.open", native: error.native });
   }
-  if ((error.code === "native_method_unavailable" || error.code === "option_not_applied") && (error.capability === "name" || error.capability === "disallowedTools" || error.capability === "additionalDirectories" || error.capability === "sessionLogUpload")) {
+  if ((error.code === "native_method_unavailable" || error.code === "option_not_applied") && (error.capability === "name" || error.capability === "disallowedTools" || error.capability === "additionalDirectories" || error.capability === "sessionLogUpload" || error.capability === "dshProvider")) {
     return new UnsupportedOptionError(error.capability, error.message);
   }
   if (error.code === "prompt_not_applied" && (error.capability === "systemPrompt" || error.capability === "appendSystemPrompt")) {
@@ -101,9 +102,15 @@ const inputFields = (text: string, inputId: string | undefined, images: readonly
 async function open(command: string, options: SessionOptions, env: NodeJS.ProcessEnv, credentials: SessionCredentials, mcpConfigs: readonly JsonRecord[], supportsSessionFile: boolean): Promise<Session> {
   const sessionId = options.resume ?? randomUUID();
   const agentOptions = dshAgentOptions(options);
+  // The route this session asks for, as DSH names it: the request `refuseUnappliedRoute` reads back.
+  const requestedModel = agentOptions.provider === undefined || agentOptions.model === undefined ? options.model : `${agentOptions.provider}/${agentOptions.model}`;
+  const provider = options.dshProvider === undefined ? undefined : { patch: dshProviderPatchRow(options.dshProvider), audit: dshProviderAudit(options.dshProvider) };
   const kernel = credentials.kernel(sessionId);
   let projection = initialDshProjection(sessionId);
-  const { child, directory, profileLoaded } = await launchDsh(command, options.cwd, env, { disableSessionLogUpload: options.sessionLogUpload === "off" });
+  const { child, directory, profileLoaded } = await launchDsh(command, options.cwd, env, {
+    disableSessionLogUpload: options.sessionLogUpload === "off",
+    ...(provider === undefined ? {} : { provider }),
+  });
   const fallback = createAbortFallback(() => { child.kill(); });
   let exited = false;
   let hasSessionFileStat = false;
@@ -150,7 +157,7 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
       const route = await savedRoute(control, sessionId, options.cwd);
       opened = await control.request("resume", { ...fields, ...(route === undefined ? {} : { route }) }, OPEN_TIMEOUT_MS);
     }
-    refuseUnappliedRoute(opened, agentOptions, options.model);
+    refuseUnappliedRoute(opened, agentOptions, requestedModel);
     if (opened.sessionId !== sessionId) { throw new Error(`DSH opened ${String(opened.sessionId)}, not ${sessionId}`); }
     if (options.name !== undefined) { await control.request("name", { sessionId, name: options.name, resuming: options.resume !== undefined }, OPEN_TIMEOUT_MS); }
   } catch (error) {
@@ -256,6 +263,7 @@ export const dshSession: StartSession = withSessionCredentials(async (installati
   refuseSessionOptions(dshRefusedSessionOptions, options);
   checkSessionName(options);
   // Checked before spawning anything: both refusals name what they refuse.
+  if (options.dshProvider !== undefined) { checkDshProvider(options.dshProvider); }
   dshAgentOptions(options);
   const mcpConfigs = dshMcpConfigs(options.mcpServers, options.cwd);
   if (installation.via !== "executable") { throw new Error("DSH requires its executable installation"); }

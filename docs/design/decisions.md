@@ -12,6 +12,53 @@ and contract member, (4) the cheapest regression test and resource cost, and
 (5) a sea-trial case for every new `must` or `never`. If any answer is missing,
 keep the idea in the [roadmap](roadmap.md) or an experiment.
 
+## A durable queue OAR restores (2026-11-24)
+
+**Considered:** OAR persisting held input (adapter-held queues and the input
+facts around them) and restoring it after the host's process restarts, so a
+queue survives without the host doing anything.
+
+**Refused, because applications own their data layer**
+([replay boundary](foundations.md#replay-boundary);
+[a storage layer](#a-storage-layer-2026-09-03)): such a snapshot is a
+projection of records the host already keeps, so OAR writing it would duplicate
+the host's log, its retention policy and its product data, and make an
+OAR-owned file the source of truth for someone's queue. It would also put OAR
+in the position of resending input on its own initiative, which is exactly
+where a duplicate turn comes from: `accepted` already ends the caller's
+delivery obligation, and `runtime_exited` is not proof an input was never
+read ([dropped input](../spec/conversation.md#dropped-input)).
+
+**Accepted:** the same capability as a contract the host drives
+([queue snapshot](../spec/queue-snapshot.md)): `queueSnapshotOf` derives a
+versioned, JSON-safe document from records; `parseQueueSnapshot` refuses a
+foreign format, another version, a duplicate entry or a malformed field
+instead of repairing it; `queueSnapshotPlan` decides per input from explicit
+evidence (ownership, `safe` / `uncertain` / `never`, and whether the runtime
+may already know the logical id); and `restoreQueue` applies that plan through
+the ordinary `Session.queue` call, sending only input the stream returned to
+the caller, only from the root lane, and only under an id the target does not
+already name (`child_lane`, `duplicate_input`, `input_id_collision`,
+`invalid_input_id`). A sub-agent lane's input is captured as evidence and
+never restored, because no OAR control names a lane target; a host that wants
+it delivered does so through that child's own session. Nothing is written,
+read back or resent unless a host asks.
+
+**Decision gates:** (1) the host decides whether queued input survives its own
+restart, and can show why each input did or did not return; (2) unsafe today
+because a resent input the runtime already holds runs twice, and Codex's
+native queue can survive an exit that a fold reads as "dropped"; (3) the
+observe layer, `QueueSnapshot` / `restoreQueue` over `Session.queue`; (4)
+`tests/queue-snapshot.test.ts` and `tests/queue-restore.test.ts`, milliseconds
+with no runtime; (5) `session.queue-snapshot-restores-only-returned-input`,
+which accepts either withdraw outcome of the race and asserts that nothing the
+stream marks `resend: "never"` was ever queued.
+
+**What would reopen it:** OAR running as a service that outlives the hosts it
+serves (as for the storage layer), or a runtime whose native queue is readable
+and restorable through a documented API, which would make part of this a
+native capability rather than a host projection.
+
 ## Suggested minimum version per runtime, not a static model catalog (2026-11-26)
 
 **Considered:** either injecting a static "model id -> minimum CLI version"
@@ -436,6 +483,98 @@ ownership, response records, cancellation and exit handling, and a policy
 for unanswered requests. **What would reopen it:** a host that needs to
 present a native permission request to a human and return that person's
 answer. The current demand is noninteractive restriction, not that workflow.
+
+## Host-answered approvals through the record stream (2026-11-24)
+
+**Accepted:** a runtime-independent `Session.answer(requestId, decision)`
+for adapters that hand an approval to the host, with the correlation, outcome
+vocabulary, unanswered policy, teardown and redaction rules in
+[the spec](../spec/app-requests.md). This supersedes only the **Deferred**
+paragraph above; the Claude launch policy (no interactive prompt target, no
+bypass change) stands. The runtime still owns permission evaluation: a host
+answer is one decision on a request the runtime already sent, never a policy
+OAR invents.
+
+**Why now:** the deferred item named its own prerequisites — request
+ownership, response records, cancellation and exit handling, and a policy
+for unanswered requests. All four are record-stream questions OAR already
+settles elsewhere, so they are answered once in shared code instead of per
+adapter:
+
+- **Correlation** is the `toApp` request record's own id, the runtime's
+  native id. No new identity, no timing match.
+- **Ownership** is explicit per request. An adapter either registers it as
+  waiting for a host or answers it itself; `Session.answer` is present only
+  where the former happens (`capabilities.appRequests`). A request answered
+  automatically is not answerable, and one from a replaced stream is unknown
+  after resume.
+- **Outcomes** reuse the stream's existing obligations: an `answered`
+  response with `by: "host"`, read back as `app_answered`. The new outcome
+  type only adds what a pair cannot say: `accepted` (native receipt seen),
+  `unconfirmed` (reply written, no receipt in the protocol), `timeout`
+  (receipt deadline or unanswered policy), `aborted` (withdrawn, disposed,
+  exited, released, caller signal) and `rejected` (nothing written).
+- **Unanswered requests** get one declared policy. `wait` is the default
+  because OAR must not invent a human's answer; an embedded host that cannot
+  present a request must choose `deny` with a deadline.
+- **Redaction** is the kernel's: the request body and the host's reply are
+  both recorded through it under the existing credential rules.
+
+**Not accepted, deliberately:** no vendor adapter opts in in this change.
+Native evidence exists for Claude's `can_use_tool` reply and ACP's
+permission option, and the reference implementation runs on the in-process
+mock, but each adoption also needs its own native launch/interaction policy
+(Claude's prompt target, ACP's shared routing) and a proof that the reply is
+the one the vendor applies. Faking generic support in those adapters would
+claim a round-trip no vendor test has seen. The per-runtime evidence and the
+next step for each are in the
+[experiment](../../experiments/app-request-answering/README.md).
+
+**What would extend it:** a host that presents approvals in a real product;
+each adapter adoption with its vendor's own reply fixture and a vendor
+regression; a `question` decision vocabulary (elicitation) if a host needs
+it; and a per-request deadline stronger than the session policy if a
+long-running runtime needs one.
+
+## Claude's questions, not approvals, through the host channel (2026-11-24)
+
+**Accepted:** Claude's own question tool goes to the host through
+`SessionOptions.questions: "ask"` and `Session.answerQuestion`, using the
+separate `QuestionAnswerOutcome`/`AppQuestionAnswers` contract. An approval
+decision never carries answers and a question answer never grants permission.
+The native evidence is
+[the question probe](../../experiments/app-request-answering/question-probe.ts)
+on 2.1.309 against a scripted provider: `AskUserQuestion` is a
+`can_use_tool` request, its `updatedInput.answers` reply reaches the same
+turn, a reply naming another request id answers nothing, an interrupt sends
+`control_cancel_request` and a late answer is ignored, answering a question
+does not approve a later `Bash`, and Claude refuses the tool inside subagents.
+
+**Why this shape:** the parked approvals PR (#26) put `answer` inside
+`AppDecision`, which would make every host answer an approval-shaped payload
+and every question an approval grant. The record stream already distinguishes
+the two by what the native request asks, so the contract does too: one
+correlation, two methods, two payloads. The shared kernel machinery, the
+`answered`/`by: "host"` record and the teardown rules are reused; only the
+payload and the native writer differ.
+
+**What Claude gets:** `questions: "ask"` selects `--permission-mode default
+--permission-prompt-tool stdio`. The gate also routes tool approvals, so OAR
+denies each natively and records it; `Session.answer` stays absent, so this is
+not an approval opt-in. `capabilities.appRequests` is `{ kinds: [],
+questions: true, unanswered: "wait" }`. A host permission flag beside the
+option is refused before launch. Claude acknowledges no reply, so answers are
+`unconfirmed`.
+
+**Scope:** root agent only (Claude refuses `AskUserQuestion` in subagents, so
+there is nothing to route); no policy answer for an unanswered question; no
+other runtime exposes `questions` until its own native channel is verified, and
+`defineRuntime` refuses the option before open. Approvals remain unadopted.
+
+**What would extend it:** a runtime whose question channel survives the same
+five checks (same-turn answer, id correlation, withdrawal, no implicit
+approval, child identity); a `question` policy if a host needs a bounded
+noninteractive denial; and a child question channel if a vendor adds one.
 
 ## Control objects as the event model (2026-09-03)
 

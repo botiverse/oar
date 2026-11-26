@@ -3,8 +3,11 @@ import type { McpServer } from "../../contracts/session-options.js";
 import { checkManagedLaunchArgs } from "../../shared/launch-args.js";
 import { isHttpMcpServer } from "../../shared/mcp-servers.js";
 import type { JsonRecord } from "../../shared/json.js";
+import { dshOnlyRefusals, piOnlyRefusals } from "../../shared/session-options.js";
 
 export const factoryRefusedSessionOptions: RefusedSessionOptions = {
+  ...piOnlyRefusals,
+  ...dshOnlyRefusals,
   modelRequests: "This adapter has no verified capture of the root agent's provider request",
   fork: "OAR has not verified a native droid fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",

@@ -12,7 +12,7 @@ test.each([undefined, "old-session"])("CLI tool denials fail before spawning on 
     // oxlint-disable-next-line eslint/no-await-in-loop -- Check each requested restriction independently.
     await expect(opening).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "disallowedTools" });
   }
-  expect(() => antigravityAcpProfile.validateOptions?.({ cwd, disallowedTools: [] })).not.toThrow();
+  expect(() => antigravityAcpProfile.validateOptions?.({ cwd, disallowedTools: [] }, { kind: "available", via: "executable", command: "/nonexistent" })).not.toThrow();
 });
 
 test.each([undefined, "old-session"])("append uses the native namespace, without ignored tool metadata, on create/resume %s", (resume) => {

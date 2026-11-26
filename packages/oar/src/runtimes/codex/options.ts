@@ -1,8 +1,11 @@
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type { SessionOptions } from "../../contracts/session.js";
 import type { JsonRecord } from "../../shared/json.js";
+import { dshOnlyRefusals, piOnlyRefusals } from "../../shared/session-options.js";
 
 export const codexRefusedSessionOptions: RefusedSessionOptions = {
+  ...piOnlyRefusals,
+  ...dshOnlyRefusals,
   modelRequests: "This adapter has no verified capture of the root agent's provider request",
   userConfiguration: "codex isolated homes can persist temporary history paths in the shared index, breaking resume after cleanup; user-configuration exclusion is not supported",
   nativeMemoryDefault: "Codex has no verified settings layer below user config.toml for features.memories (which defaults to false)",

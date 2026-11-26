@@ -2,9 +2,13 @@ import { asRecord } from "./json.js";
 
 /**
  * Reasoning-effort menu as plain level names. Runtimes disagree on the entry
- * shape: codex ships `{effort, description}` objects, claude ships strings,
- * grok's ACP extension may ship either. Returns `undefined` when the runtime
- * exposes no menu at all, so callers can omit the field rather than emit `[]`.
+ * shape: codex ships `{effort, description}` objects, claude ships strings, an
+ * ACP config option ships `{value, name}`, and grok's model catalog ships
+ * `{id, value, label, default}` — where `value` is the id `set_config_option`
+ * takes and `id` is only its catalog key. `value` therefore wins, and `effort`
+ * / `id` are the fallbacks for the runtimes that ship only those. Returns
+ * `undefined` when the runtime exposes no menu at all, so callers can omit the
+ * field rather than emit `[]`.
  */
 export function effortLevelsOf(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) {
@@ -22,7 +26,7 @@ export function effortLevelsOf(value: unknown): string[] | undefined {
 }
 
 function effortName(record: Record<string, unknown> | null): string | undefined {
-  const candidate = record?.effort ?? record?.id;
+  const candidate = record?.value ?? record?.effort ?? record?.id;
   return typeof candidate === "string" && candidate.length > 0 ? candidate : undefined;
 }
 

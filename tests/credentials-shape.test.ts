@@ -48,7 +48,7 @@ test("every built-in runtime declares complete, disjoint credential metadata", a
   await withAllRuntimes((runtimes) => {
     expect(runtimes.map(r => r.id).toSorted()).toEqual([
       "antigravity", "claude", "codebuddy", "codex", "cursor", "devin", "dsh",
-      "factory", "grok", "kimi", "opencode", "pi", "pi-durable", "qoder", "qwen",
+      "factory", "grok", "hermes", "kimi", "opencode", "pi", "pi-durable", "qoder", "qwen",
     ]);
     for (const runtime of runtimes) {
       assertRuntimeCredentials(runtime);
@@ -60,7 +60,7 @@ test("runtime credential management, scope, interpolation and keychain services 
   await withAllRuntimes((runtimes) => {
     const byId = new Map(runtimes.map(r => [r.id, r]));
     expect(runtimes.filter(r => r.credentials?.management === "external").map(r => r.id).toSorted()).toEqual(["dsh", "pi-durable"]);
-    expect(runtimes.filter(r => r.credentials?.scope === "per_provider").map(r => r.id).toSorted()).toEqual(["opencode", "pi", "pi-durable", "qwen"]);
+    expect(runtimes.filter(r => r.credentials?.scope === "per_provider").map(r => r.id).toSorted()).toEqual(["hermes", "opencode", "pi", "pi-durable", "qwen"]);
     expect(byId.get("pi")?.credentials?.interpolation).toEqual([{ syntax: "$VAR", target: "env" }, { syntax: "!command", target: "shell" }]);
     expect(byId.get("opencode")?.credentials?.interpolation).toEqual([{ syntax: "{env:VAR}", target: "env" }]);
     expect(byId.get("codex")?.credentials?.stores?.find(s => s.kind === "keychain")).toEqual({
@@ -73,7 +73,7 @@ test("runtime sign-in paste kind and usageDirectoryEnv match native evidence", a
   await withAllRuntimes((runtimes) => {
     expect(Object.fromEntries(runtimes.map(r => [r.id, r.credentials?.signInPaste]))).toEqual({
       antigravity: "code_or_url", claude: "code", codebuddy: "none", codex: "none", cursor: "none",
-      devin: undefined, dsh: undefined, factory: "none", grok: "none", kimi: "none",
+      devin: undefined, dsh: undefined, factory: "none", grok: "none", hermes: undefined, kimi: "none",
       opencode: "code", pi: "code_or_url", "pi-durable": undefined, qoder: "none", qwen: undefined,
     });
     expect(Object.fromEntries(

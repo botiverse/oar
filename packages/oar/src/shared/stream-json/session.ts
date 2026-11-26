@@ -1,6 +1,6 @@
 import { appendStartupStderr, sessionExitReason } from "../executable/reported-stderr.js";
 import { streamJsonAppRequest } from "./permission.js";
-import { createUserQuestions } from "../user-questions.js";
+import { createUserQuestions, userQuestionAnswering } from "../user-questions.js";
 import { streamJsonResultReadback } from "./result-readback.js";
 import { writeHeldInput, type HeldStreamJsonInput } from "./held-input.js";
 import { streamJsonTaskControl } from "./task-control.js";
@@ -27,9 +27,10 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   credentials: SessionCredentials,
   profile: StreamJsonSessionProfile<S>,
 ): Promise<Session> {
-  const kernel = credentials.kernel(sessionId);
+  const kernel = profile.kernel ?? credentials.kernel(sessionId);
   const tasks = profile.stopTask === undefined ? undefined : streamJsonTaskControl(kernel, child, profile.stopTask);
   const questions = profile.questionReply === undefined ? undefined : createUserQuestions(kernel);
+  const answerQuestion: Session["answerQuestion"] = profile.answerQuestion ?? (questions === undefined ? undefined : userQuestionAnswering(questions));
   const userMessage = profile.userMessage ?? streamJsonUserMessage;
   const state: StreamJsonSessionState<S> = { child, active: null, projection: profile.initial };
   // Hold queues until turn end; active-turn writes may steer or become an irreversible native queue.
@@ -126,7 +127,9 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
           break;
         }
         case "toApp":
-          streamJsonAppRequest(kernel, child, command.id, command.type, message, profile, questions);
+          if (profile.appRequest?.(command.id, command.type, message) !== true) {
+            streamJsonAppRequest(kernel, child, command.id, command.type, message, profile, questions);
+          }
           break;
         default:
           break;
@@ -185,7 +188,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     capabilities,
     ...(compaction === null ? {} : { compact: compaction.compact }),
     ...(tasks === undefined ? {} : { stopTask: tasks.stop }),
-    ...(questions === undefined ? {} : { answerQuestion: questions.answer }),
+    ...(answerQuestion === undefined ? {} : { answerQuestion }),
     prompt: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
       if (observingCancellation !== null) { await waitForCancellation(); }
       const body = { kind: "prompt" as const, input, ...inputOptions };

@@ -76,7 +76,9 @@ test("a steering RPC error is the runtime's refusal, retained as its error frame
   try {
     await session.prompt("hold");
     expect(await session.steer?.("steer-error")).toMatchObject({ kind: "rejected", code: "runtime_refused" });
-    expect(await session.steer?.("steer-unknown")).toMatchObject({ kind: "rejected", code: "error" });
+    const unknown = await session.steerOrQueue("steer-unknown");
+    expect(unknown).toMatchObject({ landed: "rejected", code: "error", result: { kind: "rejected", code: "error" } });
+    expect(requests(session.records())).toEqual(["open", "prompt", "steer", "steer"]);
     expect(steeringFrames(session.records()).map((frame) => frame.body.type)).toEqual(["_session/steering/error", "_session/steering"]);
     expect(events(session.records()).some((event) => event.kind === "turn_ended")).toBe(false);
     await session.abort();

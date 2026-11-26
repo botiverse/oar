@@ -5,6 +5,7 @@ import type { RuntimeEventBody, TurnOutcome, SessionCapabilities, Session, Frame
 import type { LoadedImage } from "../input-images.js";
 import type { JsonRecord } from "../json.js";
 import type { StreamJsonProjectionState } from "./state.js";
+import type { StreamJsonChecklistTool } from "./plan.js";
 
 export interface StreamJsonUpdate<S> {
   readonly state: S;
@@ -27,6 +28,8 @@ export interface StreamJsonProjectionProfile<S extends StreamJsonProjectionState
   readonly partialMessageIds?: boolean;
   /** The next single-block assistant is the completed block's snapshot, even with a new id. */
   readonly assistantFollowsBlockStop?: boolean;
+  /** The dialect's own checklist tool, read from a completed assistant message's tool call (`evidence: "tool_call"`). */
+  readonly checklistTool?: StreamJsonChecklistTool;
   /** CLI-generated errors have native records but no model content. */
   readonly isAssistantError?: (message: JsonRecord) => boolean;
   readonly assistant: (state: S, message: JsonRecord, agentPath: readonly string[]) => S;
@@ -68,6 +71,14 @@ export interface StreamJsonSessionProfile<S extends StreamJsonProjectionState> {
   readonly close?: (active: boolean) => Promise<void>;
   readonly lastModelRequest?: Session["lastModelRequest"];
   readonly contextBreakdown?: Session["contextBreakdown"];
+  /** A native allow response, already in the runtime's own wire shape; null leaves the request unanswered. */
+  readonly permissionResponse?: (requestId: string, request: JsonRecord) => JsonRecord | null;
+  /** A runtime→app request the adapter records/answers itself; false lets the shared recorder keep it. */
+  readonly appRequest?: (id: string, type: string, native: unknown) => boolean;
+  /** The host-answered question operation, when this adapter hands questions over. */
+  readonly answerQuestion?: Session["answerQuestion"];
+  /** The kernel the adapter already built (with its host-answer coordinator bound); absent creates one here. */
+  readonly kernel?: SessionKernel;
   /** The wire form of a host's answer to a question. Present only when the host answers (SessionOptions.userQuestions). */
   readonly questionReply?: (requestId: string, request: JsonRecord, answer: UserQuestionAnswer) => JsonRecord;
   /** A native reply to a runtime control_request, already in the runtime's own wire shape; null leaves the request unanswered. */

@@ -10,6 +10,20 @@ function ended(content: unknown, rawOutput?: unknown): unknown {
   });
 }
 
+test("a status-only ACP update does not invent a tool call", () => {
+  const state = createAcpProjectionState();
+  const completion = { sessionUpdate: "tool_call_update", toolCallId: "t1", status: "completed" };
+  expect(projectAcpUpdate(state, completion)).toEqual([]);
+  expect(projectAcpUpdate(state, { ...completion, rawOutput: { exit_code: 0 } })).toMatchObject([
+    { kind: "tool_call_started", callId: "t1" },
+    { kind: "tool_call_ended", callId: "t1", exitCode: 0 },
+  ]);
+  projectAcpUpdate(state, { sessionUpdate: "tool_call", toolCallId: "t2", title: "Read", status: "in_progress" });
+  expect(projectAcpUpdate(state, { ...completion, toolCallId: "t2" })).toEqual([
+    { kind: "tool_call_ended", callId: "t2", result: "ok" },
+  ]);
+});
+
 // ACP tool content wraps each ContentBlock as `{type: "content", content}` (#73).
 test("an ACP tool result's content blocks are its ordered parts", () => {
   const image = { type: "content", content: { type: "image", data: "iVBORw0KGgo", mimeType: "image/png" } };

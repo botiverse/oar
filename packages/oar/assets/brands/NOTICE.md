@@ -18,6 +18,10 @@ Factory Droid: https://factory.com/favicon.svg (retrieved 2026-11-15), unmodifie
 
 Pi: https://pi.dev/logo-on-dark.svg (retrieved 2026-09-16), unmodified official site asset for identification on dark backgrounds. Pi branding belongs to its respective owner; the LobeHub MIT license below does not cover this asset.
 
+Hermes: OAR's `hermes*.svg` is a local caduceus mark drawn for this adapter,
+not an official Hermes Agent or Nous Research asset. Brand names and marks
+belong to their respective owners.
+
 ## Theme variants
 
 `light` and `dark` refer to the destination background. Claude Code, Antigravity

@@ -29,7 +29,7 @@ export const codebuddyAcpProfile: AcpSessionProfile = {
 };
 
 export const codebuddySession: StartSession = async (installation, options, context) => {
-  codebuddyAcpProfile.validateOptions?.(options);
+  codebuddyAcpProfile.validateOptions?.(options, installation);
   const file = options.systemPrompt === undefined ? undefined : await codebuddyPromptFile(options.systemPrompt);
   try {
     const session = await acpSession({ ...codebuddyAcpProfile, args: (input) => [...args(input), ...file?.args ?? []] })(installation, options, context);

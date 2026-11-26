@@ -4,6 +4,7 @@ import type { InputImage, InputOrigin, InputReference, UserMessage } from "./inp
 import type { PlacementRequest, SessionCleanup, SessionPlacement, SessionRelease } from "./placement.js";
 import type { ContextUsage } from "./context-usage.js";
 import type { FailureClass } from "./failure.js";
+import type { PlanEventBody } from "./plan.js";
 import type { TaskEventBody } from "./tasks.js";
 import type { TurnOutcome } from "./turn-outcome.js";
 
@@ -87,10 +88,7 @@ export interface FrameBody {
   readonly events: readonly RuntimeEventBody[];
   readonly elided?: true; // `retainedBytes` removed `native` (now null) and tool input and output from this retained frame. Live observers received it complete.
 }
-export type ReasoningContent =
-  | { readonly kind: "text"; readonly text: string }
-  | { readonly kind: "redacted" }
-  | { readonly kind: "empty" };
+export type ReasoningContent = { readonly kind: "text"; readonly text: string } | { readonly kind: "redacted" } | { readonly kind: "empty" };
 
 /** Runtime-reported totals for the attributed agent, counted from this Session's opening.
  * Cache counts are parts of input; reasoning is part of output. Optional counts accumulate only when reported.
@@ -131,6 +129,7 @@ export type RuntimeEventBody =
   /** A named server's own startup in this session. Pending requires an observed start; silence is unknown. */
   | { readonly kind: "mcp_server_startup"; readonly server: string; readonly status: "pending" | "ready" | "failed" | "cancelled" }
   | { readonly kind: "goal_changed"; readonly goal: GoalSnapshot | null }
+  | PlanEventBody
   | UserMessage
   /** Native evidence of true session lineage, carried by the frame that names the relationship. Foreign session ids alone never establish an edge. */
   | { readonly kind: "session_linked"; readonly parent: string; readonly child: string; readonly via: "tool_call" }
@@ -217,8 +216,8 @@ export type ControlEventBody =
   | { readonly kind: "control_rejected"; readonly requestId: string; readonly action: ControlAction; readonly code: RejectionCode; readonly reason: string }
   /** The runtime asked the application something (a `toApp` request: approval, question, terminal). `type` is the runtime's method or subtype; the body is on the request record. */
   | { readonly kind: "app_request"; readonly requestId: string; readonly type: string }
-  /** oar answered a `toApp` request automatically (an `answered` response). */
-  | { readonly kind: "app_answered"; readonly requestId: string }
+  /** oar answered a `toApp` request (an `answered` response); `by: "host"` when a host supplied the answer through `Session.answer`, absent for oar's own automatic or policy answer. */
+  | { readonly kind: "app_answered"; readonly requestId: string; readonly by?: "host" }
   /** The runtime process exited (an `exited` response). Optional reason carries a native startup diagnostic, OAR termination or unverified descendant cleanup. */
   | { readonly kind: "exited"; readonly code: number | null; readonly reason?: string };
 
@@ -280,7 +279,7 @@ export type RejectionCode =
   | "runtime_refused"
   /** The runtime no longer has this session (codex: `thread not found`): no later control on this Session can succeed. Its native conversation may still be resumable: open a new Session with `resume` set to its id. */
   | "session_not_found"
-  /** The adapter could not deliver (a thrown transport error); `reason` is the exception message. */
+  /** Delivery could not be confirmed (for example, a transport error); the runtime may already have taken the input. */
   | "error";
 
 /** Control acceptance is distinct from lifecycle observations: opening, cleanup, release and process exit. */
@@ -290,10 +289,10 @@ export type ResponseBody =
   | SessionRelease
   /** The adapter (or runtime) took the action over. For prompt/steer/queue this is ONE deliberately weak promise: the caller's delivery obligation ENDS; do not resubmit, unless the stream later reports the input dropped (`input_dropped`, `ConversationInput.state` "dropped"), which hands it back. No guarantee it lands in the current turn, that the model attends to it, or that any business outcome happened; where input landed is the event stream's job. For withdraw it is a strong one: the held input was removed before it was sent, and the caller owns it again. `native` is the runtime's own acknowledgement when it gave one. `queued: "adapter"` means OAR still holds this queue input; actual dispatch is a new prompt carrying its input identity, never a second response. */
   | { readonly kind: "accepted"; readonly native?: unknown; readonly queued?: "adapter" }
-  /** Not taken over; the caller still owns the input. `code` says why in one word; `reason` is the prose. */
+  /** A rejected control normally returns ownership to the caller, except when `code: "error"` leaves delivery unknown. */
   | { readonly kind: "rejected"; readonly code: RejectionCode; readonly reason: string; readonly native?: unknown; readonly failure?: FailureClass }
-  /** oar's reply to a `toApp` request (e.g. the automatic permission grant), verbatim. */
-  | { readonly kind: "answered"; readonly native: unknown }
+  /** oar's reply to a `toApp` request (e.g. the automatic permission grant), verbatim. `by: "host"` marks the reply a host supplied through `Session.answer` (docs/spec/app-requests.md); absence means oar's own answer, automatic or by policy. */
+  | { readonly kind: "answered"; readonly native: unknown; readonly by?: "host" }
   /** The runtime process exited, an outcome the runtime cannot say itself. Answers a `dispose` request when oar caused it; also recorded for an unrequested exit, pointing at no request. Optional reason carries a native startup diagnostic, OAR termination or unverified descendant cleanup. */
   | { readonly kind: "exited"; readonly code: number | null; readonly reason?: string };
 export type { ContextUsage } from "./context-usage.js";

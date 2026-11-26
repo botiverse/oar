@@ -1,4 +1,5 @@
-import type { InputOptions, Session, SessionOptions, SessionResources, StartSession } from "../../packages/oar/src/contracts/session.js";
+import type { InputOptions, Session, SessionCapabilities, SessionOptions, SessionResources, StartSession } from "../../packages/oar/src/contracts/session.js";
+import { createAppRequestAnswers } from "../../packages/oar/src/shared/app-request-answers.js";
 import { withdrawHeld } from "../../packages/oar/src/shared/held-input.js";
 import { inputImagesRefusal } from "../../packages/oar/src/shared/input-images.js";
 import { sealSession } from "../../packages/oar/src/shared/seal-session.js";
@@ -28,6 +29,22 @@ export const createMockSession = (attach?: AttachMock): StartSession => async (_
   }
   const kernel = createSessionKernel(options.resume);
   kernel.opened(context ?? { requested: "auto", placement: "in_process" });
+  // The host-answered approval round-trip is part of the contract, so the
+  // behavior fixture implements it: an approval prompt asks for it and waits,
+  // a deny-by-policy bounds an answer nobody sends, and teardown withdraws.
+  const approvalWaiters = new Map<string, () => void>();
+  let approvalSeq = 0;
+  const approvals = createAppRequestAnswers({
+    kernel,
+    unanswered: { afterMs: 5000, decision: { decision: "deny" } },
+    deliver: (_request, decision) => ({ reply: { decision: decision.decision } }),
+    onSettled: (outcome) => { approvalWaiters.get(outcome.requestId)?.(); },
+  });
+  const withdrawApprovals = (): void => {
+    for (const requestId of approvals.pending()) {
+      kernel.frame({ type: "mock/approval_cancelled", native: { requestId }, events: [{ kind: "app_request_cancelled", requestId }] });
+    }
+  };
   const steered: string[] = [];
   const queued: { readonly input: string; readonly inputId: string | undefined }[] = [];
   let active: { timer: NodeJS.Timeout | null; aborted: boolean } | null = null;
@@ -45,15 +62,23 @@ export const createMockSession = (attach?: AttachMock): StartSession => async (_
       run(next.input);
     }
   };
+  function finish(input: string): void {
+    say(`echo:${input}`);
+    for (const extra of steered.splice(0)) {
+      say(`steer:${extra}`);
+    }
+    end("completed");
+  }
   function run(input: string): void {
-    // "hang" never settles on its own; the stall-observation fixture.
-    const timer = input === "hang" ? null : setTimeout(() => {
-      say(`echo:${input}`);
-      for (const extra of steered.splice(0)) {
-        say(`steer:${extra}`);
-      }
-      end("completed");
-    }, 10);
+    // "needs-approval" asks the host before it echoes; "hang" never settles on its own.
+    if (input === "needs-approval") {
+      const requestId = `approval-${String(++approvalSeq)}`;
+      active = { timer: null, aborted: false };
+      approvalWaiters.set(requestId, () => { if (active?.aborted === false) { finish(input); } });
+      approvals.request(requestId, "approval", { tool: "Write", input: "main.ts" });
+      return;
+    }
+    const timer = input === "hang" ? null : setTimeout(() => { finish(input); }, 10);
     active = { timer, aborted: false };
   }
   const stop = (): void => {
@@ -62,7 +87,7 @@ export const createMockSession = (attach?: AttachMock): StartSession => async (_
   };
   const attachment = await attach?.(kernel, options, stop);
   kernel.frame({ type: "mock/model", native: { model: "mock-1", effort }, events: [{ kind: "model", model: "mock-1" }, { kind: "effort", effort }] });
-  const capabilities = { queue: { durable: false }, attribution: "none", images: true } as const;
+  const capabilities: SessionCapabilities = { queue: { durable: false }, attribution: "none", images: true, appRequests: approvals.capability };
   return sealSession({
     id: kernel.sessionId,
     ...(attachment === undefined ? {} : { resources: attachment.resources }),
@@ -123,10 +148,16 @@ export const createMockSession = (attach?: AttachMock): StartSession => async (_
       if (active.timer !== null) {
         clearTimeout(active.timer);
       }
+      active.aborted = true; // before the withdrawal: its settlement must not finish the turn
+      withdrawApprovals();
       end("aborted");
       return { kind: "accepted" };
       });
       return result;
+    },
+    answer: async (requestId, decision, answerOptions) => {
+      const outcome = await approvals.answer(requestId, decision, answerOptions);
+      return outcome;
     },
     rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
     records: () => kernel.records(),
@@ -138,10 +169,13 @@ export const createMockSession = (attach?: AttachMock): StartSession => async (_
           if (active.timer !== null) {
             clearTimeout(active.timer);
           }
+          active.aborted = true;
+          withdrawApprovals();
           end("aborted");
         }
         kernel.processExited(0);
       });
+      approvals.close("disposed");
     },
   });
 };

@@ -21,7 +21,7 @@ import { prepareCodexOpenParams } from "./open-config.js";
 import { missingDirectoryError, nameThread, openThread, rpcControl, updateThreadEffort, type RpcControlPlan } from "./rpc-control.js";
 import { codexControlRefusal, codexVersion } from "./refusal.js";
 import { codexServerRequests } from "./runtime-requests.js";
-import { createUserQuestions } from "../../shared/user-questions.js";
+import { createUserQuestions, userQuestionAnswering } from "../../shared/user-questions.js";
 import { CODEX_QUESTION_CONFIG, codexQuestionWithdrawn, codexUserQuestionRefusal, createCodexSecretQuestions } from "./user-questions.js";
 import { codexTurnProcesses, refuseSharedTurnProcesses } from "./turn-processes.js";
 /* App-server v2: RPC replies answer controls synchronously before later notifications. Model/effort read-back: open.ts.
@@ -271,7 +271,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       // No withdraw: the queue is codex's own, and thread/queue/delete is experimental and not live-verified (docs/runtimes/input-cancellation.md).
       abort: via(turnProcesses.aborting(abortPlan)),
       stopTask: tasks.stop,
-      ...(questions === undefined ? {} : { answerQuestion: questions.answer }),
+      ...(questions === undefined ? {} : { answerQuestion: userQuestionAnswering(questions) }),
       rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
       records: () => kernel.records(),
       graph: () => kernel.graph(),

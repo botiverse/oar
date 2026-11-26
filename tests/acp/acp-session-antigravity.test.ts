@@ -83,7 +83,9 @@ test("model and effort go through their native config options on creation and re
     assert.equal(sessionWithEffort.effort().value, "high");
     await sessionWithEffort.dispose();
   }));
-  await expect(startAntigravity({ effort: "bogus" })).rejects.toThrow(/thought_level=bogus was refused/u);
+  // The selected model's own menu is the authority: a level outside it never
+  // becomes a native write.
+  await expect(startAntigravity({ effort: "bogus" })).rejects.toThrow(/the selected model offers effort low, medium, high; bogus is not one of them/u);
 });
 
 test("a turn ends on the prompt answer alone, with no usage_update to wait for", async () => {
@@ -95,14 +97,16 @@ test("a turn ends on the prompt answer alone, with no usage_update to wait for",
   await session.dispose();
 });
 
+const installation = { kind: "available", via: "executable", command: process.execPath } as const;
+
 test("the antigravity profile uses native CLI ACP workers and refuses unsupported options", () => {
   assert.deepEqual(antigravityAcpArgs(), ["acp", "--dangerously-skip-permissions", "--process-per-session"]);
   assert.equal(antigravityAcpProfile.modelViaConfigOption, true);
   assert.equal(antigravityAcpProfile.selectAuthMethod, undefined);
   assert.equal(antigravityAcpProfile.capabilities.attribution, "opaque");
-  assert.throws(() => antigravityAcpProfile.validateOptions?.({ cwd: "/", systemPrompt: "x" }));
-  assert.doesNotThrow(() => antigravityAcpProfile.validateOptions?.({ cwd: "/", appendSystemPrompt: "x" }));
-  assert.doesNotThrow(() => antigravityAcpProfile.validateOptions?.({ cwd: "/" }));
+  assert.throws(() => antigravityAcpProfile.validateOptions?.({ cwd: "/", systemPrompt: "x" }, installation));
+  assert.doesNotThrow(() => antigravityAcpProfile.validateOptions?.({ cwd: "/", appendSystemPrompt: "x" }, installation));
+  assert.doesNotThrow(() => antigravityAcpProfile.validateOptions?.({ cwd: "/" }, installation));
 });
 
 // oxlint-disable-next-line eslint/max-statements -- One lifecycle control follows the early reply through its real final outcome.

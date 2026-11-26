@@ -62,7 +62,7 @@ export function eventsOf(record: RawEvent, actions: ReadonlyMap<string, KnownCon
         return [{ kind: "exited", code: record.body.code, ...(record.body.reason === undefined ? {} : { reason: record.body.reason }), ...envelope }];
       }
       if (record.body.kind === "answered") {
-        return [{ kind: "app_answered", requestId: record.requestId, ...envelope }];
+        return [{ kind: "app_answered", requestId: record.requestId, ...(record.body.by === "host" ? { by: "host" as const } : {}), ...envelope }];
       }
       const known = actions.get(record.requestId);
       if (record.body.kind === "rejected") {

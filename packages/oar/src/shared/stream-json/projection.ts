@@ -2,6 +2,7 @@ import type { FrameBody, ResponseBody } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import { streamJsonDuplicateInput, streamJsonInitialized, streamJsonInputLifecycle } from "./input-lifecycle.js";
 import { streamJsonContent, streamJsonToolResults, contentBlocks } from "./content.js";
+import { streamJsonChecklistEvents } from "./plan.js";
 import type { StreamJsonProjectionState } from "./state.js";
 import type { StreamJsonProjectionProfile, StreamJsonUpdate } from "./profile.js";
 
@@ -86,7 +87,8 @@ export function foldStreamJsonStdout<S extends StreamJsonProjectionState>(
       if (message.type !== "assistant") { return event({ events: content.events }, next); }
       const selection = profile.childAssistantModel === true && agentPath.length > 0
         ? childModel(next, agentPath, asRecord(message.message)?.model) : { state: next, events: [] };
-      return event({ events: [...selection.events, ...content.events] }, profile.assistant(selection.state, message, agentPath));
+      const checklist = streamJsonChecklistEvents(profile.checklistTool, message);
+      return event({ events: [...selection.events, ...content.events, ...checklist] }, profile.assistant(selection.state, message, agentPath));
     }
     case "user": {
       const views = [...streamJsonToolResults(message)];

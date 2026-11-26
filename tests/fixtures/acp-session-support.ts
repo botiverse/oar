@@ -70,7 +70,7 @@ export function describe(record: RawEvent): string {
           case "input_handled": case "input_dropped":
           case "session_linked":
           case "user_message":
-          case "mcp_server_startup": case "goal_changed":
+          case "mcp_server_startup": case "goal_changed": case "plan_changed":
           case "usage":
           case "tool_call_progress":
           case "tool_call_input":

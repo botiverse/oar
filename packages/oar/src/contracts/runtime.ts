@@ -17,6 +17,7 @@ import type { RuntimeBrand } from "./brand.js";
 import type { RuntimeCredentials } from "./credentials.js";
 import type { StartSession } from "./session.js";
 import type { TaskType } from "./tasks.js";
+import { UnsupportedOptionError } from "./errors.js";
 
 /**
  * The `SessionOptions` a runtime can refuse at open. `mcpServerCredentials`
@@ -30,7 +31,7 @@ import type { TaskType } from "./tasks.js";
  * `"include"` and omission keep native behavior. `fork` is any
  * `SessionOptions.fork`, with or without `through`.
  */
-export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "env" | "mcpServers" | "mcpServerCredentials" | "disallowedTools" | "launchArgs" | "serviceTier" | "serviceTierFallback" | "additionalDirectories" | "outputSchema" | "name" | "userConfiguration" | "partialUserConfiguration" | "goals" | "endTurnProcessesOnAbort" | "fork" | "nativeMemoryDefault" | "sessionLogUpload" | "nativePermissions" | "modelRequests" | "userQuestions";
+export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "env" | "mcpServers" | "mcpServerCredentials" | "disallowedTools" | "launchArgs" | "serviceTier" | "serviceTierFallback" | "additionalDirectories" | "outputSchema" | "name" | "userConfiguration" | "partialUserConfiguration" | "goals" | "endTurnProcessesOnAbort" | "fork" | "nativeMemoryDefault" | "sessionLogUpload" | "nativePermissions" | "modelRequests" | "questions" | "userQuestions" | "piProvider" | "piCompaction" | "dshProvider";
 
 /**
  * The options a runtime refuses when they are given (`env`, `mcpServers`, `disallowedTools`, `launchArgs`, `additionalDirectories`: a
@@ -57,6 +58,10 @@ export interface SessionCapabilityDeclaration {
   readonly contextUsage?: ContextUsageCapability;
   /** Verified session MCP transports (`[]` when MCP is refused; absent when unverified or handshake-only). */
   readonly mcpTransports?: readonly McpTransport[];
+  /** Verified handling of stdio MCP credentials without persisting the transport configuration. */
+  readonly mcpServerCredentialsVerified?: boolean;
+  /** Whether this installation accepts a host-declared DSH provider at open. */
+  readonly dshProvider?: boolean;
   /** Per-server native startup reports are available before input. A first model request may run while discovery is pending. */
   readonly mcpStartup?: { readonly kind: "per_server"; readonly firstModelRequest: "may_start_pending" };
   /** Observed native task classes with lifecycle events. An empty array means this adapter has no task projection. */
@@ -70,6 +75,10 @@ export interface SessionCapabilityDeclaration {
   };
   /** Whether an opened session exposes `Session.stopTask(taskId)`. */
   readonly stopTask?: boolean;
+  /** Whether an opened session exposes `Session.answer` (`capabilities.appRequests` says what it accepts). */
+  readonly answer?: boolean;
+  /** Whether an opened session exposes `Session.answerQuestion`: the runtime's own questions can go to the host. */
+  readonly questions?: boolean;
   /** A completed native file-edit tool can report applied changes by path and kind. */
   readonly fileChanges?: boolean;
   /** Whether the session can locate its native persisted file. */
@@ -234,8 +243,9 @@ type DefinedRuntime<T> = Omit<T, "session" | "execution" | "placement" | "withPl
 export function defineRuntime<const T extends RuntimeDefinition>(runtime: T, options: RuntimePlacementOptions = {}): DefinedRuntime<T> {
   // oxlint-disable-next-line typescript/no-unnecessary-condition -- JavaScript callers can bypass the discriminated options.
   if (options.shared !== undefined && options.execution !== "process") { throw new Error("Shared placement requires execution: process"); }
-  const create = (requested: PlacementRequest): DefinedRuntime<T> => (
-    {
+  const create = (requested: PlacementRequest): DefinedRuntime<T> => {
+    const open = placementSession(runtime.session, requested, options);
+    return {
       skills: unsupported, commands: unsupported, mcpServers: unsupported, tools: unsupported,
       ...runtime, brand: runtime.brand ?? { name: runtime.id, icon: null }, placement: requested,
       // Static declarations come from the object it is called on, so a host that spreads this runtime and
@@ -245,9 +255,18 @@ export function defineRuntime<const T extends RuntimeDefinition>(runtime: T, opt
       },
       execution: options.execution ?? null,
       withPlacement: create,
-      session: placementSession(runtime.session, requested, options),
-    }
-  );
+      // `questions` and its release synonym `userQuestions` are opt-in per
+      // runtime: a runtime that has not verified a host-answered question
+      // channel refuses them rather than dropping them.
+      session: async (installation, sessionOptions, context) => {
+        if (sessionOptions.questions !== undefined && runtime.sessionCapabilities?.(installation).questions !== true) {
+          throw new UnsupportedOptionError("questions", "This runtime has no verified host-answered question channel");
+        }
+        const opened = await open(installation, sessionOptions, context);
+        return opened;
+      },
+    };
+  };
   return create("auto");
 }
 

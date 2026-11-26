@@ -16,7 +16,9 @@ export const dshRuntime = defineRuntime({
     const nativeSessionFile = dshSupportsNativeSessionFile(version);
     return {
       ...(nativeSessionFile === undefined ? {} : { nativeSessionFile }),
-      ...(semverAtLeast(version, DSH_MINIMUM_VERSION) ? { taskEventTypes: ["agent", "shell"] } : {}),
+      ...(semverAtLeast(version, DSH_MINIMUM_VERSION) ? { taskEventTypes: ["agent", "shell"], dshProvider: true } : {}),
+      // The session still checks the selected model and the native attachment store at open.
+      ...(semverAtLeast(version, "0.2.2-rc.2") ? { images: true } : {}),
       ...(semverAtLeast(version, "0.2.2-rc.5") ? { subagentResults: { background: "child_text" } } : {}),
       compactionEvents: { started: true, ended: true },
       contextUsage: { tokens: true, contextWindow: true },

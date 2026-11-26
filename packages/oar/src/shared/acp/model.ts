@@ -55,6 +55,35 @@ export function acpThoughtLevelOption(frame: JsonRecord | null): JsonRecord | nu
 }
 
 /**
+ * The values a `thought_level` option offers for the model this frame is
+ * about: `SessionConfigSelectOption.value` entries, flattened out of ACP's
+ * optional grouping (`SessionConfigSelectGroup.options`). `undefined` when the
+ * option publishes no menu at all — an agent that only reports its current
+ * value, which is not the same as an empty menu.
+ *
+ * This is the SELECTED model's menu, as the agent advertised it in
+ * `session/new|resume|load` or re-derived after `session/set_model`, so it is
+ * the authority on what that model accepts ([effort](effort.ts)).
+ */
+export function acpThoughtLevelMenu(frame: JsonRecord | null): readonly string[] | undefined {
+  const options = acpThoughtLevelOption(frame)?.options;
+  if (!Array.isArray(options)) {
+    return undefined;
+  }
+  const levels: string[] = [];
+  for (const entry of asRecordList(options)) {
+    if (Array.isArray(entry.options)) {
+      for (const nested of asRecordList(entry.options)) {
+        if (typeof nested.value === "string" && nested.value.length > 0) { levels.push(nested.value); }
+      }
+      continue;
+    }
+    if (typeof entry.value === "string" && entry.value.length > 0) { levels.push(entry.value); }
+  }
+  return levels;
+}
+
+/**
  * The reasoning effort an ACP agent reports as in effect: the `thought_level`
  * option's `currentValue` in a handshake answer (`session/new|resume|load`,
  * `session/set_config_option`, whose answer is "the full set of configuration

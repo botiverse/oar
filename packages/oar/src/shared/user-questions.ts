@@ -1,5 +1,7 @@
 import type { AnswerQuestionOutcome, AnswerQuestionRejectionCode, UserQuestionAnswer, UserQuestionItem, UserQuestionPrompt } from "../contracts/user-questions.js";
 import type { SessionKernel } from "./session-kernel.js";
+import type { Session } from "../contracts/session.js";
+import { asUserQuestionAnswer } from "./host-question-answer.js";
 
 /** A reply as the runtime gets it, and as the stream keeps it (secret answers redacted). */
 export interface NativeReply { readonly send: () => void; readonly recorded: unknown }
@@ -73,4 +75,13 @@ export function createUserQuestions(kernel: SessionKernel): UserQuestions {
     // oxlint-disable-next-line typescript/require-await -- One settled answer; the contract is asynchronous like every control.
     answer: async (requestId, answer) => decide(requestId, answer),
   };
+}
+
+/**
+ * The release store as `Session.answerQuestion`: it answers either input
+ * dialect, so a host that sends `AppQuestionAnswers` reaches the same reply.
+ */
+export function userQuestionAnswering(questions: UserQuestions): NonNullable<Session["answerQuestion"]> {
+  // oxlint-disable-next-line typescript/require-await -- One settled answer; the contract is asynchronous like every control.
+  return async (requestId, answer) => questions.answer(requestId, asUserQuestionAnswer(answer));
 }

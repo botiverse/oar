@@ -14,6 +14,7 @@ test("the declarations say how a running session takes a change to an MCP server
     dsh: null,
     factory: null,
     grok: "none",
+    hermes: "none",
     kimi: "none",
     opencode: "full",
     pi: "full",

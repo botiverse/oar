@@ -28,6 +28,9 @@ export const sessionCapabilitiesCases: readonly TrialCase[] = [
         if (declared.stopTask !== undefined) {
           assert.equal(session.stopTask !== undefined, declared.stopTask, "declared stopTask matches Session.stopTask");
         }
+        if (declared.answer !== undefined) {
+          assert.equal(session.answer !== undefined, declared.answer, "declared answer matches Session.answer");
+        }
         if (declared.images !== undefined) {
           assert.equal(session.capabilities.images, declared.images, "declared images matches capabilities.images");
         }

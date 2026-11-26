@@ -1,6 +1,8 @@
 export type { AnswerQuestionOutcome, AnswerQuestionRejectionCode, UserQuestionAnswer, UserQuestionControl, UserQuestionItem, UserQuestionPrompt } from "./user-questions.js";
 export type { CompactionOptions, CompactionOutcome, ManualCompaction } from "./compaction.js";
+export type { AnswerOptions, AnswerOutcome, AnswerRejectionCode, AppQuestionAnswers, AppRequestAnswering, AppRequestDecision, AppRequestKind, QuestionAnswerOutcome } from "./answer.js";
 export type { GoalControl, AdapterGoalControl, GoalSnapshot, GoalStatus, KnownGoalStatus, GoalSetOptions } from "./goal.js";
+export type { KnownPlanStepStatus, PlanEvidence, PlanSnapshot, PlanStep, PlanStepStatus } from "./plan.js";
 export type { InventoryScope, InventoryOptions, SkillEntry, CommandEntry, McpServerEntry, ToolEntry, InventoryResult, InventoryReader, RuntimeInventories } from "./inventory.js";
 export type { Probe, OrientOptions, OrientationDepth, Orientation, RuntimeOrientation, Customization } from "./orientation.js";
 
@@ -110,6 +112,8 @@ export type { CompactionEvents, McpToolsListChanged, RefusableSessionOption, Ref
 export type { ModelRequest } from "./model-request.js";
 export type { ContextUsageCapability } from "./context-usage.js";
 export type { McpTransport } from "./session-options.js";
+export type { PiSessionCompaction, PiSessionModel, PiSessionProvider, PiSessionSelection, PiWireProtocol } from "./pi-provider.js";
+export type { DshModelCompatibility, DshReasoningEfforts, DshReasoningLevel, DshSessionModel, DshSessionProvider, DshSessionSelection, DshWireProtocol } from "./dsh-provider.js";
 export type {
   AdapterSession,
   AttributionTier,

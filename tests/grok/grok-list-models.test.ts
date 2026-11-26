@@ -130,3 +130,53 @@ test("grok projection reads the effort menu grok 1.0.41 carries under _meta", ()
     { id: "grok-plain", displayName: "Plain" },
   ]);
 });
+
+// Real `_x.ai/models/list` from grok 1.0.77 (live 2026-11-26, no tokens): every
+// entry carries `_meta.reasoningEfforts: [{id, value, label, description,
+// default}]` with id === value, grok-4.6 offering xhigh/high/medium/low and
+// grok-4.5 high/medium/low. `value` is the id `session/set_config_option`
+// takes, so it is what a catalog must expose even when a build's `id` differs.
+test("grok's real per-model effort menus are exposed as the values the session accepts", () => {
+  const state = {
+    currentModelId: "grok-4.6",
+    availableModels: [
+      { modelId: "grok-4.6", name: "Grok 4.6", _meta: { totalContextTokens: 500_000, supportsReasoningEffort: true, reasoningEffort: "high",
+        reasoningEfforts: ["xhigh", "high", "medium", "low"].map((id) => ({ id, value: id, label: id, default: id === "high" })) } },
+      { modelId: "grok-4.5", name: "Grok 4.5", _meta: { totalContextTokens: 500_000, supportsReasoningEffort: true, reasoningEffort: "high",
+        reasoningEfforts: ["high", "medium", "low"].map((id) => ({ id, value: id, label: id, default: id === "high" })) } },
+    ],
+  };
+  expect(projectGrokModels(state)).toEqual([
+    { id: "grok-4.6", displayName: "Grok 4.6", effortLevels: ["xhigh", "high", "medium", "low"], defaultEffort: "high", default: true },
+    { id: "grok-4.5", displayName: "Grok 4.5", effortLevels: ["high", "medium", "low"], defaultEffort: "high" },
+  ]);
+});
+
+test("a menu whose catalog key differs from its wire value exposes the wire value only", () => {
+  const state = {
+    currentModelId: "relayed",
+    availableModels: [{ modelId: "relayed", name: "Relayed", _meta: { supportsReasoningEffort: true, reasoningEffort: "low",
+      reasoningEfforts: [{ id: "reasoning-low", value: "low", label: "Low" }, { id: "reasoning-high", value: "high", label: "High" }] } }],
+  };
+  expect(projectGrokModels(state)).toEqual([
+    { id: "relayed", displayName: "Relayed", effortLevels: ["low", "high"], defaultEffort: "low", default: true },
+  ]);
+});
+
+test("effort support without a readable menu names the gap instead of inventing levels", () => {
+  const state = {
+    currentModelId: "quiet",
+    availableModels: [
+      { modelId: "quiet", name: "Quiet", _meta: { supportsReasoningEffort: true } },
+      { modelId: "empty", name: "Empty", _meta: { supportsReasoningEffort: true, reasoningEfforts: [] } },
+      { modelId: "plain", name: "Plain", _meta: { supportsReasoningEffort: false, reasoningEfforts: ["low", "high"] } },
+    ],
+  };
+  const entries = projectGrokModels(state);
+  expect(entries.map((entry) => ({ id: entry.id, levels: entry.effortLevels, reason: entry.effortUnavailableReason }))).toEqual([
+    { id: "quiet", levels: undefined, reason: "Grok reported reasoning support for this model without a readable effort menu." },
+    { id: "empty", levels: undefined, reason: "Grok reported reasoning support for this model without a readable effort menu." },
+    // A model grok says takes no effort lists none, and OAR claims no gap either.
+    { id: "plain", levels: undefined, reason: undefined },
+  ]);
+});
