@@ -4,13 +4,11 @@ import { createUsageUpdateGate } from "../../packages/oar/src/shared/acp/usage-w
 import { createSessionKernel } from "../../packages/oar/src/shared/session-kernel.js";
 
 test("open RPC replies retain their receipt times when attached to the confirmed session", () => {
-  const now = vi.spyOn(Date, "now").mockReturnValue(100);
+  const now = vi.spyOn(Date, "now").mockReturnValue(300).mockReturnValueOnce(100).mockReturnValueOnce(200);
   try {
     const recorder = createAcpRecorder(createUsageUpdateGate());
     recorder.step("initialize", {});
-    now.mockReturnValue(200);
     recorder.step("session/resume", {});
-    now.mockReturnValue(300);
     const kernel = createSessionKernel("native");
     recorder.bind(kernel);
     expect(kernel.records().map(({ receivedAt }) => receivedAt)).toEqual([100, 200]);
