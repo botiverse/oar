@@ -43,7 +43,7 @@ export async function startDimDaemon(command: string, options: SessionOptions): 
 
 /** A server that exits at start names its log (`see <home>/rust/daemon.log`); its last line is the reason. */
 export async function daemonLogTail(stderr: string): Promise<string> {
-  const log = /see (?<log>\S+daemon\.log)\b/u.exec(stderr)?.groups?.log;
+  const log = /see (?<log>.+?daemon\.log)$/mu.exec(stderr)?.groups?.log;
   if (log === undefined) { return ""; }
   const text = await readTail(log, LOG_TAIL_BYTES).catch(() => "");
   return text.trimEnd().split("\n").at(-1)?.trim() ?? "";
