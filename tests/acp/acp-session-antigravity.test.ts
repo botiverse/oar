@@ -154,13 +154,28 @@ test("an effort answer alone cannot override a contradictory native notification
   await expect(startAntigravity({ model: "requested-y", effort: "high", env: { FAKE_ACP_WRONG_EFFORT_UPDATE: "1" } }, false, 1000)).rejects.toThrow(/config_option_update left thought_level at low/u);
 });
 
-test("a stale effort answer is superseded by the notification that confirms the requested level", async () => {
+test("a stale effort answer is recorded verbatim, then superseded by the notification that confirms the requested level", async () => {
   const session = await startAntigravity({ model: "requested-y", effort: "high", env: { FAKE_ACP_STALE_EFFORT_ANSWER: "1" } }, false, 1000);
   try {
     expect(session.model().value).toBe("requested-y");
     expect(session.effort().value).toBe("high");
+    const { answer, confirmation } = effortFrames(session, "high");
+    expect(answer.frame?.events).toContainEqual({ kind: "effort", effort: "low" });
+    expect(JSON.stringify(answer.frame?.native)).toContain('"currentValue":"low"');
+    expect(confirmation.frame?.type).toBe("config_option_update");
+    expect(answer.index).toBeLessThan(confirmation.index);
   } finally { await session.dispose(); }
 });
+
+/** The last effort answer frame and the last frame reporting `effort`, with their positions. */
+function effortFrames(session: Session, effort: string) {
+  const frames = session.records().flatMap(record => record.kind === "frame" ? [record.body] : []);
+  const at = (index: number) => ({ index, frame: frames[index] });
+  return {
+    answer: at(frames.findLastIndex(frame => frame.type === "session/set_config_option")),
+    confirmation: at(frames.findLastIndex(frame => frame.events.some(event => event.kind === "effort" && event.effort === effort))),
+  };
+}
 
 test("a contradictory model notification rejects with a typed error and no invented catalog", async () => {
   const opening = startAntigravity({ model: "requested-y", env: { FAKE_ACP_WRONG_MODEL_UPDATE: "1" } }, false, 1000);
