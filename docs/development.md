@@ -315,7 +315,7 @@ newer push or dispatch on the same ref cancels any in-progress or queued
   offline Cursor SDK skill-loader parity against local fixtures, OpenCode 2.2.7
   isolated native tool cleanup and skills, Kimi native login and workspace skill
   discovery cleanup (both `kimi-login` and `kimi-skills` pins), and the pinned
-  agy CLI 1.5.16 (`antigravity-aimock` behavior and vendor suites against a
+  agy CLI 1.5.18 (`antigravity-aimock` behavior and vendor suites against a
   local Gemini provider in an isolated home, concurrency 2), followed by the
   separate 1.5.11 file-skills comparison. OpenCode,
   Kimi and Antigravity upload diagnostic artifacts, failures included.
