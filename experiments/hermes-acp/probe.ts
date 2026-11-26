@@ -52,18 +52,48 @@ try {
     "",
   ].join("\n"));
 
+  // Phase timings: the gateway's own mount is native work OAR cannot remove, so
+  // the numbers separate what OAR waits for from what OAR adds.
+  const timings: Record<string, number> = {};
+  const mark = (phase: string, started: number): void => { timings[phase] = Math.round(performance.now() - started); };
+  let started = performance.now();
   const installation = await hermesRuntime.installation({ env });
+  mark("installReadinessMs", started);
   if (installation.kind !== "available") {
     throw new Error(`Hermes installation is ${installation.kind}`);
   }
+  started = performance.now();
   const session = await hermesRuntime.session(installation, { cwd: home, env });
+  mark("openMs", started);
+  const promptedAt = performance.now();
+  const firstToken: { at: number | null } = { at: null };
+  const stopWatching = session.events((event) => {
+    if (firstToken.at === null && (event.kind === "text_delta" || event.kind === "reasoning")) {
+      firstToken.at = Math.round(performance.now() - promptedAt);
+    }
+  });
   const turn = await promptAndWait(session, "say hello from OAR");
+  stopWatching();
+  if (firstToken.at !== null) { timings.firstTokenMs = firstToken.at; }
+  timings.turnMs = Math.round(performance.now() - promptedAt);
   let missing: { readonly name: string; readonly message: string } | null = null;
+  started = performance.now();
   try {
     await hermesRuntime.session(installation, { cwd: home, env, resume: "oar-missing-hermes-session" });
   } catch (error) {
     missing = { name: error instanceof Error ? error.name : "unknown", message: error instanceof Error ? error.message : String(error) };
   }
+  mark("missingResumeMs", started);
+  // A resume of the live session: the gateway re-attaches instead of mounting.
+  started = performance.now();
+  const resumed = await hermesRuntime.session(installation, { cwd: home, env, resume: session.id });
+  mark("resumeMs", started);
+  timings.resumeModelSetters = resumed.records().filter((record) => record.kind === "frame" && record.body.type === "session/set_config_option").length;
+  await resumed.dispose();
+  // The catalog read opens its own gateway session; keep its cost separate.
+  started = performance.now();
+  await hermesRuntime.listModels(installation, { env });
+  mark("listModelsMs", started);
   console.log(JSON.stringify({
     installation: { kind: installation.kind, via: installation.via, version: installation.via === "executable" ? installation.version : undefined },
     capabilities: session.capabilities,
@@ -74,6 +104,7 @@ try {
     contextUsage: session.contextUsage().value,
     tokenTotal: session.usage().value.total,
     records: records(session),
+    timings,
     missingResume: missing,
   }, null, 2));
   await session.dispose();

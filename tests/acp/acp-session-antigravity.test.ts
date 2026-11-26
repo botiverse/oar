@@ -83,7 +83,9 @@ test("model and effort go through their native config options on creation and re
     assert.equal(sessionWithEffort.effort().value, "high");
     await sessionWithEffort.dispose();
   }));
-  await expect(startAntigravity({ effort: "bogus" })).rejects.toThrow(/thought_level=bogus was refused/u);
+  // The selected model's own menu is the authority: a level outside it never
+  // becomes a native write.
+  await expect(startAntigravity({ effort: "bogus" })).rejects.toThrow(/the selected model offers effort low, medium, high; bogus is not one of them/u);
 });
 
 test("a turn ends on the prompt answer alone, with no usage_update to wait for", async () => {

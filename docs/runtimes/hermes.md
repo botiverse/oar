@@ -158,6 +158,31 @@ inventory channel. The official bootstrap does not install the `acp` extra,
 so OAR's installation probe reports what the native `acp --check` says rather
 than pretending a partial install is ready.
 
+## Performance
+
+The gateway's own session mount is native work OAR cannot remove. What OAR adds
+around it is pinned by
+[`tests/hermes/hermes-performance.test.ts`](../../tests/hermes/hermes-performance.test.ts):
+
+| phase | OAR's wire cost |
+|---|---|
+| open | one `initialize`, one `session/new`, and one `session/set_config_option` **only** when the requested model or effort differs from what the gateway already reports (the model first) |
+| resume | one `initialize`, one `session/resume`, no `session/new`, the same conditional setters |
+| first request / first token | no round-trip between the prompt write and the gateway's turn |
+| MCP discovery | none of its own: the session's servers travel inside `session/new` on every open, which is what keeps per-turn credential values current (a resume re-sends the current generation and the daemon restarts a server whose fingerprint changed) |
+| model selector | the same conditional setter; a no-op request writes nothing, because every setter rebuilds the gateway's inventory |
+| gateway reuse | one viewer process per session, released by `dispose()`; the model listing opens its own and is the only other |
+
+Three costs are deliberately **not** removed: a shared gateway across sessions
+(it would end `dispose()`'s real teardown and could leak one session's MCP
+credential generation into another's opens), readiness memoization across a
+different environment (the probe imports the adapter under that environment, so
+a cached "ready" could report a profile OAR never checked), and `session/close`
+on release (0.23.3 advertises none). Per-machine timings come from the real
+gateway probe, which reports `installReadinessMs`, `openMs`, `resumeMs`,
+`missingResumeMs`, `firstTokenMs`, `turnMs`, `listModelsMs` and a resume's
+setter count: `OAR_HERMES_BIN=/path/to/hermes pnpm tsx experiments/hermes-acp/probe.ts`.
+
 ## Side effects of reading
 
 `listModels` opens a real gateway session and reads its `models` / `configOptions` picker. Hermes advertises no `session/close`, so the gateway retains that unprompted session after OAR kills the ACP viewer. `installation()` runs `hermes acp --check`, which imports the adapter and performs the normal Hermes profile/plugin discovery but starts no server. Neither path makes a model request.

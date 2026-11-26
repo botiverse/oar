@@ -66,7 +66,8 @@ export function projectGrokModels(state: unknown): ModelEntry[] {
     // oxlint-disable-next-line eslint/no-underscore-dangle -- `_meta` is the ACP extension envelope.
     const meta = asRecord(model._meta) ?? {};
     // A model grok says takes no effort lists none, whatever else it carries.
-    const supportsEffort = meta.supportsReasoningEffort !== false;
+    const declaredSupport = model.supportsReasoningEffort ?? meta.supportsReasoningEffort;
+    const supportsEffort = declaredSupport !== false;
     const effortLevels = supportsEffort
       ? effortLevelsOf(model.reasoningEfforts ?? model.reasoning_efforts ?? meta.reasoningEfforts ?? meta.reasoning_efforts)
       : undefined;
@@ -76,11 +77,18 @@ export function projectGrokModels(state: unknown): ModelEntry[] {
             ?? meta.reasoningEffort ?? meta.reasoning_effort,
         )
       : undefined;
+    // A model that POSITIVELY says it takes effort but publishes no readable
+    // menu is a control a host must not invent levels for: name the gap instead
+    // of guessing a menu or silently offering none.
+    const effortUnavailableReason = declaredSupport === true && (effortLevels === undefined || effortLevels.length === 0)
+      ? "Grok reported reasoning support for this model without a readable effort menu."
+      : undefined;
     entries.push({
       id,
       ...(displayName === undefined ? {} : { displayName }),
-      ...(effortLevels === undefined ? {} : { effortLevels }),
+      ...(effortLevels === undefined || effortLevels.length === 0 ? {} : { effortLevels }),
       ...(defaultEffort === undefined ? {} : { defaultEffort }),
+      ...(effortUnavailableReason === undefined ? {} : { effortUnavailableReason }),
       ...(id === current ? { default: true as const } : {}),
     });
   }

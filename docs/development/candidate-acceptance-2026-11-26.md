@@ -115,3 +115,25 @@ also routes is denied and recorded, never granted").
   command list but has no structured completion or attribution contract.
 - A tool an extension registers *after* its result was already folded reports
   no checklist for that call; the refresh is per turn, so the next turn sees it.
+
+## 7. Reasoning-levels pass (2026-11-26, later)
+
+Grok: the catalog now exposes each model's `value` (the id `set_config_option`
+takes) rather than its catalog key, names the gap when a model claims effort
+support without a readable menu, and a session refuses a level the SELECTED
+model does not advertise before writing anything. Evidence: a live
+`_x.ai/models/list` from grok 1.0.77 (grok-4.6 xhigh/high/medium/low, grok-4.5
+high/medium/low), plus deterministic ACP tests for the low/high readback and
+the early refusal.
+
+Hermes: the per-phase wire cost is pinned by
+`tests/hermes/hermes-performance.test.ts` (open = initialize + session/new +
+conditional setters; resume = initialize + session/resume; no round-trip before
+the prompt; MCP servers ride `session/new`). The real-gateway probe now reports
+per-phase timings. Not removed, with reasons: a shared gateway across sessions,
+readiness memoization across a different environment, and `session/close` on a
+release that advertises none.
+
+Six-engine audit: no additional generic capability is missing beyond the
+documented refusals; approvals stay unanswerable by design and only claude
+declares a question channel.

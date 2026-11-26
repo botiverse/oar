@@ -2,7 +2,7 @@
 import { AcpError } from "./errors.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { asRecord, type JsonRecord } from "../json.js";
-import { acpReportedEffort, acpThoughtLevelOption } from "./model.js";
+import { acpReportedEffort, acpThoughtLevelMenu, acpThoughtLevelOption } from "./model.js";
 import { type AcpProcess, withAcpDeadline } from "./process.js";
 import type { AcpConfigUpdates } from "./config-updates.js";
 
@@ -61,6 +61,14 @@ export async function applyAcpEffort(
     // No effort channel at all: the option, not the level, is what this
     // runtime cannot honor (docs/design/capabilities.md).
     throw new UnsupportedOptionError("effort", `${opened.openMethod} advertises no thought_level config option, so effort ${effort} cannot be applied`);
+  }
+  // Only a level the SELECTED model advertises is ever sent. The menu belongs
+  // to that model (session/new|resume|load, or re-derived by a model switch),
+  // so a stale list or a host-side assumption cannot reach the agent as a
+  // request it will refuse or silently replace.
+  const offered = acpThoughtLevelMenu(opened.response);
+  if (offered !== undefined && offered.length > 0 && !offered.includes(effort)) {
+    throw new UnsupportedOptionError("effort", `the selected model offers effort ${offered.join(", ")}; ${effort} is not one of them`);
   }
   const method = "session/set_config_option";
   let answer: unknown = undefined;

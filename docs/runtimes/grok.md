@@ -669,7 +669,11 @@ OAR, `session/new` has reported both `grok-4.6` and `grok-4.5`; a
 [test](../../tests/acp/acp-session-model-usage.test.ts).
 
 **Effort (mapped).** The effort menu is per model. `_x.ai/models/list`
-entries carry it under `_meta` ([env] 1.0.41: `supportsReasoningEffort`,
+entries carry it under `_meta` ([env] 1.0.41, re-measured on 1.0.77
+2026-11-26: grok-4.6 `xhigh/high/medium/low`, grok-4.5 `high/medium/low`,
+both defaulting to `high`, each entry `{id, value, label, description,
+default}`). `value` is the id `set_config_option` takes, so the catalog exposes
+`value` and `id` is only its key. `supportsReasoningEffort`,
 `reasoningEffort` (the default), `reasoningEfforts: [{id, value, label,
 description, default}]`; grok-4.7 offers xhigh/high/medium/low, grok-4.5
 high/medium/low), and the lister reads it there. The session channel is the
@@ -681,7 +685,11 @@ new model). grok answers with every option's current value, then pushes
 `_x.ai/session_notification {update: {sessionUpdate: "model_changed",
 model_id, reasoning_effort}}` and a `config_option_update`; the answer and
 the update carry the `effort` event, and a `currentValue` other than the
-request refuses the open. An unknown level is refused `-32602 Invalid
+request refuses the open. A level outside the SELECTED model's advertised menu
+is refused before any write, naming the levels that model offers
+(`UnsupportedOptionError` on `effort`), so a host can never send a level the
+model does not take; an agent that publishes no menu is decided by its own
+answer. An unknown level is refused `-32602 Invalid
 params` ("unknown reasoning_effort value"), so the open rejects with that
 message. The `--reasoning-effort` flag of `grok agent` does not reach ACP
 sessions: with it, `session/new` still reported `high`. grok persists the

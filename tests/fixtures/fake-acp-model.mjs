@@ -26,6 +26,11 @@ function modelOption(currentValue) {
 const EFFORT_ID = "fixture_effort";
 const EFFORT_LEVELS = ["low", "medium", "high"];
 
+// A selector that offers no menu at all: it reports the level in effect and
+// accepts whatever the agent supports, which is a real shape (an agent that
+// only publishes `currentValue`). OAR must then rely on its own readback check.
+const MODE_MENUS = { sticky: [...EFFORT_LEVELS, "sticky"] };
+
 function effortOption(currentValue, mode, model = selectedAgyModel) {
   return {
     type: "select",
@@ -33,7 +38,9 @@ function effortOption(currentValue, mode, model = selectedAgyModel) {
     name: "Effort",
     category: "thought_level",
     currentValue,
-    options: (EFFORT_MENUS[model] ?? EFFORT_LEVELS).map((value) => ({ value, name: value })),
+    ...(mode === "no-effort-menu" ? {} : {
+      options: (EFFORT_MENUS[model] ?? MODE_MENUS[mode] ?? EFFORT_LEVELS).map((value) => ({ value, name: value })),
+    }),
   };
 }
 
