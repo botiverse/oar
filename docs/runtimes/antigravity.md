@@ -760,7 +760,7 @@ never rewrites the host process environment.
 The [migration report](../../experiments/antigravity-cli-acp-2026-11-05.md)
 links repeatable native controls and the runtime-specific vendor tests.
 The local behavior suite covers prompt, steer, queue, cancellation, resume,
-models, images and disposal as applicable. Required CI (`ci.yml`) installs the pinned CLI 1.5.16 archive on Linux,
+models, images and disposal as applicable. Required CI (`ci.yml`) installs the pinned CLI 1.5.18 archive on Linux,
 verifies its SHA-512, and runs the behavior and vendor suites with an isolated
 home and local provider; daily `platform-matrix.yml` runs the same install and
 suites on macOS and Windows.
