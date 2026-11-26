@@ -167,6 +167,7 @@ host adds one with its own deployment and credentials, so they are not in
     </td>
     <td align="center" width="112">
       <a href="docs/runtimes/dim.md">
+        <img src="packages/oar/assets/brands/dim.svg" width="32" height="32" alt=""><br>
         Dim
       </a>
     </td>

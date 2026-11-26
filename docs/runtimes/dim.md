@@ -128,12 +128,11 @@ are a different CLI and are not candidates. `oar install dim` runs
   `userQuestions`, `modelRequests`, `mcpServerCredentials` and
   `endTurnProcessesOnAbort` (reasons in
   [options.ts](../../packages/oar/src/community/dim/options.ts)).
-- **No steer, login, account usage, model listing, compaction or session
-  listing** through OAR, although the gateway advertises `session/list`,
+- **No steer, login, account usage, model listing, update check, compaction
+  or session listing** through OAR, although the gateway advertises `session/list`,
   `session/fork` and `session/delete`.
 - **App Server lifetime**: OAR never stops an App Server; one started by a
   session keeps running until `dima daemon stop --home` or a reboot.
-- **No icon**: the brand has no logo yet.
 - **No CI job**: no CI runner installs `dima`; the behavior suite is a local
   run.
 

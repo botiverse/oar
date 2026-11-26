@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import { UnsupportedOptionError } from "../../../packages/oar/src/contracts/errors.js";
+import { createDimRuntime } from "../../../packages/oar/src/community/dim/index.js";
 import { dimDaemonArgs } from "../../../packages/oar/src/community/dim/daemon.js";
 import { readDimVersion } from "../../../packages/oar/src/community/dim/installation.js";
 import { checkDimLaunchArgs } from "../../../packages/oar/src/community/dim/options.js";
@@ -76,4 +78,12 @@ test("a model must be confirmed by the option's currentValue", async () => {
 test("only Dim's not-found code reads as a missing session", () => {
   assert.equal(dimAcpProfile.isResumeNotFound?.({ code: -32_002, message: "Resource not found" }), true);
   assert.equal(dimAcpProfile.isResumeNotFound?.({ code: -32_001, message: "Session cwd does not match expectedCwd" }), false);
+});
+
+test("the brand is the distributed asset, inline", () => {
+  const { brand } = createDimRuntime();
+  assert.ok(brand.icon?.startsWith("data:image/svg+xml,") === true);
+  const svg = decodeURIComponent(brand.icon.slice("data:image/svg+xml,".length));
+  assert.equal(svg, readFileSync(new URL("../../../packages/oar/assets/brands/dim.svg", import.meta.url), "utf8"));
+  assert.doesNotMatch(svg, /currentColor|<script|<foreignObject|\son\w+=|(?:href|src)=/iu);
 });
