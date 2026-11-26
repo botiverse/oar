@@ -287,7 +287,7 @@ export function finishAcpSession(
           if (!state.abortRequested) { runtime.markNativeStop(); }
           await turns.abort(state);
         }
-        if (opened.supportsClose && !runtime.closed) {
+        if (opened.supportsClose && profile.detachOnDispose !== true && !runtime.closed) {
           runtime.markNativeStop();
           await closeAcpSession(runtime, kernel.sessionId).catch(() => {});
         }
