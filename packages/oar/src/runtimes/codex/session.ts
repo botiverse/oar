@@ -22,7 +22,7 @@ import { missingDirectoryError, nameThread, openThread, rpcControl, updateThread
 import { codexControlRefusal, codexVersion } from "./refusal.js";
 import { codexServerRequests } from "./runtime-requests.js";
 import { createUserQuestions } from "../../shared/user-questions.js";
-import { CODEX_QUESTION_CONFIG, codexQuestionWithdrawn, codexUserQuestionRefusal } from "./user-questions.js";
+import { CODEX_QUESTION_CONFIG, codexQuestionWithdrawn, codexUserQuestionRefusal, createCodexSecretQuestions } from "./user-questions.js";
 import { codexTurnProcesses, refuseSharedTurnProcesses } from "./turn-processes.js";
 /* App-server v2: RPC replies answer controls synchronously before later notifications. Model/effort read-back: open.ts.
  * Reachability: recorded exit/dispose. Native mappings: docs/runtimes/codex.md. */
@@ -92,6 +92,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       projection: initialCodexProjection(threadId, openMethod),
     };
     const questions = options.userQuestions === "host" ? createUserQuestions(kernel) : undefined;
+    const secretQuestions = options.userQuestions === "host" ? createCodexSecretQuestions(credentials.add) : undefined;
     const tasks = codexTaskControl(kernel, client, () => state.projection.subagents);
     const nativeBusy = (): boolean => state.active !== null || state.spontaneous;
     let compactOperation: ReturnType<typeof codexCompaction> | null = null;
@@ -126,9 +127,10 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
         state.spontaneous = false;
         state.codexTurnId = null;
       }
-      const { state: nextProjection, commands } = foldCodexNotification(state.projection, method, params);
+      const scrubbedParams = secretQuestions === undefined ? params : secretQuestions.scrubNotification(method, params);
+      const { state: nextProjection, commands } = foldCodexNotification(state.projection, method, scrubbedParams);
       state.projection = nextProjection;
-      const withdrawn = codexQuestionWithdrawn(questions, method, params);
+      const withdrawn = codexQuestionWithdrawn(questions, method, scrubbedParams);
       const links = newSessionLinks(kernel, commands.flatMap((command) => command.kind === "link" ? [command.edge] : []));
       for (const command of commands) {
         switch (command.kind) {
@@ -147,12 +149,11 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       if (isRoot && method === "turn/completed") { turnProcesses.turnCompleted(params); }
       if (isRoot && method === "thread/settings/updated") { settingsWaiter?.(params); }
     };
-    const onServerRequest = codexServerRequests(kernel, client, questions);
-    // Registering flushes everything held so far in wire order: the frames from before the thread existed,
-    // then the open event (the mark placed at the reply), then whatever codex wrote after the reply.
+    const onServerRequest = codexServerRequests(kernel, client, questions, secretQuestions);
+    // Registering flushes held frames in wire order around the open mark.
     client.handle({ onNotification, onServerRequest });
     client.onExit((code, reason) => {
-      abortFallback.clear();
+      abortFallback.clear(); secretQuestions?.clear();
       turnProcesses.exited();
       // The exit is an outcome only oar observes: it answers our dispose when
       // we caused it, and stands alone when the app-server died on its own.
@@ -277,17 +278,16 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       resources: client.resources,
       dispose: async () => {
         await kernel.dispose(async () => {
-          // Idle app-server exits cleanly on stdin EOF; active turns stop immediately.
+          // Idle app-server exits on stdin EOF; active turns stop immediately and await exit so codex releases CODEX_HOME sqlite locks.
           if (!busy() && client.close !== undefined) {
             await client.close();
           } else {
             client.kill();
-            // Await the actual exit: the process may hold state (codex's sqlite
-            // runtime in CODEX_HOME) that the next session needs released; onExit records it.
             await client.exited;
           }
           await turnProcesses.settled();
         });
+        secretQuestions?.clear();
       },
     });
     return session;
