@@ -1,0 +1,666 @@
+{
+  "window": {
+    "windowStart": "2026-11-24T21:08:00Z",
+    "windowEnd": "2026-11-25T21:07:59Z"
+  },
+  "inventoryCheckedAt": "2026-11-26T03:59:36.280Z",
+  "workflowStats": {
+    "ci.yml": {
+      "runs": 39,
+      "attempts": 43,
+      "uniqueJobs": 920,
+      "outcomes": {
+        "success": 872,
+        "failure": 7,
+        "skipped": 37,
+        "cancelled": 4
+      },
+      "zeroJobAttempts": [
+        {
+          "run": 45553910778,
+          "attempt": 1,
+          "conclusion": "action_required"
+        },
+        {
+          "run": 45551021111,
+          "attempt": 1,
+          "conclusion": "action_required"
+        }
+      ]
+    },
+    "acp-windows.yml": {
+      "runs": 16,
+      "attempts": 16,
+      "uniqueJobs": 48,
+      "outcomes": {
+        "success": 32,
+        "skipped": 16
+      },
+      "zeroJobAttempts": []
+    },
+    "runtime-latest.yml": {
+      "runs": 1,
+      "attempts": 1,
+      "uniqueJobs": 39,
+      "outcomes": {
+        "success": 39
+      },
+      "zeroJobAttempts": []
+    },
+    "platform-matrix.yml": {
+      "runs": 1,
+      "attempts": 1,
+      "uniqueJobs": 7,
+      "outcomes": {
+        "success": 7
+      },
+      "zeroJobAttempts": []
+    }
+  },
+  "originalFailures": [
+    {
+      "workflow": "ci.yml",
+      "run": 45533650952,
+      "head": "a6747a663efb63ea030bbacf86e63de0582c1906",
+      "attempt": 1,
+      "name": "behavior (windows-latest, codex-aimock)",
+      "url": "https://github.com/botiverse/oar/actions/runs/45533650952/job/138934899227",
+      "failedSteps": [
+        "Run pnpm vitest run sea-trial/vendor"
+      ],
+      "diagnosis": "Inherited workspaceWrite resolved to readOnly on Windows."
+    },
+    {
+      "workflow": "ci.yml",
+      "run": 45536274065,
+      "head": "22990a72e29971d22ccaf2bda3c041e381f46b55",
+      "attempt": 1,
+      "name": "behavior (windows-latest, codex-aimock)",
+      "url": "https://github.com/botiverse/oar/actions/runs/45536274065/job/138943655792",
+      "failedSteps": [
+        "Run pnpm vitest run sea-trial/vendor"
+      ],
+      "diagnosis": "Permission override expected dangerFullAccess on resume and received readOnly."
+    },
+    {
+      "workflow": "ci.yml",
+      "run": 45537091494,
+      "head": "9e248594dee570edf102f5bc9c82733e732cd7ad",
+      "attempt": 1,
+      "name": "check-windows (2)",
+      "url": "https://github.com/botiverse/oar/actions/runs/45537091494/job/138946229538",
+      "failedSteps": [
+        "Windows unit tests (shard 2/2)"
+      ],
+      "diagnosis": "Windows process-table query timed out at 5065 ms in the creation-time test."
+    },
+    {
+      "workflow": "ci.yml",
+      "run": 45542517575,
+      "head": "e8cc6f6cd7a239f15a7d8b32edcee2322a37239e",
+      "attempt": 1,
+      "name": "check-windows (2)",
+      "url": "https://github.com/botiverse/oar/actions/runs/45542517575/job/138964188221",
+      "failedSteps": [
+        "Windows unit tests (shard 2/2)"
+      ],
+      "retry": "https://github.com/botiverse/oar/actions/runs/45542517575/job/138967182870",
+      "diagnosis": "OpenCode provider-auth shared deadline returned at 2807.33 ms against a 2800 ms ceiling."
+    },
+    {
+      "workflow": "ci.yml",
+      "run": 45554963524,
+      "head": "87936eac9b534317e3a193ac5803670daedad779",
+      "attempt": 1,
+      "name": "acp-behavior (windows-latest, opencode-v2-aimock, opencode-aimock, opencode-cleanup)",
+      "url": "https://github.com/botiverse/oar/actions/runs/45554963524/job/139004784153",
+      "failedSteps": [
+        "Run pnpm run sea-trial"
+      ],
+      "retry": "https://github.com/botiverse/oar/actions/runs/45554963524/job/139007569240",
+      "diagnosis": "Native configure database failed with disk I/O error 765 ms after session open. One closing peer at both observations. DB, WAL and SHM present at rejection. No extended error code or failing filename.",
+      "trace": "https://github.com/botiverse/oar/actions/runs/45554963524/artifacts/14996270230"
+    },
+    {
+      "workflow": "ci.yml",
+      "run": 45614776587,
+      "head": "d29e9e605819a97c3f74d93ffbe79ac532104a5f",
+      "attempt": 1,
+      "name": "acp-behavior (ubuntu-latest, codebuddy-aimock)",
+      "url": "https://github.com/botiverse/oar/actions/runs/45614776587/job/139207326373",
+      "failedSteps": [
+        "Run pnpm run sea-trial"
+      ],
+      "retry": "https://github.com/botiverse/oar/actions/runs/45614776587/job/139211694741",
+      "diagnosis": "CodeBuddy --help did not exit or close by the 15000 ms availability deadline."
+    },
+    {
+      "workflow": "ci.yml",
+      "run": 45633371852,
+      "head": "f281ab280ac40d6859a0d77aaeaabdf6c34cc5ff",
+      "attempt": 1,
+      "name": "check",
+      "url": "https://github.com/botiverse/oar/actions/runs/45633371852/job/139272231629",
+      "failedSteps": [
+        "Run pnpm run check"
+      ],
+      "retry": "https://github.com/botiverse/oar/actions/runs/45633371852/job/139277786920",
+      "diagnosis": "Held-pipe ownership assertion expected reusedGone=false and observed true."
+    }
+  ],
+  "frozen": {
+    "generatedAt": "2026-11-25T06:33:22.400Z",
+    "source": "https://github.com/botiverse/oar/actions/runs/45561456524/artifacts/14998625599",
+    "native": {
+      "claude-aimock": "2.1.332",
+      "codex-aimock": "0.172.0",
+      "qwen-aimock": "0.28.4",
+      "factory-aimock": "1.20.0",
+      "kimi-aimock": "2.7.3",
+      "grok-aimock": "1.0.92",
+      "codebuddy-aimock": "2.186.0",
+      "opencode-aimock": "1.19.6",
+      "opencode-cleanup": "2.4.1",
+      "kimi-login": "2.7.3",
+      "kimi-skills": "2.7.3",
+      "antigravity-aimock": "1.5.16"
+    },
+    "sdks": {
+      "cursor": {
+        "@cursor/sdk": "1.5.0"
+      },
+      "pi": {
+        "@earendil-works/pi-coding-agent": "1.6.0",
+        "undici": "8.12.4",
+        "@earendil-works/pi-ai": "1.6.0",
+        "@earendil-works/pi-durable": "1.6.0",
+        "@earendil-works/chord": "1.6.0"
+      }
+    },
+    "selectedJobs": [
+      {
+        "name": "sdk (cursor, ubuntu-latest, cursor-skills, all)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/45561456524/job/139025968652"
+      },
+      {
+        "name": "sdk (cursor, windows-latest, cursor-skills, all)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/45561456524/job/139025968653"
+      },
+      {
+        "name": "sdk (cursor, macos-latest, cursor-skills, all)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/45561456524/job/139025968752"
+      },
+      {
+        "name": "native (opencode-cleanup, windows-latest, opencode-cleanup)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/45561456524/job/139025969349"
+      },
+      {
+        "name": "native (opencode-cleanup, ubuntu-latest, opencode-cleanup)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/45561456524/job/139025969467"
+      },
+      {
+        "name": "native (opencode-cleanup, macos-latest, opencode-cleanup)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/45561456524/job/139025969479"
+      }
+    ]
+  },
+  "antigravity": {
+    "accepted": "1.5.16",
+    "release": {
+      "tag_name": "1.5.17",
+      "published_at": "2026-11-25T07:23:02Z",
+      "html_url": "https://github.com/google-antigravity/antigravity-cli/releases/tag/1.5.17"
+    },
+    "manifests": {
+      "Linux-X64": {
+        "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json",
+        "version": "1.5.17",
+        "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.17-4823843970351104/linux-x64/cli_linux_x64.tar.gz",
+        "sha512": "71a967aa16e0ab5d87196bcd6772130bdab55b2fd768cd24d21b1da401ff9f60280b976cad3dc14a2d646233b0eaf8caf87c490eed73044d54550cbb3d8d67d2"
+      },
+      "macOS-ARM64": {
+        "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/darwin_arm64.json",
+        "version": "1.5.17",
+        "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.17-4823843970351104/darwin-arm/cli_mac_arm64.tar.gz",
+        "sha512": "209e6d2e938f2c2eb908d6d4ffd6a130a058b32e97aa16cf4e7e29cc0cd3a08867c6af4522bd41eb762a7e505eee418409a8887c2ce2d24d8abd66e246b6b972"
+      },
+      "macOS-X64": {
+        "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/darwin_amd64.json",
+        "version": "1.5.17",
+        "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.17-4823843970351104/darwin-x64/cli_mac_x64.tar.gz",
+        "sha512": "6206eaef8296920839769db7a842f959b7d58b4751929e80f27cfb087dd90ba4896ccfec4157a4e05e3b9de51e963f4c344cd00a77c7de31c08627dbb47a6308"
+      },
+      "Windows-X64": {
+        "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/windows_amd64.json",
+        "version": "1.5.17",
+        "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.17-4823843970351104/windows-x64/cli_windows_x64.exe",
+        "sha512": "7b468fb7b83f0dbd5be39afebc5ce71570de4d1020e248cf1d2461d338f5d0f6eb689500e0f68a36d26179be6632f74a2d96a34f37d6ef20f62b28b87d7c55b2"
+      }
+    }
+  },
+  "inventory": [
+    {
+      "runtime": "antigravity",
+      "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json",
+      "latest": "1.5.17",
+      "previous": "1.5.16"
+    },
+    {
+      "runtime": "claude",
+      "source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest",
+      "latest": "2.1.332",
+      "previous": "2.1.331",
+      "publications": [
+        {
+          "version": "2.1.332",
+          "publishedAt": "2026-11-24T22:06:38.097Z"
+        }
+      ]
+    },
+    {
+      "runtime": "codex",
+      "source": "https://registry.npmjs.org/@openai/codex/latest",
+      "latest": "0.172.0",
+      "previous": "0.172.0"
+    },
+    {
+      "runtime": "cursor",
+      "source": "https://registry.npmjs.org/@cursor/sdk/latest",
+      "latest": "1.5.2",
+      "previous": "1.5.0",
+      "publications": [
+        {
+          "version": "1.5.1",
+          "publishedAt": "2026-11-25T22:16:22.712Z"
+        },
+        {
+          "version": "1.5.2",
+          "publishedAt": "2026-11-26T02:27:20.361Z"
+        }
+      ]
+    },
+    {
+      "runtime": "dsh",
+      "source": "https://registry.npmjs.org/@deepseek-ai/dsh/latest",
+      "latest": "0.2.2-rc.5",
+      "previous": "0.2.2-rc.5"
+    },
+    {
+      "runtime": "factory",
+      "source": "https://registry.npmjs.org/droid/latest",
+      "latest": "1.21.0",
+      "previous": "1.19.0",
+      "publications": [
+        {
+          "version": "1.20.0",
+          "publishedAt": "2026-11-25T01:40:06.243Z"
+        },
+        {
+          "version": "1.21.0",
+          "publishedAt": "2026-11-25T23:39:48.095Z"
+        }
+      ]
+    },
+    {
+      "runtime": "grok",
+      "source": "https://x.ai/cli/stable",
+      "latest": "1.0.92",
+      "previous": "1.0.92"
+    },
+    {
+      "runtime": "kimi",
+      "source": "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest",
+      "latest": "2.8.0",
+      "previous": "2.7.3",
+      "publications": [
+        {
+          "version": "2.8.0",
+          "publishedAt": "2026-11-25T12:48:36.020Z"
+        }
+      ]
+    },
+    {
+      "runtime": "opencode",
+      "line": "v1",
+      "source": "https://registry.npmjs.org/opencode-ai/latest",
+      "latest": "1.19.6",
+      "previous": "1.19.6"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v2",
+      "source": "https://registry.npmjs.org/@opencode/cli/latest",
+      "latest": "2.4.2",
+      "previous": "2.4.1",
+      "publications": [
+        {
+          "version": "2.4.2",
+          "publishedAt": "2026-11-26T00:46:05.780Z"
+        }
+      ]
+    },
+    {
+      "runtime": "codebuddy",
+      "source": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest",
+      "latest": "2.187.0",
+      "previous": "2.186.0",
+      "publications": [
+        {
+          "version": "2.187.0",
+          "publishedAt": "2026-11-25T12:28:50.872Z"
+        }
+      ]
+    },
+    {
+      "runtime": "qoder",
+      "source": "https://registry.npmjs.org/@qoder-ai/qodercli/latest",
+      "latest": "1.1.98",
+      "previous": "1.1.97",
+      "publications": [
+        {
+          "version": "1.1.98",
+          "publishedAt": "2026-11-25T11:53:14.023Z"
+        }
+      ]
+    },
+    {
+      "runtime": "qwen",
+      "source": "https://registry.npmjs.org/@qwen-code/qwen-code/latest",
+      "latest": "0.28.4",
+      "previous": "0.28.4"
+    },
+    {
+      "runtime": "pi",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/latest",
+      "latest": "1.6.1",
+      "previous": "1.6.0",
+      "publications": [
+        {
+          "version": "1.6.1",
+          "publishedAt": "2026-11-25T13:41:09.982Z"
+        }
+      ]
+    },
+    {
+      "runtime": "pi-durable",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-durable/latest",
+      "latest": "1.6.1",
+      "previous": "1.6.0",
+      "publications": [
+        {
+          "version": "1.6.1",
+          "publishedAt": "2026-11-25T13:36:14.198Z"
+        }
+      ]
+    }
+  ],
+  "localLinux": {
+    "oarRevision": "259af4a7",
+    "results": {
+      "antigravity": {
+        "version": "1.5.17",
+        "behavior": {
+          "passed": 18,
+          "skipped": 2,
+          "failed": 0
+        },
+        "vendor": {
+          "passed": 21
+        }
+      },
+      "kimi": {
+        "version": "2.8.0",
+        "behavior": {
+          "passed": 16,
+          "skipped": 4,
+          "failed": 0
+        },
+        "vendor": {
+          "failed": 1,
+          "passed": 18
+        },
+        "login": {
+          "passed": 5
+        },
+        "catalog": {
+          "previous": [
+            {
+              "mode": "cold-oar",
+              "version": "2.7.3",
+              "turns": [
+                [
+                  []
+                ],
+                [
+                  []
+                ]
+              ],
+              "relisted": false
+            },
+            {
+              "mode": "prepared-native",
+              "version": "2.7.3",
+              "turns": [
+                [
+                  [
+                    "oar_probe_alpha"
+                  ]
+                ],
+                [
+                  [
+                    "oar_probe_alpha"
+                  ]
+                ]
+              ],
+              "relisted": false
+            }
+          ],
+          "current": [
+            {
+              "mode": "cold-oar",
+              "version": "2.8.0",
+              "turns": [
+                [
+                  [
+                    "oar_probe_alpha"
+                  ]
+                ],
+                [
+                  [
+                    "oar_probe_alpha"
+                  ]
+                ]
+              ],
+              "relisted": false
+            },
+            {
+              "mode": "prepared-native",
+              "version": "2.8.0",
+              "turns": [
+                [
+                  [
+                    "oar_probe_alpha"
+                  ]
+                ],
+                [
+                  [
+                    "oar_probe_alpha"
+                  ]
+                ]
+              ],
+              "relisted": false
+            }
+          ],
+          "repeat": [
+            {
+              "mode": "cold-oar",
+              "version": "2.8.0",
+              "turns": [
+                [
+                  [
+                    "oar_probe_alpha"
+                  ]
+                ],
+                [
+                  [
+                    "oar_probe_alpha"
+                  ]
+                ]
+              ],
+              "relisted": false
+            },
+            {
+              "mode": "prepared-native",
+              "version": "2.8.0",
+              "turns": [
+                [
+                  [
+                    "oar_probe_alpha"
+                  ]
+                ],
+                [
+                  [
+                    "oar_probe_alpha"
+                  ]
+                ]
+              ],
+              "relisted": false
+            }
+          ]
+        }
+      },
+      "factory": {
+        "version": "1.21.0",
+        "behavior": {
+          "passed": 20,
+          "skipped": 0,
+          "failed": 0
+        },
+        "vendor": {
+          "passed": 13
+        },
+        "nativeControl": {
+          "steerQueuedAs": "end_of_turn",
+          "interruptEnd": "cancelled",
+          "discardedExpectedSteer": true,
+          "turnAfterResume": "completed"
+        }
+      },
+      "opencode": {
+        "version": "2.4.2",
+        "behavior": {
+          "passed": 18,
+          "skipped": 2,
+          "failed": 0
+        },
+        "vendor": {
+          "passed": 24
+        }
+      },
+      "codebuddy": {
+        "version": "2.187.0",
+        "behavior": {
+          "passed": 17,
+          "skipped": 3,
+          "failed": 0
+        },
+        "vendor": {
+          "passed": 9
+        }
+      },
+      "claude": {
+        "version": "2.1.332",
+        "behavior": {
+          "passed": 18,
+          "skipped": 2,
+          "failed": 0
+        },
+        "vendor": {
+          "passed": 113
+        },
+        "oauth": [
+          {
+            "mode": "default",
+            "verified": true,
+            "browserOpens": 1,
+            "exchanges": 1
+          },
+          {
+            "mode": "suppressed",
+            "verified": true,
+            "browserOpens": 0,
+            "exchanges": 1
+          },
+          {
+            "mode": "failing-browser",
+            "verified": true,
+            "browserOpens": 1,
+            "exchanges": 1
+          }
+        ]
+      },
+      "pi-aimock": {
+        "version": "1.6.1",
+        "behavior": {
+          "passed": 18,
+          "skipped": 2,
+          "failed": 0
+        },
+        "vendor": {
+          "passed": 134
+        },
+        "undici": {
+          "versions": [
+            "8.12.4",
+            "8.12.4",
+            "8.12.4"
+          ],
+          "distinctPaths": 1
+        }
+      },
+      "pi-rpc-aimock": {
+        "version": "1.6.1",
+        "behavior": {
+          "passed": 18,
+          "skipped": 2,
+          "failed": 0
+        },
+        "vendor": {
+          "passed": 120
+        }
+      },
+      "pi-durable-aimock": {
+        "version": "1.6.1",
+        "behavior": {
+          "passed": 19,
+          "skipped": 1,
+          "failed": 0
+        },
+        "vendor": {
+          "passed": 38
+        }
+      },
+      "qoder": {
+        "version": "1.1.98",
+        "status": "no_offline_replay_requires_real_account",
+        "submittedPrompts": 0
+      },
+      "cursor": {
+        "version": "1.5.2",
+        "typeCheckExitCode": 0,
+        "loginPassed": 12,
+        "configurationCases": 6,
+        "skills": {
+          "passed": 5
+        },
+        "networkGuardPassed": true
+      }
+    }
+  }
+}
