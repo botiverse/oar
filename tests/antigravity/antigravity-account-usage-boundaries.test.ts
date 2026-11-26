@@ -62,21 +62,27 @@ function fakeAgy(mode: "unknown" | "logged_out" | "logged_in", stall?: "models" 
   };
 }
 
+test("omitting allowPrintMode returns print_mode_disabled before checking state or launching agy", async () => {
+  const fake = fakeAgy("logged_in");
+  expect(await antigravityAccountUsage(fake.installation, { env: fake.env })).toEqual({ kind: "unsupported", reason: "print_mode_disabled" });
+  expect(fake.calls()).toEqual([]);
+});
+
 test("unknown authentication does not dispatch the potentially interactive usage command", async () => {
   const fake = fakeAgy("unknown");
-  await expect(antigravityAccountUsage(fake.installation, { env: fake.env })).rejects.toThrow(/did not confirm a login/u);
+  await expect(antigravityAccountUsage(fake.installation, { env: fake.env, allowPrintMode: true })).rejects.toThrow(/did not confirm a login/u);
   expect(fake.calls()).toEqual(["models"]);
 });
 
 test("explicit signed-out refusal prevents usage dispatch", async () => {
   const fake = fakeAgy("logged_out");
-  expect(await antigravityAccountUsage(fake.installation, { env: fake.env })).toEqual({ kind: "reauth_required", reason: "not_authenticated" });
+  expect(await antigravityAccountUsage(fake.installation, { env: fake.env, allowPrintMode: true })).toEqual({ kind: "reauth_required", reason: "not_authenticated" });
   expect(fake.calls()).toEqual(["models"]);
 });
 
 test("successful auth preflight dispatches exactly one usage query", async () => {
   const fake = fakeAgy("logged_in");
-  expect(await antigravityAccountUsage(fake.installation, { env: fake.env })).toMatchObject({ kind: "available", rateLimited: false });
+  expect(await antigravityAccountUsage(fake.installation, { env: fake.env, allowPrintMode: true })).toMatchObject({ kind: "available", rateLimited: false });
   expect(fake.calls()).toEqual(["models", "-p /usage --output-format json"]);
 });
 
@@ -93,7 +99,7 @@ test.each(["models", "usage"] as const)("the overall deadline bounds a stalled %
   // Start the real fixture before firing the caller's deadline. A cold Windows
   // process may need longer than the whole 500 ms budget to publish its identity.
   vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
-  const result = Promise.allSettled([antigravityAccountUsage(fake.installation, { env: fake.env, timeoutMs })]);
+  const result = Promise.allSettled([antigravityAccountUsage(fake.installation, { env: fake.env, timeoutMs, allowPrintMode: true })]);
   const ready = await eventually(fake.ready, 10_000);
   const deadlineAt = fireUsageDeadline();
   expect(await result).toHaveProperty([0, "reason", "message"], expect.stringMatching(/timed out/u));
@@ -105,6 +111,6 @@ test.each(["models", "usage"] as const)("the overall deadline bounds a stalled %
 
 test("usage refuses a separate GEMINI_HOME before any default-profile command", async () => {
   const fake = fakeAgy("logged_in");
-  expect(await antigravityAccountUsage(fake.installation, { env: { GEMINI_HOME: path.resolve("isolated agy profile") } })).toEqual({ kind: "unsupported", reason: "unsupported_auth_storage" });
+  expect(await antigravityAccountUsage(fake.installation, { env: { GEMINI_HOME: path.resolve("isolated agy profile") }, allowPrintMode: true })).toEqual({ kind: "unsupported", reason: "unsupported_auth_storage" });
   expect(fake.calls()).toEqual([]);
 });

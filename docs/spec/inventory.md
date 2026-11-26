@@ -1,7 +1,7 @@
 # Independent runtime inventories
 
 Every runtime has four readers, `skills`, `commands`, `mcpServers` and
-`tools`, each taking an installation and optional `{ cwd, timeoutMs, env }`.
+`tools`, each taking an installation and optional `{ cwd, timeoutMs, env, allowPrintMode }`.
 The types are in `contracts/inventory.ts`; which runtimes answer which
 query, and from what native source, is in each adapter and in the
 [native evidence page](../runtimes/inventory.md).
@@ -27,7 +27,11 @@ No prompt is sent. Some readers only read skill files; others start the
 runtime in `cwd` the way a session would, and those can run that
 workspace's code (project extensions, a stdio MCP server) and connect
 configured MCP servers. Do not take an inventory of a directory you do not
-trust. `env` follows the
+trust. Readers whose fallback uses one-shot CLI print mode (such as Antigravity
+`--print=/skills` when the local file reader does not cover the installation)
+default `allowPrintMode` to `false` and return `unsupported` with
+`print_mode_disabled` without spawning any process; structured control or
+app-server protocols are unaffected. `env` follows the
 [reader environment rules](orientation.md#environment). Pi's in-process SDK
 loads inventories using the host environment. If an overlay changes it,
 Pi returns `unsupported` with `scope_unavailable` before loading extensions.

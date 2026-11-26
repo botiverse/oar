@@ -52,7 +52,9 @@ async function queries(): Promise<void> {
   try {
     const configuredAuth = await measured("configured-provider-auth", async () => { const result = await antigravityRuntime.authStatus(installation, { env, timeoutMs: 15_000 }); return result; });
     assert.deepEqual(configuredAuth, { kind: "logged_in", source: "agy models" });
-    await measured("configured-provider-usage", async () => { const result = await antigravityRuntime.accountUsage(installation, { env, timeoutMs: 15_000 }); return result; });
+    const blockedUsage = await measured("configured-provider-usage-default", async () => { const result = await antigravityRuntime.accountUsage(installation, { env, timeoutMs: 15_000 }); return result; });
+    assert.deepEqual(blockedUsage, { kind: "unsupported", reason: "print_mode_disabled" });
+    await measured("configured-provider-usage", async () => { const result = await antigravityRuntime.accountUsage(installation, { env, timeoutMs: 15_000, allowPrintMode: true }); return result; });
     // The synthetic provider has no Google quota. Preserve native's answer alongside the adapter outcome.
     await measured("configured-provider-native-usage", async () => {
       const result = await runExecutable(installation.command, ["-p", "/usage", "--output-format", "json"], { env: environment(fixture.env), timeoutMs: 15_000 });
@@ -65,7 +67,7 @@ async function queries(): Promise<void> {
     await rm(path.join(home, ".gemini"), { recursive: true, force: true });
     const unsigned = { ...env, GEMINI_API_KEY: null };
     const auth = await measured("signed-out-auth", async () => { const result = await antigravityRuntime.authStatus(installation, { env: unsigned, timeoutMs: 15_000 }); return result; });
-    const usage = await measured("signed-out-usage", async () => { const result = await antigravityRuntime.accountUsage(installation, { env: unsigned, timeoutMs: 15_000 }); return result; });
+    const usage = await measured("signed-out-usage", async () => { const result = await antigravityRuntime.accountUsage(installation, { env: unsigned, timeoutMs: 15_000, allowPrintMode: true }); return result; });
     assert.deepEqual(auth, { kind: "logged_out", source: "agy models" });
     assert.deepEqual(usage, { kind: "reauth_required", reason: "not_authenticated" });
     assert.equal(fixture.raw.length, 0);

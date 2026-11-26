@@ -35,7 +35,7 @@ function catalog(stdout: string): SkillEntry[] {
   return nativeRows(asRecord(command.data)?.skills).map(row => project(row));
 }
 
-/** Verified Linux/macOS versions read files; other installations retain the native query. */
+/** Stable Linux/macOS 1.5.10+ versions read files; other installations retain the opt-in native query. */
 export const antigravitySkills: InventoryReader<SkillEntry> = async (installation, options = {}) => {
   if (installation.via !== "executable") { return unsupportedInventory("installation_unsupported", "Antigravity skill discovery requires an executable."); }
   const timeoutMs = options.timeoutMs ?? 15_000;
@@ -46,12 +46,16 @@ export const antigravitySkills: InventoryReader<SkillEntry> = async (installatio
   if (!antigravityUsesDefaultState(env)) {
     return unsupportedInventory("scope_unavailable", "agy print mode cannot select GEMINI_HOME; isolate HOME (USERPROFILE on Windows) to read skills.");
   }
+  const useFiles = hasAntigravityFileSkills(installation.version);
+  if (!useFiles && options.allowPrintMode !== true) {
+    return unsupportedInventory("print_mode_disabled", "Antigravity native skill fallback uses agy --print=/skills; pass allowPrintMode: true to allow CLI print mode.");
+  }
   const scope = workspaceScope(options);
   const deadline = Date.now() + timeoutMs;
   try {
     return await withQueryDeadline("Antigravity skills", timeoutMs, async signal => {
-      if (hasAntigravityFileSkills(installation.version)) {
-        const files = await readAntigravityFileSkills(environmentHome(env), scope.cwd, signal);
+      if (useFiles) {
+        const files = await readAntigravityFileSkills(environmentHome(env), scope.cwd, signal, installation.version);
         return inventoryOk(scope, "discovered", files.items, files.partial);
       }
       const version = await antigravityVersionPreflight(installation, env, { timeoutMs: remainingMs(deadline, "Antigravity skills"), signal });

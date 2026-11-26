@@ -1,4 +1,4 @@
-import type { AccountUsageSnapshot, AccountUsageWindow, InstallationSnapshot, Runtime } from "@botiverse/oar";
+import type { AccountUsageReadOptions, AccountUsageSnapshot, AccountUsageWindow, InstallationSnapshot, Runtime } from "@botiverse/oar";
 import type { RuntimeFailure } from "./each-runtime.js";
 
 // Pure shape of one `oar account usage` row, so the table can be pinned by tests without reading an account.
@@ -9,7 +9,7 @@ export interface UsageReport {
   readonly accountUsage?: AccountUsageSnapshot;
 }
 
-export async function readUsage(runtime: Runtime): Promise<UsageReport> {
+export async function readUsage(runtime: Runtime, options?: Pick<AccountUsageReadOptions, "allowPrintMode">): Promise<UsageReport> {
   if (runtime.accountUsage === undefined || runtime.installation === undefined) {
     return { runtimeId: runtime.id, accountUsage: { kind: "unsupported", reason: "capability_unavailable" } };
   }
@@ -17,7 +17,8 @@ export async function readUsage(runtime: Runtime): Promise<UsageReport> {
   if (installation.kind !== "available") {
     return { runtimeId: runtime.id, installation };
   }
-  return { runtimeId: runtime.id, accountUsage: await runtime.accountUsage(installation) };
+  const usageOptions = options?.allowPrintMode === true ? { allowPrintMode: true } : undefined;
+  return { runtimeId: runtime.id, accountUsage: await runtime.accountUsage(installation, usageOptions) };
 }
 
 function percent(ratio: number): string {
@@ -55,7 +56,9 @@ export function renderUsageReport(report: UsageReport | RuntimeFailure): string[
     case "reauth_required":
       return [`${runtimeId}\tsign in again${usage.reason === undefined ? "" : ` (${usage.reason})`}`];
     case "unsupported":
-      return [`${runtimeId}\tno usage${usage.reason === undefined ? "" : ` (${usage.reason})`}`];
+      return [usage.reason === "print_mode_disabled"
+        ? `${runtimeId}\tno usage (print_mode_disabled; pass --allow-print-mode to allow CLI print mode)`
+        : `${runtimeId}\tno usage${usage.reason === undefined ? "" : ` (${usage.reason})`}`];
     case undefined:
       break;
   }

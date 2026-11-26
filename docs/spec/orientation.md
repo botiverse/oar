@@ -42,6 +42,10 @@ refuses it for its readers too. `orient` reads such a runtime with the host
 environment, since that is what its sessions get. Where a reader accepts
 `env` only in part, its runtime page says how.
 
+Runtimes whose usage or inventory reader falls back to one-shot CLI print mode
+default to returning `print_mode_disabled` without spawning that print command;
+pass `allowPrintMode: true` on `OrientOptions` to opt in explicitly.
+
 ## Depth and effects
 
 | Depth | Reads | What it can do |

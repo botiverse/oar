@@ -26,6 +26,8 @@ export interface OrientOptions {
   /** Overall wall-clock bound; default 60 seconds. */
   readonly timeoutMs?: number;
   readonly signal?: AbortSignal;
+  /** Forwarded to `accountUsage` and customization inventories; defaults to `false`. */
+  readonly allowPrintMode?: boolean;
 }
 /** Complete native catalogs with explicit user provenance only; ambiguous categories are omitted. */
 export interface Customization {

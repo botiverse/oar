@@ -937,3 +937,37 @@ keep correct than a private format.
 **What would change it:** a vendor stating that a specific use in 1 or 2
 violates its terms in a way that affects users, or a measured case where a
 read changed the runtime's own state.
+
+## Gating one-shot CLI print mode behind explicit opt-in (2026-11-26)
+
+**Considered:** removing Antigravity `accountUsage()` altogether, routing it
+through `agy acp`, or keeping `agy -p` / `--print` always enabled unless a
+particular host runtime-branched on `"antigravity"`.
+
+**Chosen:** add an explicit `allowPrintMode?: boolean` option (default `false`)
+on `AccountUsageReadOptions`, `InventoryOptions` and `OrientOptions` (plus
+`--allow-print-mode` on `oar account usage` and `oar inventory`), returning a
+typed `print_mode_disabled` refusal without spawning any process unless a caller
+opts in. Expand the Linux/macOS file-based Antigravity skill reader to stable
+CLI `1.5.10` and later (adding `~/.agents/skills` for `1.5.16` and later, verified
+on `1.5.18`) so skill discovery needs no CLI process there, while keeping
+Windows, pre-1.5.10, prerelease and versionless installations behind `allowPrintMode`. Persistent structured
+protocols (Claude bidirectional `stream-json` control protocol, Codex
+app-server, Grok ACP) and direct billing HTTP readers stay on by default.
+
+**Why:** inspection of `agy 1.5.18` shows `agy acp` exposes no account quota or
+credits RPC method (`RetrieveUserQuotaSummary` and `GetG1Credits` run only in
+memory; `~/.gemini/antigravity-cli/` stores no quota cache), leaving
+`agy -p "/usage"` and `"/credits"` as the only native source. At the same time,
+one-shot CLI print mode carries consumer-account Terms of Service policy risk
+when scheduled unattended in the background and starts configured global stdio
+MCP servers even for read-only `/usage` and `/skills`. Making opt-in part of the
+shared OAR contract lets every host withhold unattended `agy -p` / `--print`
+queries without branching on runtime IDs, while preserving explicit manual
+refreshes for hosts and CLI users who choose to allow it.
+
+**What would reopen it:** `agy acp` adding a native account-usage/credits RPC
+(moving `accountUsage` to ACP), Google prohibiting any automated invocation of
+`agy -p` even on explicit manual refresh (removing the reader), or verified
+Windows junction directory discovery parity (enabling the local file skill
+reader on Windows).

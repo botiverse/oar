@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
@@ -120,6 +120,7 @@ function createFakeAgy() {
     versionless: { kind: "available", via: "executable", command } as const,
     baseEnv: { HOME: dir, USERPROFILE: dir, FAKE_AGY_ENV_LOG: logPath, FAKE_AGY_VERSION_FILE: versionPath },
     readSpawns: (): readonly RecordedSpawn[] => {
+      if (!existsSync(logPath)) { return []; }
       const content = readFileSync(logPath, "utf8").trim();
       return content === "" ? [] : content.split("\n").map((line) => parseSpawn(line));
     },
@@ -192,7 +193,9 @@ test.each<ProbeCase>([
 
 test("accountUsage defaults true across preflight, models, acp tier, and /usage", async () => {
   const fake = createFakeAgy();
-  const usage = await antigravityRuntime.accountUsage(fake.versionless, { env: fake.baseEnv });
+  expect(await antigravityRuntime.accountUsage(fake.versionless, { env: fake.baseEnv })).toEqual({ kind: "unsupported", reason: "print_mode_disabled" });
+  expect(fake.readSpawns()).toEqual([]);
+  const usage = await antigravityRuntime.accountUsage(fake.versionless, { env: fake.baseEnv, allowPrintMode: true });
   expect(usage.kind).toBe("available");
   expect(fake.readSpawns().map((row) => row.args[0])).toEqual(["--version", "models", "acp", "-p"]);
   expect(fake.readSpawns().every((row) => row.autoUpdate === "true")).toBe(true);
@@ -215,9 +218,11 @@ test("listModels defaults true and honors explicit null", async () => {
   expect(fake.readSpawns().every((row) => !row.hasAutoUpdate)).toBe(true);
 });
 
-test("skills keeps forcing true even when caller passes false", async () => {
+test("skills keeps forcing true when allowPrintMode runs the native fallback", async () => {
   const fake = createFakeAgy();
-  const skills = await antigravityRuntime.skills({ ...fake.installation, version: "1.5.5" }, { cwd: fake.dir, env: { ...fake.baseEnv, AGY_CLI_DISABLE_AUTO_UPDATE: "false" } });
+  expect(await antigravityRuntime.skills({ ...fake.installation, version: "1.5.5" }, { cwd: fake.dir, env: fake.baseEnv })).toMatchObject({ kind: "unsupported", code: "print_mode_disabled" });
+  expect(fake.readSpawns()).toEqual([]);
+  const skills = await antigravityRuntime.skills({ ...fake.installation, version: "1.5.5" }, { cwd: fake.dir, env: { ...fake.baseEnv, AGY_CLI_DISABLE_AUTO_UPDATE: "false" }, allowPrintMode: true });
   expect(skills.kind).toBe("ok");
   expect(fake.readSpawns().every((row) => row.autoUpdate === "true")).toBe(true);
 });

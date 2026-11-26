@@ -10,6 +10,13 @@ export interface InventoryOptions {
   /** Defaults to process.cwd(); hosts should pass their project directory explicitly. */
   readonly cwd?: string;
   readonly timeoutMs?: number;
+  /**
+   * Allow one-shot CLI print-mode fallbacks (such as `agy --print=/skills`)
+   * when a local or structured reader does not cover the installation.
+   * Defaults to `false`, returning `unsupported` with `print_mode_disabled`
+   * without spawning any process.
+   */
+  readonly allowPrintMode?: boolean;
 }
 export interface SkillEntry {
   readonly name: string;
@@ -74,7 +81,7 @@ export type InventoryResult<T> =
     }
   | {
       readonly kind: "unsupported";
-      readonly code: "native_query_unavailable" | "transport_unavailable" | "scope_unavailable" | "installation_unsupported" | "version_unsupported";
+      readonly code: "native_query_unavailable" | "transport_unavailable" | "scope_unavailable" | "installation_unsupported" | "version_unsupported" | "print_mode_disabled";
       readonly reason: string;
       readonly installedVersion?: string;
       readonly requiredVersion?: string;

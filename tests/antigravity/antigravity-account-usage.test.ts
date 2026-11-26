@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, expect, test } from "vitest";
@@ -37,7 +37,7 @@ function fakeAgy(signedIn: boolean | "broken", reply: unknown = recorded) {
   return {
     installation: { kind: "available", via: "executable", command, version: "1.5.7" } as const,
     env: { HOME: dir, USERPROFILE: dir },
-    calls: () => readFileSync(calls, "utf8").trim().split("\n"),
+    calls: (): readonly string[] => existsSync(calls) ? readFileSync(calls, "utf8").trim().split("\n").filter(Boolean) : [],
   };
 }
 
@@ -141,20 +141,27 @@ test("a sliver of quota left is not used up", () => {
   expect(snapshot.kind === "available" ? snapshot.windows[1]?.usedRatio : undefined).toBe(0.999999);
 });
 
+test.skipIf(process.platform === "win32")("omitting allowPrintMode refuses without spawning any process", async () => {
+  const agy = fakeAgy(true);
+  expect(await antigravityAccountUsage(agy.installation, { env: agy.env })).toEqual({ kind: "unsupported", reason: "print_mode_disabled" });
+  expect(await antigravityAccountUsage(agy.installation, { env: agy.env, allowPrintMode: false })).toEqual({ kind: "unsupported", reason: "print_mode_disabled" });
+  expect(agy.calls()).toEqual([]);
+});
+
 test.skipIf(process.platform === "win32")("signed out: reauth_required, and /usage (which would start a login) never runs", async () => {
   const agy = fakeAgy(false);
-  expect(await antigravityAccountUsage(agy.installation, { env: agy.env })).toEqual({ kind: "reauth_required", reason: "not_authenticated" });
+  expect(await antigravityAccountUsage(agy.installation, { env: agy.env, allowPrintMode: true })).toEqual({ kind: "reauth_required", reason: "not_authenticated" });
   expect(agy.calls()).toEqual(["models"]);
 });
 
 test.skipIf(process.platform === "win32")("a login agy models cannot confirm rejects, and /usage never runs", async () => {
   const agy = fakeAgy("broken");
-  await expect(antigravityAccountUsage(agy.installation, { env: agy.env })).rejects.toThrow(/did not confirm a login/u);
+  await expect(antigravityAccountUsage(agy.installation, { env: agy.env, allowPrintMode: true })).rejects.toThrow(/did not confirm a login/u);
   expect(agy.calls()).toEqual(["models"]);
 });
 
 test.skipIf(process.platform === "win32")("with every group used up, agy's /credits decides; otherwise it is never asked", async () => {
   const gone = fakeAgy(true, withUsedUp(GEMINI_5H, THIRD_PARTY_WEEKLY));
-  expect(await antigravityAccountUsage(gone.installation, { env: gone.env })).toMatchObject({ kind: "available", rateLimited: true });
+  expect(await antigravityAccountUsage(gone.installation, { env: gone.env, allowPrintMode: true })).toMatchObject({ kind: "available", rateLimited: true });
   expect(gone.calls()).toEqual(["models", "-p /usage --output-format json", "-p /credits --output-format json"]);
 });

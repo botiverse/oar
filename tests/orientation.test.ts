@@ -230,3 +230,23 @@ test("each available installation carries its own session capabilities; a missin
   const sent: unknown = JSON.parse(JSON.stringify(report));
   expect(sent).toEqual(report);
 });
+
+test("orient forwards allowPrintMode only when explicitly supplied", async () => {
+  const accountUsage = vi.fn(async (_inst, opts?: { readonly allowPrintMode?: boolean }) =>
+    opts?.allowPrintMode === true ? ({ kind: "available", rateLimited: false, windows: [] } as const) : ({ kind: "unsupported", reason: "print_mode_disabled" } as const));
+  const skills = vi.fn(async (_inst, opts?: { readonly allowPrintMode?: boolean }) =>
+    opts?.allowPrintMode === true ? catalog([{ name: "p", source: "user", scope: "user" }]) : ({ kind: "unsupported" as const, code: "print_mode_disabled" as const, reason: "disabled" }));
+  const reg = new RuntimeRegistry([runtime({ accountUsage, skills })]);
+  const blocked = await orient(reg, { depth: "account", include: ["customization"] });
+  expect([accountUsage.mock.calls[0]?.[1], skills.mock.calls[0]?.[1]].every((call) => call !== undefined && !("allowPrintMode" in call))).toBe(true);
+  expect(blocked.runtimes[0]).toMatchObject({
+    accountUsage: { kind: "ok", value: { kind: "unsupported", reason: "print_mode_disabled" } },
+    customization: { kind: "unsupported" },
+  });
+  const allowed = await orient(reg, { depth: "account", include: ["customization"], allowPrintMode: true });
+  expect([accountUsage.mock.calls[1]?.[1], skills.mock.calls[1]?.[1]].every((call) => call?.allowPrintMode === true)).toBe(true);
+  expect(allowed.runtimes[0]).toMatchObject({
+    accountUsage: { kind: "ok", value: { kind: "available" } },
+    customization: { kind: "ok", value: { skills: 1 } },
+  });
+});

@@ -61,9 +61,13 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("Antigravity nati
       expect(rows.map(row => row.name)).toEqual(expect.arrayContaining(["oar-workspace", "oar-shared", "oar-personal", "oar-cli", "oar-manual", "oar-plugin:child"]));
       expect(rows.some(row => row.builtin === true)).toBe(true);
       expect(rows.some(row => row.name === "oar-hidden")).toBe(false);
-      const result = await antigravityRuntime.skills(installation, { cwd: f.cwd, env: overlay({ ...f.nativeEnv, AGY_CLI_DISABLE_AUTO_UPDATE: "false" }) });
-      assert.equal(result.kind, "ok", JSON.stringify(result));
       const local = hasAntigravityFileSkills(installation.version);
+      if (!local) {
+        const blocked = await antigravityRuntime.skills(installation, { cwd: f.cwd, env: overlay(f.nativeEnv) });
+        expect(blocked).toMatchObject({ kind: "unsupported", code: "print_mode_disabled" });
+      }
+      const result = await antigravityRuntime.skills(installation, { cwd: f.cwd, env: overlay({ ...f.nativeEnv, AGY_CLI_DISABLE_AUTO_UPDATE: "false" }), ...(local ? {} : { allowPrintMode: true }) });
+      assert.equal(result.kind, "ok", JSON.stringify(result));
       // The versioned file reader declares partial and omits only this unverified builtin mount.
       // Match every other native row exactly, including local skills named swarm.
       const verifiedRows = local ? rows.filter(row => !(row.builtin === true && row.path === join(f.home, ".gemini/antigravity-cli/builtin/skills/native_swarm/SKILL.md"))) : rows;
@@ -109,8 +113,8 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("Antigravity nati
     try {
       await rm(join(f.home, ".gemini"), { recursive: true, force: true });
       const env = overlay(f.nativeEnv); delete env.GEMINI_API_KEY; env.GEMINI_API_KEY = null;
-      const result = await antigravityRuntime.skills(installation, { cwd: f.cwd, env });
       const local = hasAntigravityFileSkills(installation.version);
+      const result = await antigravityRuntime.skills(installation, { cwd: f.cwd, env, ...(local ? {} : { allowPrintMode: true }) });
       if (local) { expect(result).toMatchObject({ kind: "ok", view: "discovered", partial: true, items: [] }); }
       else { expect(result).toEqual({ kind: "unavailable", code: "not_authenticated", reason: "Sign in to Antigravity to read its skills." }); }
       expect(f.raw).toHaveLength(0);

@@ -3,15 +3,21 @@ import { readFile, realpath } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { SkillEntry } from "../../contracts/inventory.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
+import { versionAtLeast } from "../../shared/update.js";
 import { antigravitySkillMetadata, type FileSkill } from "./skill-metadata.js";
 import { skillPathExists as exists, skillJson as json, skillDirectories as directories, skillManifest as manifest, type SkillBoundary } from "./skill-manifests.js";
 
 const aliases = [".agent", ".agents", "_agent", "_agents"];
 // Native root-agent mounts, not every directory extracted with the CLI.
 const builtins = ["agy-customizations", "antigravity_guide", "automation", "migrate-agent-settings", "migrate-workflows", "run-workflow"];
-const fileSkillVersions = new Set(["1.5.10", "1.5.11", "1.5.14", "1.5.15"]);
+export const ANTIGRAVITY_FILE_SKILLS_MINIMUM_VERSION = "1.5.10";
+const AGENTS_GLOBAL_SKILLS_MINIMUM_VERSION = "1.5.16";
+const STABLE_VERSION_PATTERN = /^\d+\.\d+\.\d+$/u;
 export function hasAntigravityFileSkills(version: string | undefined, platform: NodeJS.Platform = process.platform): boolean {
-  return (platform === "linux" || platform === "darwin") && version !== undefined && fileSkillVersions.has(version);
+  return (platform === "linux" || platform === "darwin")
+    && version !== undefined
+    && STABLE_VERSION_PATTERN.test(version)
+    && versionAtLeast(version, ANTIGRAVITY_FILE_SKILLS_MINIMUM_VERSION);
 }
 async function repositoryDirectory(directory: string, signal: AbortSignal): Promise<boolean> {
   const dot = join(directory, ".git");
@@ -77,7 +83,7 @@ async function scanPlugins(items: Map<string, FileSkill>, paths: readonly string
 }
 function invocableSkill(skill: FileSkill): SkillEntry { return { ...skill.item, userInvocable: true }; }
 /** No executable, authentication, MCP, body execution or builtin initialization. */
-export async function readAntigravityFileSkills(home: string, cwd: string, signal: AbortSignal): Promise<{ readonly items: readonly SkillEntry[]; readonly partial: boolean }> {
+export async function readAntigravityFileSkills(home: string, cwd: string, signal: AbortSignal, version?: string): Promise<{ readonly items: readonly SkillEntry[]; readonly partial: boolean }> {
   const current = await realpath(cwd);
   const projects = await workspaces(current, signal);
   const root = projects.at(-1) ?? current;
@@ -110,6 +116,9 @@ export async function readAntigravityFileSkills(home: string, cwd: string, signa
     const path = await exists(legacy) ? legacy : join(globalBase, `${kind}.json`);
     const paths = await manifest(path, globalScope);
     await (kind === "skills" ? scanSkills(items, paths, discovery, allowAll) : scanPlugins(items, paths, enabled, discovery, allowAll));
+  }
+  if (version !== undefined && STABLE_VERSION_PATTERN.test(version) && versionAtLeast(version, AGENTS_GLOBAL_SKILLS_MINIMUM_VERSION)) {
+    await scanSkills(items, await directories(join(home, ".agents/skills"), signal), discovery, allowAll);
   }
   // native_swarm is conditionally mounted even with identical saved settings.
   // Omit that unverified builtin and report an incomplete inventory.
