@@ -741,14 +741,21 @@ or redirect their session storage to inject an option.
 
 ### Context usage, billing, and compaction
 
-**Context (partial):** `Session.contextUsage()` reads the prompt answer's
+**Context:** `Session.contextUsage()` reads the prompt answer's
 `_meta.totalTokens` (or `contextTokens`), Grok's running context count
 (about 16.8k after a one-word turn). No answer carries a window, so
-`contextWindow`/`percent` are `null` even though `session/new` advertises
-`totalContextTokens: 500000` per model. The count rides the answer itself
-(Grok's `response_completed`/`turn_completed` precede it), so the profile
-configures no post-answer wait (`usageUpdateAfterPrompt` unset).
-[Usage reader](../../packages/oar/src/runtimes/grok/session.ts).
+`contextWindow` comes from the window `session/new` advertises per model
+(`models.availableModels[]._meta.totalContextTokens: 500000`) for the model the
+runtime last reported, and `percent` follows from the two. The advertised table
+is tracked per session
+([context-window fold](../../packages/oar/src/shared/acp/model.ts)): a model
+whose row was never read — including one reached by a `session/set_model`
+switch — reports the count with `contextWindow`/`percent` `null` rather than a
+window borrowed from another model, so the figure can never go stale. The count
+rides the answer itself (Grok's `response_completed`/`turn_completed` precede
+it), so the profile configures no post-answer wait (`usageUpdateAfterPrompt`
+unset). [Usage reader](../../packages/oar/src/runtimes/grok/session.ts),
+[deterministic tests](../../tests/grok/grok-context-window.test.ts).
 
 **Billing (partial):** `Session.usage()` sums the root's `session/prompt`
 `_meta.usage` ledgers and its independent automatic follow-up ledgers

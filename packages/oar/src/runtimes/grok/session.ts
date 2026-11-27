@@ -56,14 +56,19 @@ function firstNumber(record: JsonRecord | null, names: readonly string[]): numbe
   return null;
 }
 
-/** Grok prompt responses carry an authoritative usage snapshot in `_meta`. */
-export function grokContextUsage(response: JsonRecord): ContextUsage | null {
+/**
+ * Grok prompt responses carry an authoritative usage snapshot in `_meta`.
+ * `advertisedWindow` is the window the open answer's model table gives for the
+ * model in effect (context-window.ts): no prompt answer carries one, and the
+ * table is the only native statement of it.
+ */
+export function grokContextUsage(response: JsonRecord, advertisedWindow: number | null = null): ContextUsage | null {
   // oxlint-disable-next-line eslint/no-underscore-dangle -- `_meta` is the ACP extension envelope.
   const meta = asRecord(response._meta);
   // `meta.totalTokens` is Grok's running context count. `meta.usage` is the
   // whole prompt's multi-call billing ledger and is not context fullness.
   const tokens = firstNumber(meta, ["totalTokens", "contextTokens"]);
-  const contextWindow = firstNumber(meta, ["contextWindow", "context_window", "maxContextTokens"]);
+  const contextWindow = firstNumber(meta, ["contextWindow", "context_window", "maxContextTokens"]) ?? advertisedWindow;
   if (tokens === null && contextWindow === null) {
     return null;
   }
