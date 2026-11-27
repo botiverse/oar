@@ -51,6 +51,11 @@ answers. OAR sends the steer's text as that prompt (`steerParams` adds no
 fields), and without the advertised capability the session has no `steer`
 (`steerParamsAdvertised`): a second prompt would then start a turn of its own.
 
+Both answers repeat the same `usage` object, the whole turn's totals, instead
+of splitting them between the two requests. OAR wires no `promptTokenUsage`
+for Devin today, so nothing counts twice; a future wiring must take the
+closing answer only and never sum the superseded replies.
+
 **Verified:** Linux x64, CLI 3000.14.30821, real account, one turn. A turn
 running `sleep 12` through `terminal/create` took "Before you finish, also
 reply with the single word BANANA in your final answer." as a second

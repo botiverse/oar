@@ -98,10 +98,26 @@ function configOptions() {
   ];
 }
 
+/** `FAKE_DEVIN_MID_TURN_PROMPTS`: "0" advertises false, "absent" omits the key, "no-meta" omits the whole `_meta`. */
+function capabilitiesMeta() {
+  const value = process.env.FAKE_DEVIN_MID_TURN_PROMPTS;
+  if (value === "no-meta") {
+    return undefined;
+  }
+  return {
+    "cognition.ai/sessionDefaultConfigOptions": true,
+    "cognition.ai/multiRootWorkspace": true,
+    "cognition.ai/sessionRename": true,
+    "cognition.ai/persistOnCreate": true,
+    ...(value === "absent" ? {} : { "cognition.ai/midTurnPrompts": value !== "0" }),
+  };
+}
+
 function initializeResult() {
   const sessionCapabilities = process.env.FAKE_DEVIN_SESSION_CAPABILITIES === undefined
     ? { list: {}, delete: {}, additionalDirectories: {}, close: { _meta: { "cognition.ai/force": true } } }
     : JSON.parse(process.env.FAKE_DEVIN_SESSION_CAPABILITIES);
+  const meta = capabilitiesMeta();
   return {
     protocolVersion: 1,
     agentCapabilities: {
@@ -110,13 +126,7 @@ function initializeResult() {
       mcpCapabilities: { http: true, sse: true },
       sessionCapabilities,
       auth: {},
-      _meta: {
-        "cognition.ai/sessionDefaultConfigOptions": true,
-        "cognition.ai/multiRootWorkspace": true,
-        "cognition.ai/sessionRename": true,
-        "cognition.ai/persistOnCreate": true,
-        "cognition.ai/midTurnPrompts": process.env.FAKE_DEVIN_MID_TURN_PROMPTS !== "0",
-      },
+      ...(meta === undefined ? {} : { _meta: meta }),
     },
     authMethods: [{ id: "devin-browser", name: "Log in with browser", description: "Sign in via your browser" }],
     agentInfo: { name: "affogato", title: "Devin Agent", version: "0.0.0-dev" },

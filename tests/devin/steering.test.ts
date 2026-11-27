@@ -53,11 +53,21 @@ test("devin steers a running turn with a second session/prompt and folds it into
   }
 });
 
-test("devin has no steer when initialize does not advertise mid-turn prompts", async () => {
+test.each(["0", "absent", "no-meta"])("devin has no steer when initialize does not advertise mid-turn prompts (%s)", async (advertised) => {
   const dir = scratchDir("oar-devin-no-steer-");
-  const session = await startFakeDevin(fakeExecutable, { cwd: dir, env: { FAKE_DEVIN_MID_TURN_PROMPTS: "0" } });
+  const session = await startFakeDevin(fakeExecutable, { cwd: dir, env: { FAKE_DEVIN_MID_TURN_PROMPTS: advertised } });
   try {
     expect(session).not.toHaveProperty("steer");
+  } finally {
+    await session.dispose();
+  }
+});
+
+test("devin steer while no turn runs is rejected no_active_turn", async () => {
+  const dir = scratchDir("oar-devin-steer-idle-");
+  const session = await startFakeDevin(fakeExecutable, { cwd: dir });
+  try {
+    expect(await session.steer?.("early")).toMatchObject({ kind: "rejected", code: "no_active_turn" });
   } finally {
     await session.dispose();
   }
