@@ -25,7 +25,9 @@ test("installation uses one environment for its override, PATH, version and shad
   const probe = executableInstallation("OAR_READER_BIN", name, [], ["--version"]);
   const result = await probe({ env: { OAR_READER_BIN: null, PATH: [first, second].join(path.delimiter), HOME: first, OAR_READER_REMOVED: null, ...(process.platform === "win32" ? { PATHEXT: ".cmd" } : {}) } });
   expect(result).toEqual({ kind: "available", via: "executable", command: a.command, version: "1.1.78", shadowed: [b.command] });
-  expect(a.read().environments).toEqual(Array.from({ length: 2 }, () => ({ args: ["--version"], environment: { HOME: first, OAR_READER_REMOVED: null } })));
+  // This probe's readiness check is `--version` itself, so one start answers
+  // both questions; it records the overlay environment, never the host's.
+  expect(a.read().environments).toEqual([{ args: ["--version"], environment: { HOME: first, OAR_READER_REMOVED: null } }]);
   expect({ pin: process.env.OAR_READER_BIN, removed: process.env.OAR_READER_REMOVED }).toEqual(before);
 });
 

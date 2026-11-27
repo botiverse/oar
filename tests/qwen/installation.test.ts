@@ -18,8 +18,11 @@ test("installation verifies Qwen Code identity via --help and reads --version", 
     stderr: "",
   }));
   await expect(qwenInstallation()).resolves.toMatchObject({ kind: "available", version: "0.26.0" });
-  expect(runExecutable).toHaveBeenNthCalledWith(1, process.execPath, ["--help"], { env: process.env });
-  expect(runExecutable).toHaveBeenNthCalledWith(2, process.execPath, ["--version"], { env: process.env });
+  // Both checks ask different questions of the same executable and run at
+  // the same time, so only the two calls matter, not which started first.
+  expect(runExecutable).toHaveBeenCalledTimes(2);
+  expect(runExecutable).toHaveBeenCalledWith(process.execPath, ["--help"], { env: process.env });
+  expect(runExecutable).toHaveBeenCalledWith(process.execPath, ["--version"], { env: process.env });
 });
 
 test("installation refuses a non-Qwen executable even when --help and --version exit zero", async () => {
