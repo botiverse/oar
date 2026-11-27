@@ -95,12 +95,19 @@ describe.skipIf(process.env.OAR_TEST !== "pi-rpc-aimock")("bundled Pi RPC proces
     } finally { await f.stop(); }
   }, 90_000);
 
-  test("anchored native clones are refused before a child starts", async () => {
+  test("a blank or NUL fork anchor is refused before a child starts, and a missing source names the session", async () => {
     const f = await fixture("");
     try {
+      for (const through of ["", "   ", "a\0b"]) {
+        // oxlint-disable-next-line no-await-in-loop -- one open at a time keeps the failure attributable.
+        await expect(f.open({ resume: "missing-source", fork: { through } })).rejects.toMatchObject({
+          name: "UnsupportedOptionError",
+          option: "fork",
+        });
+      }
+      // A real anchor on a source that does not exist fails the resume itself.
       await expect(f.open({ resume: "missing-source", fork: { through: "turn-id" } })).rejects.toMatchObject({
-        name: "UnsupportedOptionError",
-        option: "fork",
+        name: "SessionNotFoundError",
       });
     } finally { await f.stop(); }
   });

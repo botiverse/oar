@@ -910,9 +910,9 @@ from `ViewTurn.forkAnchor` in the session view (`reduceSessionView`,
 retains no records across processes, so a host that offers a fork on an
 earlier process's turn keeps those records or the anchors itself. Only an
 anchor of a turn the source holds is meaningful; one the runtime cannot
-find fails the open with its own error. Claude and Codex keep the source's
-anchors on the turns a fork copies, so an anchor read from the source also
-forks the fork.
+find fails the open with its own error. Claude, Codex and pi in its RPC
+mode keep the source's anchors on the turns a fork copies, so an anchor
+read from the source also forks the fork.
 
 The fork's id is the runtime's own report, never assumed: claude must
 confirm the id OAR assigned at open. Codex and OpenCode name the new session in their replies.
@@ -921,15 +921,20 @@ confirm the id OAR assigned at open. Codex and OpenCode name the new session in 
 |---|---|---|---|---|
 | claude | `--resume=<source> --fork-session --session-id=<OAR's new id>`, plus the hidden `--resume-session-at=<anchor>`; the open fails unless the private `get_status` answer reports that id | `uuid` of the turn's last root assistant message (an API-error failure's is the saved `API Error` message); none when that message holds a `tool_use` or a root `tool_result` follows it, on an aborted turn, or on one with no assistant message (a manual compaction) | `No message found with message.uuid of: <anchor>` at startup, an `Error` with that text | the fork's own, from the resume's `get_usage` baseline |
 | codex | `thread/fork { threadId: <source>, lastTurnId?, excludeTurns: true, cwd, model?, … }`; the reply's `thread.id` is `Session.id` (one naming the source fails the open); effort set afterwards as on a resume | the turn id (the records' `spanId`), on completed, failed and aborted turns, manual compaction turns and goal continuation turns | `codex thread/fork failed: turn not found: <anchor>` | unreported for the whole Session: the fork's total includes the source's turns and codex sends no re-report to baseline it |
+| pi (RPC) | the child resumes the source, then Pi's own `fork { entryId }` copies the branch BEFORE that user message into a NEW session file (`createBranchedSession`: new id, `parentSession` = the source file), or `clone` (cut at the leaf) when the anchor's turn is the last one; `get_state` must report a new, non-empty id, and `get_entries` must show the anchor in the copy with no later message | the entry id of the session leaf the child reported when the turn settled (`get_entries`); a real session entry, never derived from a frame | `Pi session has no entry <anchor> to fork through`; an anchor the source holds on another branch: `Pi fork anchor <anchor> is not on the session's current path` | the fork's own, from when it opened |
 | opencode v2 | Advertised ACP `session/fork` returns the copy's `sessionId`. The source remains usable. [Native controls](../../experiments/opencode-fork/README.md) | none, only whole sessions | any `through` is refused before copying | from the copy's own prompts where reported |
-| every other runtime and opencode v1 | refused | none | | |
+| every other runtime, opencode v1 and pi's SDK mode | refused | none | | |
 
 **Other options on a fork.** They behave as on a resume of the source, not
 as on a new session. A claude fork is a `--resume`, so `systemPrompt` and
 `appendSystemPrompt` follow claude's `Runtime.resumedSessionOptions`
 (a changed value takes effect at the next compaction; an omitted one keeps
 the saved value until then). Exceptions: `name` names the copy as a new
-session on both runtimes. A codex fork does not keep the source's model and
+session on claude, codex and pi. Pi's `--name` flag names the session the
+child OPENS, which on a fork is the source, so a pi fork applies the name
+AFTER the copy exists through Pi's own `set_session_name` and reads it back
+(a measured run with `fork: {}` and `name` had appended the copy's
+`session_info` to the source file). A codex fork does not keep the source's model and
 effort: without `model` and `effort` it runs the configured default, with
 `mcpServers` (a `config` override) and without any override (0.169.0 and
 0.169.1: a `gpt-5.2`/`high` source forked onto `gpt-5.1` with no effort),
@@ -1001,6 +1006,19 @@ option), and with a fork also `--resume-session-at`. Codex forks carry no
 automatic continuation turn as the fork opens (untested). A codex fork
 reports no token totals for its whole Session, not only before its first
 turn (two turns of a fork carried no `tokens`, 0.169.1).
+
+**Pi evidence.** [`pi-rpc-fork.vendor.test.ts`](../../sea-trial/vendor/pi-rpc-fork.vendor.test.ts)
+runs the real bundled Pi RPC child against a scripted provider: a two-turn
+source reports one anchor per root `turn_ended`, both real entries of its own
+session file; a fork through the first copies only the first turn (the
+provider's request for the copy's next prompt carries the first turn's words
+and not the second's) through Pi's own `fork` command, a fork through the last
+copies the whole conversation through `clone`, a fork through a turn before a
+manual compaction replays the source's compacted context and nothing after the
+anchor, the source file is
+byte-identical after each and resumes with both turns, an anchor the source
+does not hold fails the open, a `session_before_fork` hook that cancels never
+produces a Session, and `name` renames the copy without touching the source.
 
 Evidence: [`session-fork.vendor.test.ts`](../../sea-trial/vendor/session-fork.vendor.test.ts)
 runs claude (2.1.323) and codex (0.169.0, and 0.169.1 with the cases

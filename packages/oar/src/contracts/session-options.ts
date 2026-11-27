@@ -177,9 +177,9 @@ export interface SessionOptions {
    * `appendSystemPrompt` follow `Runtime.resumedSessionOptions`. Exceptions:
    * `name` names the copy as a new session; a codex fork runs the configured
    * default model and effort unless `model` and `effort` are given (it does
-   * not keep the source's), and its instruction timing is untested. Claude
-   * and Codex support anchored copies. OpenCode v2 accepts whole-session
-   * copies when its ACP server advertises fork. See
+   * not keep the source's), and its instruction timing is untested. Claude,
+   * Codex and pi (RPC mode) support anchored copies; OpenCode v2 accepts
+   * whole-session copies when its ACP server advertises fork. See
    * docs/spec/runtime-matrix.md#forking-a-session.
    */
   readonly fork?: SessionFork;
