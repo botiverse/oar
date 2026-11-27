@@ -16,6 +16,8 @@ belongs to its owner; the LobeHub MIT license below does not cover this asset.
 
 Dim: https://dimagent.com/dimagent-favicon.svg (retrieved 2026-11-26), unmodified official site asset for identification: the DimAgent mark on its brand-green tile, linked from the arcships/dim repository's homepage. It carries its own background and is used on both backgrounds. DimAgent branding belongs to its owner; the LobeHub MIT license below does not cover this asset.
 
+Bub: `website/src/assets/bub-logo.png` from the bubbuild/bub repository (Apache License 2.0), retrieved 2026-11-27. The project publishes its mascot only as PNG, and this asset must be a self-contained SVG, so `bub.svg` is that artwork traced to paths with potrace, unchanged in shape, on a white tile so the black line art shows on both backgrounds. Bub branding belongs to its owner; the LobeHub MIT license below does not cover this asset.
+
 Factory Droid: https://factory.com/favicon.svg (retrieved 2026-11-15), unmodified official site asset for identification. Factory branding belongs to its owner; the LobeHub MIT license below does not cover this asset. It carries its own dark background and is used on both backgrounds.
 
 Pi: https://pi.dev/logo-on-dark.svg (retrieved 2026-09-16), unmodified official site asset for identification on dark backgrounds. Pi branding belongs to its respective owner; the LobeHub MIT license below does not cover this asset.
