@@ -69,6 +69,17 @@ test("outcomes: installed, already installed, failed with output tail, and the l
   assert.deepEqual(renderInstallReport(failed), ["fake\tinstall failed (exit 7); its output:", "  a", "  b"]);
   assert.equal(installFailed(failed), true);
 
+  const emptyReason = await readInstall(runtime("fake", installer({ kind: "failed", reason: "", exitCode: 7, output: "a\n" })), { install: true });
+  assert.deepEqual(renderInstallReport(emptyReason), ["fake\tinstall failed (exit 7); its output:", "  a"]);
+
+  const nonScript = await readInstall(runtime("fake", installer({ kind: "failed", reason: "non_script_response", exitCode: null, output: "not a script\n" })), { install: true });
+  assert.deepEqual(renderInstallReport(nonScript), ["fake\tinstall failed (non_script_response, exit none); its output:", "  not a script"]);
+  assert.equal(installFailed(nonScript), true);
+
+  const unusable = await readInstall(runtime("fake", installer({ kind: "failed", reason: "unusable_after_install", exitCode: 0, probeCode: "version_unsupported", output: "too old\n" })), { install: true });
+  assert.deepEqual(renderInstallReport(unusable), ["fake\tinstall failed (unusable_after_install:version_unsupported, exit 0); its output:", "  too old"]);
+  assert.equal(installFailed(unusable), true);
+
   const lineRequired = await readInstall(runtime("lines", installer({ kind: "unsupported", reason: "line_required", detail: "choose a release line: v1, v2" })), { install: true });
   assert.deepEqual(renderInstallReport(lineRequired, ["v1", "v2"]), ["lines\tcannot install (line_required): choose a release line: v1, v2", "  choose one with --line: v1, v2"]);
   assert.equal(installFailed(lineRequired), true);

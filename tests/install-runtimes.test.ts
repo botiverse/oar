@@ -5,14 +5,18 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, test, vi } from "vitest";
 import { createCursorRuntime, defaultRuntimes } from "../packages/oar/src/index.js";
-import { antigravityInstallMethod } from "../packages/oar/src/runtimes/antigravity/install.js";
+import { antigravityInstallMethod, antigravityInstallPlan } from "../packages/oar/src/runtimes/antigravity/install.js";
 import { claudeInstallMethod } from "../packages/oar/src/runtimes/claude/install.js";
 import { codexInstallMethod } from "../packages/oar/src/runtimes/codex/install.js";
 import { createDevinInstallPlan, devinInstallMethod, devinInstallPlan } from "../packages/oar/src/runtimes/devin/install.js";
+import { factoryInstallMethod } from "../packages/oar/src/runtimes/factory/install.js";
 import { grokInstallMethod } from "../packages/oar/src/runtimes/grok/install.js";
 import { kimiInstallMethod } from "../packages/oar/src/runtimes/kimi/install.js";
 import { opencodeInstallMethods, opencodeInstallPlan, opencodeLineOf } from "../packages/oar/src/runtimes/opencode/install.js";
-import { scriptInstallPlanOn, type InstallHost, type ScriptInstallMethod } from "../packages/oar/src/shared/install.js";
+import { qoderInstallMethod } from "../packages/oar/src/runtimes/qoder/install.js";
+import { qwenInstallMethod } from "../packages/oar/src/runtimes/qwen/install.js";
+import { parseScriptInstallLine } from "../packages/oar/src/shared/install-script.js";
+import { hasScriptStepSpec, scriptInstallPlanOn, type InstallHost, type ScriptInstallMethod } from "../packages/oar/src/shared/install.js";
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -31,15 +35,21 @@ test("each built-in script install runs its vendor's documented line, cited by i
     claude: [claudeInstallMethod, "curl -fsSL https://claude.ai/install.sh | bash", "https://code.claude.com/docs/en/setup"],
     codex: [codexInstallMethod, "curl -fsSL https://chatgpt.com/codex/install.sh | CODEX_NON_INTERACTIVE=1 sh", "https://github.com/openai/codex#installing-and-running-codex-cli"],
     devin: [devinInstallMethod, "curl -fsSL https://cli.devin.ai/install.sh | bash", "https://docs.devin.ai/cli"],
+    factory: [factoryInstallMethod, "curl -fsSL https://app.factory.ai/cli | sh", "https://docs.factory.ai/cli/getting-started/quickstart"],
     grok: [grokInstallMethod, "curl -fsSL https://x.ai/cli/install.sh | bash", "https://docs.x.ai/build/overview"],
     kimi: [kimiInstallMethod, "curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash", "https://github.com/MoonshotAI/kimi-code#install"],
     "opencode v1": [opencodeInstallMethods.v1, "curl -fsSL https://opencode.ai/install | bash", "https://opencode.ai/docs/#install"],
     "opencode v2": [opencodeInstallMethods.v2, "curl -fsSL https://opencode.ai/v2/install | bash", "https://opencode.ai/v2/docs/"],
+    qoder: [qoderInstallMethod, "curl -fsSL https://qoder.com/install | bash -s -- --skip-path", "https://docs.qoder.com/cli/troubleshoot-install"],
+    qwen: [qwenInstallMethod, "curl -fsSL https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen-standalone.sh | bash -s -- --method standalone --no-modify-path", "https://qwenlm.github.io/qwen-code-docs/en/users/quickstart/"],
   };
   for (const [id, [scripted, line, source]] of Object.entries(methods)) {
     assert.ok(scripted !== undefined, id);
+    const parsed = parseScriptInstallLine(scripted.line);
+    assert.ok(parsed.url.startsWith("https://"), id);
     const plan = scriptInstallPlanOn(scripted, linux);
     assert.deepEqual(plan.kind === "plan" ? [plan.steps.map((step) => step.display), plan.source] : plan, [[line], source], id);
+    assert.equal(plan.kind === "plan" ? plan.steps.every((step) => hasScriptStepSpec(step)) : false, true, id);
   }
 });
 
@@ -195,5 +205,21 @@ test("devinInstallPlan preserves earlier unsupported base plans instead of overr
     vi.stubEnv("OAR_DEVIN_BIN", "");
     const missingToolPlan = await createDevinInstallPlan({ ...linux, locate: () => null })();
     assert.equal(missingToolPlan.kind === "unsupported" ? missingToolPlan.reason : missingToolPlan.kind, "missing_tool");
+  });
+});
+
+test.skipIf(process.platform === "win32")("wrapping script install planners preserve script execution specs without cloning steps", async () => {
+  await withStubbedHome("oar-wrapping-plan-", async () => {
+    vi.stubEnv("OAR_ANTIGRAVITY_BIN", "");
+    vi.stubEnv("OAR_DEVIN_BIN", "");
+    const plans = await Promise.all([
+      antigravityInstallPlan(),
+      createDevinInstallPlan(linux)(),
+      opencodeInstallPlan({ line: "v2" }),
+    ]);
+    for (const plan of plans) {
+      assert.equal(plan.kind, "plan");
+      assert.equal(plan.steps.every((step) => hasScriptStepSpec(step)), true);
+    }
   });
 });
