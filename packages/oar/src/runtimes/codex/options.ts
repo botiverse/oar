@@ -2,11 +2,31 @@ import { UnsupportedOptionError } from "../../contracts/errors.js";
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type { SessionOptions } from "../../contracts/session.js";
 import type { JsonRecord } from "../../shared/json.js";
+import { semverAtLeast } from "../../shared/semver.js";
 
-/** Codex `thread/name/set` rejects metadata updates on ephemeral threads (`-32600`, [env] 0.172.0). */
+/**
+ * First verified Codex floor supporting `ephemeral: true` on both `thread/start`
+ * and `thread/fork` with `thread.ephemeral` readback (present in the 0.169.0
+ * schema and verified live on 0.172.0). Older releases ignore unknown JSON fields
+ * and persist a rollout thread on disk before readback can reject it.
+ */
+export const CODEX_EPHEMERAL_SINCE = "0.169.0";
+
+/** Version-gated refusal for `SessionOptions.ephemeral` below the verified floor or on an unknown version. */
+export function codexEphemeralVersionRefusal(version?: string): RefusedSessionOptions {
+  return semverAtLeast(version, CODEX_EPHEMERAL_SINCE)
+    ? {}
+    : { ephemeral: `Codex ephemeral sessions need a verified installation of ${CODEX_EPHEMERAL_SINCE} or later` };
+}
+
+/** Codex rejects `thread/name/set` (`-32600`, [env] 0.172.0) and `thread/goal/*` on ephemeral threads. */
 export function checkCodexEphemeral(options: SessionOptions): void {
-  if (options.ephemeral === true && options.name !== undefined) {
+  if (options.ephemeral !== true) { return; }
+  if (options.name !== undefined) {
     throw new UnsupportedOptionError("ephemeral", "codex ephemeral threads do not support name (thread/name/set rejects metadata updates on ephemeral threads)");
+  }
+  if (options.goals === true) {
+    throw new UnsupportedOptionError("ephemeral", "codex ephemeral threads do not support goals (thread/goal/* rejects ephemeral threads)");
   }
 }
 

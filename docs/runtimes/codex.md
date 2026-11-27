@@ -225,14 +225,27 @@ the cost of the shared login and configuration, while one-shot threads can use
 `SessionOptions.ephemeral: true` instead.
 
 **Ephemeral sessions (mapped, opt-in).** `SessionOptions.ephemeral: true`
-passes `ephemeral: true` on `thread/start` and `thread/fork`, and confirms
+requires Codex `>= 0.169.0` (`CODEX_EPHEMERAL_SINCE`: both `thread/start` and
+`thread/fork` carry `ephemeral` in the 0.169.0 schema, live-verified on
+0.172.0; older or unknown versions declare `refusedSessionOptions.ephemeral`
+in `sessionCapabilities` and are refused unsent before `thread/start` /
+`thread/fork` so an older binary cannot silently ignore the unknown field and
+persist a rollout file on disk). On supported releases it passes
+`ephemeral: true` on `thread/start` and `thread/fork` and confirms
 `thread.ephemeral === true` on the open reply before returning the session
 ([env] codex-cli 0.172.0: `thread/start {ephemeral: true}` returns
-`{ephemeral: true, path: null}` without materializing a rollout file on disk,
-so `Session.nativeSessionFile` is absent). Combining `ephemeral: true` with
-`resume` without `fork` is refused before open (`UnsupportedOptionError`), and
-combining `ephemeral: true` with `name` is refused before open because codex's
-`thread/name/set` rejects metadata updates on ephemeral threads (`-32600`).
+`{ephemeral: true, path: null}` without materializing a rollout file under
+`CODEX_HOME`, so `Session.nativeSessionFile` is absent and `resume` fails with
+`SessionNotFoundError` after dispose). Combining `ephemeral: true` with
+`resume` without `fork`, with `name` (`thread/name/set` rejects metadata
+updates on ephemeral threads with `-32600`), or with `goals: true`
+(`thread/goal/*` rejects ephemeral threads) is refused before open
+(`UnsupportedOptionError`). Because `thread/queue/add` also rejects ephemeral
+threads (`-32600`), ephemeral Codex sessions hold queued inputs in the adapter
+with `capabilities.queue.durable: false`, expose `Session.withdraw`, and drain
+held entries through `turn/start` on turn completion or compaction release
+([unit](../../tests/codex/codex-ephemeral.test.ts),
+[vendor](../../sea-trial/vendor/codex-ephemeral.vendor.test.ts)).
 
 **Token totals after a resume (mapped,
 [#169](https://github.com/botiverse/oar/issues/169)).** codex's
@@ -309,7 +322,8 @@ fork opens (untested). The fork's `tokenUsage.total` includes the source's
 turns and is never re-reported (a fork of 1,000 + 1,100 input tokens
 reported 3,400 after its own 1,300), so its baseline stays unknown and its
 `tokens` are unreported for the whole Session, not only before its first
-turn (two fork turns, 0.169.1). `beforeTurnId`, `ephemeral`, `attachToSource` and
+turn (two fork turns, 0.169.1). `ephemeral: true` is forwarded when requested
+(`>= 0.169.0`); `beforeTurnId`, `attachToSource` and
 `path` are not sent
 ([forking a session](../spec/runtime-matrix.md#forking-a-session),
 [unit](../../tests/codex/codex-session-fork.test.ts),
@@ -1638,14 +1652,14 @@ material" row describes the former only.
 | Transport cursor | **Live stream cursor** (a position a reconnecting client hands back to get missed frames): none. No notification carries a sequence field, `turnId` is a span label and a `thread/items/list` filter, and `thread/resume` on a running thread delivers history plus a fresh full copy of every later frame, not a continuation (upstream comment "sends the thread's history to the client and atomically subscribes for new updates"; observed by @Faye: after B resumes, A and B receive frame for frame identical method sequences). **History pagination cursor:** `thread/resume` returns `itemsBackwardsCursor` and `turnsBackwardsCursor`, documented as opaque but observed as plaintext JSON `{ requestedThreadId, rolloutOrdinal, includeAnchor, scope }`; `rolloutOrdinal` is the `ordinal` every rollout line carries, monotonic from 0; a hand built cursor is accepted by `thread/items/list` and pages in both `sortDirection` values. It cannot reach a delta, because deltas are not persisted (question 2). OAR's process local `seq` is the only live cursor on this path. | source [kernel][oar-kernel]; source upstream [thread schema][upstream-thread-rs]; observed by @Faye |
 | Event stream scope | One event record per notification on this stdio connection, child threads included, which arrive on the parent's connection (observed 0.149.0 and 0.154.0). As the sole subscriber OAR receives both [tiers](#broadcast-tier-and-subscription-tier) merged. | source [projection][oar-projection]; observed [child thread probe](../../experiments/codex-child-threads.ts); source upstream [outgoing messages][upstream-outgoing]; observed by @Faye |
 | Runtime side resume material | `rollout-<timestamp>-<threadId>.jsonl` under `CODEX_HOME/sessions`, indexed by a sqlite state database in the same home: what `should_persist_response_item` and `should_persist_event_msg` admit (messages, reasoning, tool calls with outputs, compaction markers, turn started, completed, aborted, token counts), nothing OAR appended ([question 2](#six-questions)). `thread/resume` with `excludeTurns: true` feeds it to the model and replays nothing to OAR. Diagnostic reference only: OAR never replays observers from it. | source upstream [persistence policy][upstream-policy]; source adapter; observed [resume](#connection-session-creation-and-resume) |
-| Vendor claim versus evidence | Observed on 0.154.0: resume continuity with `excludeTurns`, steer, queue, interrupt, dispose mid turn, child notifications on the parent connection, `exited` after kill; on 0.158.0, one run: a queued submission surviving process tree death. Probed outside OAR: websocket and unix socket transports. Vendor only: `codex app-server proxy`, the app-server daemon, Codex Cloud `history` resume, `ephemeral` threads, ingress overload error `-32001`. Unverified either way: arbitration between competing controllers, resumed reasoning content, compaction frames on a real login (scripted-provider runs cover them on 0.166.0, [manual compaction](#manual-compaction)). | this page, [open gaps](#verification-and-open-gaps), [crash and resume](crash-resume.md); vendor [app-server README][upstream-readme] |
+| Vendor claim versus evidence | Observed on 0.154.0: resume continuity with `excludeTurns`, steer, queue, interrupt, dispose mid turn, child notifications on the parent connection, `exited` after kill; on 0.158.0, one run: a queued submission surviving process tree death; on 0.172.0: `ephemeral: true` on `thread/start` and `thread/fork` with adapter-held queue/withdraw. Probed outside OAR: websocket and unix socket transports. Vendor only: `codex app-server proxy`, the app-server daemon, Codex Cloud `history` resume, ingress overload error `-32001`. Unverified either way: arbitration between competing controllers, resumed reasoning content, compaction frames on a real login (scripted-provider runs cover them on 0.166.0, [manual compaction](#manual-compaction)). | this page, [open gaps](#verification-and-open-gaps), [crash and resume](crash-resume.md); vendor [app-server README][upstream-readme] |
 
 ### Eight dimensions
 
 1. **Entry.** See [connection](#connection-session-creation-and-resume).
    Present upstream but not on OAR's path: `--listen ws://`,
    `--listen unix://`, `codex app-server daemon`, `codex app-server proxy`,
-   `ephemeral`, `thread/resume { path }` and `{ history }`
+   `thread/resume { path }` and `{ history }`
    (vendor README).
 2. **Session and state storage.** Thread identity, rollout, and the sqlite
    index are codex's, under `CODEX_HOME`. OAR owns no storage: its record

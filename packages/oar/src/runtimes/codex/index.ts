@@ -12,21 +12,24 @@ import { codexInstallation } from "./installation.js";
 import { codexInstall, codexInstallPlan } from "./install.js";
 import { codexListModels } from "./list-models.js";
 import { codexCheckUpdate, codexUpgrade } from "./update.js";
-import { codexRefusedSessionOptions } from "./options.js";
+import { codexEphemeralVersionRefusal, codexRefusedSessionOptions } from "./options.js";
 import { codexUserQuestionRefusal } from "./user-questions.js";
 import { codexSession } from "./session.js";
 
 export const codexRuntime = defineRuntime({
   id: "codex",
-  sessionCapabilities: (installation) => ({
-    ...(installation.via === "executable" && semverAtLeast(installation.version, "0.158.0") ? { taskEventTypes: ["agent"] } : {}),
-    ...(installation.via === "executable" && semverAtLeast(installation.version, "0.169.0") ? { subagentResults: { background: "child_text" } } : {}),
-    refusedSessionOptions: codexUserQuestionRefusal(installation.via === "executable" ? installation.version : undefined),
-    steer: true, images: true, mcpTransports: ["stdio", "http"], stopTask: true,
-    ...(installation.via === "executable" && semverAtLeast(installation.version, "0.160.1") ? { fileChanges: true } : {}),
-    ...(installation.via === "executable" && semverAtLeast(installation.version, "0.169.0") ? { nativeSessionFile: true, mcpStartup: { kind: "per_server", firstModelRequest: "may_start_pending" } } : {}),
-    ...(installation.via === "executable" && semverAtLeast(installation.version, "0.151.0") ? { contextUsage: { tokens: true, contextWindow: true } } : {}),
-  }),
+  sessionCapabilities: (installation) => {
+    const version = installation.via === "executable" ? installation.version : undefined;
+    return {
+      ...(installation.via === "executable" && semverAtLeast(installation.version, "0.158.0") ? { taskEventTypes: ["agent"] } : {}),
+      ...(installation.via === "executable" && semverAtLeast(installation.version, "0.169.0") ? { subagentResults: { background: "child_text" } } : {}),
+      refusedSessionOptions: { ...codexUserQuestionRefusal(version), ...codexEphemeralVersionRefusal(version) },
+      steer: true, images: true, mcpTransports: ["stdio", "http"], stopTask: true,
+      ...(installation.via === "executable" && semverAtLeast(installation.version, "0.160.1") ? { fileChanges: true } : {}),
+      ...(installation.via === "executable" && semverAtLeast(installation.version, "0.169.0") ? { nativeSessionFile: true, mcpStartup: { kind: "per_server", firstModelRequest: "may_start_pending" } } : {}),
+      ...(installation.via === "executable" && semverAtLeast(installation.version, "0.151.0") ? { contextUsage: { tokens: true, contextWindow: true } } : {}),
+    };
+  },
   manualCompaction: { kind: "supported", activeTurn: "reject" },
   refusedSessionOptions: codexRefusedSessionOptions,
   resumedSessionOptions: {
