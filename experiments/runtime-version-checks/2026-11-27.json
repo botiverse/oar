@@ -1,0 +1,559 @@
+{
+  "window": {
+    "windowStart": "2026-11-26T21:08:00Z",
+    "windowEnd": "2026-11-27T21:07:59Z"
+  },
+  "workflowStats": {
+    "ci.yml": {
+      "runs": 36,
+      "attempts": 37,
+      "uniqueJobs": 563,
+      "outcomes": {
+        "success": 538,
+        "skipped": 16,
+        "failure": 2,
+        "cancelled": 7
+      },
+      "zeroJobAttempts": [
+        {
+          "run": 46054145278,
+          "attempt": 1,
+          "conclusion": "action_required"
+        },
+        {
+          "run": 46047701208,
+          "attempt": 1,
+          "conclusion": "action_required"
+        },
+        {
+          "run": 46043201706,
+          "attempt": 1,
+          "conclusion": "action_required"
+        },
+        {
+          "run": 46038145462,
+          "attempt": 1,
+          "conclusion": "action_required"
+        },
+        {
+          "run": 46011318777,
+          "attempt": 1,
+          "conclusion": "action_required"
+        },
+        {
+          "run": 46010480043,
+          "attempt": 1,
+          "conclusion": "action_required"
+        },
+        {
+          "run": 46010459729,
+          "attempt": 1,
+          "conclusion": "action_required"
+        },
+        {
+          "run": 45996774525,
+          "attempt": 1,
+          "conclusion": "action_required"
+        },
+        {
+          "run": 45996003332,
+          "attempt": 1,
+          "conclusion": "action_required"
+        },
+        {
+          "run": 45995511083,
+          "attempt": 1,
+          "conclusion": "action_required"
+        },
+        {
+          "run": 45988587014,
+          "attempt": 1,
+          "conclusion": "action_required"
+        },
+        {
+          "run": 45987236108,
+          "attempt": 1,
+          "conclusion": "action_required"
+        },
+        {
+          "run": 45985405469,
+          "attempt": 1,
+          "conclusion": "action_required"
+        }
+      ]
+    },
+    "acp-windows.yml": {
+      "runs": 11,
+      "attempts": 11,
+      "uniqueJobs": 33,
+      "outcomes": {
+        "success": 21,
+        "skipped": 11,
+        "failure": 1
+      },
+      "zeroJobAttempts": []
+    },
+    "runtime-latest.yml": {
+      "runs": 1,
+      "attempts": 1,
+      "uniqueJobs": 49,
+      "outcomes": {
+        "success": 49
+      },
+      "zeroJobAttempts": []
+    },
+    "platform-matrix.yml": {
+      "runs": 1,
+      "attempts": 1,
+      "uniqueJobs": 7,
+      "outcomes": {
+        "success": 7
+      },
+      "zeroJobAttempts": []
+    }
+  },
+  "windowsPiRpc": {
+    "success": 12,
+    "skipped": 11,
+    "cancelled": 1
+  },
+  "originalFailures": [
+    {
+      "workflow": "ci.yml",
+      "run": 45898184231,
+      "attempt": 1,
+      "name": "behavior (windows-latest, dsh-aimock)",
+      "job": "https://github.com/botiverse/oar/actions/runs/45898184231/job/140177254036",
+      "failedSteps": [
+        "Run pnpm vitest run sea-trial/vendor"
+      ],
+      "observation": "The DSH abort test observed running before the native compaction abort reply arrived.",
+      "originalArtifact": "https://github.com/botiverse/oar/actions/runs/45898184231/artifacts/15154777770",
+      "artifactDigest": "sha256:0a46a48d1321597f54f2e21f62fc3f543a010e9c215470a9b54966a2ccf0604d",
+      "sameHeadRetry": "https://github.com/botiverse/oar/actions/runs/45898184231/job/140180520921"
+    },
+    {
+      "workflow": "acp-windows.yml",
+      "run": 45965072412,
+      "attempt": 1,
+      "name": "acp-windows (windows-latest, grok-aimock)",
+      "job": "https://github.com/botiverse/oar/actions/runs/45965072412/job/140391701554",
+      "failedSteps": [
+        "Measure Grok ACP launch paths"
+      ],
+      "observation": "Grok 1.0.70 passed 18 behavior tests. The node-launcher measurement timed out after 15017 ms, with zero stdout bytes and a leaked process. Bootstrap tracing last recorded write_started.",
+      "originalArtifact": "https://github.com/botiverse/oar/actions/runs/45965072412/artifacts/15182319570",
+      "artifactDigest": "sha256:9757ce85ac4feb084c1f29bcc6efe16a0e6a3f08412cb7bcc193261dfa909804",
+      "laterMainPass": "https://github.com/botiverse/oar/actions/runs/45986331287/job/140462792983"
+    },
+    {
+      "workflow": "ci.yml",
+      "run": 46023613944,
+      "attempt": 1,
+      "name": "behavior (windows-latest, codex-aimock)",
+      "job": "https://github.com/botiverse/oar/actions/runs/46023613944/job/140589327180",
+      "failedSteps": [
+        "Run pnpm vitest run sea-trial/vendor"
+      ],
+      "observation": "The Codex MCP startup and streamed message projection tests each reached the 60000 ms deadline.",
+      "originalArtifact": "https://github.com/botiverse/oar/actions/runs/46023613944/artifacts/15211447066",
+      "artifactDigest": "sha256:d979aece09897c97e0f1da2cfcb9424f036b92237fe606b55565acbdad5d4cb0",
+      "laterMainPass": "https://github.com/botiverse/oar/actions/runs/46028045433/job/140604480613"
+    }
+  ],
+  "frozen": {
+    "generatedAt": "2026-11-27T06:33:08.432Z",
+    "artifact": "https://github.com/botiverse/oar/actions/runs/45952571971/artifacts/15177002515",
+    "outcomes": {
+      "success": 49
+    },
+    "native": {
+      "claude-aimock": {
+        "acceptedAtFreeze": "2.1.326",
+        "candidate": "2.1.332",
+        "acceptedAtCutoff": "2.1.326"
+      },
+      "codex-aimock": {
+        "acceptedAtFreeze": "0.169.0",
+        "candidate": "0.172.0",
+        "acceptedAtCutoff": "0.169.0"
+      },
+      "qwen-aimock": {
+        "acceptedAtFreeze": "0.27.4",
+        "candidate": "0.28.7",
+        "acceptedAtCutoff": "0.28.7"
+      },
+      "factory-aimock": {
+        "acceptedAtFreeze": "1.12.1",
+        "candidate": "1.21.1",
+        "acceptedAtCutoff": "1.12.1"
+      },
+      "kimi-aimock": {
+        "acceptedAtFreeze": "2.6.3",
+        "candidate": "2.8.1",
+        "acceptedAtCutoff": "2.6.3"
+      },
+      "grok-aimock": {
+        "acceptedAtFreeze": "1.0.70",
+        "candidate": "1.0.92",
+        "acceptedAtCutoff": "1.0.70"
+      },
+      "codebuddy-aimock": {
+        "acceptedAtFreeze": "2.179.3",
+        "candidate": "2.187.0",
+        "acceptedAtCutoff": "2.179.3"
+      },
+      "opencode-aimock": {
+        "acceptedAtFreeze": "1.19.5",
+        "candidate": "1.19.6",
+        "acceptedAtCutoff": "1.19.5"
+      },
+      "opencode-cleanup": {
+        "acceptedAtFreeze": "2.2.7",
+        "candidate": "2.4.2",
+        "acceptedAtCutoff": "2.2.7"
+      },
+      "kimi-login": {
+        "acceptedAtFreeze": "2.6.3",
+        "candidate": "2.8.1",
+        "acceptedAtCutoff": "2.6.3"
+      },
+      "kimi-skills": {
+        "acceptedAtFreeze": "2.6.2",
+        "candidate": "2.8.1",
+        "acceptedAtCutoff": "2.6.2"
+      },
+      "antigravity-aimock": {
+        "acceptedAtFreeze": "1.5.18",
+        "candidate": "1.5.18",
+        "acceptedAtCutoff": "1.5.18"
+      }
+    },
+    "sdks": {
+      "cursor": {
+        "@cursor/sdk": "1.5.2"
+      },
+      "pi": {
+        "@earendil-works/pi-coding-agent": "1.6.1",
+        "undici": "8.12.4",
+        "@earendil-works/pi-ai": "1.6.1",
+        "@earendil-works/pi-durable": "1.6.1",
+        "@earendil-works/chord": "1.6.1"
+      }
+    },
+    "piAndQwenJobs": [
+      {
+        "name": "sdk (pi, windows-latest, pi-aimock, all)",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/45952571971/job/140351635727",
+        "conclusion": "success"
+      },
+      {
+        "name": "sdk (pi, macos-latest, pi-aimock, all)",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/45952571971/job/140351635735",
+        "conclusion": "success"
+      },
+      {
+        "name": "sdk (pi, ubuntu-latest, pi-rpc-aimock, all)",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/45952571971/job/140351635743",
+        "conclusion": "success"
+      },
+      {
+        "name": "sdk (pi, ubuntu-latest, pi-durable-aimock, all)",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/45952571971/job/140351635772",
+        "conclusion": "success"
+      },
+      {
+        "name": "sdk (pi, ubuntu-latest, pi-aimock, all)",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/45952571971/job/140351635777",
+        "conclusion": "success"
+      },
+      {
+        "name": "sdk (pi, macos-latest, pi-rpc-aimock, all)",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/45952571971/job/140351635781",
+        "conclusion": "success"
+      },
+      {
+        "name": "sdk (pi, windows-latest, pi-durable-aimock, all)",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/45952571971/job/140351635784",
+        "conclusion": "success"
+      },
+      {
+        "name": "sdk (pi, windows-latest, pi-rpc-aimock, vendor)",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/45952571971/job/140351635806",
+        "conclusion": "success"
+      },
+      {
+        "name": "sdk (pi, windows-latest, pi-rpc-aimock, behavior)",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/45952571971/job/140351635831",
+        "conclusion": "success"
+      },
+      {
+        "name": "sdk (pi, macos-latest, pi-durable-aimock, all)",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/45952571971/job/140351635873",
+        "conclusion": "success"
+      },
+      {
+        "name": "native (qwen-aimock, ubuntu-latest, behavior)",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/45952571971/job/140351636072",
+        "conclusion": "success"
+      },
+      {
+        "name": "native (qwen-aimock, macos-latest, behavior)",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/45952571971/job/140351636101",
+        "conclusion": "success"
+      },
+      {
+        "name": "native (qwen-aimock, windows-latest, behavior)",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/45952571971/job/140351636105",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "antigravity": {
+    "accepted": "1.5.18",
+    "release": {
+      "tag_name": "1.5.18",
+      "published_at": "2026-11-26T05:52:00Z",
+      "html_url": "https://github.com/google-antigravity/antigravity-cli/releases/tag/1.5.18"
+    },
+    "manifests": {
+      "Linux-X64": {
+        "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json",
+        "version": "1.5.18",
+        "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.18-6386224290725888/linux-x64/cli_linux_x64.tar.gz",
+        "sha512": "ef379ec869719112f696e8c7cfddf776618712e58fc38e53df80801d6528abb4677782c7c8778f9c09c9123fa44c2c32675d228c06f2a8f7a8f4214e75f5bb26"
+      },
+      "macOS-ARM64": {
+        "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/darwin_arm64.json",
+        "version": "1.5.18",
+        "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.18-6386224290725888/darwin-arm/cli_mac_arm64.tar.gz",
+        "sha512": "d10e124f5eb4da94ebb6c494cd2e7b38744f9f66e8e87145d2cbad1cbd3c4160fd88a79cd4220dfce7c9da0ddead652346bcc839914575f6447438ae8d1d5dcc"
+      },
+      "macOS-X64": {
+        "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/darwin_amd64.json",
+        "version": "1.5.18",
+        "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.18-6386224290725888/darwin-x64/cli_mac_x64.tar.gz",
+        "sha512": "c6ab39b41511ee0951223b6c178e0571e83105800701041d9abc520161ef0381724425ec6e9273fbc609411941c8986ed9aafd711b1a3f86857c705efe3ac2a0"
+      },
+      "Windows-X64": {
+        "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/windows_amd64.json",
+        "version": "1.5.18",
+        "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.18-6386224290725888/windows-x64/cli_windows_x64.exe",
+        "sha512": "53605db7013dfed51e8c416d51e0c17a3b5ad0750c13da5669954ba4a281318746be0cf8cde2b256cfdb4bfbdade4badad1a0503931f8458416184549afa06b6"
+      }
+    },
+    "lastChangedCandidateRun": "https://github.com/botiverse/oar/actions/runs/45768939956",
+    "linuxSkillComparison": {
+      "nativeVersion": "1.5.18",
+      "fixture": "flags-plugins",
+      "matchingRounds": 3,
+      "matchingDescriptions": {
+        "padded-fence": "padded delimiters",
+        "empty-padded": null
+      },
+      "modelRequests": 0
+    }
+  },
+  "inventoryCheckedAt": "2026-11-27T21:10:04.497Z",
+  "inventory": [
+    {
+      "runtime": "antigravity",
+      "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json",
+      "latest": "1.5.18",
+      "previousObservation": "1.5.18",
+      "publishedInWindow": []
+    },
+    {
+      "runtime": "claude",
+      "source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest",
+      "latest": "2.1.332",
+      "previousObservation": "2.1.332",
+      "publishedInWindow": []
+    },
+    {
+      "runtime": "codex",
+      "source": "https://registry.npmjs.org/@openai/codex/latest",
+      "latest": "0.172.0",
+      "previousObservation": "0.172.0",
+      "publishedInWindow": []
+    },
+    {
+      "runtime": "cursor",
+      "source": "https://registry.npmjs.org/@cursor/sdk/latest",
+      "latest": "1.5.2",
+      "previousObservation": "1.5.2",
+      "publishedInWindow": []
+    },
+    {
+      "runtime": "dsh",
+      "source": "https://registry.npmjs.org/@deepseek-ai/dsh/latest",
+      "latest": "0.2.2-rc.5",
+      "previousObservation": "0.2.2-rc.5",
+      "publishedInWindow": []
+    },
+    {
+      "runtime": "factory",
+      "source": "https://registry.npmjs.org/droid/latest",
+      "latest": "1.21.1",
+      "previousObservation": "1.21.1",
+      "publishedInWindow": []
+    },
+    {
+      "runtime": "grok",
+      "source": "https://x.ai/cli/stable",
+      "latest": "1.0.92",
+      "previousObservation": "1.0.92",
+      "publishedInWindow": []
+    },
+    {
+      "runtime": "kimi",
+      "source": "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest",
+      "latest": "2.8.1",
+      "previousObservation": "2.8.1",
+      "publishedInWindow": []
+    },
+    {
+      "runtime": "opencode",
+      "line": "v1",
+      "source": "https://registry.npmjs.org/opencode-ai/latest",
+      "latest": "1.19.6",
+      "previousObservation": "1.19.6",
+      "publishedInWindow": []
+    },
+    {
+      "runtime": "opencode",
+      "line": "v2",
+      "source": "https://registry.npmjs.org/@opencode/cli/latest",
+      "latest": "2.4.2",
+      "previousObservation": "2.4.2",
+      "publishedInWindow": []
+    },
+    {
+      "runtime": "codebuddy",
+      "source": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest",
+      "latest": "2.187.0",
+      "previousObservation": "2.187.0",
+      "publishedInWindow": []
+    },
+    {
+      "runtime": "qoder",
+      "source": "https://registry.npmjs.org/@qoder-ai/qodercli/latest",
+      "latest": "1.1.100",
+      "previousObservation": "1.1.99",
+      "publishedInWindow": [
+        [
+          "1.1.100",
+          "2026-11-27T14:29:38.943Z"
+        ]
+      ]
+    },
+    {
+      "runtime": "qwen",
+      "source": "https://registry.npmjs.org/@qwen-code/qwen-code/latest",
+      "latest": "0.28.7",
+      "previousObservation": "0.28.7",
+      "publishedInWindow": []
+    },
+    {
+      "runtime": "pi",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/latest",
+      "latest": "1.7.0",
+      "previousObservation": "1.6.1",
+      "publishedInWindow": [
+        [
+          "1.7.0",
+          "2026-11-27T16:58:41.018Z"
+        ]
+      ]
+    },
+    {
+      "runtime": "pi-durable",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-durable/latest",
+      "latest": "1.7.0",
+      "previousObservation": "1.6.1",
+      "publishedInWindow": [
+        [
+          "1.7.0",
+          "2026-11-27T16:59:43.623Z"
+        ]
+      ]
+    }
+  ],
+  "qoderLocal": {
+    "version": "1.1.100",
+    "status": "no_offline_replay_requires_real_account",
+    "submittedPrompts": 0
+  },
+  "piEveningLinux": {
+    "oarRevision": "065a03e3cd1be12c88eab243fdcd837b88cc0625",
+    "resolvedAt": "2026-11-27T21:10:53.153Z",
+    "typecheck": "passed",
+    "packages": {
+      "@earendil-works/pi-coding-agent": {
+        "version": "1.7.0",
+        "integrity": "sha512-opRelA1oqV/o+cByICMYU87oiHuICeCkghHMqsZsDwDz9F6qo8HFhoH4J/wZkr6tBeFor7ryOSwEmpZsusYrbA=="
+      },
+      "undici": {
+        "version": "8.12.4",
+        "integrity": "sha512-8Mx+uNKKER2bA4AdtedkqRbwUCIJFr2nJckXRe5yrDqzePqwLP7VNcctN8/XdmDSbF7mS+jJKIszlL+vbam1VA=="
+      },
+      "@earendil-works/pi-ai": {
+        "version": "1.7.0",
+        "integrity": "sha512-iKryMlUYniwWbU7YU0uS7W0+cGd9c6oJ6PzRLOn8j4+1njG4c+BQq1cNawctx/npDqGeOx8ME7Gkgl6K6arPuw=="
+      },
+      "@earendil-works/pi-durable": {
+        "version": "1.7.0",
+        "integrity": "sha512-qL9PlFfXrirBNt7QR2bjZfviN6ZVcsGTHEqaj6U4Lxqqx9Vtth7LyIuGNlG2chDKMr3/ABamH8qZ9ggMgTGDOQ=="
+      },
+      "@earendil-works/chord": {
+        "version": "1.7.0",
+        "integrity": "sha512-/zBlRrJkNbw0dJ4OrUzk08PC48mzOIFZQKTUE1qxQUWoPlf/xms95lEigzC30MllS+k5qqih7Clg0cTzYgPs1w=="
+      }
+    },
+    "undici": {
+      "sameResolvedPath": true,
+      "version": "8.12.4"
+    },
+    "suites": {
+      "pi-aimock": {
+        "label": "In-process Pi",
+        "behavior": {
+          "passed": 18,
+          "skipped": 2,
+          "failed": 0
+        },
+        "vendor": {
+          "passed": 134,
+          "skipped": 488,
+          "failed": 0
+        }
+      },
+      "pi-rpc-aimock": {
+        "label": "Pi RPC",
+        "behavior": {
+          "passed": 18,
+          "skipped": 2,
+          "failed": 0
+        },
+        "vendor": {
+          "passed": 120,
+          "skipped": 502,
+          "failed": 0
+        }
+      },
+      "pi-durable-aimock": {
+        "label": "Pi Durable",
+        "behavior": {
+          "passed": 19,
+          "skipped": 1,
+          "failed": 0
+        },
+        "vendor": {
+          "passed": 38,
+          "skipped": 584,
+          "failed": 0
+        }
+      }
+    }
+  }
+}
