@@ -64,20 +64,30 @@ test("a queued query names the profile lock and elapsed wait at its own deadline
   const { cwd, acquire } = await fixture();
   const release = await acquire();
   const installation = { kind: "available", via: "executable", command: "unused", version: "0.2.1-rc.5" } as const;
-  const options = { cwd, env: { DSH_HOME: "native" }, timeoutMs: 400 };
+  const options = { cwd, env: { DSH_HOME: "native" }, timeoutMs: 30_000 };
+  const directory = path.join(cwd, "native", "profiles", "acp");
+  const acquisitions = vi.spyOn(await import("../../packages/oar/src/runtimes/dsh/profile-startup.js"), "acquireDshProfile");
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   try {
-    const directory = path.join(cwd, "native", "profiles", "acp");
-    const [models, skills] = await Promise.all([
-      dshRuntime.listModels(installation, options).catch((error: unknown) => error),
+    const queries = Promise.allSettled([
+      dshRuntime.listModels(installation, options),
       dshRuntime.skills(installation, options),
     ]);
-    expect(models).toMatchObject({ name: "TimeoutError" });
-    expect(String(models)).toContain(directory);
-    expect(skills).toMatchObject({ kind: "unavailable", code: "timeout" });
-    const detail = skills.kind === "unavailable" ? skills.reason : "";
-    expect(detail).toContain(directory);
-    expect(detail).toMatch(/Waited \d+ ms for another DSH start/u);
-  } finally { release(); }
+    // Filesystem setup precedes contention. Expire the queries only once both have seen the held lock.
+    try {
+      await expect.poll(() => acquisitions.mock.calls.map(call => call[3]?.blocked?.directory),
+        { timeout: 10_000 }).toEqual([directory, directory]);
+    } finally { vi.advanceTimersByTime(options.timeoutMs); }
+    const [models, skills] = await queries;
+    expect(models).toMatchObject({ status: "rejected", reason: { name: "TimeoutError" } });
+    expect(skills).toMatchObject({ status: "fulfilled", value: { kind: "unavailable", code: "timeout" } });
+    const modelReason = models.status === "rejected" ? String(models.reason) : "";
+    const skillReason = skills.status === "fulfilled" && skills.value.kind === "unavailable" ? skills.value.reason : "";
+    for (const reason of [modelReason, skillReason]) {
+      expect(reason).toContain(directory);
+      expect(reason).toMatch(/Waited \d+ ms for another DSH start/u);
+    }
+  } finally { vi.useRealTimers(); acquisitions.mockRestore(); release(); }
 });
 
 test("a holder that never imports the bridge is stopped at its ready deadline and the next start opens", async () => {
