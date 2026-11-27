@@ -70,6 +70,7 @@ export type {
   ModelLister,
 } from "./list-models.js";
 export type {
+  InstallFailureReason,
   InstallLine,
   InstallOptions,
   InstallPlan,
@@ -79,6 +80,7 @@ export type {
   InstallUnsupported,
   InstallUnsupportedReason,
   Installer,
+  KnownInstallFailureReason,
 } from "./install.js";
 export type {
   UpdateCheck,

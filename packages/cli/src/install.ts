@@ -81,8 +81,13 @@ export function renderInstallReport(report: InstallReport, lines: readonly strin
       return [`${runtimeId}\tinstalled ${versionOf(result.installation)}${result.line === undefined ? "" : ` (${result.line})`}`];
     case "already_installed":
       return [`${runtimeId}\talready installed: ${versionOf(result.installation)}`];
-    case "failed":
-      return [`${runtimeId}\tinstall failed (exit ${String(result.exitCode ?? "none")}); its output:`, ...outputTail(result.output)];
+    case "failed": {
+      const exitPart = `exit ${String(result.exitCode ?? "none")}`;
+      const detail = result.reason === undefined || result.reason === ""
+        ? exitPart
+        : `${result.reason}${result.probeCode === undefined ? "" : `:${result.probeCode}`}, ${exitPart}`;
+      return [`${runtimeId}\tinstall failed (${detail}); its output:`, ...outputTail(result.output)];
+    }
     case "unsupported":
       return renderUnsupported(runtimeId, result, lines);
     case undefined:

@@ -116,11 +116,14 @@ installation found, when its version tells (`already_installed` with
 
 ## Plan
 
-`plan` carries the `steps` (`command`: the program and arguments `install`
-spawns; `display`: the step as the vendor documents it, plus the installer's
-own declared non-interactive switch where it has one), the `source` page,
-and two constants: `network: true` (every installer downloads) and
-`privileges: false` (an installer that needs more rights than the user has
+`plan` carries the `steps` (`command`: the direct program and arguments for
+non-script steps; for `curl`-piped vendor script installers, `install` runs
+`curl -fsSL` into a private temporary file, checks for a leading `#!` shebang,
+and feeds the file to the vendor shell on stdin rather than running a raw
+`curl | sh` pipeline; `display`: the step as the vendor documents it, plus the
+installer's own declared non-interactive switch where it has one), the
+`source` page, and two constants: `network: true` (every installer downloads)
+and `privileges: false` (an installer that needs more rights than the user has
 is `unsupported` instead).
 
 When oar knows the vendor's step but will not run it here
@@ -137,8 +140,19 @@ reason carries neither.
 | --- | --- |
 | installed | The probe after the installer finds an available installation (`installation`), whatever the installer exited with; `output` is the installer's stdout and stderr verbatim. |
 | already_installed | The probe found an available installation first; no installer ran. |
-| failed | The probe after the installer still finds nothing. `exitCode` is the installer's, 0 included (`curl \| bash` exits 0 when the download failed), or null when the timeout stopped it. |
+| failed | Downloading or checking a script failed before running it, or the probe after the installer did not produce an available installation. Carries optional `reason` (`InstallFailureReason`, an open enum), `exitCode`, `output`, and (when `reason === "unusable_after_install"`) `probeCode`. |
 | unsupported | No installer ran; `reason` below, `detail` in plain words. For `requires_privileges`, `missing_tool` and `location_unknown`, `steps` and `source` are the plan's, for the person to run themselves; `install` returns the same answer as `installPlan`. |
+
+`InstallFailureReason` is an open string union; hosts should treat unrecognized values as generic install failures (when the installer exited `0` and the post-install `probe()` itself throws, `reason` is omitted and `output` includes the probe error):
+
+| `reason` | Meaning | `exitCode` | Extra fields |
+| --- | --- | --- | --- |
+| `download_failed` | `curl -fsSL` failed before the shell ran; post-install probe skipped | `curl` exit code (or `null` on spawn failure / signal) | |
+| `non_script_response` | Downloaded payload did not begin with `#!` (empty, HTML, or text); shell and post-install probe skipped | `null` | `output` explains `#!` refusal (and HTML if detected) |
+| `timed_out` | Download or installer exceeded `timeoutMs` (pre-shell timeouts skip post-install probe; shell timeouts still probe first) | `null` | |
+| `installer_failed` | Shell or package installer exited non-zero (or failed to spawn / received signal) and post-install probe did not find an available installation | installer exit code (or `null` on spawn failure / signal) | |
+| `not_found_after_install` | Installer exited `0` and post-install probe reported `not_found` | `0` | |
+| `unusable_after_install` | Installer exited `0` and post-install probe found an `unsupported` installation | `0` | `probeCode` (`UnsupportedInstallation["code"]`) |
 
 | Reason | Meaning |
 | --- | --- |

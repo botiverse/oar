@@ -14,6 +14,8 @@ export interface IsolatedResult {
 export interface IsolatedRunOptions {
   readonly env: NodeJS.ProcessEnv;
   readonly timeoutMs: number;
+  /** File descriptor passed as child stdin; defaults to `"ignore"`. */
+  readonly stdinFd?: number;
 }
 
 const OUTPUT_LIMIT = 1024 * 1024;
@@ -39,17 +41,17 @@ function stopTree(child: ChildProcess): void {
 }
 
 /**
- * Run a command that may start others (an updater runs npm or `curl | sh`)
- * with no stdin, no controlling terminal (its own session and process group
- * on POSIX), and a timeout that stops the whole group rather than only the
- * command, so nothing is cut off midway without the caller seeing a timeout
- * or left running after it.
+ * Run a command that may start others (an updater runs npm or a downloaded script)
+ * with closed stdin by default (or an explicit stdin file descriptor), no
+ * controlling terminal (its own session and process group on POSIX), and a
+ * timeout that stops the whole group rather than only the command, so nothing
+ * is cut off midway without the caller seeing a timeout or left running after it.
  */
 export async function runIsolated(command: string, args: readonly string[], options: IsolatedRunOptions): Promise<IsolatedResult> {
   const target = windowsSpawnTarget(command, args, options);
   const child = spawnChecked(() => spawn(target.command, [...target.args], {
     env: options.env,
-    stdio: ["ignore", "pipe", "pipe"],
+    stdio: [options.stdinFd ?? "ignore", "pipe", "pipe"],
     detached: OWN_PROCESS_GROUP,
     windowsHide: true,
     windowsVerbatimArguments: target.windowsVerbatimArguments === true,

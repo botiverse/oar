@@ -118,13 +118,60 @@ test("a copy of another release line is already installed, and nothing replaces 
 test("an installer that claims success but leaves nothing the probe finds is failed", async () => {
   const fake = fakeInstall("elsewhere", "elsewhere");
   const result = await planInstaller(fake.probe, fake.plan)();
-  assert.deepEqual(result, { kind: "failed", exitCode: 0, output: "fake installed successfully!\n" });
+  assert.deepEqual(result, { kind: "failed", reason: "not_found_after_install", exitCode: 0, output: "fake installed successfully!\n" });
+});
+
+test("an installer that leaves an unsupported installation reports unusable_after_install with probeCode", async () => {
+  const fake = fakeInstall("too-old", "elsewhere");
+  let calls = 0;
+  const probe: Parameters<typeof planInstaller>[0] = async () => {
+    await Promise.resolve();
+    calls += 1;
+    if (calls === 1) {
+      return { kind: "not_found" };
+    }
+    return {
+      kind: "unsupported",
+      code: "version_unsupported",
+      via: "executable",
+      command: fake.target,
+      reason: "Fake requires 2.0.0 or later",
+      installedVersion: "1.0.0",
+      requiredVersion: "2.0.0",
+    };
+  };
+  const result = await planInstaller(probe, fake.plan)();
+  assert.deepEqual(result, {
+    kind: "failed",
+    reason: "unusable_after_install",
+    exitCode: 0,
+    output: "fake installed successfully!\n",
+    probeCode: "version_unsupported",
+  });
+});
+
+test("an installer followed by a throwing probe omits reason and records the probe error", async () => {
+  const fake = fakeInstall("broken-probe", "elsewhere");
+  let calls = 0;
+  const probe: Parameters<typeof planInstaller>[0] = async () => {
+    await Promise.resolve();
+    calls += 1;
+    if (calls === 1) {
+      return { kind: "not_found" };
+    }
+    throw new Error("probe exploded");
+  };
+  const result = await planInstaller(probe, fake.plan)();
+  assert.equal(result.kind, "failed");
+  assert.equal(Object.hasOwn(result, "reason"), false);
+  assert.equal(result.exitCode, 0);
+  assert.match(result.output, /the installation probe after the installer failed: probe exploded/u);
 });
 
 test("a failing installer is failed with its exit code and output", async () => {
   const fake = fakeInstall("fails", "fail");
   const result = await planInstaller(fake.probe, fake.plan)();
-  assert.deepEqual(result, { kind: "failed", exitCode: 3, output: "error: failed to download fake\n" });
+  assert.deepEqual(result, { kind: "failed", reason: "installer_failed", exitCode: 3, output: "error: failed to download fake\n" });
 });
 
 test("a non-zero exit after the runtime is in place is installed, not failed", async () => {
@@ -166,6 +213,7 @@ test.skipIf(process.platform === "win32")("a timed out installer is stopped with
   const result = await withFixtureDeadline(() => fake.read().workerPid !== undefined,
     async () => planInstaller(fake.probe, fake.plan)({ timeoutMs: 5000 }));
   assert.ok(result.kind === "failed");
+  assert.equal(result.reason, "timed_out");
   assert.equal(result.exitCode, null);
   assert.match(result.output, /stopped the installer after 5000 ms/u);
   const worker = reportedProcess(fake.read().workerPid);
@@ -187,7 +235,7 @@ const linux: InstallHost = {
   unwritable: () => null,
 };
 
-test("a script plan runs the documented line through sh", () => {
+test("a script plan prepares the documented vendor line", () => {
   assert.deepEqual(scriptInstallPlanOn(method, linux), {
     kind: "plan",
     steps: [{ command: ["sh", "-c", method.line], display: method.line }],

@@ -12,6 +12,7 @@ import type {
 } from "../contracts/install.js";
 import type { AvailableInstallation, InstallationProbe, InstallationSnapshot } from "../contracts/installation.js";
 import { isolatedOutput, resolveExecutable, runIsolated } from "./executable/index.js";
+import { appendStepOutput, parseScriptInstallLine, runScriptStep, type ScriptRunOutcome, type ScriptStepSpec } from "./install-script.js";
 import { updaterEnv } from "./update.js";
 import { clearInstallationCache } from "./installation.js";
 
@@ -25,7 +26,7 @@ const INSTALL_TIMEOUT_MS = 600_000;
 export interface ScriptInstallMethod {
   /** The vendor's page that documents the method: the plan's `source`. */
   readonly source: string;
-  /** The command line as the vendor documents it (with its own non-interactive switch, if any), run by `sh -c`. */
+  /** The command line as the vendor documents it (with its own non-interactive switch, if any); `install()` downloads the script and checks `#!` before running it. */
   readonly line: string;
   /** The programs the line runs, which must be on PATH. */
   readonly tools: readonly string[];
@@ -82,6 +83,12 @@ export const defaultInstallHost: InstallHost = {
 
 const SCRIPT_PLATFORMS: ReadonlySet<NodeJS.Platform> = new Set(["darwin", "linux"]);
 const SCRIPT_ARCHES: ReadonlySet<string> = new Set(["x64", "arm64"]);
+const scriptStepSpecs = new WeakMap<InstallStep, ScriptStepSpec>();
+
+/** Whether `step` carries a parsed script-installer specification for verified execution. */
+export function hasScriptStepSpec(step: InstallStep): boolean {
+  return scriptStepSpecs.has(step);
+}
 
 /**
  * The plan for a script installer on `host`: `platform` off macOS and Linux
@@ -94,7 +101,10 @@ const SCRIPT_ARCHES: ReadonlySet<string> = new Set(["x64", "arm64"]);
  * once they have the tool or the rights.
  */
 export function scriptInstallPlanOn(method: ScriptInstallMethod, host: InstallHost): InstallPlan {
-  const steps: readonly InstallStep[] = [{ command: ["sh", "-c", method.line], display: method.line }];
+  const spec = parseScriptInstallLine(method.line);
+  const step: InstallStep = { command: ["sh", "-c", method.line], display: method.line };
+  scriptStepSpecs.set(step, spec);
+  const steps: readonly InstallStep[] = [step];
   if (!SCRIPT_PLATFORMS.has(host.platform)) {
     return {
       kind: "unsupported",
@@ -107,7 +117,7 @@ export function scriptInstallPlanOn(method: ScriptInstallMethod, host: InstallHo
   if (!SCRIPT_ARCHES.has(host.arch)) {
     return { kind: "unsupported", reason: "platform", detail: `the installer has no build for ${host.arch}` };
   }
-  for (const tool of ["sh", ...method.tools]) {
+  for (const tool of new Set(["curl", spec.shell, ...method.tools])) {
     if (host.locate(tool) === null) {
       return { kind: "unsupported", reason: "missing_tool", detail: tool, steps, source: method.source };
     }
@@ -172,29 +182,52 @@ export function unsupportedInstallPlan(unsupported: InstallUnsupported): Install
   };
 }
 
-interface StepsRun {
-  readonly exitCode: number | null;
-  readonly output: string;
-}
-
-/** Run the steps in order, without stdin or a terminal, stopping at the first that fails; one deadline bounds them all. */
-async function runSteps(steps: readonly InstallStep[], timeoutMs: number): Promise<StepsRun> {
+/** Run the steps in order, without a terminal or interactive prompts, stopping at the first that fails; one deadline bounds them all. */
+async function runSteps(steps: readonly InstallStep[], timeoutMs: number): Promise<ScriptRunOutcome> {
   const deadline = Date.now() + timeoutMs;
+  const env = updaterEnv();
   let output = "";
   let exitCode: number | null = 0;
+  let outcome: ScriptRunOutcome["outcome"] = "completed";
+  let ranInstaller = false;
   for (const step of steps) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) {
+      outcome = "timed_out";
+      exitCode = null;
+      output = appendStepOutput(output, `[oar: stopped the installer after ${String(timeoutMs)} ms]\n`);
+      break;
+    }
+    const scriptSpec = scriptStepSpecs.get(step);
+    if (scriptSpec !== undefined) {
+      const run = await runScriptStep(scriptSpec, remaining, timeoutMs, env);
+      output = appendStepOutput(output, run.output);
+      exitCode = run.exitCode;
+      outcome = run.outcome;
+      ranInstaller ||= run.ranInstaller;
+      if (outcome !== "completed") {
+        break;
+      }
+      continue;
+    }
     const [command, ...args] = step.command;
     if (command === undefined) {
       continue;
     }
-    const run = await runIsolated(command, args, { env: updaterEnv(), timeoutMs: Math.max(deadline - Date.now(), 1) });
-    output += isolatedOutput(run, timeoutMs, "installer");
+    ranInstaller = true;
+    const run = await runIsolated(command, args, { env, timeoutMs: remaining });
+    output = appendStepOutput(output, isolatedOutput(run, timeoutMs, "installer"));
     exitCode = run.exitCode;
-    if (run.timedOut || exitCode !== 0) {
+    if (run.timedOut) {
+      outcome = "timed_out";
+      break;
+    }
+    if (exitCode !== 0) {
+      outcome = "installer_failed";
       break;
     }
   }
-  return { exitCode, output };
+  return { outcome, exitCode, output, ranInstaller };
 }
 
 async function probeAfter(probe: InstallationProbe): Promise<{ readonly snapshot?: InstallationSnapshot; readonly note: string }> {
@@ -236,9 +269,27 @@ export function planInstaller(probe: InstallationProbe, plan: InstallPlanner, li
       return planned;
     }
     const run = await runSteps(planned.steps, options.timeoutMs ?? INSTALL_TIMEOUT_MS);
+    if (run.outcome === "download_failed" || run.outcome === "non_script_response" || (run.outcome === "timed_out" && !run.ranInstaller)) {
+      return { kind: "failed", reason: run.outcome, exitCode: run.exitCode, output: run.output };
+    }
     const after = await probeAfter(probe);
     if (after.snapshot?.kind === "available") {
       return { kind: "installed", ...withLine(after.snapshot, lineOf), output: run.output };
+    }
+    if (run.outcome === "timed_out" || run.outcome === "installer_failed") {
+      return { kind: "failed", reason: run.outcome, exitCode: run.exitCode, output: `${run.output}${after.note}` };
+    }
+    if (after.snapshot?.kind === "unsupported") {
+      return {
+        kind: "failed",
+        reason: "unusable_after_install",
+        exitCode: run.exitCode,
+        output: `${run.output}${after.note}`,
+        probeCode: after.snapshot.code,
+      };
+    }
+    if (after.snapshot !== undefined) {
+      return { kind: "failed", reason: "not_found_after_install", exitCode: run.exitCode, output: `${run.output}${after.note}` };
     }
     return { kind: "failed", exitCode: run.exitCode, output: `${run.output}${after.note}` };
   };

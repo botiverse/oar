@@ -1,4 +1,4 @@
-import type { AvailableInstallation } from "./installation.js";
+import type { AvailableInstallation, UnsupportedInstallation } from "./installation.js";
 
 /**
  * Why oar will not run a runtime's installer on this machine. The same
@@ -46,9 +46,27 @@ export interface InstallLine {
   readonly description: string;
 }
 
-/** One command the installer runs, spawned without a terminal and with stdin closed. */
+/** Typed classification for a failed `install()` result. */
+export type KnownInstallFailureReason =
+  | "download_failed"
+  | "non_script_response"
+  | "timed_out"
+  | "installer_failed"
+  | "not_found_after_install"
+  | "unusable_after_install";
+
+/** Known failure reasons autocomplete; hosts treat unknown values as generic install failures. */
+export type InstallFailureReason = KnownInstallFailureReason | (string & Record<never, never>);
+
+/** One step the installer runs, spawned without a terminal or interactive prompt. */
 export interface InstallStep {
-  /** The program, then its arguments: exactly what `install()` spawns (on an `unsupported` answer, would have spawned). */
+  /**
+   * The direct program and arguments spawned for non-script steps; for
+   * `curl`-piped vendor script installers, `install()` downloads the script
+   * with `curl -fsSL` into a private temporary file, verifies a leading `#!`
+   * shebang, and feeds it to the vendor shell on stdin rather than running a
+   * raw `curl | sh` pipeline. `display` stays the documented vendor command.
+   */
   readonly command: readonly string[];
   /**
    * The step as the vendor documents it, plus the installer's own declared
@@ -90,8 +108,23 @@ export type InstallResult =
    * `line` was asked for: an install never replaces a copy of another line.
    */
   | { readonly kind: "already_installed"; readonly installation: AvailableInstallation; readonly line?: string }
-  /** The probe after the installer still finds nothing; `exitCode` is the installer's (0 included), null when the timeout stopped it. */
-  | { readonly kind: "failed"; readonly exitCode: number | null; readonly output: string }
+  /**
+   * The probe after the installer did not produce an available installation, or
+   * downloading or validating the installer script failed before executing it.
+   * `exitCode` is `curl`'s code for `download_failed`, the installer's code for
+   * `installer_failed`, `not_found_after_install`, or `unusable_after_install`,
+   * and `null` for `non_script_response`, `timed_out`, spawn failure, or signal termination.
+   * `reason` is omitted when an executed installer exits without error and the
+   * post-install probe itself throws.
+   */
+  | {
+      readonly kind: "failed";
+      readonly reason?: InstallFailureReason;
+      readonly exitCode: number | null;
+      readonly output: string;
+      /** Present when `reason === "unusable_after_install"`: the post-install probe's typed refusal code. */
+      readonly probeCode?: UnsupportedInstallation["code"];
+    }
   | InstallUnsupported;
 
 export interface InstallOptions {

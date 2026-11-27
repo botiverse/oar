@@ -62,10 +62,15 @@ back verbatim as `output`.
 
 ## A failed install
 
-With the network cut (`--unshare-net`), claude's `install()` was `failed`
-with `exitCode: 0` and `output` `curl: (6) Could not resolve host:
-claude.ai`: `curl | bash` exits with bash's status, and bash ran an empty
-script. Only the probe afterwards (not_found) tells this apart from success.
+Historically (measured 2026-10-09 before script downloads were separated from
+the shell), cutting the network (`--unshare-net`) returned `failed` with
+`exitCode: 0` because `curl | bash` masked `curl` exit code `6` behind `bash`
+running an empty stdin. Current OAR downloads with `curl -fsSL` into a private
+temporary file, checks for a leading `#!` shebang, and feeds the verified file
+to the shell on stdin: network or HTTP failures return `failed` with
+`reason: "download_failed"` and `curl`'s real non-zero `exitCode`, while
+non-`#!` payloads return `reason: "non_script_response"` and `exitCode: null`
+without starting a shell.
 
 The sandbox needs `TMPDIR` to exist: kimi's installer stops at
 `mktemp: too few X's in template 'kimi-install'` when it does not.
