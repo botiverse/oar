@@ -68,6 +68,10 @@ export async function compareAntigravityFileSkills(output: string): Promise<void
         await file(join(cwd, ".agents/skills/scalar/SKILL.md"), "---\nname: 1.0\ndescription: 2026-11-18\n---\nBODY\n");
         await file(join(cwd, ".agents/skills/fallback/SKILL.md"), "---\ndescription: fallback name\n---\nBODY\n");
         await file(join(cwd, ".agents/skills/malformed/SKILL.md"), "---\nname: [invalid\n---\nBODY\n");
+        await file(join(cwd, ".agents/skills/padded-fence/SKILL.md"), "---   \nname: padded-fence\ndescription: padded delimiters\n   ---  \nBODY\n");
+        await file(join(cwd, ".agents/skills/empty-padded/SKILL.md"), "--- \n --- \nBODY\n");
+        await file(join(cwd, ".agents/skills/four-dash-open/SKILL.md"), "----\nname: four-dash-open\n---\nBODY\n");
+        await file(join(cwd, ".agents/skills/open-foo/SKILL.md"), "--- foo\nname: open-foo\n---\nBODY\n");
         await skill(join(cwd, ".agents/skills/nested/ignored"), "nested-ignored", "too deep");
         for (const [index, root] of [join(home, ".gemini/config"), join(home, ".gemini/antigravity-cli"), join(cwd, ".agents")].entries()) {
           const plugin = join(root, "plugins", `plugin-${index}`);
