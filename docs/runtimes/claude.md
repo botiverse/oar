@@ -1638,7 +1638,7 @@ and any other text in it ends the call at once with nothing typed, and a
 screen it recognised and the banner's version, never screen text.
 
 When first-run onboarding blocks that prompt, OAR accepts only the exact
-recorded default Dark theme and Security notes pages, each once after a
+recorded default theme and Security notes pages, each once after a
 stable screen. Any other or changed page, including sign-in choices or
 consent, stops as `startup_failed` with `startup.screen: "onboarding"` and
 no key sent on that page. Inspect and redeem results add optional
@@ -1655,13 +1655,19 @@ to count as usage and may start an idle account's 5-hour window (a
 third-party report for 2.1.316, not measured by OAR). So inspect only when
 the person asks, and never poll.
 
-Evidence: screens recorded from 2.1.322 against a fake backend; no real
-reset has been spent through OAR. On real accounts (2.1.322 and 2.1.323, a
-new empty folder) the empty input box shows a dimmed suggestion such as
-`Try "how do I log an error?"`, which the fake backend never drew; the
-driver reads a box holding only `Try "…"` as empty (OAR 0.103.0 instead
-failed startup on it, `not_attempted` / `startup_failed`, after the whole
-30 s wait).
+Evidence: screens recorded from 2.1.322 and 2.1.332 against fake backends
+(including onboarding, confirmation dialogs, and 2.1.332 result lines); no
+real account's reset has been spent through OAR. On real accounts (2.1.322
+and 2.1.323, a new empty folder) the empty input box shows a dimmed
+suggestion such as `Try "how do I log an error?"`, which the fake backend
+never drew; the driver reads a box holding only `Try "…"` as empty (OAR
+0.103.0 instead failed startup on it, `not_attempted` / `startup_failed`,
+after the whole 30 s wait). On 2.1.332, Claude Code changed the command
+result gutter (`  ⎿ \u00A0`), default theme onboarding selection (`Auto
+(match terminal)`), Security notes trailing line (`Press Enter to continue`
+without ellipsis), signed-out status text (`Not logged in · run /login`),
+unnumbered early-use warning, and per-kind `not_offered` / `Reset used · no
+resets left` result lines; OAR matches both the 2.1.322 and 2.1.332 forms.
 
 ### Logout
 

@@ -187,16 +187,17 @@ What keeps it from spending a reset the person did not ask for:
 - The command always names a kind: `five_hour`, `weekly`, `fable` or
   `full`, typed as `/limit-reset 5-hour` and so on. A bare `/limit-reset`
   can claim with no confirmation, so it is never typed.
-- Every screen must match text recorded from Claude Code 2.1.322 word for
-  word: the prompt under a `Claude Code v<version>` banner, the
+- Every screen must match text recorded from Claude Code 2.1.322 or 2.1.332
+  word for word: the prompt under a `Claude Code v<version>` banner, the
   confirmation dialog for the kind asked (title, the effect line, the
-  count line, an optional early-use warning, the selected Yes row naming
-  it, No below; only the dates, the count, the percentage and which of the
-  known limits the effect line lists may vary, and the list must include
-  the kind's own limit), the result lines. There is no version list: a Claude Code
-  that draws the same screens works, and one that changed them ends the
-  attempt at the first unrecognised screen with Esc. A prompt without a
-  version banner is `unsupported_version`.
+  count line, an optional numbered or unnumbered early-use warning, the selected
+  Yes row naming it, No below; only the dates, the count, the percentage and
+  which of the known limits the effect line lists may vary, and the list must
+  include the kind's own limit), the result lines (under either the 2.1.322
+  space gutter or 2.1.332 no-break space gutter). There is no version list: a
+  Claude Code that draws the same screens works, and one that changed them
+  ends the attempt at the first unrecognised screen with Esc. A prompt without
+  a version banner is `unsupported_version`.
 - A key reaches a dialog only after the screen has held still for 600 ms
   (Claude Code drops keys for 250 ms after a dialog opens). Yes is sent at
   most once per call, only when at least 30 s are left for the answer;
@@ -233,9 +234,9 @@ the request: `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` is reported to stop
 it but also usage reads, which `/limit-reset` needs.
 
 Startup. Inspecting or redeeming may complete Claude's first-run onboarding:
-OAR sends Enter once on the complete recorded default Dark theme page and
-once on the recorded Security notes (a notice with no choices), after each
-has held still for 3 s. It accepts no additional text, changed option,
+OAR sends Enter once on the complete recorded default theme page (2.1.322 Dark
+mode, 2.1.332 Auto match terminal) and once on the recorded Security notes (a
+notice with no choices), after each has held still for 3 s. It accepts no additional text, changed option,
 login choice, terms agreement or data-sharing consent. Such a page ends the
 call as `startup_failed`, with `startup.screen: "onboarding"`, without any
 key sent on that page. A repeated page is never accepted again. The first
@@ -301,14 +302,18 @@ The older program can spend a 5-hour reset on opening the command;
 
 A redeem's `nothing_to_reset` is claude's "saved for when you reach a usage
 limit" line, or the older program's "isn't available right now" for a
-`five_hour` request; `no_reset` is its "No … reset to use" line. `unknown`
-with `fiveHourSpent: true` is the older program spending its 5-hour reset
-for a request of another kind (only with consent).
+`five_hour` request; `no_reset` is its "No … reset to use" or "Reset used · no
+resets left" line. On `inspectLimitResets`, 2.1.332 lines stating a held reset
+cannot be used right now (for example, when blocked by another limit) are
+reported as `not_offered` so inspection continues to the remaining kinds;
+`redeemLimitReset` still treats them as `unknown`. `unknown` with
+`fiveHourSpent: true` is the older program spending its 5-hour reset for a
+request of another kind (only with consent).
 
-Evidence: an offline harness drove the real 2.1.322 UI against a fake
-backend in a network namespace (Raft team, 2026-11-10, 21 scenarios);
-the recognisers are tested against its recorded screens
-([driver](../../packages/oar/src/runtimes/claude/limit-reset/driver.ts),
+Evidence: offline harnesses drove the real 2.1.322 and 2.1.332 UIs against
+fake backends (Raft team, 2026-11-10, 21 scenarios on 2.1.322; 2026-11-27
+verification on 2.1.332); the recognisers are tested against their recorded
+screens ([driver](../../packages/oar/src/runtimes/claude/limit-reset/driver.ts),
 [tests](../../tests/claude/claude-limit-reset-driver.test.ts)). No real
 account's reset has been spent through OAR, and the real server's labels
 for the Fable and full kinds are not verified.

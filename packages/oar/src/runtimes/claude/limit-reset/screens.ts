@@ -6,9 +6,9 @@ export type ClaudeLimitResetKind = "five_hour" | "weekly" | "fable" | "full";
 export const CLAUDE_LIMIT_RESET_KINDS: readonly ClaudeLimitResetKind[] = ["five_hour", "weekly", "fable", "full"];
 
 /**
- * What Claude Code's terminal UI shows (recorded from 2.1.322) around `/limit-reset`, read
- * from the screen's text. Every string here is copied from a screen that
- * version drew against a fake backend; nothing is matched loosely, because a
+ * What Claude Code's terminal UI shows (recorded from 2.1.322 and 2.1.332) around `/limit-reset`,
+ * read from the screen's text. Every string here is copied from screens those
+ * versions drew against a fake backend; nothing is matched loosely, because a
  * screen that is not positively recognised must end the attempt.
  */
 /** The argument `/limit-reset` takes for each kind. */
@@ -45,10 +45,7 @@ const DIALOG_FOOTER = "Enter to confirm · Esc to cancel";
 const SELECTED = "❯ ";
 
 function kindFromName(names: Record<ClaudeLimitResetKind, string>, name: string): ClaudeLimitResetKind | null {
-  for (const kind of CLAUDE_LIMIT_RESET_KINDS) {
-    if (names[kind] === name) { return kind; }
-  }
-  return null;
+  return CLAUDE_LIMIT_RESET_KINDS.find((kind) => names[kind] === name) ?? null;
 }
 
 function trimmedLines(screen: string): string[] {
@@ -127,7 +124,7 @@ export function bannerVersion(screen: string): string | null {
 
 /** The prompt of a Claude Code with no login: its status line says so. */
 export function isSignInScreen(screen: string): boolean {
-  return screen.includes("Not logged in · Run /login");
+  return screen.includes("Not logged in · Run /login") || screen.includes("Not logged in · run /login");
 }
 
 /**
@@ -178,7 +175,7 @@ const REFILLS: Record<ClaudeLimitResetKind, readonly string[]> = {
 function dialogBody(kind: ClaudeLimitResetKind, text: string): { resetsLeft: number; expiresText: string } | null {
   const name = DIALOG_KIND_NAMES[kind];
   const pattern = new RegExp(
-    String.raw`^(?:You still have \d{1,3}% of your ${LIMIT_NAME} limit left \u2014 use your ${name} reset anyway\? )?`
+    String.raw`^(?:(?:You still have \d{1,3}% of your ${LIMIT_NAME} limit left|You haven't reached a limit yet) \u2014 use your ${name} reset anyway\? )?`
     + String.raw`Refills your (${LIMIT_NAME}(?:, ${LIMIT_NAME})*(?: and ${LIMIT_NAME})?) limits? now · `
     + (kind === "fable" ? "(?:returns what Fable used to your weekly limit · )?" : "")
     + String.raw`your weekly reset day stays ${SHORT_DATE} `
@@ -212,16 +209,9 @@ export function confirmDialog(screen: string): ClaudeConfirmDialog | null {
   if (footer !== lines.length - 1 || footer < 3 || lines[footer - 1] !== "No, keep it") { return null; }
   const yes = /^❯ Yes, use my (.+) reset$/u.exec(lines[footer - 2] ?? "");
   if (!yes) { return null; }
-  let titleAt = -1;
-  for (let index = footer - 3; index >= 0; index -= 1) {
-    if (/^Use an? .+\?$/u.test(lines[index] ?? "")) {
-      titleAt = index;
-      break;
-    }
-  }
-  const title = titleAt < 0 ? null : /^Use a (.+) reset\?$/u.exec(lines[titleAt] ?? "");
+  const titleAt = lines.slice(0, footer - 2).findLastIndex((line) => /^Use an? .+\?$/u.test(line));
   // Group 1 always takes part in a match of either pattern.
-  const titleName = title?.[1];
+  const titleName = titleAt === -1 ? undefined : /^Use a (.+) reset\?$/u.exec(lines[titleAt] ?? "")?.[1];
   if (titleName === undefined || titleName !== yes[1]) { return null; }
   const kind = kindFromName(DIALOG_KIND_NAMES, titleName);
   if (!kind) { return null; }
@@ -241,6 +231,8 @@ export type ClaudeResultLine =
   | { is: "none" }
   /** It holds one that can only be used at a usage limit, and is not at one. */
   | { is: "needs_limit" }
+  /** Claude Code explicitly reported this reset cannot be used right now (`outcome: "not_offered"`). */
+  | { is: "not_offered" }
   /** Claude's older once-a-week 5-hour reset was spent, with no confirmation. */
   | { is: "legacy_reset" }
   /** The older reset is not available now. */
@@ -248,13 +240,21 @@ export type ClaudeResultLine =
   /** A line this driver has no record of. */
   | { is: "unrecognised" };
 
+const NOT_OFFERED_PATTERNS: readonly RegExp[] = [
+  new RegExp(String.raw`^Your (?:5-hour|weekly|Fable|full) reset can't be used (?:right now|while you're at (?:your ${LIMIT_NAME} limit|another limit it doesn't refill)) · `, "u"),
+  new RegExp(String.raw`^Your reset (?:can't be used (?:right now|for this limit right now)|doesn't refill your ${LIMIT_NAME} limit, so it can't be used until that resets) · `, "u"),
+  new RegExp(String.raw`^None of your resets refill your ${LIMIT_NAME} limit · `, "u"),
+  /^Resets can't be used while you continue at lower priority · run \/limit-reset after that ends$/u,
+];
+
 function classifyResultLine(text: string): ClaudeResultLine {
-  for (const kind of CLAUDE_LIMIT_RESET_KINDS) {
-    if (SUCCESS_LINES[kind].test(text)) { return { is: "reset", kind }; }
-  }
+  const matched = CLAUDE_LIMIT_RESET_KINDS.find((kind) => SUCCESS_LINES[kind].test(text));
+  if (matched) { return { is: "reset", kind: matched }; }
   if (/^(5-hour|Weekly|Fable|Full) reset kept · /u.test(text)) { return { is: "kept" }; }
-  if (/^No (reset|5-hour reset|weekly reset|Fable reset|full reset) to use · /u.test(text)) { return { is: "none" }; }
+  if (/^No (reset|5-hour reset|weekly reset|Fable reset|full reset) to use · /u.test(text)
+    || text === "Reset used · no resets left") { return { is: "none" }; }
   if (text.startsWith("You have a reset saved for when you reach a usage limit · ")) { return { is: "needs_limit" }; }
+  if (NOT_OFFERED_PATTERNS.some((pattern) => pattern.test(text))) { return { is: "not_offered" }; }
   if (text.startsWith("5-hour limit reset · next reset available ")) { return { is: "legacy_reset" }; }
   if (text === "A 5-hour limit reset isn't available right now.") { return { is: "legacy_unavailable" }; }
   return { is: "unrecognised" };
@@ -287,7 +287,7 @@ export function commandScreen(screen: string, command: string): ClaudeCommandScr
   const echo = lines.lastIndexOf(`❯ ${command}`);
   if (echo === -1) { return { is: "pending" }; }
   // Group 1 always takes part in a match of either pattern.
-  const first = /^ {2}⎿ {2}(\S.*)$/u.exec(lines[echo + 1] ?? "")?.[1];
+  const first = /^ {2}⎿ [ \u00A0](\S.*)$/u.exec(lines[echo + 1] ?? "")?.[1];
   if (first === undefined) { return { is: "pending" }; }
   const parts = [first.trimEnd()];
   for (const line of lines.slice(echo + 2)) {
