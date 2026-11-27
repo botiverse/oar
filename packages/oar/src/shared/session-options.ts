@@ -10,8 +10,9 @@ function credentialEntries(options: SessionOptions): readonly string[] {
   return (options.mcpServers ?? []).filter((server) => hasMcpCredentials(server)).map((server) => server.name);
 }
 
-/** Whether `options` gives `key`: any defined value (including an empty schema), a non-empty map for `env`, a non-empty list for list options, an entry carrying a credential for `mcpServerCredentials`, `exclude` for `userConfiguration`, true for `goals` and `endTurnProcessesOnAbort`, any value for `fork`. */
+/** Whether `options` gives `key`: any defined value (including an empty schema), a non-empty map for `env`, a non-empty list for list options, an entry carrying a credential for `mcpServerCredentials`, `exclude` for `userConfiguration`, true for `ephemeral`, `goals` and `endTurnProcessesOnAbort`, any value for `fork`. */
 export function sessionOptionGiven(options: SessionOptions, key: RefusableSessionOption): boolean {
+  if (key === "ephemeral") { return options.ephemeral === true; }
   if (key === "goals") { return options.goals === true; }
   if (key === "endTurnProcessesOnAbort") { return options.endTurnProcessesOnAbort === true; }
   if (key === "userConfiguration" || key === "partialUserConfiguration") {
@@ -39,7 +40,7 @@ export function sessionOptionGiven(options: SessionOptions, key: RefusableSessio
  */
 export function refuseSessionOptions(refused: RefusedSessionOptions, options: SessionOptions): void {
   checkRetainedBytes(options.retainedBytes);
-  for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "serviceTierFallback", "additionalDirectories", "outputSchema", "name", "userConfiguration", "partialUserConfiguration", "goals", "endTurnProcessesOnAbort", "fork", "nativeMemoryDefault", "sessionLogUpload", "nativePermissions", "modelRequests", "userQuestions"] as const) {
+  for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "serviceTierFallback", "additionalDirectories", "outputSchema", "name", "userConfiguration", "partialUserConfiguration", "ephemeral", "goals", "endTurnProcessesOnAbort", "fork", "nativeMemoryDefault", "sessionLogUpload", "nativePermissions", "modelRequests", "userQuestions"] as const) {
     const reason = refused[key];
     if (reason === undefined || !sessionOptionGiven(options, key)) {
       continue;
@@ -52,9 +53,20 @@ export function refuseSessionOptions(refused: RefusedSessionOptions, options: Se
   }
   checkResume(options);
   checkFork(options);
+  checkEphemeral(options);
   checkNativePermissions(options);
   checkServiceTierFallback(options);
   checkUserQuestions(options);
+}
+
+/**
+ * Ephemeral opens skip native persistence; resuming an already-persisted
+ * session without `fork` contradicts that and is refused before anything starts.
+ */
+function checkEphemeral(options: SessionOptions): void {
+  if (options.ephemeral === true && options.resume !== undefined && options.fork === undefined) {
+    throw new UnsupportedOptionError("ephemeral", "ephemeral cannot be combined with resume without fork; a resumed session is already persisted");
+  }
 }
 
 /**

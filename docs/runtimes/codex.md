@@ -220,8 +220,19 @@ if codex refuses it (an older app-server has no such method), the session still
 opens and the native error is recorded as a `thread/name/set/error` frame with
 no events. A lost connection still fails the open. The name shows in the
 user's Codex app when the host shares `CODEX_HOME` with it; keeping a
-host's threads out of that app entirely takes a separate `CODEX_HOME`, at
-the cost of the shared login and configuration.
+host's persistent threads out of that app takes a separate `CODEX_HOME`, at
+the cost of the shared login and configuration, while one-shot threads can use
+`SessionOptions.ephemeral: true` instead.
+
+**Ephemeral sessions (mapped, opt-in).** `SessionOptions.ephemeral: true`
+passes `ephemeral: true` on `thread/start` and `thread/fork`, and confirms
+`thread.ephemeral === true` on the open reply before returning the session
+([env] codex-cli 0.172.0: `thread/start {ephemeral: true}` returns
+`{ephemeral: true, path: null}` without materializing a rollout file on disk,
+so `Session.nativeSessionFile` is absent). Combining `ephemeral: true` with
+`resume` without `fork` is refused before open (`UnsupportedOptionError`), and
+combining `ephemeral: true` with `name` is refused before open because codex's
+`thread/name/set` rejects metadata updates on ephemeral threads (`-32600`).
 
 **Token totals after a resume (mapped,
 [#169](https://github.com/botiverse/oar/issues/169)).** codex's

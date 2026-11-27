@@ -1,6 +1,21 @@
+import { UnsupportedOptionError } from "../../contracts/errors.js";
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type { SessionOptions } from "../../contracts/session.js";
 import type { JsonRecord } from "../../shared/json.js";
+
+/** Codex `thread/name/set` rejects metadata updates on ephemeral threads (`-32600`, [env] 0.172.0). */
+export function checkCodexEphemeral(options: SessionOptions): void {
+  if (options.ephemeral === true && options.name !== undefined) {
+    throw new UnsupportedOptionError("ephemeral", "codex ephemeral threads do not support name (thread/name/set rejects metadata updates on ephemeral threads)");
+  }
+}
+
+/** Refusal when `ephemeral: true` was requested and codex did not confirm `thread.ephemeral === true`. */
+export function codexEphemeralRefusal(method: string, options: SessionOptions, thread: JsonRecord | null): string | null {
+  if (options.ephemeral !== true || thread?.ephemeral === true) { return null; }
+  const said = thread !== null && "ephemeral" in thread ? `reported ephemeral=${JSON.stringify(thread.ephemeral)}` : "did not confirm ephemeral";
+  return `codex ${method} ${said} although ephemeral was requested`;
+}
 
 export const codexRefusedSessionOptions: RefusedSessionOptions = {
   modelRequests: "This adapter has no verified capture of the root agent's provider request",

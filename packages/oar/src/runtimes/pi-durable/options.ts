@@ -16,6 +16,7 @@ export const piDurableRefusedSessionOptions: RefusedSessionOptions = {
   modelRequests: "This adapter has no verified capture of the root agent's provider request",
   fork: "OAR has not verified a native Pi Durable fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",
+  ephemeral: "This adapter has no verified switch to open an ephemeral session without native persistence",
   endTurnProcessesOnAbort: "pi-durable runs in the host process, so OAR owns no runtime process tree to read for one turn",
   userConfiguration: "pi-durable uses host-owned harness configuration, with no per-conversation user-configuration exclusion",
   outputSchema: "Pi Durable exposes no final-output schema option",

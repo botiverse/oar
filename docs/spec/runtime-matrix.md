@@ -1034,7 +1034,7 @@ reading the message.
 
 `Runtime.refusedSessionOptions` declares, before any session opens, the
 `SessionOptions` a runtime refuses when given (`env`, `mcpServers`, `disallowedTools`, `launchArgs`, `additionalDirectories`: a
-non-empty one; `userConfiguration`: any exclusion; `partialUserConfiguration`: a proper nonempty subset; `goals`, `endTurnProcessesOnAbort`: `true`; `fork`: any value; `nativeMemoryDefault`: `"off"`; `sessionLogUpload`: `"off"`; `nativePermissions`: `"inherit"`), each with that reason. The adapter checks the same map, so
+non-empty one; `userConfiguration`: any exclusion; `partialUserConfiguration`: a proper nonempty subset; `ephemeral`, `goals`, `endTurnProcessesOnAbort`: `true`; `fork`: any value; `nativeMemoryDefault`: `"off"`; `sessionLogUpload`: `"off"`; `nativePermissions`: `"inherit"`), each with that reason. The adapter checks the same map, so
 the declaration and the refusal cannot drift
 (`tests/refused-session-options.test.ts`). A host leaves a declared option
 out instead of naming runtimes. `outputSchema` is considered given even
@@ -1053,6 +1053,7 @@ the first turn can run. A runtime that cannot meet this rule or whose
 isolation is unverified declares `mcpServerCredentials`. Every
 `serveMcpTools` entry carries a bearer token, so the same rule applies to it.
 
+`ephemeral: true` is refused everywhere except Codex (which forwards `ephemeral: true` on `thread/start` and `thread/fork`, confirms `thread.ephemeral === true` on readback, and refuses `ephemeral: true` combined with `name` or with `resume` without `fork`),
 `goals: true` is refused everywhere except Codex and DSH ([native goals](#native-goals)),
 `endTurnProcessesOnAbort: true` everywhere except Codex in an isolated
 app-server and Grok ([ending a turn's processes](#ending-a-turns-processes-on-abort)),

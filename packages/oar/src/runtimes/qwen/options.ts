@@ -6,6 +6,7 @@ export const qwenRefusedSessionOptions: RefusedSessionOptions = {
   modelRequests: "This adapter has no verified capture of the root agent's provider request",
   fork: "OAR has not verified a native Qwen fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",
+  ephemeral: "This adapter has no verified switch to open an ephemeral session without native persistence",
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted Qwen turn's processes while its session stays usable",
   userConfiguration: "qwen has no verified separation of user configuration from its native login",
   serviceTier: "Qwen's stream-json interface does not expose a service-tier setting",

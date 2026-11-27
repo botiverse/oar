@@ -6,6 +6,7 @@ export const codebuddyRefusedSessionOptions: RefusedSessionOptions = {
   modelRequests: "This adapter has no verified capture of the root agent's provider request",
   fork: "OAR has not verified a native CodeBuddy fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "CodeBuddy ACP has no verified structured goal controls",
+  ephemeral: "This adapter has no verified switch to open an ephemeral session without native persistence",
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted CodeBuddy turn's processes while its session stays usable",
   appendSystemPrompt: "CodeBuddy ACP prompt append has no verified private input channel",
   userConfiguration: "CodeBuddy has no verified way to exclude user configuration while preserving native credentials and history",

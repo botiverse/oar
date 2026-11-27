@@ -11,6 +11,7 @@ export const devinRefusedSessionOptions: RefusedSessionOptions = {
   disallowedTools: "Devin ACP exposes no verified tool-denial channel",
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted Devin turn's processes while its session stays usable",
   goals: "This runtime interface exposes no structured native goal controls",
+  ephemeral: "This adapter has no verified switch to open an ephemeral session without native persistence",
   name: "Devin exposes no verified session name setting",
   outputSchema: "Devin ACP and launch configuration expose no final-output schema channel",
   serviceTier: "Devin exposes no verified per-session service-tier setting and readback",

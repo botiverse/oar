@@ -104,6 +104,7 @@ export function piEffectiveModel(session: PiModelSource): string | null {
 export const piRefusedSessionOptions: RefusedSessionOptions = {
   fork: "OAR has not verified a native Pi fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",
+  ephemeral: "This adapter has no verified switch to open an ephemeral session without native persistence",
   endTurnProcessesOnAbort: "pi has no verified per-turn process ownership: its SDK form runs in the host process and its RPC form was not probed for this",
   userConfiguration: "pi has no verified per-session exclusion of user configuration while retaining its native login",
   outputSchema: "Pi SDK exposes no final-output schema option",

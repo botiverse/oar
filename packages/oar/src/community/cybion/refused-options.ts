@@ -15,6 +15,7 @@ export const cybionRefusedSessionOptions: RefusedSessionOptions = {
   outputSchema: "Cybion's Agent API has no per-Thread structured output setting",
   userConfiguration: "A Cybion Thread always runs with its owner's configuration, which cannot be excluded",
   goals: "Cybion's Agent API exposes no structured goal controls",
+  ephemeral: "This adapter has no verified switch to open an ephemeral session without native persistence",
   endTurnProcessesOnAbort: "Cybion cancels a turn, but exposes no per-turn control over the processes it started",
   sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",
   nativePermissions: "This adapter has no verified per-session switch to inherit native permission and sandbox settings",

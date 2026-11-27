@@ -39,6 +39,7 @@ export const morphRefusedSessionOptions: RefusedSessionOptions = {
   modelRequests: "This adapter has no verified capture of the root agent's provider request",
   fork: "OAR has not verified a native Morph fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",
+  ephemeral: "This adapter has no verified switch to open an ephemeral session without native persistence",
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted Morph turn's processes while its session stays usable",
   userConfiguration: "morph shares its Console process; no per-session exclusion of user configuration is verified",
   systemPrompt: "The morph Runtime API has no system prompt override",

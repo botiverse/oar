@@ -5,6 +5,7 @@ import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 
 export const claudeRefusedSessionOptions: RefusedSessionOptions = {
   goals: "Claude /goal is a prompt command, not a structured native goal control",
+  ephemeral: "This adapter has not yet wired Claude's --no-session-persistence flag into SessionOptions.ephemeral",
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted Claude turn's processes while its session stays usable",
   nativeMemoryDefault: "Claude Code has no configuration layer below user settings for a soft native-memory default",
   sessionLogUpload: "This adapter has no verified switch to stop vendor session-log upload",

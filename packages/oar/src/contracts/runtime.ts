@@ -30,7 +30,7 @@ import type { TaskType } from "./tasks.js";
  * `"include"` and omission keep native behavior. `fork` is any
  * `SessionOptions.fork`, with or without `through`.
  */
-export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "env" | "mcpServers" | "mcpServerCredentials" | "disallowedTools" | "launchArgs" | "serviceTier" | "serviceTierFallback" | "additionalDirectories" | "outputSchema" | "name" | "userConfiguration" | "partialUserConfiguration" | "goals" | "endTurnProcessesOnAbort" | "fork" | "nativeMemoryDefault" | "sessionLogUpload" | "nativePermissions" | "modelRequests" | "userQuestions";
+export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "env" | "mcpServers" | "mcpServerCredentials" | "disallowedTools" | "launchArgs" | "serviceTier" | "serviceTierFallback" | "additionalDirectories" | "outputSchema" | "name" | "userConfiguration" | "partialUserConfiguration" | "ephemeral" | "goals" | "endTurnProcessesOnAbort" | "fork" | "nativeMemoryDefault" | "sessionLogUpload" | "nativePermissions" | "modelRequests" | "userQuestions";
 
 /**
  * The options a runtime refuses when they are given (`env`, `mcpServers`, `disallowedTools`, `launchArgs`, `additionalDirectories`: a
