@@ -32,7 +32,6 @@ import { opencodeSharedBackend } from "./opencode-shared.js";
 const claudeSession = claudeRuntime.session;
 const codexInstallation = codexRuntime.installation;
 const codexSession = codexRuntime.session;
-const piInstallation = piRuntime.installation;
 const piSession = piRuntime.session;
 
 /**
@@ -218,7 +217,7 @@ export async function selectBackend(target: string): Promise<Backend> {
     case "pi-aimock": {
       const aimock = await startPiAimock(undefined, { imageInput: true });
       const native = target === "pi-rpc-aimock" ? createPiRuntime(piRpcTestOptions()) : piRuntime;
-      return { runtime: defineRuntime({ id: target, session: target === "pi-rpc-aimock" ? native.session : piSession, installation: piInstallation, ...(native.sessionCapabilities === undefined ? {} : { sessionCapabilities: native.sessionCapabilities }) }, executionOptions(native)), aimock };
+      return { runtime: defineRuntime({ id: target, session: target === "pi-rpc-aimock" ? native.session : piSession, installation: native.installation, ...(native.sessionCapabilities === undefined ? {} : { sessionCapabilities: native.sessionCapabilities }) }, executionOptions(native)), aimock };
     }
     default:
       return { runtime: allRuntimes.require(target), aimock: null };

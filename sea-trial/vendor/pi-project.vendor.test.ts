@@ -15,6 +15,11 @@ afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 const cases = (["none", "installed", "missing", "mismatched"] as const).flatMap((state) =>
   (["default", "offline", "allow"] as const).map((mode) => ({ state, mode })));
 
+const runtimeOptions = piRpc ? piRpcTestOptions() : { execution: "in-process" as const };
+const installation = runtimeOptions.execution === "subprocess" && runtimeOptions.command !== undefined
+  ? ({ kind: "available", via: "executable", command: runtimeOptions.command } as const)
+  : ({ kind: "available", via: "bundled" } as const);
+
 describe.skipIf(!isPiBackend)("Pi native project policy", () => {
   test.each(cases)("$state package in $mode mode", async ({ state, mode }) => {
     const fixture = await piProjectFixture(state);
@@ -22,7 +27,7 @@ describe.skipIf(!isPiBackend)("Pi native project policy", () => {
     vi.stubEnv("PI_OFFLINE", mode === "offline" ? "1" : "");
     const warning = vi.spyOn(process, "emitWarning").mockImplementation(() => {});
     try {
-      const opening = createPiRuntime({ ...(piRpc ? piRpcTestOptions() : { execution: "in-process" as const }), allowProjectPackageInstall: mode === "allow" }).session({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });
+      const opening = createPiRuntime({ ...runtimeOptions, allowProjectPackageInstall: mode === "allow" }).session(installation, { cwd: fixture.cwd });
       const refused = mode === "default" && (state === "missing" || state === "mismatched");
       if (refused) {
         const refusal = await opening.then(async (session) => { await session.dispose(); return null; }, (error: unknown) => error);
@@ -48,8 +53,8 @@ describe.skipIf(!isPiBackend)("Pi native project policy", () => {
     const trust = path.join(fixture.agentDir, "trust.json");
     await writeFile(trust, "{}\n");
     try {
-      const runtime = createPiRuntime({ ...(piRpc ? piRpcTestOptions() : { execution: "in-process" as const }), projectTrusted: true });
-      const session = await runtime.session({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });
+      const runtime = createPiRuntime({ ...runtimeOptions, projectTrusted: true });
+      const session = await runtime.session(installation, { cwd: fixture.cwd });
       await session.dispose();
       expect(existsSync(fixture.projectLoaded)).toBe(true);
       expect(await readFile(trust, "utf8")).toBe("{}\n");
@@ -61,7 +66,7 @@ describe.skipIf(!isPiBackend)("Pi native project policy", () => {
     for (const [key, value] of Object.entries(fixture.env)) { vi.stubEnv(key, value); }
     vi.stubEnv("PI_OFFLINE", " 1 ");
     try {
-      const opening = createPiRuntime({ ...(piRpc ? piRpcTestOptions() : { execution: "in-process" as const }) }).session({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });
+      const opening = createPiRuntime(runtimeOptions).session(installation, { cwd: fixture.cwd });
       await expect(opening.then(async (session) => { await session.dispose(); return null; })).rejects.toBeInstanceOf(RuntimeFailureError);
       expect(existsSync(fixture.installed)).toBe(false);
     } finally { await fixture.stop(); }
@@ -74,11 +79,13 @@ describe.skipIf(!isPiBackend)("Pi native project policy", () => {
     const trust = path.join(fixture.agentDir, "trust.json");
     await writeFile(trust, "{}\n");
     try {
-      const runtime = createPiRuntime({ ...(piRpc ? piRpcTestOptions() : { execution: "in-process" as const }), projectTrusted: false });
-      const session = await runtime.session({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });
+      const runtime = createPiRuntime({ ...runtimeOptions, projectTrusted: false });
+      const session = await runtime.session(installation, { cwd: fixture.cwd });
       await session.dispose();
-      const inventory = await runtime.tools({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });
-      expect(inventory.kind).toBe("ok");
+      const skills = await runtime.skills(installation, { cwd: fixture.cwd });
+      expect(skills.kind).toBe("ok");
+      const inventory = await runtime.tools(installation, { cwd: fixture.cwd });
+      expect(inventory.kind).toBe(installation.via === "executable" ? "unsupported" : "ok");
       expect([fixture.installed, fixture.loaded, fixture.projectLoaded].map((file) => existsSync(file))).toEqual([false, false, false]);
       expect(await readFile(trust, "utf8")).toBe("{}\n");
     } finally { await fixture.stop(); }

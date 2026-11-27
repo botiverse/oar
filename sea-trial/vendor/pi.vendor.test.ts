@@ -1,14 +1,12 @@
-import { isPiBackend, piRpc, piSession } from "./support/pi-runtime.js";
+import { isPiBackend, piInstallation, piRpc, piSession } from "./support/pi-runtime.js";
 import { setTimeout as delay } from "node:timers/promises";
 import { describe, expect, test } from "vitest";
-import { awaitTurnEnd, defineRuntime, type Session, piRuntime } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, defineRuntime, type Session } from "../../packages/oar/src/index.js";
 
 import { startPiAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { assertContextUsage, promptTurn, runTurn } from "./support/asserts.js";
 import { structuralToolRound, toolRoundFixtures, turnSkeleton } from "./support/tool-round.js";
-
-const piInstallation = piRuntime.installation;
 
 function toolStartedAfter(session: Session, seq: number): boolean {
   for (const record of session.records()) {

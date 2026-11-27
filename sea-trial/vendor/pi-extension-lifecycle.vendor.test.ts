@@ -1,15 +1,13 @@
-import { isPiBackend, piSession } from "./support/pi-runtime.js";
+import { isPiBackend, piInstallation, piSession } from "./support/pi-runtime.js";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { defineRuntime, type Session, piRuntime } from "../../packages/oar/src/index.js";
+import { defineRuntime, type Session } from "../../packages/oar/src/index.js";
 
 import { promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import { startPiAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { stdioEcho } from "./support/echo-mcp.js";
-
-const piInstallation = piRuntime.installation;
 
 const runtime = defineRuntime({ id: "pi-aimock", session: piSession, installation: piInstallation });
 

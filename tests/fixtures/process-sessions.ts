@@ -22,6 +22,6 @@ export const processSessions: readonly (readonly [string, Open])[] = [
 const piFixture = fileURLToPath(new URL("pi-rpc-version.ts", import.meta.url));
 export const piRpc: Open = async (dir, options) => {
   const runtime = createPiRuntime({ execution: "subprocess", command: process.execPath, args: [piFixture] });
-  return runtime.session({ kind: "available", via: "bundled" }, { ...options, env: { ...options.env,
+  return runtime.session({ kind: "available", via: "executable", command: process.execPath }, { ...options, env: { ...options.env,
     OAR_TEST_PI_READY_VERSION: "1.5.0", PI_CODING_AGENT_DIR: dir } });
 };

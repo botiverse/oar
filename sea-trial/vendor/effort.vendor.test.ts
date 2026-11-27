@@ -1,6 +1,6 @@
-import { isPiBackend, piSession } from "./support/pi-runtime.js";
+import { isPiBackend, piInstallation, piSession } from "./support/pi-runtime.js";
 import { describe, expect, test } from "vitest";
-import { claudeInstallation, defineRuntime, claudeRuntime, codexRuntime, piRuntime } from "../../packages/oar/src/index.js";
+import { claudeInstallation, defineRuntime, claudeRuntime, codexRuntime } from "../../packages/oar/src/index.js";
 
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type RawProviderRequest } from "../harness/aimock.js";
@@ -10,7 +10,6 @@ import { runTurn } from "./support/asserts.js";
 const claudeSession = claudeRuntime.session;
 const codexInstallation = codexRuntime.installation;
 const codexSession = codexRuntime.session;
-const piInstallation = piRuntime.installation;
 
 /**
  * SessionOptions.effort seen from the provider's side: what each real

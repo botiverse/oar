@@ -5,9 +5,10 @@ import type { ModelLister } from "../../../contracts/list-models.js";
 import { inventoryOk, unavailableInventory, unsupportedInventory, workspaceScope } from "../../../shared/inventory.js";
 import { projectPiModels } from "../model-projection.js";
 import { piSkillProvenance } from "../skill-provenance.js";
+import { resolvePiRpcInstallation } from "../installation.js";
 import type { PiRuntimeOptions } from "../options.js";
 import { piRpcReadTimeout, readPiRpc } from "./read.js";
-import { PiRpcVersionError } from "./version.js";
+import { assertPiRpcVersion, PiRpcVersionError } from "./version.js";
 
 type RpcSlashCommand = Extract<RpcResponse, { command: "get_commands"; success: true }>["data"]["commands"][number];
 
@@ -27,12 +28,26 @@ export function piRpcSkills(commands: readonly RpcSlashCommand[]): SkillEntry[] 
   }));
 }
 
+function knownVersionRefusal(installation: Parameters<InventoryReader<unknown>>[0]): PiRpcVersionError["refusal"] | null {
+  if (installation.via !== "executable" || installation.version === undefined) { return null; }
+  try {
+    assertPiRpcVersion(installation.version);
+    return null;
+  } catch (error) {
+    if (error instanceof PiRpcVersionError) { return error.refusal; }
+    throw error;
+  }
+}
+
 function inventory<T>(runtime: PiRuntimeOptions, project: (commands: readonly RpcSlashCommand[]) => T[]): InventoryReader<T> {
   return async (installation, options = {}) => {
-    if (installation.via !== "bundled") { return unsupportedInventory("installation_unsupported", "Pi inventory requires the bundled SDK"); }
+    const resolved = resolvePiRpcInstallation(runtime, installation);
+    if (!resolved.ok) { return unsupportedInventory("installation_unsupported", resolved.reason); }
     piRpcReadTimeout(options);
+    const refusal = knownVersionRefusal(installation);
+    if (refusal !== null) { return refusal; }
     try {
-      return await readPiRpc(runtime, options, async (rpc) => {
+      return await readPiRpc(resolved.runtime, options, async (rpc) => {
         const response = await rpc.control.request({ type: "get_commands" });
         if (!response.success || response.command !== "get_commands") { throw new Error("Pi did not return its command catalog"); }
         // RPC lists every loaded entry; absent diagnostics or metadata do not make that catalog partial.
@@ -51,10 +66,13 @@ export const piRpcSkillReader = (runtime: PiRuntimeOptions): InventoryReader<Ski
 export const piRpcCommandReader = (runtime: PiRuntimeOptions): InventoryReader<CommandEntry> => inventory(runtime, piRpcCommands);
 
 export const piRpcModelLister = (runtime: PiRuntimeOptions): ModelLister => async (installation, options = {}) => {
-  if (installation.via !== "bundled") { return { kind: "unsupported", reason: "Pi model listing requires the bundled SDK" }; }
+  const resolved = resolvePiRpcInstallation(runtime, installation);
+  if (!resolved.ok) { return { kind: "unsupported", reason: resolved.reason }; }
   piRpcReadTimeout(options);
+  const refusal = knownVersionRefusal(installation);
+  if (refusal !== null) { return refusal; }
   try {
-    return await readPiRpc(runtime, options, async (rpc) => {
+    return await readPiRpc(resolved.runtime, options, async (rpc) => {
       // Pi's RPC protocol exposes only `get_available_models`, not the unfiltered
       // catalog, so an empty reply cannot distinguish missing credentials from no models.
       const response = await rpc.control.request({ type: "get_available_models" });

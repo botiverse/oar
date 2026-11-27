@@ -11,18 +11,20 @@ import { enqueueHeld, withdrawControl } from "../../../shared/held-input.js";
 import { withInputImages, type LoadedImage } from "../../../shared/input-images.js";
 import { withSessionCredentials } from "../../../shared/session-credentials.js";
 import { foldPiEvent, initialPiProjection, piPrompted } from "../projection.js";
+import { resolvePiRpcInstallation } from "../installation.js";
 import type { PiRuntimeOptions } from "../options.js";
 import { openPiRpc } from "./open.js";
 
 const nativeImages = (images: readonly LoadedImage[]): { type: "image"; data: string; mimeType: string }[] => images.map((image) => ({ type: "image" as const, data: image.data, mimeType: image.mediaType }));
 
-/** One bundled native RPC process per session; Pi's event fold is shared with the SDK path. */
+/** One native RPC process per session; Pi's event fold is shared with the SDK path. */
 export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => withSessionCredentials(async (installation, options, credentials) => {
-  if (installation.via !== "bundled") { throw new Error("Pi RPC needs the bundled SDK installation"); }
+  const resolved = resolvePiRpcInstallation(runtime, installation);
+  if (!resolved.ok) { throw new Error(resolved.reason); }
   const { isContextOverflow } = await import("@earendil-works/pi-ai");
   const buffered: Record<string, unknown>[] = [];
   let receive = (message: Record<string, unknown>): void => { buffered.push(message); };
-  const rpc = await openPiRpc(options, credentials, (message) => { receive(message); }, runtime);
+  const rpc = await openPiRpc(options, credentials, (message) => { receive(message); }, resolved.runtime);
   const kernel = credentials.kernel(rpc.state.sessionId);
   const capabilities = { queue: { durable: false }, attribution: "none", images: true } as const;
   let projection = initialPiProjection;

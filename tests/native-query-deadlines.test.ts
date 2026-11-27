@@ -35,7 +35,7 @@ test.each(cases)("%s %s bounds the read and reclaims its process tree", async (r
     const adapter = queryRuntime(runtime, command);
     const read = adapter[operation];
     if (read === undefined) { throw new Error(`Missing expected ${runtime} reader`); }
-    const installation = runtime === "pi" || runtime === "cursor" ? { kind: "available", via: "bundled" } as const
+    const installation = runtime === "cursor" ? { kind: "available", via: "bundled" } as const
       : { kind: "available", via: "executable", command, ...(runtime === "dsh" ? { version: "0.2.2-rc.3" } : {}) } as const;
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     const result = read(installation, { timeoutMs: 5000, cwd: probe.dir, env: { ...probe.env, HOME: probe.dir, USERPROFILE: probe.dir, GEMINI_HOME: null, CURSOR_API_KEY: null, KIMI_CODE_HOME: probe.dir,

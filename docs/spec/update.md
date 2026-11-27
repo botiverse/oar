@@ -90,7 +90,7 @@ Package-manager-owned or unrecognized Claude installations return
 | pi-durable | none: `@earendil-works/pi-durable` is the host's to install | none |
 | antigravity | The native CLI platform manifest; only a newer version counts | `agy update` |
 | opencode | none: the native updater has no check-only mode | v2: `opencode upgrade` selects the method and release. v1 returns `unsupported_installation`. |
-| pi | none: bundled with oar, including the current subprocess installation probe | native `pi update --self` exists; OAR has not connected it to selected executable discovery yet |
+| pi | bundled / in-process: none. Standalone `createPiRuntime({ execution: "subprocess", command: "pi" })`: `pi.dev/api/latest-version`, newer semver only | standalone `command: "pi"`: `pi update --self --no-approve`; bundled: none |
 | cursor | none: `@cursor/sdk` is the host's to install and pin (OAR's optional peer dependency, 1.4.1) | none |
 
 A kimi native install stages the new binary and swaps it in on its next

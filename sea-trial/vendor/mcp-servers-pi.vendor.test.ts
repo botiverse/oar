@@ -1,16 +1,14 @@
-import { isPiBackend, piSession } from "./support/pi-runtime.js";
+import { isPiBackend, piInstallation, piSession } from "./support/pi-runtime.js";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { defineRuntime, piRuntime } from "../../packages/oar/src/index.js";
+import { defineRuntime } from "../../packages/oar/src/index.js";
 
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startPiAimock, type LLMock, type RawProviderRequest } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { CLASH_ECHO, currentTurnSays, ECHO_SERVER, echoesReceived, echoServers, EXPECTED_ECHOES, leakedCredentials, scriptEchoes, startHttpEcho, stdioEcho, STDIO_TOKEN } from "./support/echo-mcp.js";
 import { structuralToolRound } from "./support/tool-round.js";
-
-const piInstallation = piRuntime.installation;
 
 /**
  * SessionOptions.mcpServers on the bundled pi SDK against a scripted

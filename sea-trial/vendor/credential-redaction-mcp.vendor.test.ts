@@ -1,4 +1,4 @@
-import { isPiBackend, piSession } from "./support/pi-runtime.js";
+import { isPiBackend, piSession, piTestInstallation } from "./support/pi-runtime.js";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -22,7 +22,7 @@ test.skipIf(!isPiBackend)("Pi isolates credentialed MCP metadata in process and 
     mock.on({ hasToolResult: true }, { content: "done" });
   });
   try {
-    const session = await piSession({ kind: "available", via: "bundled" }, {
+    const session = await piSession(piTestInstallation, {
       cwd: directory, model: "aimock/aimock-model", env: { DATABASE_URL: databaseUrl },
       mcpServers: [
         { name: "local", command: process.execPath, args: [ECHO_SERVER], env: { DEBUG: "true", LOG_LEVEL: "debug", NODE_ENV: "production", MONGODB_URI: mongoUrl } },

@@ -151,13 +151,23 @@ compiled single executable (Node SEA or Bun standalone) or an Electron host
 (Pi RPC launches `process.execPath` without `ELECTRON_RUN_AS_NODE`), and
 `code: "dependency_missing"` when `@earendil-works/pi-coding-agent/rpc-entry`,
 `@earendil-works/pi-coding-agent`, or `@earendil-works/pi-ai` cannot be
-resolved in the host. With an explicit `command`, `installation()` locates the
-command (`not_found` when absent), checks its `--version` against
-`PI_RPC_MINIMUM_VERSION` (`1.4.0`, returning `version_unsupported` when below
-the floor or unreadable), and still checks that both optional dependencies are
-available in the host (`dependency_missing` otherwise): OAR's host process uses
-them for session lookup, project-package checks, and context-overflow detection
-even when `pi` itself runs from `command`. Note that the RPC extension
+resolved in the host. With an explicit `command`, `installation()` locates the command
+(`not_found` when absent), checks its `--version` against
+`PI_RPC_MINIMUM_VERSION` (`1.4.0`, returning `version_unsupported` with
+`installedVersion` and `requiredVersion` when below the floor or unreadable),
+still verifies that both optional dependencies are available in the host
+(`dependency_missing` otherwise: OAR's host process uses them for session
+lookup, project-package checks, and context-overflow detection even when `pi`
+runs from `command`), and returns `available` with `via: "executable"`,
+`command`, `version`, and any `shadowed` copies. When configured specifically as
+standalone `createPiRuntime({ execution: "subprocess", command: "pi" })` without
+`args`, `installation()` also checks common off-PATH locations (`~/.local/bin`,
+the agent install directory, and `npm prefix -g`), and exposes `installPlan`
+and `install` (`npm install -g --ignore-scripts @earendil-works/pi-coding-agent`),
+`checkUpdate` (`https://pi.dev/api/latest-version`), and `upgrade`
+(`pi update --self --no-approve`). Custom paths and wrapper configurations with
+`args` omit `install`, `installPlan`, `checkUpdate`, and `upgrade` so OAR never
+installs over or self-updates a host executable. Note that the RPC extension
 (`packages/oar/src/runtimes/pi/rpc/extension.ts`) itself does not need host
 copies: Pi's own extension loader serves Pi's bundled `@earendil-works/pi-coding-agent`
 and `@earendil-works/pi-ai` modules to loaded extensions
@@ -169,13 +179,16 @@ CI runs the Windows Pi RPC vendor suite in `ci.yml` (`pi-rpc-windows`) and the
 Windows Pi RPC behavior suite daily in `platform-matrix.yml`
 (`verifiedPlatforms.pi` includes `win32`).
 
-Pi has native `pi update --self --no-approve`: an isolated npm installation
-successfully moved from 1.3.0 to 1.5.2 without stdin
-([evidence](../../experiments/old-cli-upgrade/README.md)). OAR has not exposed
-that updater yet: an explicit subprocess `command` can be a host executable
-with prefix arguments, and upgrading the host or Node executable would be
-wrong. Bundled SDK dependencies remain the embedding application's
-responsibility.
+For an explicit `command`, `listModels`, `skills`, and `commands` always query
+the selected RPC subprocess with the probed `executable` command (even when no
+`env` overlay is supplied), `tools` returns `unsupported` (`installation_unsupported`)
+because Pi RPC exposes no `get_tools` command, and `providers` reads shared
+`auth.json` with built-in provider metadata from the host SDK. The external CLI's
+`install`, `checkUpdate`, and `upgrade` paths rely on Pi's official npm package,
+version endpoint, and standalone `pi update --self --no-approve` flow
+([native upgrade probe](../../experiments/old-cli-upgrade/README.md)); live `pi`
+install/upgrade mutations are not run in CI. Bundled SDK dependencies remain
+the embedding application's responsibility.
 
 With a normal package tree OAR reads the dependency's package metadata directly.
 For a bundled host it uses Pi's source `PI_AI_VERSION` constant; the test suite
@@ -275,9 +288,13 @@ crashes produce the actual process exit; they do not fabricate a turn end.
 Interactive extension requests remain native app requests; OAR cancels dialogs
 that require a reply rather than hanging without a host UI bridge.
 
-The ordinary `installation`, model catalog and inventory members still inspect
-OAR's bundled Pi. The selected process command is validated at session open.
-Provider login and account APIs remain outside the session interface.
+Without an explicit `command`, the ordinary `installation`, model catalog and
+inventory members still inspect OAR's bundled Pi (with env-changed reads falling
+back to the bundled RPC subprocess). With an explicit `command`,
+`installation()` probes that command and returns `via: "executable"`,
+`listModels`, `skills`, and `commands` query the selected RPC subprocess
+directly, and `tools` returns `unsupported`. Provider login and account APIs
+remain outside the session interface.
 
 Evidence: [native RPC probe](../../experiments/pi-rpc-native/README.md),
 [process-boundary tests](../../sea-trial/vendor/pi-rpc.vendor.test.ts),
@@ -356,7 +373,9 @@ For RPC, OAR runs that same preflight before probing or starting the child.
 The SDK was already imported for native session-file lookup; this adds a
 settings manager and metadata resolution, not services or extension loading
 inside the host. Project policy also applies to the factory's model listing
-and inventories, which remain SDK-backed in both execution modes. The
+and inventories, whether served by the host SDK (in-process or unchanged-env
+bundled RPC) or by the RPC subprocess preflight (explicit `command`, or
+bundled RPC when `env` changes host values). The
 preflight's native offline exception is the host's `PI_OFFLINE` setting, just
 as in process. Child environment overrides do not relax this host policy.
 
@@ -1188,10 +1207,13 @@ fallback backs `abort()` (Claude, Codex and the ACP runtimes begin process
 termination after ten seconds without a turn end).
 [Adapter](../../packages/oar/src/runtimes/pi/session.ts).
 
-**Mapped:** installation checks that the bundled SDK resolves or imports;
+**Mapped:** on the default bundled SDK path, installation checks that the bundled SDK resolves or imports;
 there is no executable to probe and no version to report. The Pi SDK packages are optional dependencies of OAR (installed by default,
-direct dependencies of the CLI) and move with OAR's published range, so Pi has
-no `checkUpdate` or `upgrade` ([runtime updates](update.md)). Native providers
+direct dependencies of the CLI) and move with OAR's published range, so bundled Pi has
+no `checkUpdate` or `upgrade` ([runtime updates](update.md); see
+[Optional native RPC process](#optional-native-rpc-process) for standalone
+`createPiRuntime({ execution: "subprocess", command: "pi" })`, which exposes `installPlan`,
+`install`, `checkUpdate`, and `upgrade`). Native providers
 support API keys and OAuth; `createPiProviderAuth` exposes per-provider
 status, interactive login (auth-URL / device-code / prompt events bridged from
 pi's `AuthInteraction`), `setApiKey` and logout through `ModelRuntime`,
@@ -1458,13 +1480,16 @@ credential resolution and SDK-owned key commands keep the host environment.
 Installation probes the bundled SDK and is independent of the overlay. OAR
 never changes `process.env`.
 
-With `execution: "subprocess"`, model, skill and command readers choose their
+With bundled `execution: "subprocess"` (no `command`), model, skill and command readers choose their
 path on each call by comparing the overlay with the host environment. Omission,
 `{}`, equal values and removal of absent variables keep the host SDK path,
 without starting an RPC process. That path retains native provider display
 names, the saved default model, command `argumentHint`, skill
 `disableModelInvocation` and loading diagnostics. Its inventories can report
-`partial:false` when discovery completes without errors.
+`partial:false` when discovery completes without errors. When `command` is
+provided (`execution: "subprocess", command`), `listModels`, `skills`, and
+`commands` always query the selected RPC subprocess directly without falling
+back to the host SDK.
 
 An overlay that actually changes a host value uses one bounded native RPC
 process per call. The readers reuse the session startup path:
@@ -1479,10 +1504,12 @@ cannot launch a new process. Native startup can execute extension
 `session_start` hooks, including user code and credential commands.
 
 `Runtime.minVersion` on the subprocess runtime declares the explicit-command
-RPC floor, `1.4.0`. That floor only governs a native RPC process, not readers
-using the bundled SDK, even when the runtime has a custom `command`. The
-default RPC entry must still match the bundled Pi version exactly. A version
-preflight refusal returns `unsupported` with `code: "version_unsupported"`,
+RPC floor, `1.4.0`. With an explicit `command`, that floor governs
+`installation()`, sessions, and direct RPC readers (`listModels`, `skills`, and
+`commands`), refusing supplied or probed invalid versions before a reader query
+starts. Bundled `execution: "subprocess"` keeps host-SDK readers on unchanged
+`env` and still requires its RPC entry to match the bundled Pi version exactly.
+A version preflight refusal returns `unsupported` with `code: "version_unsupported"`,
 `requiredVersion` (the floor or exact bundled requirement) and, when readable,
 `installedVersion` for models, skills and commands. No RPC query process
 starts after that refusal. Other native startup or query errors retain the
@@ -1509,15 +1536,17 @@ Error without native details. `orient()` records the rejection as `failed`, or
 `timed_out` if its own budget expires first. Inventory failures retain their
 `unavailable` result with `query_failed` or `timeout`.
 
-Pi RPC exposes neither a tool nor a provider inventory. Those two readers
-remain in the host SDK. In subprocess mode they reject any overlay that
+Pi RPC exposes neither a tool nor a provider inventory. `providers` remains in
+the host SDK in both subprocess modes; when `command` is set, `tools` returns
+`unsupported` (`installation_unsupported`, without throwing on changed `env`),
+whereas bundled `execution: "subprocess"` keeps `tools` in the host SDK. Whenever a reader stays in the host SDK under subprocess mode, it rejects any overlay that
 actually changes a host value with `UnsupportedOptionError("env")` before SDK
 loading, listing only changed variable names. Omission, `{}`, equal values,
 and removing an absent variable are accepted. This also covers arbitrary
 variables used by extensions, custom providers or `!` credential commands;
-a fixed list of API-key variables would miss them. Revisit this fallback if
+a fixed list of API-key variables would miss them. Revisit the SDK-bound readers if
 native RPC gains those queries or a host needs them under another environment.
-`orient()` records the refusal as unsupported. Bundled installation discovery
+`orient()` records `UnsupportedOptionError("env")` on `providers` or bundled `tools` as unsupported. Bundled installation discovery
 remains in the host and independent of env.
 See [reader environments](../spec/orientation.md#environment) and the
 [native regressions](../../sea-trial/vendor/pi-rpc-readers.vendor.test.ts).
