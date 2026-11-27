@@ -25,11 +25,12 @@ export async function antigravitySkillMetadata(path: string, signal: AbortSignal
   signal.throwIfAborted();
   try {
     const contents = await readFile(path, { encoding: "utf8", signal });
+    // Native agy slices between the first two `---` markers and trims the YAML block.
     const source = contents.trimStart();
-    if (!source.startsWith("---\n") && !source.startsWith("---\r\n")) { return null; }
-    const end = /\r?\n---(?:\r?\n|$)/u.exec(source.slice(3));
-    if (end === null) { return null; }
-    const header = source.slice(3, 3 + end.index);
+    if (!source.startsWith("---")) { return null; }
+    const end = source.indexOf("---", 3);
+    if (end === -1) { return null; }
+    const header = source.slice(3, end).trim();
     const parsed: unknown = safeLoad(header, { schema: typedSchema });
     const record = asRecord(parsed);
     if (record === null && parsed !== undefined && parsed !== null) { return null; }

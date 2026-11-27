@@ -131,6 +131,30 @@ test.each([
   expect(result === null ? null : { ...result.item, path: undefined }).toEqual(expected === null ? null : { ...expected, path: undefined });
 });
 
+test.each([
+  ["open trailing spaces", "---   \nname: open-sp\ndescription: ok\n---\nbody\n", { name: "open-sp", description: "ok", disableModelInvocation: false }],
+  ["open trailing tab", "---\t\nname: open-tab\ndescription: ok\n---\nbody\n", { name: "open-tab", description: "ok", disableModelInvocation: false }],
+  ["close trailing spaces", "---\nname: close-sp\ndescription: ok\n---   \nbody\n", { name: "close-sp", description: "ok", disableModelInvocation: false }],
+  ["close indented", "---\nname: close-indent\ndescription: ok\n   ---\nbody\n", { name: "close-indent", description: "ok", disableModelInvocation: false }],
+  ["crlf padded fences", "---   \r\nname: crlf-pad\r\ndescription: ok\r\n  ---  \r\nbody\r\n", { name: "crlf-pad", description: "ok", disableModelInvocation: false }],
+  ["empty padded fences", "---   \n   ---   \nbody\n", { name: "folder", disableModelInvocation: false }],
+  ["bom before fence", "\uFEFF---\nname: bom-ok\n---\nbody\n", { name: "bom-ok", disableModelInvocation: false }],
+  ["comment on opening line", "--- # note\nname: open-comment\n---\nbody\n", { name: "open-comment", disableModelInvocation: false }],
+  ["single-line frontmatter", "--- name: single-line ---\nbody\n", { name: "single-line", disableModelInvocation: false }],
+  ["first closing marker wins", "---\nname: before---after\n---\nbody\n", { name: "before", disableModelInvocation: false }],
+  ["four-dash opening rejected", "----\nname: four-dash\n---\nbody\n", null],
+  ["four-dash empty rejected", "----\n---\nbody\n", null],
+  ["trailing text on opening rejected", "--- foo\nname: open-foo\n---\nbody\n", null],
+  ["indented mapping rejected after trim", "---\n  name: indented\n  description: bad\n---\nbody\n", null],
+  ["scalar between fences rejected", "---foo---\nbody\n", null],
+  ["dot closing fence rejected", "---\nname: dot-close\n...\nbody\n", null],
+  ["unclosed fence rejected", "---   \nname: unclosed\n", null],
+])("frontmatter delimiter boundaries match agy 1.5.18: %s", async (_label, contents, expected) => {
+  const f = await fixture(); const path = join(f.cwd, "folder/SKILL.md"); await file(path, contents);
+  const result = await antigravitySkillMetadata(path, AbortSignal.timeout(1000));
+  expect(result === null ? null : { ...result.item, path: undefined }).toEqual(expected === null ? null : { ...expected, path: undefined });
+});
+
 fileTest.each(verifiedVersions)("%s preserves native paths through cwd, skill and manifest directory links", async version => {
   const f = await fixture(); const repo = dirname(f.cwd);
   const alias = join(f.home, "cwd-alias"); await symlink(f.cwd, alias, "junction");
