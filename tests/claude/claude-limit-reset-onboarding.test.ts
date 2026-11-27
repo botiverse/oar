@@ -7,6 +7,8 @@ import { onboardingScreen } from "../../packages/oar/src/runtimes/claude/limit-r
 const fixture = (name: string): string => readFileSync(new URL(`limit-reset-fixtures/${name}.txt`, import.meta.url), "utf8");
 const theme = fixture("onboarding-theme");
 const security = fixture("onboarding-security");
+const themeAuto = theme.replace("     Auto (match terminal)\n ❯ ✔ Dark mode", " ❯ ✔ Auto (match terminal)\n     Dark mode").replace("v2.1.322", "v2.1.332");
+const securityPlain = security.replace("Press Enter to continue…", "Press Enter to continue").replace("v2.1.322", "v2.1.332");
 const trust = fixture("trust");
 const prompt = fixture("prompt");
 beforeEach(() => { vi.useFakeTimers(); });
@@ -125,5 +127,37 @@ for (const page of ["Agree to data sharing", "New agreement\nEnter to confirm ·
     const report = await result;
     assert.deepEqual(report.result, { kind: "not_attempted", reason: "startup_failed", startup: { screen: "onboarding" } });
     assert.deepEqual(run.writes, ["\r"]);
+  });
+}
+
+test("2.1.332 Auto default theme and Security notes without ellipsis are accepted when exact, and modifications still reject with zero keys", () => {
+  assert.notEqual(themeAuto, theme.replace("v2.1.322", "v2.1.332"));
+  assert.notEqual(securityPlain, security.replace("v2.1.322", "v2.1.332"));
+  assert.equal(onboardingScreen(themeAuto), "theme");
+  assert.equal(onboardingScreen(securityPlain), "security");
+  for (const changed of [
+    themeAuto.replace(" ❯ ✔ Auto (match terminal)\n     Dark mode\n     Light mode", "     Auto (match terminal)\n     Dark mode\n ❯ ✔ Light mode"),
+    `${themeAuto}\nAgree to new terms`,
+    securityPlain.replace("Press Enter to continue", "Press Enter to agree"),
+    securityPlain.replace("Claude can make mistakes.", "Allow data collection."),
+  ]) {
+    assert.notEqual(changed, themeAuto);
+    assert.notEqual(changed, securityPlain);
+    assert.equal(onboardingScreen(changed), "unrecognised");
+  }
+});
+
+for (const operation of ["read", "redeem"] as const) {
+  test(`${operation}: completes 2.1.332 Auto-theme onboarding defaults and Security notes`, async () => {
+    const run = setup([themeAuto, securityPlain, trust, prompt.replace("v2.1.322", "v2.1.332")], 1500);
+    const result = operation === "read"
+      ? run.driver.read({ command: "claude", atFiveHourLimit: false })
+      : run.driver.redeem({ command: "claude", kind: "weekly", idempotencyKey: "onboarding-2.1.332" });
+    await vi.advanceTimersByTimeAsync(15_000);
+    const report = await result;
+    assert.deepEqual(report.result, { kind: "not_attempted", reason: "usage_unread", onboardingCompleted: true });
+    assert.equal(report.claudeVersion, "2.1.332");
+    assert.deepEqual(run.writes, ["\r", "\r", "\u001B[B", "\r"]);
+    assert.equal(run.killed(), true);
   });
 }

@@ -235,7 +235,8 @@ export interface LimitResetKindStatus {
   readonly id: string;
   /**
    * `available`: held (and `resetsLeft` when the runtime showed a count).
-   * `none`: not held. `not_offered`: the account's program has no such kind.
+   * `none`: not held. `not_offered`: the account's program has no such kind,
+   * or the runtime explicitly reported this reset cannot be used right now.
    * `unknown`: opened and not recognised. `not_checked`: not opened.
    */
   readonly state: "available" | "none" | "not_offered" | "unknown" | "not_checked";

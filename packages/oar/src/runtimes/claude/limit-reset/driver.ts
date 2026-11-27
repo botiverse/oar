@@ -76,8 +76,8 @@ import { TerminalScreen } from "./terminal-screen.js";
  *   says so (`fiveHourSpent`).
  */
 
-/** The Claude Code version whose `/limit-reset` screens the recognisers were recorded from. */
-export const CLAUDE_LIMIT_RESET_RECORDED_VERSION = "2.1.322";
+/** The latest Claude Code version whose `/limit-reset` screens the recognisers were recorded from (with 2.1.322). */
+export const CLAUDE_LIMIT_RESET_RECORDED_VERSION = "2.1.332";
 /** The whole budget of one call, from its arrival, unless the caller gives one. */
 export const CLAUDE_LIMIT_RESET_TIMEOUT_MS = 75_000;
 
@@ -663,6 +663,7 @@ async function redeemInSession(session: ClaudeSession, kind: ClaudeLimitResetKin
             ? { result: { kind: "reset" }, remember: true }
             : { result: { kind: "unknown", fiveHourSpent: true }, step: "result", remember: true };
         case "kept":
+        case "not_offered":
         case "reset":
         case "unrecognised":
           return unknownAt("result");
@@ -759,6 +760,8 @@ async function readInSession(session: ClaudeSession, kinds: readonly ClaudeLimit
     }
     if (shown.is === "result" && shown.line.is === "none") {
       found.set(kind, { id: kind, state: "none" });
+    } else if (shown.is === "result" && shown.line.is === "not_offered") {
+      found.set(kind, { id: kind, state: "not_offered" });
     } else if (shown.is === "result" && shown.line.is === "needs_limit") {
       // Held, but usable only at a limit; that line's count is not per kind.
       found.set(kind, { id: kind, state: "available" });

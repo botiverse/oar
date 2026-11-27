@@ -14,7 +14,7 @@ import {
   type ClaudeLimitResetRedeemInput,
   type ClaudeLimitResetsReadInput,
 } from "../../packages/oar/src/runtimes/claude/limit-reset/driver.js";
-import { promptInput, startupScreenOf, type ClaudeLimitResetKind as RuntimeLimitResetKind } from "../../packages/oar/src/runtimes/claude/limit-reset/screens.js";
+import { commandScreen, confirmDialog, promptInput, startupScreenOf, type ClaudeLimitResetKind as RuntimeLimitResetKind } from "../../packages/oar/src/runtimes/claude/limit-reset/screens.js";
 import type { OpenClaudeLimitResetTerminal } from "../../packages/oar/src/shared/executable/script-terminal.js";
 
 // Every screen here is one Claude Code 2.1.322 drew in the offline harness
@@ -1240,4 +1240,174 @@ test("a trust screen with content after its footer is never accepted", async () 
   assert.equal(claude.keys(), ESCAPE);
   assert.equal(claude.enters("prompt"), 0);
   assert.equal(claude.kills, 1);
+});
+
+/** Builds a terminal screen showing a command echo, a 2.1.332 NBSP result block, and an empty returned prompt. */
+function nbspResultScreen(command: string, resultLines: readonly string[]): string {
+  const block = [`❯ ${command}`, `  ⎿ \u00A0${resultLines[0] ?? ""}`, ...resultLines.slice(1).map((line) => `     ${line}`), ""].join("\n");
+  return fixture("prompt").replace("Claude Code v2.1.322", "Claude Code v2.1.332").replace("────────", `${block}────────`);
+}
+
+const as2_1_332 = (text: string): string => text.replaceAll("Claude Code v2.1.322", "Claude Code v2.1.332").replaceAll("  ⎿  ", "  ⎿ \u00A0");
+const NONE_LINE = "No reset to use · you're not at a usage limit right now";
+
+function replaceNoneWith(line: string): { screenText: (text: string) => string; count: number } {
+  const tracker = {
+    count: 0,
+    screenText: (text: string): string => {
+      const nbsp = as2_1_332(text);
+      if (!nbsp.includes(NONE_LINE)) { return nbsp; }
+      tracker.count += 1;
+      const rewritten = nbsp.replaceAll(NONE_LINE, line);
+      assert.notEqual(rewritten, nbsp);
+      return rewritten;
+    },
+  };
+  return tracker;
+}
+
+const NOT_OFFERED_LINES = [
+  "Your 5-hour reset can't be used while you're at your weekly limit · you can use a weekly reset, a Fable reset or a full reset",
+  "Your Fable reset can't be used right now · no Fable usage this week to give back · you can use a weekly reset",
+  "Your weekly reset can't be used while you're at another limit it doesn't refill · you can use a Fable reset",
+  "Your reset doesn't refill your weekly limit, so it can't be used until that resets · this limit resets Nov 28, 7:30am",
+  "Your reset can't be used for this limit right now · this limit resets Nov 28, 7:30am",
+  "Your reset can't be used right now · it is paused · 2 resets left · use by Nov 28, 7:30am",
+  "None of your resets refill your weekly limit · this limit resets Nov 28, 7:30am",
+  "Resets can't be used while you continue at lower priority · run /limit-reset after that ends",
+] as const;
+
+test("2.1.332 NBSP result gutter: read, wrapped continuation, and redeem succeed across the recorded chrome", async () => {
+  const inspected = new FakeClaude({ commands: READ_ALL, screenText: as2_1_332 });
+  const readReport = await finish(driverFor(inspected).driver.read({ atFiveHourLimit: false, includeFiveHour: true }));
+  assert.equal(readReport.claudeVersion, "2.1.332");
+  assert.equal(readReport.step, undefined);
+  assert.ok(readReport.result.kind === "inspected");
+  assert.deepEqual(readReport.result.resets.map((reset) => reset.state), ["available", "available", "available", "available"]);
+  assertNeverConfirmed(inspected);
+
+  const redeemed = new FakeClaude({ commands: confirmFor("weekly"), screenText: as2_1_332 });
+  const redeemReport = await finish(driverFor(redeemed).driver.redeem({ kind: "weekly", idempotencyKey: KEY }));
+  assert.deepEqual(redeemReport, { result: { kind: "reset" }, claudeVersion: "2.1.332" });
+  assert.equal(redeemed.dialogEnters, 1);
+
+  const wrapped = nbspResultScreen("/limit-reset 5-hour", [
+    "Your 5-hour reset can't be used while you're at your weekly limit · you can use a weekly reset, a Fable reset or a",
+    "full reset",
+  ]);
+  assert.deepEqual(commandScreen(wrapped, "/limit-reset 5-hour"), { is: "result", line: { is: "not_offered" } });
+});
+
+test("2.1.332 not_offered lines: read records not_offered and continues through remaining kinds", async () => {
+  for (const line of NOT_OFFERED_LINES) {
+    assert.deepEqual(commandScreen(nbspResultScreen("/limit-reset weekly", [line]), "/limit-reset weekly"), {
+      is: "result",
+      line: { is: "not_offered" },
+    }, line);
+  }
+  assert.deepEqual(
+    commandScreen(nbspResultScreen("/limit-reset weekly", ["Your weekly reset can't be used tomorrow · unknown reason"]), "/limit-reset weekly"),
+    { is: "result", line: { is: "unrecognised" } },
+  );
+
+  // In a mixed read, not_offered on weekly does not halt inspection of fable and full.
+  const mixedReplacer = replaceNoneWith(NOT_OFFERED_LINES[0]);
+  const mixed = new FakeClaude({
+    commands: {
+      "/limit-reset weekly": { shows: "read-none-weekly" },
+      "/limit-reset fable": { shows: "read-confirm-fable", dialog: { afterEscape: "read-kept-fable" } },
+      "/limit-reset full": { shows: "read-none-full" },
+      "/limit-reset 5-hour": { shows: "read-none-five_hour" },
+    },
+    screenText: (text) => text.includes("❯ /limit-reset full") ? as2_1_332(text) : mixedReplacer.screenText(text),
+  });
+  const mixedReport = await finish(driverFor(mixed).driver.read({ atFiveHourLimit: false }));
+  assert.ok(mixedReport.result.kind === "inspected");
+  assert.equal(mixedReport.step, undefined);
+  assert.ok(mixedReplacer.count > 0);
+  assert.deepEqual(mixedReport.result.resets.map((reset) => [reset.id, reset.state]), [
+    ["five_hour", "not_checked"],
+    ["weekly", "not_offered"],
+    ["fable", "available"],
+    ["full", "none"],
+  ]);
+});
+
+test("2.1.332 not_offered lines: redeem fails closed as unknown", async () => {
+  const blocked = replaceNoneWith(NOT_OFFERED_LINES[0]);
+  const redeemBlocked = new FakeClaude({
+    commands: { "/limit-reset weekly": { shows: "none", recordedWith: "/limit-reset 5-hour" } },
+    screenText: blocked.screenText,
+  });
+  const redeemReport = await finish(driverFor(redeemBlocked).driver.redeem({ kind: "weekly", idempotencyKey: KEY }));
+  assert.ok(blocked.count > 0);
+  assert.deepEqual(redeemReport.result, { kind: "unknown" });
+  assert.equal(redeemReport.step, "result");
+});
+
+test("2.1.332 spent zero-left line and transient unavailable line", async () => {
+  const spentReader = replaceNoneWith("Reset used · no resets left");
+  const spentRead = new FakeClaude({
+    commands: { "/limit-reset weekly": { shows: "read-none-weekly" }, "/limit-reset fable": { shows: "read-none-fable" }, "/limit-reset full": { shows: "read-none-full" } },
+    screenText: spentReader.screenText,
+  });
+  const spentInspection = await finish(driverFor(spentRead).driver.read({ atFiveHourLimit: false }));
+  assert.ok(spentInspection.result.kind === "inspected");
+  assert.equal(spentInspection.step, undefined);
+  assert.ok(spentReader.count >= 3);
+  assert.deepEqual(spentInspection.result.resets.map((reset) => reset.state), ["not_checked", "none", "none", "none"]);
+
+  const beforeReplacer = replaceNoneWith("Reset used · no resets left");
+  const spentRedeemBefore = new FakeClaude({
+    commands: { "/limit-reset weekly": { shows: "none", recordedWith: "/limit-reset 5-hour" } },
+    screenText: beforeReplacer.screenText,
+  });
+  const beforeReport = await finish(driverFor(spentRedeemBefore).driver.redeem({ kind: "weekly", idempotencyKey: KEY }));
+  assert.ok(beforeReplacer.count > 0);
+  assert.deepEqual(beforeReport.result, { kind: "no_reset" });
+
+  const afterReplacer = replaceNoneWith("Reset used · no resets left");
+  const spentRedeemAfter = new FakeClaude({
+    commands: { "/limit-reset weekly": { shows: "confirm-weekly", dialog: { afterEnter: "none", afterEscape: "prompt" } } },
+    screenText: (text, mode) => mode === "prompt" && text.includes("❯ /limit-reset 5-hour")
+      ? afterReplacer.screenText(text).replace("❯ /limit-reset 5-hour", "❯ /limit-reset weekly")
+      : as2_1_332(text),
+  });
+  const afterReport = await finish(driverFor(spentRedeemAfter).driver.redeem({ kind: "weekly", idempotencyKey: KEY }));
+  assert.ok(afterReplacer.count > 0);
+  assert.deepEqual(afterReport.result, { kind: "unknown" });
+
+  const transientReplacer = replaceNoneWith("Couldn't check for a reset right now · try again in a moment");
+  const transient = new FakeClaude({
+    commands: { "/limit-reset weekly": { shows: "read-none-weekly" }, "/limit-reset fable": { shows: "read-confirm-fable" } },
+    screenText: transientReplacer.screenText,
+  });
+  const transientReport = await finish(driverFor(transient).driver.read({ atFiveHourLimit: false }));
+  assert.ok(transientReport.result.kind === "inspected");
+  assert.equal(transientReport.step, "result");
+  assert.ok(transientReplacer.count > 0);
+  assert.deepEqual(transientReport.result.resets.map((reset) => reset.state), ["not_checked", "unknown", "unknown", "unknown"]);
+  assert.equal(transient.keys().split("/limit-reset").length - 1, 1);
+});
+
+test("2.1.332 unnumbered early-use warning and lowercase sign-in prompt", async () => {
+  const earlySource = fixture("early-use-five_hour").replaceAll("5-hour", "weekly").replaceAll("five-hour", "weekly");
+  const earlyNoNumber = earlySource.replace("You still have 63% of your weekly limit left \u2014 use your weekly reset anyway?", "You haven't reached a limit yet \u2014 use your weekly reset anyway?");
+  assert.notEqual(earlyNoNumber, earlySource);
+  assert.deepEqual(confirmDialog(earlyNoNumber), { kind: "weekly", resetsLeft: 2, expiresText: "Nov 19, 5:33pm" });
+  const alteredEarly = earlyNoNumber.replace("use your weekly reset anyway?", "spend your weekly reset anyway?");
+  assert.notEqual(alteredEarly, earlyNoNumber);
+  assert.equal(confirmDialog(alteredEarly), null);
+
+  const lowerSignIn = new FakeClaude({
+    startsAt: "sign-in",
+    screenText: (text) => {
+      const rewritten = text.replace("Not logged in · Run /login", "Not logged in · run /login");
+      if (text.includes("Not logged in")) { assert.notEqual(rewritten, text); }
+      return rewritten;
+    },
+  });
+  const signInReport = await finish(driverFor(lowerSignIn).driver.read({ atFiveHourLimit: false }));
+  assert.deepEqual(signInReport.result, { kind: "reauth_required", reason: "not_authenticated" });
+  assert.equal(lowerSignIn.keys(), "");
 });
