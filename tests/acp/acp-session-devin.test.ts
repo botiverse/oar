@@ -89,6 +89,20 @@ test("devin switches model and effort via session/set_config_option rather than 
   );
 });
 
+test("devin runs a whole terminal command line through a shell", async () => {
+  const dir = scratchDir("oar-devin-shell-");
+  const marker = path.join(dir, "marker.txt");
+  const log = path.join(dir, "calls.txt");
+  await withDevinSession({ cwd: dir, env: { FAKE_DEVIN_CALL_LOG: log } }, async (session) => {
+    const run = await promptAndWait(session, `terminal-shell ${marker}`);
+    expect(run).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
+    // The line only runs if OAR hands it to a shell: spawned as an executable, the whole line is one missing file.
+    expect(readFileSync(marker, "utf8")).toBe("shell-line-ok");
+    expect(session.records().map((record) => describe(record)).findLast((line) => line.startsWith("event agent_message_chunk"))).toBe("event agent_message_chunk → text:terminal:shell-line-ok");
+    expect(readCalls(log)).toContain("toApp:terminal/create");
+  });
+});
+
 test("devin maps -32603 sign-in errors at open to RuntimeFailureError('auth') with preserved native cause", async () => {
   const dir = scratchDir("oar-devin-open-auth-");
   const message = "Failed to load team settings: Failed to fetch team settings: Authentication required: invalid api key";

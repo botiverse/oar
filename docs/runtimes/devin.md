@@ -39,6 +39,25 @@ Devin behaves, and why OAR maps it this way.
 - **No account usage, limit resets or provider settings.** Devin has no
   native surface for them.
 
+## Shell commands
+
+Devin runs its commands in terminals it asks OAR to host (`terminal/create`).
+The request carries the tool's whole command line in `command` and omits
+`args` (3000.14.30821), so OAR starts it through a shell
+(`terminalShellCommand`, as for Grok). Spawned as an executable, the line is
+one long file name and every command fails
+(`Internal error: spawn echo … ENOENT`); in the run below Devin found only
+single words (`true`, `id`) working and routed the rest through a `Makefile`.
+
+**Verified:** Linux x64, CLI 3000.14.30821, real account, one turn per run.
+Without the flag the turn's `terminal/create`
+(`command: "echo shell-line-ok > shell-marker.txt"`, no `args`) was answered
+`{"error":"Internal error: spawn echo shell-line-ok > shell-marker.txt ENOENT"}`
+and the marker file was never written; with it, `command: "echo shell-line-ok
+> shell-marker.txt ; cat shell-marker.txt"` was answered with a terminal id
+and the turn reported `shell-line-ok`
+([test](../../tests/acp/acp-session-devin.test.ts)).
+
 ## Authentication
 
 On 2026-11-21, OAR 0.125.0 read `logged_in` on Devin Pro with CLI
@@ -101,7 +120,8 @@ disable them was found.
 
 CI has no `aimock` backend for Devin because it talks ConnectRPC to
 Cognition's servers; live verification covers one Linux `3000.14.30821`
-`logged_in` read, model list, and `swe-2-high` turn above. Still open: rate-limit
+`logged_in` read, model list, an `swe-2-high` turn, and the
+[shell command line](#shell-commands) above. Still open: rate-limit
 and quota payloads, mid-turn prompts, tool-call detail, child attribution,
 installer runs on Linux and Windows, and skill queries on macOS and Windows.
 

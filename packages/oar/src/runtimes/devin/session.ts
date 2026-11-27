@@ -52,6 +52,9 @@ export const devinAcpProfile: AcpSessionProfile = {
     refuseSessionOptions(devinRefusedSessionOptions, options);
   },
   modelViaConfigOption: true,
+  // Devin's terminal/create carries a whole command line in `command`, without `args` (3000.14.30821);
+  // spawned as an executable, every command a turn runs fails ("spawn echo … ENOENT").
+  terminalShellCommand: true,
   openFailure: devinOpenFailure,
   failureOutcome: devinFailureOutcome,
   configureSession: async ({ request, sessionId, response }) => {
