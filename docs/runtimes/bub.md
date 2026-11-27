@@ -133,8 +133,10 @@ a refused one, so `credential` is not set.
 
 ### Installation
 
-`bub` on `PATH` (or `OAR_BUB_BIN`) whose `bub acp --help` describes the ACP
-server: a Bub without the `bub-acp-server` plugin is not usable. `oar
+`bub` on `PATH` (or `OAR_BUB_BIN`), else `~/.local/bin/bub`, where the
+installer links it, for hosts that do not have that folder on `PATH`. Its
+`bub acp --help` must describe the ACP server: a Bub without the
+`bub-acp-server` plugin is not usable. `oar
 install bub` runs `curl -fsSL https://bub.build/install.sh | bash -s --
 --preset acp`, which installs uv when none is on PATH, creates
 `~/.bub/.venv`, links `~/.local/bin/bub` and installs the `acp` preset's
@@ -155,6 +157,13 @@ plugins without prompting. An existing Bub gets the plugin with
 - **Context window**: when the provider reports none, `usage_update` names
   `BUB_ACP_SERVER_CONTEXT_WINDOW_SIZE` (default 128000), not the model's
   real window.
+- **Token usage by provider**: the turn's tokens are read as
+  `totalTokens - outputTokens` input, which holds where the provider's input
+  count includes cached tokens (OpenAI-style chat completions, DeepSeek).
+  Bub reports Anthropic-style usage with cache reads and writes outside
+  `inputTokens` and the same `totalTokens` shape, so such a provider's input
+  would be undercounted and its cache fields dropped; only DeepSeek and
+  aimock are verified.
 - **No steer, login, account usage, model listing, update check, compaction
   or session listing** through OAR.
 - **No CI job**: no CI runner installs `bub`; the behavior suite is a local
@@ -183,6 +192,6 @@ plugins without prompting. An existing Bub gets the plugin with
   - Two sessions on one `BUB_HOME`, the second opened before the first's
     prompt: the second dropped from the index and its resume refused.
 - Unit tests: [session](../../tests/community/bub/bub-session.test.ts) for
-  the version reader, the install line, the `launchArgs` refusal, provider
+  the version reader, `~/.local/bin/bub` found off `PATH`, the install line, the `launchArgs` refusal, provider
   failures, the model refusal and confirmation, the resume and dispose rule
   and the brand.

@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { RequestError } from "../../../packages/oar/node_modules/@agentclientprotocol/sdk/dist/acp.js";
 import { expect, test } from "vitest";
 import { ModelConfirmationError } from "../../../packages/oar/src/contracts/model-confirmation-error.js";
@@ -8,7 +10,7 @@ import { UnsupportedOptionError } from "../../../packages/oar/src/contracts/erro
 import { createBubRuntime } from "../../../packages/oar/src/community/bub/index.js";
 import { bubErrorDetails, bubFailureOutcome, bubOpenFailure } from "../../../packages/oar/src/community/bub/failure.js";
 import { bubInstallMethod } from "../../../packages/oar/src/community/bub/install.js";
-import { readBubVersion } from "../../../packages/oar/src/community/bub/installation.js";
+import { bubInstallation, readBubVersion } from "../../../packages/oar/src/community/bub/installation.js";
 import { bubConfigureModel } from "../../../packages/oar/src/community/bub/model.js";
 import { bubAcpProfile } from "../../../packages/oar/src/community/bub/session.js";
 import { scriptInstallPlanOn } from "../../../packages/oar/src/shared/install.js";
@@ -22,6 +24,34 @@ test("the version reader takes `bub <version>`, development builds included", ()
   assert.equal(readBubVersion("bub 0.6.3.dev1+gb2e54493a\n"), "0.6.3.dev1+gb2e54493a");
   assert.equal(readBubVersion("bub 0.6.2"), "0.6.2");
   assert.equal(readBubVersion("Bub version 0.6.2"), undefined);
+});
+
+// A fake `bub`: `acp --help` describes the ACP server unless `withAcp` is false, as without the plugin.
+function fakeBub(dir: string, withAcp = true): string {
+  const command = path.join(dir, "bub");
+  writeFileSync(command, `#!${process.execPath}
+const args = process.argv.slice(2).join(" ");
+if (args === "--version") { console.log("bub 0.6.3.dev1+gb2e54493a"); process.exit(0); }
+if (args === "acp --help" && ${String(withAcp)}) { console.log(" Run Bub as an ACP agent over stdio, HTTP or WebSocket."); process.exit(0); }
+console.error("No such command 'acp'."); process.exit(2);
+`);
+  chmodSync(command, 0o755);
+  return command;
+}
+
+test.skipIf(process.platform === "win32")("the installer's ~/.local/bin/bub is found when that folder is not on PATH, and a Bub without the plugin is not usable", async () => {
+  const home = mkdtempSync(path.join(tmpdir(), "oar-bub-home-"));
+  try {
+    const bin = path.join(home, ".local", "bin");
+    mkdirSync(bin, { recursive: true });
+    const command = fakeBub(bin);
+    expect(await bubInstallation({ env: { HOME: home, PATH: "", OAR_BUB_BIN: null } })).toEqual({ kind: "available", via: "executable", command, version: "0.6.3.dev1+gb2e54493a" });
+    fakeBub(bin, false);
+    expect(await bubInstallation({ env: { HOME: home, PATH: "", OAR_BUB_BIN: null } })).toMatchObject({ kind: "unsupported" });
+    expect(await bubInstallation({ env: { HOME: path.join(home, "elsewhere"), PATH: "", OAR_BUB_BIN: null } })).toEqual({ kind: "not_found" });
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
 });
 
 test("the install runs Bub's documented line with the acp preset, which never prompts", () => {
