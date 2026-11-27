@@ -218,12 +218,22 @@ function chunk(text) {
 /** The prompt a `session/cancel` answers: `terminal-hold` leaves it open, as devin's own turn stays open. */
 let heldPrompt = null;
 
-/** `terminal-hold <marker> <ms>` starts a command that writes `marker` after `ms` and holds the turn. */
-function holdTerminal(req, rest) {
-  const [marker, ms] = rest.split(" ");
-  const program = `setTimeout(() => { require("node:fs").writeFileSync(${JSON.stringify(marker)}, "alive"); }, ${Number(ms)}); setInterval(() => {}, 1000);`;
+/**
+ * `terminal-hold <marker> <ms>` starts a command that writes `marker` after `ms` and holds the turn;
+ * `terminal-done` ends the turn at once and leaves the command running. The marker is everything before
+ * the last space, so a temp directory containing spaces still names one file.
+ */
+function startTerminal(req, verb, rest) {
+  const at = rest.lastIndexOf(" ");
+  const marker = rest.slice(0, at);
+  const program = `setTimeout(() => { require("node:fs").writeFileSync(${JSON.stringify(marker)}, "alive"); }, ${Number(rest.slice(at + 1))}); setInterval(() => {}, 1000);`;
   askClient("terminal/create", { sessionId: activeSessionId, command: process.execPath, args: ["-e", program] }, () => {});
-  heldPrompt = req.id;
+  if (verb === "hold") {
+    heldPrompt = req.id;
+    return;
+  }
+  chunk("terminal-done");
+  send({ jsonrpc: "2.0", id: req.id, result: { stopReason: "end_turn" } });
 }
 
 function handleSessionPrompt(req) {
@@ -232,8 +242,9 @@ function handleSessionPrompt(req) {
     return;
   }
   const text = String(req.params?.prompt?.find((block) => block?.type === "text")?.text ?? "");
-  if (text.startsWith("terminal-hold ")) {
-    holdTerminal(req, text.slice("terminal-hold ".length));
+  const terminal = /^terminal-(?<verb>hold|done) (?<rest>.+)$/u.exec(text);
+  if (terminal !== null) {
+    startTerminal(req, terminal.groups.verb, terminal.groups.rest);
     return;
   }
   chunk(`mode:${currentMode}`);

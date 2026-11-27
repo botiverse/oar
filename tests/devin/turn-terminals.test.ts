@@ -37,18 +37,22 @@ const until = async (check: () => boolean): Promise<void> => { await vi.waitFor(
 
 test("devin with endTurnProcessesOnAbort ends the aborted turn's command and keeps the session usable", async () => {
   const dir = scratchDir("oar-devin-abort-");
-  const marker = path.join(dir, "marker.txt");
+  const earlier = path.join(dir, "earlier.txt");
+  const aborted = path.join(dir, "aborted.txt");
   const session = await startFakeDevin(fakeExecutable, { cwd: dir, endTurnProcessesOnAbort: true });
   try {
-    const started = await session.prompt(`terminal-hold ${marker} 800`);
-    await until(() => answeredTerminals(session) === 1);
+    // A completed turn leaves its own terminal running; the abort must spare it.
+    expect(await promptAndWait(session, `terminal-done ${earlier} 1500`)).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
+    const started = await session.prompt(`terminal-hold ${aborted} 1500`);
+    await until(() => answeredTerminals(session) === 2);
     const stop = await session.abort();
     expect(stop.kind).toBe("accepted");
     expect(await awaitTurnEnd(session, started.seq)).toMatchObject({ kind: "aborted" });
     await until(() => cleanupOf(session, stop.requestId) !== undefined);
     expect(cleanupOf(session, stop.requestId)).toMatchObject({ body: { kind: "cleanup", result: { kind: "completed", signalled: 1 } } });
-    await delay(1200);
-    expect(existsSync(marker)).toBe(false);
+    await delay(2000);
+    expect(existsSync(aborted)).toBe(false);
+    expect(existsSync(earlier)).toBe(true);
     expect(await promptAndWait(session, "after the stop")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
   } finally {
     await session.dispose();

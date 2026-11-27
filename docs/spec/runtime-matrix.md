@@ -441,7 +441,7 @@ compares process-table reads; Grok and Devin stop the terminals OAR hosted
 for that turn ([grok](../runtimes/grok.md#ending-a-turns-processes-on-abort),
 [devin](../runtimes/devin.md#ending-a-turns-processes-on-abort)). Omitted or false
 changes nothing. On Windows Codex accepts it and ends nothing, with `failed`
-saying why; Grok uses the process-tree kill there, not yet run. A `cleanup` response on the abort request reports the outcome
+saying why; Grok and Devin use the process-tree kill there, not yet run. A `cleanup` response on the abort request reports the outcome
 ([record shape](record-stream.md#the-rules),
 [Codex mechanism and limits](../runtimes/codex.md#ending-a-turns-processes-on-abort)).
 
