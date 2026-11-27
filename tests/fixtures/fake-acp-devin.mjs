@@ -225,10 +225,11 @@ function handleSessionPrompt(req) {
     send({ jsonrpc: "2.0", id: req.id, result: { stopReason: "end_turn" } });
   };
   const text = String(req.params?.prompt?.find((block) => block?.type === "text")?.text ?? "");
-  // `terminal-shell <marker>`: devin 3000.14.30821 sends the tool's whole command line in `command`, with no `args`.
-  if (text.startsWith("terminal-shell ")) {
-    const marker = text.slice("terminal-shell ".length).trim();
-    askClient("terminal/create", { sessionId: activeSessionId, command: `printf shell-line-ok > ${marker}; cat ${marker}` }, (created) => {
+  // `terminal-shell`: devin 3000.14.30821 sends the tool's whole command line in `command`, with no `args`.
+  // The quoted program path and single-quoted JS run under both a POSIX shell and cmd.exe's /s /c wrapping.
+  if (text === "terminal-shell") {
+    const program = "require('node:fs').writeFileSync('marker.txt','shell-line-ok');process.stdout.write('shell-line-ok')";
+    askClient("terminal/create", { sessionId: activeSessionId, command: `"${process.execPath}" -e "${program}"` }, (created) => {
       if (created.error !== undefined) {
         finish(`terminal-error:${String(created.error.message)}`);
         return;

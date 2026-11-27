@@ -94,7 +94,7 @@ test("devin runs a whole terminal command line through a shell", async () => {
   const marker = path.join(dir, "marker.txt");
   const log = path.join(dir, "calls.txt");
   await withDevinSession({ cwd: dir, env: { FAKE_DEVIN_CALL_LOG: log } }, async (session) => {
-    const run = await promptAndWait(session, `terminal-shell ${marker}`);
+    const run = await promptAndWait(session, "terminal-shell");
     expect(run).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
     // The line only runs if OAR hands it to a shell: spawned as an executable, the whole line is one missing file.
     expect(readFileSync(marker, "utf8")).toBe("shell-line-ok");
