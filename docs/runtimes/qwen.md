@@ -343,7 +343,8 @@ request observed during its window. Its source reads local chat/telemetry
 state. Native managed-memory extraction can independently overlap a readback;
 the cost regression disables that background feature only in its isolated
 fixture and requires exactly one provider request per root turn. The same
-adapter control passes on the CI-pinned 0.27.4; CI runtime versions are unchanged.
+adapter control passed on 0.27.4. CI now pins 0.28.7 after the
+[three-platform candidate run](https://github.com/botiverse/oar/actions/runs/45952571971).
 See [native frames, cost and reproduction](../../experiments/qwen-native/context-usage-2026-11-18.md).
 
 ### Turn work and failures
