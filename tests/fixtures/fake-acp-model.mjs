@@ -7,6 +7,14 @@
 const EFFECTIVE_MODEL = "fixture-model-x";
 const MODEL_IDS = JSON.parse(process.env.FAKE_ACP_AGY_MODEL_MENU ?? '["fixture-model-x","requested-y"]');
 const EFFORT_MENUS = JSON.parse(process.env.FAKE_ACP_AGY_EFFORT_MENUS ?? "{}");
+// Per-model context windows a runtime advertises in its open answer (grok:
+// `availableModels[]._meta.totalContextTokens`); unset means no entry carries one.
+const MODEL_WINDOWS = JSON.parse(process.env.FAKE_ACP_MODEL_WINDOWS ?? "{}");
+
+function windowMeta(modelId) {
+  const window = MODEL_WINDOWS[modelId];
+  return window === undefined ? {} : { _meta: { totalContextTokens: window } };
+}
 let selectedAgyModel = EFFECTIVE_MODEL;
 
 function modelOption(currentValue) {
@@ -26,6 +34,11 @@ function modelOption(currentValue) {
 const EFFORT_ID = "fixture_effort";
 const EFFORT_LEVELS = ["low", "medium", "high"];
 
+// A selector that offers no menu at all: it reports the level in effect and
+// accepts whatever the agent supports, which is a real shape (an agent that
+// only publishes `currentValue`). OAR must then rely on its own readback check.
+const MODE_MENUS = { sticky: [...EFFORT_LEVELS, "sticky"] };
+
 function effortOption(currentValue, mode, model = selectedAgyModel) {
   return {
     type: "select",
@@ -33,7 +46,9 @@ function effortOption(currentValue, mode, model = selectedAgyModel) {
     name: "Effort",
     category: "thought_level",
     currentValue,
-    options: (EFFORT_MENUS[model] ?? EFFORT_LEVELS).map((value) => ({ value, name: value })),
+    ...(mode === "no-effort-menu" ? {} : {
+      options: (EFFORT_MENUS[model] ?? MODE_MENUS[mode] ?? EFFORT_LEVELS).map((value) => ({ value, name: value })),
+    }),
   };
 }
 
@@ -49,8 +64,8 @@ export function modelReport(mode) {
     models: {
       currentModelId: EFFECTIVE_MODEL,
       availableModels: [
-        { modelId: EFFECTIVE_MODEL, name: "Fixture X" },
-        { modelId: "requested-y", name: "Requested Y" },
+        { modelId: EFFECTIVE_MODEL, name: "Fixture X", ...windowMeta(EFFECTIVE_MODEL) },
+        { modelId: "requested-y", name: "Requested Y", ...windowMeta("requested-y") },
       ],
     },
   };

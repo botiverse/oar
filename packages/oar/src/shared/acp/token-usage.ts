@@ -5,7 +5,7 @@ import type { AcpSessionProfile } from "./profile.js";
 
 /** One root accumulator shared by prompt replies and proven independent vendor reports. */
 export interface AcpTokenUsage {
-  prompt(response: JsonRecord, initialized?: JsonRecord): RuntimeEventBody | null;
+  prompt(response: JsonRecord, initialized?: JsonRecord, contextWindow?: number | null): RuntimeEventBody | null;
   extension(method: string, params: JsonRecord, opened: boolean): RuntimeEventBody | null;
 }
 
@@ -13,8 +13,8 @@ export function createAcpTokenUsage(profile: AcpSessionProfile, sentByOar: (prom
   let billed: TokenTotals = { input: 0, output: 0 };
   const seen = new Set<string>();
   return {
-    prompt(response, initialized = {}) {
-      const reading = acpPromptUsage(profile.promptContextUsage?.(response) ?? null, profile.promptTokenUsage?.(response, initialized) ?? null, billed);
+    prompt(response, initialized = {}, contextWindow = null) {
+      const reading = acpPromptUsage(profile.promptContextUsage?.(response, contextWindow) ?? null, profile.promptTokenUsage?.(response, initialized) ?? null, billed);
       ({ billed } = reading);
       return reading.event;
     },

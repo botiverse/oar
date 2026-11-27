@@ -112,7 +112,7 @@ export function finishAcpSession(
   const capabilities = { ...profile.capabilities, images: profile.capabilities.images ?? acpTakesImages(opened.initialized) };
   const ownership = shared;
   let compaction: ReturnType<typeof manualCompaction> | null = null;
-  const promptUsage = (response: JsonRecord): RuntimeEventBody | null => tokenUsage.prompt(response, opened.initialized);
+  const promptUsage = (response: JsonRecord): RuntimeEventBody | null => tokenUsage.prompt(response, opened.initialized, recorder.modelContextWindow());
   const turns = createAcpTurns({ operationBusy: () => compaction?.busy() === true, kernel, runtime, profile, usageGate, capabilities, promptMeta: profile.promptMeta?.(options), promptUsage,
     ...(nativeTurns === undefined ? {} : { native: { promptParams: (inputId: string | undefined): JsonRecord => ({ _meta: nativeTurns.name(inputId) }), afterClose: nativeTurns.afterOarTurn } }),
     ...(ownership === undefined ? {} : { fallback: async (request: RequestRecord): Promise<void> => { ownership.stopRequests(); await lifecycle?.abortFallback(request); } }),

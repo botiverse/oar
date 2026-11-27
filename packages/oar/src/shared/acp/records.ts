@@ -2,7 +2,7 @@ import type { RuntimeEventBody } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import type { SessionKernel } from "../session-kernel.js";
 import { newSessionLinks } from "../session-links.js";
-import { acpReportedEffort, acpReportedModel } from "./model.js";
+import { acpReportedEffort, acpReportedModel, createAcpModelContextWindow } from "./model.js";
 import { methods, type SessionNotification } from "./process.js";
 import { createAcpProjectionState, projectAcpUpdate, type AcpProjectionState } from "./projection.js";
 import type { AcpSessionProfile, UsageUpdateGate } from "./profile.js";
@@ -33,6 +33,8 @@ export interface AcpRecorder {
   requested(id: string, method: string, params: unknown, receivedAt?: number): void;
   /** oar's answer to a runtime→app request. */
   answered(id: string, reply: unknown): void;
+  /** The context window the runtime advertises for the model in effect now, or null while it has said none (model.ts). */
+  modelContextWindow(): number | null;
 }
 
 function stringField(record: JsonRecord, names: readonly string[]): string | null {
@@ -75,6 +77,7 @@ export function acpLineageOf(params: JsonRecord): { readonly parent: string; rea
 
 export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: AcpSessionProfile["attributeUpdate"], tokenUsage?: AcpTokenUsage, associations?: (method: string, params: JsonRecord) => readonly { readonly parent: string; readonly child: string }[], projectUpdate?: AcpSessionProfile["projectUpdate"], projectExtension?: AcpSessionProfile["projectExtension"], nativeTurns?: { project: (method: string, params: JsonRecord, rootId: string, afterOpen: boolean) => readonly RuntimeEventBody[] }, derived: Pick<AcpSessionProfile, "childNotification" | "spawnedSessions" | "projectRawToolOutput"> = {}): AcpRecorder {
   const hostRequests = new Map<string, string>();
+  const contextWindow = createAcpModelContextWindow();
   // Children reported on an extension channel: their standard copies stay native-only.
   const notifiedChildren = new Set<string>();
   const childLineage = createAcpChildLineage();
@@ -130,6 +133,9 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
           kernel.frame({ type, native: notification, events: [] }, { sessionId, receivedAt });
           return;
         }
+        // Only this session's own frames speak for its model: a child's report
+        // would otherwise blank the root's advertised window.
+        if (!foreign) { contextWindow.observe(update); }
         const events: RuntimeEventBody[] = update === null ? [] : [...projectAcpUpdate(projectionFor(sessionId), update, derived.projectRawToolOutput), ...projectUpdate?.(update, receivedAt) ?? []];
         if (ownedLinks !== undefined) { events.push(...newSessionLinks(kernel, ownedLinks.map(({ parent, child }) => ({ parent, child, via: "tool_call" })))); }
         else if (source?.parent !== undefined) {
@@ -170,6 +176,7 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
         // `subagent_*` lifecycle) keeps the parent's envelope.
         const sessionId = stringField(params, ["sessionId"]);
         const foreign = sessionId !== null && sessionId !== kernel.sessionId;
+        if (!foreign) { contextWindow.observe(params); }
         const lineage = acpLineageOf(params);
         const links = associations?.(method, params) ?? (lineage === null ? [] : [lineage]);
         const events: RuntimeEventBody[] = newSessionLinks(kernel, links.map(({ parent, child }) => ({ parent, child, via: "tool_call" })));
@@ -179,7 +186,11 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
         kernel.frame({ type: method, native: params, events }, { ...(foreign ? { sessionId } : {}), receivedAt });
       });
     },
+    modelContextWindow() {
+      return contextWindow.window();
+    },
     step(method, response) {
+      contextWindow.observe(response);
       write((kernel) => {
         const model = acpReportedModel(response);
         const effort = acpReportedEffort(response);

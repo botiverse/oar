@@ -117,7 +117,7 @@ export interface AcpSessionProfile extends AcpDerivedSessionHooks, AcpSteerReque
   readonly steerOutcomeIsLatest?: boolean;
   /** Native validation refusal, even when an earlier prompt has already answered naturally. */
   readonly isSteerRefusal?: (error: unknown) => boolean;
-  readonly promptContextUsage?: (response: JsonRecord) => ContextUsage | null;
+  readonly promptContextUsage?: (response: JsonRecord, contextWindow: number | null) => ContextUsage | null;
   /**
    * Tokens billed by ONE prompt (grok `_meta.usage`, live 2026-09-11), summed
    * over that prompt's model calls, not the session. The shared accumulator

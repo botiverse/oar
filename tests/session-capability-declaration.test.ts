@@ -68,10 +68,9 @@ it("offers side questions only on verified Claude installations", () => {
 describe("SessionCapabilityDeclaration.contextUsage", () => {
   it("declares per-installation contextUsage across default built-in runtimes", () => {
     const byId = new Map(allRuntimes.list().map((runtime) => [runtime.id, runtime.sessionCapabilities?.(executable("2.3.2")).contextUsage]));
-    for (const id of ["antigravity", "claude", "codex", "dsh", "factory", "kimi", "opencode", "pi", "qwen"]) {
+    for (const id of ["antigravity", "claude", "codex", "dsh", "factory", "grok", "kimi", "opencode", "pi", "qwen"]) {
       expect(byId.get(id), id).toEqual({ tokens: true, contextWindow: true });
     }
-    expect(byId.get("grok")).toEqual({ tokens: true, contextWindow: false });
     expect(byId.get("codebuddy")).toEqual({ tokens: false, contextWindow: false });
     expect(byId.get("qoder")).toEqual({ tokens: false, contextWindow: false });
     expect(byId.get("devin")).toBeUndefined();
