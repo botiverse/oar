@@ -345,8 +345,9 @@ Further rules:
   Without native PID-to-session association, tool ownership is not inferred
   from the common parent process.
 - **`endTurnProcessesOnAbort` ends what the aborted turn started.** On Grok
-  ([mechanism](../runtimes/grok.md#ending-a-turns-processes-on-abort)) OAR
-  stops the terminals it hosted for that turn when the turn closes and
+  ([mechanism](../runtimes/grok.md#ending-a-turns-processes-on-abort)) and
+  Devin ([mechanism](../runtimes/devin.md#ending-a-turns-processes-on-abort))
+  OAR stops the terminals it hosted for that turn when the turn closes and
   records the same `cleanup` response below, with `signalled` counting the
   commands it stopped. On a Codex session that opted in (isolated only;
   [support](runtime-matrix.md#ending-a-turns-processes-on-abort)), each

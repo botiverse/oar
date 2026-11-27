@@ -179,7 +179,6 @@ test("devin refuses unsupported session options with UnsupportedOptionError befo
     { option: "additionalDirectories", extra: { additionalDirectories: ["/extra"] } },
     { option: "appendSystemPrompt", extra: { appendSystemPrompt: "append" } },
     { option: "disallowedTools", extra: { disallowedTools: ["Bash"] } },
-    { option: "endTurnProcessesOnAbort", extra: { endTurnProcessesOnAbort: true } },
     { option: "goals", extra: { goals: true } },
     { option: "name", extra: { name: "session-name" } },
     { option: "outputSchema", extra: { outputSchema: { type: "object" } } },

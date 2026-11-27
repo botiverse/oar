@@ -1,4 +1,4 @@
-/* oxlint-disable import/no-nodejs-modules, eslint/no-underscore-dangle, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-argument, typescript/no-unsafe-call, typescript/no-unsafe-return -- Standalone ACP wire fixture replaying devin 3000.12.57 payloads. */
+/* oxlint-disable eslint/max-lines, import/no-nodejs-modules, eslint/no-underscore-dangle, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-argument, typescript/no-unsafe-call, typescript/no-unsafe-return -- Standalone ACP wire fixture replaying devin 3000.14.30821 payloads. */
 import { appendFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 
@@ -192,19 +192,51 @@ function handleSessionLoad(req) {
   });
 }
 
-function handleSessionPrompt(req) {
-  if (process.env.FAKE_DEVIN_PROMPT_ERROR !== undefined) {
-    send({ jsonrpc: "2.0", id: req.id, error: JSON.parse(process.env.FAKE_DEVIN_PROMPT_ERROR) });
-    return;
-  }
+const pendingRequests = new Map();
+let agentRequests = 0;
+
+/** A reverse request from the agent (terminal/create, terminal/wait_for_exit, …); `answer` receives the client's reply. */
+function askClient(method, params, answer) {
+  agentRequests += 1;
+  const id = `devin-request-${String(agentRequests)}`;
+  logCall(`toApp:${method}`);
+  pendingRequests.set(id, answer);
+  send({ jsonrpc: "2.0", id, method, params });
+}
+
+function chunk(text) {
   send({
     jsonrpc: "2.0",
     method: "session/update",
     params: {
       sessionId: activeSessionId,
-      update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text: `mode:${currentMode}` } },
+      update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text } },
     },
   });
+}
+
+/** The prompt a `session/cancel` answers: `terminal-hold` leaves it open, as devin's own turn stays open. */
+let heldPrompt = null;
+
+/** `terminal-hold <marker> <ms>` starts a command that writes `marker` after `ms` and holds the turn. */
+function holdTerminal(req, rest) {
+  const [marker, ms] = rest.split(" ");
+  const program = `setTimeout(() => { require("node:fs").writeFileSync(${JSON.stringify(marker)}, "alive"); }, ${Number(ms)}); setInterval(() => {}, 1000);`;
+  askClient("terminal/create", { sessionId: activeSessionId, command: process.execPath, args: ["-e", program] }, () => {});
+  heldPrompt = req.id;
+}
+
+function handleSessionPrompt(req) {
+  if (process.env.FAKE_DEVIN_PROMPT_ERROR !== undefined) {
+    send({ jsonrpc: "2.0", id: req.id, error: JSON.parse(process.env.FAKE_DEVIN_PROMPT_ERROR) });
+    return;
+  }
+  const text = String(req.params?.prompt?.find((block) => block?.type === "text")?.text ?? "");
+  if (text.startsWith("terminal-hold ")) {
+    holdTerminal(req, text.slice("terminal-hold ".length));
+    return;
+  }
+  chunk(`mode:${currentMode}`);
   send({ jsonrpc: "2.0", id: req.id, result: { stopReason: "end_turn" } });
 }
 
@@ -265,6 +297,38 @@ function finishAuthStatus() {
   process.exit(Number(process.env.FAKE_DEVIN_AUTH_EXIT_CODE ?? "0"));
 }
 
+function answerReverseRequest(req) {
+  const answer = pendingRequests.get(req.id);
+  if (answer === undefined) {
+    return;
+  }
+  pendingRequests.delete(req.id);
+  answer(req);
+}
+
+/** A notification: devin answers an aborted prompt with stopReason "cancelled". */
+function cancelHeldPrompt(req) {
+  if (req.method !== "session/cancel" || heldPrompt === null) {
+    return;
+  }
+  send({ jsonrpc: "2.0", id: heldPrompt, result: { stopReason: "cancelled" } });
+  heldPrompt = null;
+}
+
+function handleLine(line) {
+  const req = JSON.parse(line);
+  if (req.id === undefined) {
+    cancelHeldPrompt(req);
+    return;
+  }
+  // The client's answer to a reverse request has no method.
+  if (req.method === undefined) {
+    answerReverseRequest(req);
+    return;
+  }
+  handleRequest(req);
+}
+
 if (args[0] === "auth" && args[1] === "status") {
   logCall("auth status");
   const authDelayMs = Number(process.env.FAKE_DEVIN_AUTH_DELAY_MS ?? "0");
@@ -276,10 +340,5 @@ if (args[0] === "auth" && args[1] === "status") {
 } else if (args.includes("acp") === false) {
   process.exit(2);
 } else {
-  createInterface({ input: process.stdin }).on("line", (line) => {
-    const req = JSON.parse(line);
-    if (req.id !== undefined) {
-      handleRequest(req);
-    }
-  });
+  createInterface({ input: process.stdin }).on("line", handleLine);
 }
