@@ -23,8 +23,11 @@ test("installation verifies Qoder CLI identity via --help and reads --version", 
   vi.stubEnv("OAR_QODER_BIN", process.execPath);
   mockQoder("1.1.78\n");
   await expect(qoderInstallation()).resolves.toMatchObject({ kind: "available", version: "1.1.78" });
-  expect(runExecutable).toHaveBeenNthCalledWith(1, process.execPath, ["--help"], { env: process.env });
-  expect(runExecutable).toHaveBeenNthCalledWith(2, process.execPath, ["--version"], { env: process.env });
+  // Both checks ask different questions of the same executable and run at
+  // the same time, so only the two calls matter, not which started first.
+  expect(runExecutable).toHaveBeenCalledTimes(2);
+  expect(runExecutable).toHaveBeenCalledWith(process.execPath, ["--help"], { env: process.env });
+  expect(runExecutable).toHaveBeenCalledWith(process.execPath, ["--version"], { env: process.env });
 });
 
 test("a timed out installed executable throws a probe failure, never not_found", async () => {

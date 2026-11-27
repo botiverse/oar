@@ -47,8 +47,12 @@ test.each([
     if (version === undefined) { expect(result).not.toHaveProperty("installedVersion"); }
     else { expect(result.installedVersion).toBe(version); }
   }
-  expect(runExecutable).toHaveBeenNthCalledWith(1, process.execPath, ["--help"], { env: antigravityEnvironment(undefined) });
-  expect(runExecutable).toHaveBeenNthCalledWith(2, process.execPath, ["--version"], { timeoutMs: 30_000, env: antigravityEnvironment(undefined) });
+  // The identity check and the version read ask different questions of the
+  // same executable and run at the same time, so only the two calls matter,
+  // not which of them started first.
+  expect(runExecutable).toHaveBeenCalledTimes(2);
+  expect(runExecutable).toHaveBeenCalledWith(process.execPath, ["--help"], { env: antigravityEnvironment(undefined) });
+  expect(runExecutable).toHaveBeenCalledWith(process.execPath, ["--version"], { timeoutMs: 30_000, env: antigravityEnvironment(undefined) });
 });
 
 test("off-PATH discovery follows the official POSIX and Windows install directories", () => {
