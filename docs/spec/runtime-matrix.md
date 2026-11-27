@@ -188,14 +188,14 @@ before that `prompt` decides, so adapter-held sessions refuse the `prompt` as
 | cursor (`@cursor/sdk`) | yes, text only: `run.steer` (images are rejected `unsupported`); `complete_delivered` and SDK 1.4.0 `queued` are accepted (a queued steer is Cursor's follow-up, unobserved by OAR), `revert_to_followup` is refused ([mapping](../runtimes/cursor.md#prompt-steering-queueing-and-abort)) | yes | no |
 | grok (ACP) | yes: `_x.ai/interject`, taken into the running turn at its next safe point without cancelling it; one that misses the turn runs as Grok's own ([mapping](../runtimes/grok.md#prompting-steering-queuing-and-cancellation)) | yes | no |
 | codebuddy (ACP) | absent: no verified injection interface | yes | no |
-| devin (ACP) | absent: no verified injection interface | yes | no |
+| devin (ACP) | yes where `initialize` advertises `cognition.ai/midTurnPrompts` (3000.14.30821): a second `session/prompt` joins the running turn, which answers both requests with its result and ends once ([mapping](../runtimes/devin.md#steering)) | yes | no |
 | kimi (KAP) | yes (`POST /sessions/{id}/steer`) | yes, while held | no |
 | kimi (ACP fallback) | no | yes | no |
 | antigravity (CLI ACP) | yes | yes | no |
 | opencode v1 (ACP) | yes: a plain prompt RPC mid-turn, which joins the running loop at its next step; both prompts are answered at idle | yes | no |
 | opencode v2 (ACP) | yes where `initialize` advertises `_meta.steering.supported` (2.2.7 and later): `_session/steering`, `injected` is accepted into the running turn, `promptRequired` is `no_active_turn` ([mapping](../runtimes/opencode.md#v2-session-behavior); verified natively on 2.3.0, including that abort keeps an accepted steer and slash commands steer as text). Otherwise absent: concurrent native prompts are refused; `steerOrQueue` and `deliver` use the host queue | yes | no |
 
-For ACP runtimes with `steer` (Grok, Antigravity, OpenCode v1 and v2), OAR
+For ACP runtimes with `steer` (Grok, Devin, Antigravity, OpenCode v1 and v2), OAR
 rechecks the original active turn after startup waits and at SDK dispatch.
 A turn that ended, was replaced or has an abort in progress yields
 `rejected` / `no_active_turn`, with no native prompt sent. Acceptance follows
@@ -218,7 +218,7 @@ and the opened session stays authoritative.
 | codebuddy | false | absent: advertised by `initialize` | false | `["stdio", "http"]` on `>= 2.178.1` ([codebuddy.vendor.test.ts](../../sea-trial/vendor/codebuddy.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: false, contextWindow: false }` (native `0/0` when model limit is unknown is not trustworthy) | absent | absent | absent |
 | codex | true | true | true | `["stdio", "http"]` ([mcp-servers.vendor.test.ts](../../sea-trial/vendor/mcp-servers.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` on `>= 0.151.0`; absent on older or unreadable versions | true from 0.160.1, absent on older or unreadable versions | true from 0.169.0, absent on older or unreadable versions | absent |
 | cursor | true (an individual steer can still be rejected: `unsupported` with images, `runtime_refused` when the run cannot take it, as above) | true | false | `["stdio", "http"]` ([cursor-mcp.ts](../../experiments/cursor-mcp.ts)) | `{ tokens: true, contextWindow: false }` | absent | absent | absent |
-| devin | false | absent: advertised by `initialize` | false | absent: handshake-dependent and unverified in CI | absent: live turns unverified | absent | absent | absent |
+| devin | absent: advertised by `initialize` | absent: advertised by `initialize` | false | absent: handshake-dependent and unverified in CI | absent: live turns unverified | absent | absent | absent |
 | dsh | absent: the bridge reports the agent's methods at open | absent: the selected model and native attachment store determine image support | true | `["stdio", "http"]` ([stdio](../../sea-trial/vendor/dsh-mcp.vendor.test.ts), [credentialed stdio and HTTP](../../sea-trial/vendor/dsh-mcp-credentials.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | true from 0.2.2-alpha.2, false below 0.2.2-alpha.2, absent on unreadable versions | absent |
 | factory | true | true | false | absent: HTTP MCP tool invocation unverified (only stdio is exercised in [factory.vendor.test.ts](../../sea-trial/vendor/factory.vendor.test.ts)) | `{ tokens: true, contextWindow: true }` | absent | absent | absent |
 | grok | true | true | false | `["stdio", "http"]` on `>= 1.0.46` ([mcp-servers-acp.vendor.test.ts](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)); absent on older or unreadable versions | `{ tokens: true, contextWindow: false }` | absent | absent | absent |

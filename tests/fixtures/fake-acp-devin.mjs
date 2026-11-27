@@ -1,4 +1,4 @@
-/* oxlint-disable import/no-nodejs-modules, eslint/no-underscore-dangle, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-argument, typescript/no-unsafe-call, typescript/no-unsafe-return -- Standalone ACP wire fixture replaying devin 3000.12.57 payloads. */
+/* oxlint-disable eslint/max-lines, import/no-nodejs-modules, eslint/no-underscore-dangle, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-argument, typescript/no-unsafe-call, typescript/no-unsafe-return -- Standalone ACP wire fixture replaying devin 3000.12.57 payloads. */
 import { appendFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 
@@ -115,7 +115,7 @@ function initializeResult() {
         "cognition.ai/multiRootWorkspace": true,
         "cognition.ai/sessionRename": true,
         "cognition.ai/persistOnCreate": true,
-        "cognition.ai/midTurnPrompts": true,
+        "cognition.ai/midTurnPrompts": process.env.FAKE_DEVIN_MID_TURN_PROMPTS !== "0",
       },
     },
     authMethods: [{ id: "devin-browser", name: "Log in with browser", description: "Sign in via your browser" }],
@@ -192,20 +192,62 @@ function handleSessionLoad(req) {
   });
 }
 
-function handleSessionPrompt(req) {
-  if (process.env.FAKE_DEVIN_PROMPT_ERROR !== undefined) {
-    send({ jsonrpc: "2.0", id: req.id, error: JSON.parse(process.env.FAKE_DEVIN_PROMPT_ERROR) });
-    return;
-  }
+function chunk(text) {
   send({
     jsonrpc: "2.0",
     method: "session/update",
     params: {
       sessionId: activeSessionId,
-      update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text: `mode:${currentMode}` } },
+      update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text } },
     },
   });
+}
+
+/** The prompt a second `session/prompt` steers: `hold` leaves it open. */
+let heldPrompt = null;
+
+function finishPrompt(req, text) {
+  chunk(text);
   send({ jsonrpc: "2.0", id: req.id, result: { stopReason: "end_turn" } });
+}
+
+function refusePrompt(req) {
+  send({ jsonrpc: "2.0", id: req.id, error: JSON.parse(process.env.FAKE_DEVIN_PROMPT_ERROR) });
+}
+
+/** devin folds a mid-turn prompt into the running turn and answers both requests with that turn's result. */
+function steerHeldPrompt(req, text) {
+  logCall(`steer:${text}`);
+  const held = heldPrompt;
+  heldPrompt = null;
+  chunk(`took:${text}`);
+  send({ jsonrpc: "2.0", id: held, result: { stopReason: "end_turn" } });
+  send({ jsonrpc: "2.0", id: req.id, result: { stopReason: "end_turn" } });
+}
+
+/** `hold` leaves the turn open; a second prompt is the steer. Returns whether the request was one of those. */
+function midTurnPrompt(req, text) {
+  if (text === "hold") {
+    heldPrompt = req.id;
+    return true;
+  }
+  if (heldPrompt === null) {
+    return false;
+  }
+  steerHeldPrompt(req, text);
+  return true;
+}
+
+function handleSessionPrompt(req) {
+  if (process.env.FAKE_DEVIN_PROMPT_ERROR !== undefined) {
+    refusePrompt(req);
+    return;
+  }
+  const text = String(req.params?.prompt?.find((block) => block?.type === "text")?.text ?? "");
+  if (midTurnPrompt(req, text)) {
+    return;
+  }
+  finishPrompt(req, `mode:${currentMode}`);
 }
 
 const methodHandlers = {

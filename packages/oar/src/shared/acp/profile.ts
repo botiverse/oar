@@ -105,6 +105,8 @@ export interface AcpSessionProfile extends AcpDerivedSessionHooks, AcpSteerReque
   }) => Promise<void>;
   /** Return prompt-level extension fields for the runtime's native steer; absent when the runtime cannot steer, and then the session has no `steer`. Exclusive with `steerRequest` (steer-request.ts). */
   readonly steerParams?: (input: string) => JsonRecord;
+  /** Whether this connection's `initialize` answer advertises the steer `steerParams` sends; false leaves the session without `steer`. Absent: it always exists. */
+  readonly steerParamsAdvertised?: (initialized: JsonRecord) => boolean;
   /**
    * Turns the runtime runs without a prompt from OAR (grok: a sub-agent's
    * completion wake, a late interjection). OAR names each prompt it sends;
