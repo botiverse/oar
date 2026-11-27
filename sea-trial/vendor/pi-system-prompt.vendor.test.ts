@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { describe, expect, test, vi } from "vitest";
-import { isPiBackend, piSession, piChildCwd } from "./support/pi-runtime.js";
+import { isPiBackend, piSession, piChildCwd, piTestInstallation } from "./support/pi-runtime.js";
 import { startPiAimock } from "../harness/aimock.js";
 import { runTurn } from "./support/asserts.js";
 import { APPEND_MARKER, REPLACE_MARKER, lastAgentSystem, scrubSystem, systemCapture } from "./support/system-prompt.js";
@@ -56,7 +56,7 @@ describe.skipIf(!isPiBackend)("Pi system prompt boundary", () => {
     const cwd = await realpath(await mkdtemp(path.join(nativeTemp, "oar-pi-system-")));
     let session: Awaited<ReturnType<typeof piSession>> | undefined = undefined;
     try {
-      session = await piSession({ kind: "available", via: "bundled" }, {
+      session = await piSession(piTestInstallation, {
         cwd, model: "aimock/aimock-model",
         systemPrompt: `${REPLACE_MARKER} you are the oar probe agent`,
         appendSystemPrompt: `${APPEND_MARKER} always be brief`,

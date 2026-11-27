@@ -275,6 +275,10 @@ test("pi SDK and explicit-command RPC report dependency_missing when optional pe
     await piInstallationFor({ execution: "subprocess", command: okPi }, { ...healthyHost, resolveModule: () => null })(),
     /session lookup.*project-package checks.*context-overflow detection/u,
   );
+  expectDependencyMissing(
+    await piInstallationFor({ execution: "subprocess", command: path.join(scratch, "absent-pi-slim") }, { ...healthyHost, resolveModule: () => null })(),
+    /session lookup.*project-package checks.*context-overflow detection/u,
+  );
 });
 
 test("pi RPC with an explicit command verifies existence, failing --version, args prefix and version >= 1.4.0", async () => {
@@ -291,5 +295,5 @@ test("pi RPC with an explicit command verifies existence, failing --version, arg
 
   const okPi = makeCli("pi-ok", { help: "pi", version: "1.5.2", requirePrefix: "pi" });
   expect(await piInstallationFor({ execution: "subprocess", command: okPi, args: ["pi"] }, { ...healthyHost, compiledSingleExecutable: true, electron: true })())
-    .toEqual({ kind: "available", via: "bundled" });
+    .toEqual({ kind: "available", via: "executable", command: okPi, version: "1.5.2" });
 });

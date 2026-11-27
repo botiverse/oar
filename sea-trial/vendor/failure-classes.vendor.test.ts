@@ -1,10 +1,10 @@
-import { isPiBackend, piSession } from "./support/pi-runtime.js";
+import { isPiBackend, piInstallation, piSession } from "./support/pi-runtime.js";
 import { appendFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import type { CredentialProblem, FailureClass, TurnOutcome } from "../../packages/oar/src/contracts/session.js";
-import { claudeInstallation, defineRuntime, RuntimeFailureError, claudeRuntime, codexRuntime, piRuntime } from "../../packages/oar/src/index.js";
+import { claudeInstallation, defineRuntime, RuntimeFailureError, claudeRuntime, codexRuntime } from "../../packages/oar/src/index.js";
 
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv, type LLMock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
@@ -15,7 +15,6 @@ import { openTrace, record } from "../harness/trace.js";
 const claudeSession = claudeRuntime.session;
 const codexInstallation = codexRuntime.installation;
 const codexSession = codexRuntime.session;
-const piInstallation = piRuntime.installation;
 
 /*
  * Every mapped cell of docs/spec/runtime-matrix.md#failure-evidence, on the

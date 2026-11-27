@@ -1,14 +1,12 @@
-import { isPiBackend, piSession } from "./support/pi-runtime.js";
+import { isPiBackend, piInstallation, piSession } from "./support/pi-runtime.js";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { test } from "vitest";
-import { defineRuntime, promptAndWait, type Session, piRuntime } from "../../packages/oar/src/index.js";
+import { defineRuntime, promptAndWait, type Session } from "../../packages/oar/src/index.js";
 
 import { startPiAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
-
-const piInstallation = piRuntime.installation;
 
 test.skipIf(!isPiBackend)("a Pi extension's native abort is reported without an OAR abort request", async () => {
   const env = await startPiAimock((mock) => {

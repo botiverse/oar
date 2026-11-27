@@ -106,3 +106,15 @@ test.each([true, false])("prefix query owns a private temporary cache and remove
   await (ok ? expect(query).resolves.toBe(prefix) : expect(query).rejects.toThrow("query exited with code 1"));
   expect(existsSync(capturedCache())).toBe(false);
 });
+
+test("npmInstallPlan passes --ignore-scripts when requested", async () => {
+  prefixResult();
+  const secured = { ...method, ignoreScripts: true };
+  await expect(npmInstallPlan(secured, host)()).resolves.toEqual({
+    kind: "plan",
+    steps: [{ command: ["npm", "install", "-g", "--ignore-scripts", method.packageName], display: `npm install -g --ignore-scripts ${method.packageName}` }],
+    source: method.source,
+    network: true,
+    privileges: false,
+  });
+});

@@ -73,7 +73,7 @@ test.each([true, false])("direct DSH model reader keeps prerelease refusal and a
 test.each(["listModels", "skills", "commands"] as const)("direct Pi RPC %s retains version refusal before a reader process starts", async (reader) => {
   const fake = executable("1.3.99");
   const runtime = createPiRuntime({ execution: "subprocess", command: process.execPath, args: [fake.script] });
-  const result = await runtime[reader]({ kind: "available", via: "bundled" }, {
+  const result = await runtime[reader]({ kind: "available", via: "executable", command: process.execPath }, {
     cwd: fake.directory, env: { OAR_READER_FLOOR_CONTROL: fake.directory },
   });
   expect(result).toMatchObject({ kind: "unsupported", code: "version_unsupported", installedVersion: "1.3.99", requiredVersion: runtime.minVersion });

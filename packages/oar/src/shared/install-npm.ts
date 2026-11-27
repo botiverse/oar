@@ -11,6 +11,7 @@ const PREFIX_TIMEOUT_MS = 15_000;
 export interface NpmInstallMethod {
   readonly packageName: string;
   readonly source: string;
+  readonly ignoreScripts?: boolean;
 }
 
 /** Only controlled categories reach a plan; native output and error messages stay private. */
@@ -64,7 +65,8 @@ export function npmInstallPlan(method: NpmInstallMethod, host: InstallHost = def
     if (!["linux", "darwin", "win32"].includes(host.platform)) {
       return { kind: "unsupported", reason: "platform", detail: `this npm installer is supported on Linux, macOS and Windows, not ${host.platform}` };
     }
-    const steps: readonly InstallStep[] = [{ command: ["npm", "install", "-g", method.packageName], display: `npm install -g ${method.packageName}` }];
+    const command = ["npm", "install", "-g", ...(method.ignoreScripts === true ? ["--ignore-scripts"] : []), method.packageName];
+    const steps: readonly InstallStep[] = [{ command, display: command.join(" ") }];
     const npm = host.locate("npm");
     if (npm === null) {
       return { kind: "unsupported", reason: "missing_tool", detail: "npm", steps, source: method.source };

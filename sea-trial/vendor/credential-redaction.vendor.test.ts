@@ -1,4 +1,4 @@
-import { isPiBackend, piSession } from "./support/pi-runtime.js";
+import { isPiBackend, piSession, piTestInstallation } from "./support/pi-runtime.js";
 import { createServer } from "node:http";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -101,7 +101,7 @@ test.skipIf(!isPiBackend)("Pi provider-echoed SDK keys are removed at open and a
   try {
     await preparePi(directory, provider.url);
     await withProcessEnv({ OAR_PI_AGENT_DIR: directory, PI_PACKAGE_DIR: "" }, async () => {
-      const session = await piSession({ kind: "available", via: "bundled" }, { cwd: directory, model: "first/model", env: { DIAGNOSTIC_PATH: diagnosticPath } });
+      const session = await piSession(piTestInstallation, { cwd: directory, model: "first/model", env: { DIAGNOSTIC_PATH: diagnosticPath } });
       try { await exercise(session, provider.keys, true); } finally { await session.dispose(); }
     });
   } finally {
@@ -119,7 +119,7 @@ test.skipIf(!isPiBackend)("Pi short local-provider keys preserve model IDs and r
     const model = { id: "ollama-model", name: "ollama-model", reasoning: false, input: ["text"], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 200_000, maxTokens: 1024 };
     await writeFile(path.join(directory, "models.json"), JSON.stringify({ providers: { ollama: { api: "anthropic-messages", baseUrl: mock.url, apiKey: "ollama", models: [model] } } }));
     await withProcessEnv({ OAR_PI_AGENT_DIR: directory, PI_PACKAGE_DIR: "" }, async () => {
-      const session = await piSession({ kind: "available", via: "bundled" }, { cwd: directory, model: "ollama/ollama-model" });
+      const session = await piSession(piTestInstallation, { cwd: directory, model: "ollama/ollama-model" });
       try {
         let text = "";
         session.events((event) => { if (event.kind === "text_delta") { text += event.text; } });

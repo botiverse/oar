@@ -62,20 +62,25 @@ export default function(pi) {
 describe.skipIf(process.env.OAR_TEST !== "pi-rpc-aimock")("native Pi RPC readers", () => {
   test.each([false, true])("models and commands use the child HOME and full env; explicit host command=%s", async (selectedCommand) => {
     const f = await fixture();
-    const runtime = createPiRuntime({ ...piRpcTestOptions(), ...(selectedCommand ? {
-      command: process.execPath, args: [fileURLToPath(import.meta.resolve("@earendil-works/pi-coding-agent/rpc-entry"))],
-    } : {}) });
+    const baseOptions = piRpcTestOptions();
+    const explicit: { readonly command?: string; readonly args?: readonly string[] } = selectedCommand
+      ? { command: process.execPath, args: [fileURLToPath(import.meta.resolve("@earendil-works/pi-coding-agent/rpc-entry"))] }
+      : (baseOptions.command === undefined ? {} : { command: baseOptions.command, ...(baseOptions.args === undefined ? {} : { args: baseOptions.args }) });
+    const runtime = createPiRuntime({ ...baseOptions, ...explicit });
+    const targetInstallation = explicit.command === undefined
+      ? installed
+      : ({ kind: "available", via: "executable", command: explicit.command } as const);
     const options = { cwd: f.cwd, env: f.env, timeoutMs: 30_000 };
     try {
-      const models = await runtime.listModels(installed, options);
+      const models = await runtime.listModels(targetInstallation, options);
       assert.ok(models.kind === "ok");
       expect(models.models).toContainEqual({ id: "reader-fixture/child-model", displayName: "Child model", provider: { id: "reader-fixture" } });
-      const commands = await runtime.commands(installed, options);
+      const commands = await runtime.commands(targetInstallation, options);
       assert.ok(commands.kind === "ok");
       expect(commands.partial).toBe(false);
       expect(commands.items).toContainEqual({ name: "child-command", description: "Environment command", source: "extension" });
       expect(commands.items).toContainEqual({ name: "child-prompt", description: "Child prompt", source: "prompt" });
-      const skills = await runtime.skills(installed, options);
+      const skills = await runtime.skills(targetInstallation, options);
       assert.ok(skills.kind === "ok");
       expect(skills.partial).toBe(false);
       expect(skills.items).toEqual([{ name: "reader", userInvocable: true, description: "Reader skill", source: "auto", scope: "user", path: path.join(f.agentDir, "skills", "reader", "SKILL.md") }]);
@@ -112,13 +117,14 @@ else {
   setInterval(() => {}, 1000);
 }`);
     const runtime = createPiRuntime({ execution: "subprocess", command: process.execPath, args: guardedFixtureArgs("--import", import.meta.resolve("tsx"), script) });
+    const executable = { kind: "available", via: "executable", command: process.execPath } as const;
     try {
       vi.stubEnv("OAR_KILL_GRACE_MS", undefined);
       const options = { cwd: f.cwd, env: f.env, timeoutMs: 500 };
       const waitForFixture = holdFixtureDeadline();
       const outcome = reader === "models"
-        ? expect(runtime.listModels(installed, options)).rejects.toThrow("Pi RPC model listing timed out")
-        : expect(runtime.commands(installed, options)).resolves.toMatchObject({ kind: "unavailable", code: "timeout" });
+        ? expect(runtime.listModels(executable, options)).rejects.toThrow("Pi RPC model listing timed out")
+        : expect(runtime.commands(executable, options)).resolves.toMatchObject({ kind: "unavailable", code: "timeout" });
       await waitForFixture(outcome, async () => {
         expect(await eventually(() => existsSync(pidFile), 15_000), stage).toBe(true);
       });
@@ -143,10 +149,11 @@ else {
   test("a failed native command cannot become a successful empty catalog", async () => {
     vi.stubEnv("OAR_PI_READER_CHANGED", "host");
     const runtime = createPiRuntime({ execution: "subprocess", command: "oar-missing-pi-reader-command" });
+    const executable = { kind: "available", via: "executable", command: "oar-missing-pi-reader-command" } as const;
     const options = { env: { OAR_PI_READER_CHANGED: "child" }, timeoutMs: 10_000 };
-    const result = await runtime.commands(installed, options);
+    const result = await runtime.commands(executable, options);
     assert.equal(result.kind, "unavailable");
     expect(result).toMatchObject({ code: "query_failed", reason: "Native inventory query failed" });
-    await expect(runtime.listModels(installed, options)).rejects.toThrow("Pi RPC could not list available models");
+    await expect(runtime.listModels(executable, options)).rejects.toThrow("Pi RPC could not list available models");
   });
 });

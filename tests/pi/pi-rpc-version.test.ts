@@ -15,7 +15,7 @@ test.each(["1.3.99", "1.4.0", "1.5.0", "1.6.0", "unparseable", undefined])("the 
   await mkdir(agent);
   const runtime = createPiRuntime({ execution: "subprocess", command: process.execPath, args: [fixture] });
   try {
-    const opening = runtime.session({ kind: "available", via: "bundled" }, { cwd: directory, env: {
+    const opening = runtime.session({ kind: "available", via: "executable", command: process.execPath }, { cwd: directory, env: {
       HOME: directory, USERPROFILE: directory, OAR_PI_AGENT_DIR: agent, PI_CODING_AGENT_DIR: agent, PI_PACKAGE_DIR: null,
       OAR_TEST_PI_READY_VERSION: version ?? null,
     } });
@@ -35,7 +35,7 @@ test.each([undefined, { provider: "fixture", id: "other" }])("a registered model
   await mkdir(agent);
   const runtime = createPiRuntime({ execution: "subprocess", command: process.execPath, args: [fixture] });
   try {
-    const opening = runtime.session({ kind: "available", via: "bundled" }, { cwd: directory, model: "fixture/requested", env: {
+    const opening = runtime.session({ kind: "available", via: "executable", command: process.execPath }, { cwd: directory, model: "fixture/requested", env: {
       HOME: directory, USERPROFILE: directory, OAR_PI_AGENT_DIR: agent, PI_CODING_AGENT_DIR: agent, PI_PACKAGE_DIR: null,
       OAR_TEST_PI_READY_VERSION: "1.5.0", OAR_TEST_PI_MODEL: model === undefined ? null : JSON.stringify(model),
     } });
