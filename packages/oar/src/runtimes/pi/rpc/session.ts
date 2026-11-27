@@ -4,7 +4,7 @@ import { sessionExitReason } from "../../../shared/executable/reported-stderr.js
 import { piManualCompaction } from "../compaction.js";
 import { handledInput, refusedInput, startedInput, type PiHeldInput } from "../input-disposition.js";
 /* oxlint-disable eslint/require-await -- Session controls return kernel promises directly; native delivery callbacks may decide synchronously. */
-import type { AgentSessionEvent, SessionStats } from "@earendil-works/pi-coding-agent";
+import type { AgentSessionEvent, RpcResponse, SessionStats } from "@earendil-works/pi-coding-agent";
 import type { RequestRecord, ResponseBody, RuntimeEventBody, StartSession } from "../../../contracts/session.js";
 import { createAbortFallback } from "../../../shared/abort-fallback.js";
 import { enqueueHeld, withdrawControl } from "../../../shared/held-input.js";
@@ -15,6 +15,10 @@ import type { PiRuntimeOptions } from "../options.js";
 import { openPiRpc } from "./open.js";
 
 const nativeImages = (images: readonly LoadedImage[]): { type: "image"; data: string; mimeType: string }[] => images.map((image) => ({ type: "image" as const, data: image.data, mimeType: image.mediaType }));
+
+/** Pi's post-compaction context fullness, from the stats reply a settled turn asked for. */
+const piSettledContext = (stats: RpcResponse | null): SessionStats["contextUsage"] =>
+  stats !== null && stats.success && stats.command === "get_session_stats" ? stats.data.contextUsage : undefined;
 
 /** One bundled native RPC process per session; Pi's event fold is shared with the SDK path. */
 export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => withSessionCredentials(async (installation, options, credentials) => {
@@ -43,6 +47,26 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
   }, () => { queueMicrotask(drain); });
   const held: PiHeldInput[] = [];
   const fallback = createAbortFallback(() => { rpc.child.kill(); });
+  // The leaf of the session after the last settled turn, as the child reported
+  // it: `SessionOptions.fork.through` takes it as that turn's anchor (a native
+  // `fork`/`clone` copies the branch up to its own cut, see rpc/fork.ts).
+  // `undefined` means no leaf was read yet, `null` an empty session.
+  const lastLeaf: { value: string | null | undefined } = { value: undefined };
+  const nativeLeaf = async (): Promise<string | null | undefined> => {
+    // The first settlement after open reads the whole entry list (no leaf is
+    // known yet); later ones ask only for the entries the turn appended. A leaf
+    // the child no longer holds falls back to the whole entry list.
+    const attempts: readonly { readonly since?: string }[] = lastLeaf.value === undefined || lastLeaf.value === null
+      ? [{}]
+      : [{ since: lastLeaf.value }, {}];
+    for (const attempt of attempts) {
+      const response = await rpc.control.request({ type: "get_entries", ...attempt }).catch(() => null);
+      if (response === null || !response.success || response.command !== "get_entries") { continue; }
+      lastLeaf.value = response.data.leafId;
+      return lastLeaf.value;
+    }
+    return undefined;
+  };
   const abort = async (disarm: () => void): Promise<void> => {
     try {
       const response = await rpc.control.request({ type: "abort" });
@@ -122,17 +146,22 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     const overflow = event.type === "turn_end"
       ? event.message.role === "assistant" && event.message.stopReason === "error" && isContextOverflow(event.message)
       : event.type === "message_update" && event.assistantMessageEvent.type === "error" && isContextOverflow(event.assistantMessageEvent.error);
-    let context: SessionStats["contextUsage"] = undefined;
     if (event.type === "compaction_end" && event.reason === "manual") { fallback.clear(); }
-    if (event.type === "agent_settled") {
-      fallback.clear();
-      try {
-        const response = await rpc.control.request({ type: "get_session_stats" });
-        if (response.success && response.command === "get_session_stats") { context = response.data.contextUsage; }
-      }
-      catch { /* An exit may race settlement. Keep the native boundary even without a stats reply. */ }
-    }
-    const next = foldPiEvent(projection, event, { overflow, ...(context === undefined ? {} : { context }) });
+    if (event.type === "agent_settled") { fallback.clear(); }
+    // Pi's own settlement report: the post-compaction context fullness and the
+    // session leaf this turn ends on (its fork anchor). Both are the child's
+    // answer; a child that does not answer keeps the boundary and names no
+    // anchor rather than guessing one.
+    const settled = event.type === "agent_settled"
+      ? await Promise.all([rpc.control.request({ type: "get_session_stats" }).catch(() => null), nativeLeaf()])
+      : null;
+    const context = settled === null ? undefined : piSettledContext(settled[0]);
+    const forkAnchor = settled === null ? undefined : settled[1] ?? undefined;
+    const next = foldPiEvent(projection, event, {
+      overflow,
+      ...(context === undefined ? {} : { context }),
+      ...(forkAnchor === undefined ? {} : { forkAnchor }),
+    });
     projection = next.state;
     for (const command of next.commands) {
       const unstarted = event.type === "agent_settled" && !nativeActive ? nextOwner : null;

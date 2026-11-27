@@ -148,7 +148,13 @@ describe.skipIf(!isPiBackend)("Pi native input dispositions", () => {
       expect(await f.session.abort()).toMatchObject({ kind: "accepted" });
       expect(await pending).toMatchObject({ kind: "handled" });
       expect(await until(() => f.session.status().value.kind === "idle")).toBe(true);
-      expect(ends(f.session)).toEqual([{ kind: "turn_ended", outcome: { kind: "aborted" } }]);
+      // The aborted turn is the only end; only the RPC child names a session
+      // leaf as the fork anchor (SessionOptions.fork.through), and the SDK
+      // adapter refuses forks, so it names none.
+      const [aborted] = ends(f.session).flatMap((event) => event.kind === "turn_ended" ? [event] : []);
+      expect(ends(f.session)).toHaveLength(1);
+      expect(aborted).toMatchObject({ kind: "turn_ended", outcome: { kind: "aborted" } });
+      expect(typeof aborted?.forkAnchor).toBe(piRpc ? "string" : "undefined");
       expect(f.session.records().some(record => record.kind === "response" && record.body.kind === "exited")).toBe(false);
       expect(await promptAndWait(f.session, "NEXT")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
     } finally { await f.close(); }

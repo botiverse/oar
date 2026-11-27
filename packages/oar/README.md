@@ -293,8 +293,10 @@ copy of the saved one, leaving the original untouched; `Session.id` is the
 copy's. `fork.through` keeps only the turns through one turn: pass the
 `forkAnchor` of that turn's root `turn_ended` event (`ViewTurn.forkAnchor` in
 the session view); a turn without one cannot be a cut point (claude names
-none for a turn that ends on a tool call or was aborted). Claude and Codex
-support anchored copies (`through` from Codex 0.143.0). OpenCode v2 supports
+none for a turn that ends on a tool call or was aborted). Claude, Codex and
+pi in its RPC mode support anchored copies (`through` from Codex 0.143.0; pi
+copies the branch before the user message that opens the next turn). OpenCode
+v2 supports
 whole-session copies when ACP advertises `fork` and refuses `through`. See
 [forking a session](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#forking-a-session).
 

@@ -1152,7 +1152,10 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   last root assistant message (absent when it had none, when that message
   holds a `tool_use` or a root `tool_result` follows it, as on an
   `outputSchema` turn ending on its `StructuredOutput` call or an
-  `error_max_turns` stop, and on an aborted turn); codex, the turn id.
+  `error_max_turns` stop, and on an aborted turn); codex, the turn id; pi in
+  its RPC mode, the entry id of the session leaf the child reported when the
+  turn settled (a real session entry, absent only when the child did not
+  answer).
   Absent on other runtimes, child turns and older records
   ([forking a session](runtime-matrix.md#forking-a-session)).
 - `turn_ended.inputId?` and `inputIds?`: the shared stream-json fold copies native

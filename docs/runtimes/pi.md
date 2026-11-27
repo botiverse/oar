@@ -294,7 +294,7 @@ sections describe the default SDK path unless the RPC differences above apply.
 | In-process AgentSession | One OAR Session wrapping the SDK object; no runtime subprocess. |
 | Session file header ID | `Session.id`; resume resolves it to a file in the cwd's session directory. Pi restores model context from the file without replaying prior events. See the [record-stream spec](../spec/record-stream.md#placement-and-release). |
 | Agent run | One OAR turn: from the `prompt` request (accepted once pi emits `agent_start`) to pi's `agent_settled`, whose `turn_ended` event carries the outcome. Several native `turn_start`/`turn_end` pairs, threshold compaction and auto-retries sit inside it. |
-| History tree and replacement APIs | OAR maps resume and refuses `SessionOptions.fork` in both SDK and RPC modes. Branch navigation, import and history access remain unavailable. |
+| History tree and replacement APIs | OAR maps resume in both modes. RPC `SessionOptions.fork` opens a dedicated process on the source and uses Pi's own copying commands: native `clone` for a whole-history copy, and native `fork { entryId }` for `fork.through` (Pi copies the branch before the user message that opens the next turn, into a new session file). OAR reads the replacement session id and the copy's own entry list back before exposing it. Forking stays refused in SDK mode. Branch navigation, import and history access remain unavailable. |
 | ModelRuntime and ResourceLoader | Native services determine models/resources; OAR exposes selected startup options and catalog results. The `pi/session_opened` frame reports the effective model and thinking level as `model` and `effort` events. Outside sessions, `createPiProviderAuth` wraps `ModelRuntime.login`/`logout`/auth status and lists the providers pi's `/login` offers (`loginProviders`), and the internal model catalog wraps `ModelRegistry`; hosts discover models through `piRuntime.listModels`. |
 | SDK event stream | Every `AgentSessionEvent` is exactly one Frame record, verbatim as `native`, with the events OAR reads from it ([table](#observation-history-and-children)). No `spanId` (pi has no native turn id); `agentPath` is always root; capabilities declare `attribution: "none"`. |
 | Control | `prompt`/`steer`/`queue`/`withdraw`/`abort`/`dispose` are request records answered accepted/rejected ([details](#prompt-steering-queueing-and-abort)). |
@@ -401,6 +401,44 @@ file unchanged. The same package-policy matrix runs against SDK and RPC startup.
 Both the SDK's `AgentSession.sessionFile` and RPC's `get_state.sessionFile` name the native session file. A fresh session creates the file when it saves its first turn.
 `Session.nativeSessionFile()` returns that path once the file exists.
 
+For RPC, `SessionOptions.fork` uses Pi 1.6's own copying commands, each of
+which writes a NEW session file and leaves the source file untouched. OAR
+first opens a fresh dedicated child attached to `resume`, then:
+
+- `fork: {}` sends the native `clone` command, which copies the branch up to
+the current leaf (`fork(leafId, { position: "at" })`).
+- `fork: { through: anchor }` asks the child for its own entry list
+  (`get_entries`: `entries` + `leafId`) and plans the copy from it
+  ([rpc/fork.ts](../../packages/oar/src/runtimes/pi/rpc/fork.ts)). The anchor
+  must be an entry of the branch the copy starts from; an unknown anchor, or
+  one on an abandoned branch, rejects. Because Pi's `fork` copies the path
+  BEFORE a user message and takes no cut position, a turn that is not the last
+  one is copied with `fork { entryId: <the user message that opens the next
+  turn> }`, and the last turn's anchor with `clone`. The anchor is therefore
+  the entry id of the session leaf the child reported when that turn settled,
+  which every root `turn_ended` carries as `forkAnchor`. OAR reads it with
+  `get_entries` at each settlement, asking only for the entries appended since
+  the previous one (the first settlement after open reads the whole list).
+
+Either way OAR then sends `get_state`, and only a non-cancelled result whose
+read-back id is non-empty and different from the source id is exposed as the
+new Session. A `fork.through` copy is checked once more against the child's
+`get_entries`: it must hold the anchor and no message entry the source has
+after it. A missing, same, or otherwise ambiguous id, a cancelled copy (an
+installed extension's `session_before_fork` hook can cancel one), and an
+unfaithful copy all fail closed and the child is cleaned up. The source
+process is never reused or mutated by OAR, and `--name` is not passed on a
+fork: it names the session the child opens, which is the source; the copy is
+named after it exists through Pi's own `set_session_name`. The native
+regressions in
+[`pi-rpc-fork.vendor.test.ts`](../../sea-trial/vendor/pi-rpc-fork.vendor.test.ts)
+check that the source file stays byte-identical and resumable while a fork
+copies only the turns through its anchor, that an unknown or cancelled anchor
+fails the open, and that a named fork names only the copy;
+[`pi-rpc.vendor.test.ts`](../../sea-trial/vendor/pi-rpc.vendor.test.ts)
+covers the whole-session clone and the anchor validation that runs before a
+child starts.
+
 The public SDK opens persisted sessions by **file path**. Given host-selected
 `cwd`, `agentDir`, `sessionDir` and `filePath`, OAR uses this entry shape:
 
@@ -495,7 +533,7 @@ Reopening creates fresh observers and an empty
 adapter queue. It resumes the conversation, not interrupted execution or
 historical event delivery: after a death, replay comes from the host's own
 persisted records ([cursor](../spec/session-graph-and-cursor.md)). Native `session.messages`, tree navigation, fork and
-import are **not exposed**. Corrupt-file handling and concurrent writers are
+import are **not exposed** through the SDK adapter (a fork needs the RPC child, [above](#session-creation-and-resume)). Corrupt-file handling and concurrent writers are
 **unverified**. What a crash in the middle of a tool call leaves for a resume
 is measured in [crash and resume](crash-resume.md) (SDK 0.99.2).
 [Adapter](../../packages/oar/src/runtimes/pi/session.ts),

@@ -58,6 +58,60 @@ function toolNames(request: unknown): string[] {
 }
 
 describe.skipIf(process.env.OAR_TEST !== "pi-rpc-aimock")("bundled Pi RPC process boundaries", () => {
+  test("native clone opens a new id in a dedicated child and leaves the source resumable", async () => {
+    const f = await fixture("");
+    try {
+      const source = await f.open();
+      await turn(source, "source_history_marker");
+      const sourceFile = await source.nativeSessionFile?.();
+      expect(sourceFile).toBeTypeOf("string");
+      assert.ok(typeof sourceFile === "string");
+      await source.dispose();
+      const sourceText = readFileSync(sourceFile, "utf8");
+
+      const requestsBeforeClone = f.env.raw.length;
+      const copy = await f.open({ resume: source.id, fork: {} });
+      expect(copy.id).not.toBe(source.id);
+      expect(f.env.raw.length).toBe(requestsBeforeClone);
+      const nativeCommands = copy.records().flatMap((row) => {
+        if (row.kind !== "frame") { return []; }
+        const native = asRecord(row.body.native);
+        return typeof native?.command === "string" ? [native.command] : [];
+      });
+      expect(nativeCommands).toContain("clone");
+      expect(nativeCommands.filter((command) => command === "get_state")).toHaveLength(2);
+      const copyFile = await copy.nativeSessionFile?.();
+      expect(copyFile).toBeTypeOf("string");
+      expect(copyFile).not.toBe(sourceFile);
+      await turn(copy, "copy_history_marker");
+      await copy.dispose();
+      expect(readFileSync(sourceFile, "utf8")).toBe(sourceText);
+
+      const resumedSource = await f.open({ resume: source.id });
+      expect(resumedSource.id).toBe(source.id);
+      await turn(resumedSource, "source_still_usable");
+      expect(JSON.stringify(f.env.raw.at(-1)?.body)).toContain("source_history_marker");
+      expect(JSON.stringify(f.env.raw.at(-1)?.body)).not.toContain("copy_history_marker");
+    } finally { await f.stop(); }
+  }, 90_000);
+
+  test("a blank or NUL fork anchor is refused before a child starts, and a missing source names the session", async () => {
+    const f = await fixture("");
+    try {
+      for (const through of ["", "   ", "a\0b"]) {
+        // oxlint-disable-next-line no-await-in-loop -- one open at a time keeps the failure attributable.
+        await expect(f.open({ resume: "missing-source", fork: { through } })).rejects.toMatchObject({
+          name: "UnsupportedOptionError",
+          option: "fork",
+        });
+      }
+      // A real anchor on a source that does not exist fails the resume itself.
+      await expect(f.open({ resume: "missing-source", fork: { through: "turn-id" } })).rejects.toMatchObject({
+        name: "SessionNotFoundError",
+      });
+    } finally { await f.stop(); }
+  });
+
   test("a symbolic cwd keeps native session identity and resumes through RPC and SDK", async () => {
     const f = await fixture("");
     const cwd = path.join(f.agentDir, "project-link");

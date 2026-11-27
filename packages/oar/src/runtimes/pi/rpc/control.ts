@@ -1,7 +1,14 @@
 import { reportedStderr, reportedProcessFailure } from "../../../shared/executable/reported-stderr.js";
-import type { RpcCommand, RpcResponse } from "@earendil-works/pi-coding-agent";
+import type { RpcCommand, RpcResponse, RpcSessionState } from "@earendil-works/pi-coding-agent";
 import type { LineProcess } from "../../../shared/executable/index.js";
 import { asRecord, parseJson } from "../../../shared/json.js";
+
+/** The session state a `get_state` answer carries; any other reply is not one. */
+export function piRpcState(response: RpcResponse): RpcSessionState {
+  if (!response.success) { throw new Error(response.error); }
+  if (response.command !== "get_state") { throw new Error("Pi replied to a different command"); }
+  return response.data;
+}
 
 /** Native Pi JSONL correlation. Event observers never wait for a command response. */
 export function piRpcControl(child: LineProcess, receive: (message: Record<string, unknown>) => void, redact?: (text: string) => string): {
@@ -21,6 +28,8 @@ export function piRpcControl(child: LineProcess, receive: (message: Record<strin
     pending.delete(message.id);
     clearTimeout(waiter.timer);
     // This is the bundled version's own protocol, not an arbitrary remote server.
+    // SAFETY: the pinned bundled RPC encoder emits exactly this union, and the
+    // id matched a pending request, so the shape is the dependency's own reply.
     // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- The pinned bundled RPC encoder owns this response union.
     waiter.resolve(message as unknown as RpcResponse);
   });
@@ -53,3 +62,6 @@ export function piRpcControl(child: LineProcess, receive: (message: Record<strin
     },
   };
 }
+
+/** The request/response channel of one Pi RPC child. */
+export type PiRpcControl = ReturnType<typeof piRpcControl>;

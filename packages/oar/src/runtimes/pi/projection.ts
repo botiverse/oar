@@ -69,6 +69,15 @@ export function piRunOutcome(state: PiProjectionState, aborted: boolean): TurnOu
 export interface PiFoldExtra {
   readonly context?: ContextUsage | null;
   readonly overflow?: boolean;
+  /**
+   * The session's leaf entry id, read from the child's own session manager at
+   * `agent_settled`: the anchor `SessionOptions.fork.through` takes to copy the
+   * conversation through this turn. Only a session that takes forks supplies
+   * it (the RPC child, whose native `fork` and `clone` commands copy a branch
+   * into a new session file); the in-process SDK adapter refuses forks and
+   * therefore names none. Absent when the child did not answer.
+   */
+  readonly forkAnchor?: string;
 }
 
 interface Step {
@@ -159,7 +168,7 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
         events.push({ kind: "usage", usage: { context: extra.context } });
       }
       if (state.runStarted) {
-        events.push({ kind: "turn_ended", outcome: piRunOutcome(state, event.aborted) });
+        events.push({ kind: "turn_ended", outcome: piRunOutcome(state, event.aborted), ...(extra.forkAnchor === undefined ? {} : { forkAnchor: extra.forkAnchor }) });
       }
       return { state: { ...initialPiProjection, tokens: state.tokens }, events };
     }
