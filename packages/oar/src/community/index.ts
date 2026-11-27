@@ -7,3 +7,4 @@
 export { createMorphRuntime, type MorphRuntime } from "./morph/index.js";
 export { createCybionRuntime, type CybionOptions, type CybionRuntime } from "./cybion/index.js";
 export { createDimRuntime, type DimRuntime } from "./dim/index.js";
+export { createBubRuntime, type BubRuntime } from "./bub/index.js";

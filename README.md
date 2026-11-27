@@ -171,6 +171,12 @@ host adds one with its own deployment and credentials, so they are not in
         Dim
       </a>
     </td>
+    <td align="center" width="112">
+      <a href="docs/runtimes/bub.md">
+        <img src="packages/oar/assets/brands/bub.svg" width="32" height="32" alt=""><br>
+        Bub
+      </a>
+    </td>
   </tr>
 </table>
 

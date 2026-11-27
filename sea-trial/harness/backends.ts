@@ -27,6 +27,8 @@ import { acpBackend } from "./acp-backends.js";
 import { grokSharedBackend } from "./grok-shared.js";
 import { createDimRuntime } from "../../packages/oar/src/community/dim/index.js";
 import { startDimAimock } from "./dim-aimock.js";
+import { createBubRuntime } from "../../packages/oar/src/community/bub/index.js";
+import { startBubAimock } from "./bub-aimock.js";
 import { opencodeSharedBackend } from "./opencode-shared.js";
 
 const claudeSession = claudeRuntime.session;
@@ -186,6 +188,19 @@ export async function selectBackend(target: string): Promise<Backend> {
         return session;
       };
       return { aimock, runtime: { ...dim, id: target, session: open } };
+    }
+    case "bub-aimock": {
+      // Community runtime: run locally against an installed `bub` with its ACP plugin; no CI job installs it.
+      const bub = createBubRuntime();
+      const aimock = await startBubAimock((mock) => {
+        mock.onMessage(/slow/u, { content: "ok" }, { latency: 900 });
+        mock.onMessage(/^(?![\s\S]*slow)[\s\S]*$/u, { content: "ok" }, { latency: 80 });
+      });
+      const open: Runtime["session"] = async (installation, options) => {
+        const session = await bub.session(installation, { ...options, env: { ...options.env, ...aimock.env } });
+        return session;
+      };
+      return { aimock, runtime: { ...bub, id: target, session: open } };
     }
     case "antigravity-aimock": return acpBackend("antigravity");
     case "kimi-aimock": return acpBackend("kimi");
