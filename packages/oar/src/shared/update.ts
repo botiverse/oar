@@ -121,9 +121,9 @@ export async function runCheckCommand(
   return { result, json: parseJson(result.stdout) };
 }
 
-async function versionNow(command: string): Promise<string | undefined> {
+async function versionNow(command: string, env?: NodeJS.ProcessEnv): Promise<string | undefined> {
   try {
-    const raw = await readExecutableVersion(command, VERSION_TIMEOUT_MS);
+    const raw = await readExecutableVersion(command, VERSION_TIMEOUT_MS, undefined, env);
     return raw === undefined ? undefined : releaseVersion(raw);
   } catch {
     return undefined;
@@ -155,7 +155,8 @@ export async function upgradeExecutable(
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "unsupported_installation", detail: "an in-process SDK; it moves with the package that carries it" };
   }
-  const now = await versionNow(installation.command);
+  const env = updaterEnv(updater.env?.() ?? process.env);
+  const now = await versionNow(installation.command, env);
   const current = now === undefined ? installation : (installation.kind === "available"
     ? { ...installation, version: now } : { ...installation, installedVersion: now });
   const check = await updater.check(current, options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs });
@@ -171,10 +172,11 @@ export async function runNativeUpgrade(
   command: string, before: string | undefined, updater: Pick<NativeUpdater, "args" | "env">, options: UpgradeOptions = {},
 ): Promise<UpgradeResult> {
   const timeoutMs = options.timeoutMs ?? UPGRADE_TIMEOUT_MS;
-  const run = await runIsolated(command, updater.args, { env: updaterEnv(updater.env?.() ?? process.env), timeoutMs });
+  const env = updaterEnv(updater.env?.() ?? process.env);
+  const run = await runIsolated(command, updater.args, { env, timeoutMs });
   clearInstallationCache();
   const output = isolatedOutput(run, timeoutMs, "updater");
-  const after = await versionNow(command);
+  const after = await versionNow(command, env);
   if (before !== undefined && after !== undefined && after !== before) {
     return { kind: "upgraded", from: before, to: after, output };
   }

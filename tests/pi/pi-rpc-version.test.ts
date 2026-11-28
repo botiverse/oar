@@ -16,7 +16,7 @@ test.each(["1.3.99", "1.4.0", "1.5.0", "1.6.0", "unparseable", undefined])("the 
   const runtime = createPiRuntime({ execution: "subprocess", command: process.execPath, args: [fixture] });
   try {
     const opening = runtime.session({ kind: "available", via: "executable", command: process.execPath }, { cwd: directory, env: {
-      HOME: directory, USERPROFILE: directory, OAR_PI_AGENT_DIR: agent, PI_CODING_AGENT_DIR: agent, PI_PACKAGE_DIR: null,
+      HOME: directory, USERPROFILE: directory, OAR_PI_AGENT_DIR: agent, PI_CODING_AGENT_DIR: agent,
       OAR_TEST_PI_READY_VERSION: version ?? null,
     } });
     if (version === "1.4.0" || version === "1.5.0" || version === "1.6.0") {
@@ -36,7 +36,7 @@ test.each([undefined, { provider: "fixture", id: "other" }])("a registered model
   const runtime = createPiRuntime({ execution: "subprocess", command: process.execPath, args: [fixture] });
   try {
     const opening = runtime.session({ kind: "available", via: "executable", command: process.execPath }, { cwd: directory, model: "fixture/requested", env: {
-      HOME: directory, USERPROFILE: directory, OAR_PI_AGENT_DIR: agent, PI_CODING_AGENT_DIR: agent, PI_PACKAGE_DIR: null,
+      HOME: directory, USERPROFILE: directory, OAR_PI_AGENT_DIR: agent, PI_CODING_AGENT_DIR: agent,
       OAR_TEST_PI_READY_VERSION: "1.5.0", OAR_TEST_PI_MODEL: model === undefined ? null : JSON.stringify(model),
     } });
     await expect(opening).rejects.toBeInstanceOf(ModelConfirmationError);

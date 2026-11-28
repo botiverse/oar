@@ -1,11 +1,11 @@
 import path from "node:path";
 import type { AvailableInstallation, InstallationProbe, InstallationSnapshot } from "../../contracts/installation.js";
-import { environmentValue, sessionEnvironment } from "../../shared/environment.js";
 import { environmentHome } from "../../shared/environment-home.js";
 import { resolveExecutable } from "../../shared/executable/index.js";
 import { checkHostEnvironment, currentHostEnvironment, type HostEnvironment } from "../../shared/host-environment.js";
 import { npmGlobalBin, npmGlobalPrefix } from "../../shared/install-npm.js";
 import { executableInstallation, type ExecutableFallbacks, type ExecutableInstallationOptions } from "../../shared/installation.js";
+import { piAgentDirectories, piSubprocessEnv, piSubprocessEnvOverlay } from "./environment.js";
 import type { PiRuntimeOptions } from "./options.js";
 import { PI_RPC_MINIMUM_VERSION } from "./rpc/version.js";
 
@@ -52,12 +52,7 @@ export function piInstalledExecutableCandidates(
   env: Readonly<NodeJS.ProcessEnv> = process.env,
 ): readonly string[] {
   const paths = platform === "win32" ? path.win32 : path.posix;
-  const baseHome = home ?? environmentValue(env, platform === "win32" ? "USERPROFILE" : "HOME", platform) ?? environmentHome(env);
-  const configured = [
-    environmentValue(env, "OAR_PI_AGENT_DIR", platform),
-    environmentValue(env, "PI_CODING_AGENT_DIR", platform),
-  ].find((value) => value !== undefined && value.length > 0);
-  const agentDir = configured ?? paths.join(baseHome, ".pi", "agent");
+  const { baseHome, agentDir } = piAgentDirectories(env, platform, home);
   if (platform === "win32") {
     return [
       paths.join(baseHome, ".local", "bin", "pi.cmd"),
@@ -123,13 +118,14 @@ async function probeNpmGlobalPi(
   probeOptions: Parameters<InstallationProbe>[0],
   commandProbeOptions: ExecutableInstallationOptions,
 ): Promise<InstallationSnapshot> {
-  const env = sessionEnvironment(probeOptions?.env);
+  const effectiveProbe = { ...probeOptions, env: piSubprocessEnvOverlay(probeOptions?.env) };
+  const env = piSubprocessEnv(probeOptions?.env);
   const npm = resolveExecutable("npm", env);
   if (npm === null) { return { kind: "not_found" }; }
   const prefix = await npmGlobalPrefix(npm, env).catch((): null => null);
   if (prefix === null) { return { kind: "not_found" }; }
   const command = path.join(npmGlobalBin(prefix), process.platform === "win32" ? "pi.cmd" : "pi");
-  return executableInstallation("", command, [], undefined, commandProbeOptions)(probeOptions);
+  return executableInstallation("", command, [], undefined, commandProbeOptions)(effectiveProbe);
 }
 
 /**
@@ -173,9 +169,10 @@ export function piInstallationFor(
           reason: `Pi RPC requires ${missing.join(" and ")} in the host for session lookup, project-package checks, and context-overflow detection, even when running an explicit command. Install ${missing.join(" ")} in your project.`,
         };
       }
-      let snapshot = await commandProbe(probeOptions);
+      const effectiveProbe = { ...probeOptions, env: piSubprocessEnvOverlay(probeOptions.env) };
+      let snapshot = await commandProbe(effectiveProbe);
       if (snapshot.kind === "not_found" && standalone) {
-        snapshot = await probeNpmGlobalPi(probeOptions, commandProbeOptions);
+        snapshot = await probeNpmGlobalPi(effectiveProbe, commandProbeOptions);
       }
       return snapshot;
     }
