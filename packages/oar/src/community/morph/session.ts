@@ -1,12 +1,12 @@
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
-import type { ControlResult, InputOptions, ResponseBody, Session, StartSession } from "../../contracts/session.js";
-import { withdrawControl } from "../../shared/held-input.js";
+import type { ControlResult, InputOptions, InputOrigin, RequestRecord, ResponseBody, Session, StartSession } from "../../contracts/session.js";
+import { enqueueHeld, withdrawControl } from "../../shared/held-input.js";
 import { inputImagesRefusal } from "../../shared/input-images.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
 import { acquireConsole, morphStateDir, type ConsoleLease } from "./console.js";
-import { MorphRefusalError, carrierTask, checkProfile, openTopic, stopTask, submitTask } from "./topic.js";
+import { MorphRefusalError, carrierTask, morphRefusal, prepareTopic, stopTask, submitTask } from "./topic.js";
 import { createTaskTracker } from "./tracker.js";
 
 /*
@@ -53,23 +53,11 @@ export const morphRefusedSessionOptions: RefusedSessionOptions = {
 };
 
 interface Held {
+  readonly request: RequestRecord;
   readonly input: string;
   readonly inputId?: string | undefined;
-}
-
-function refusal(error: unknown): ResponseBody {
-  return error instanceof MorphRefusalError
-    ? { kind: "rejected", code: error.refused ? "runtime_refused" : "error", reason: error.message, native: error.native }
-    : { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) };
-}
-
-async function prepareTopic(client: Parameters<typeof openTopic>[0], options: Parameters<StartSession>[1]): Promise<string> {
-  if (options.model !== undefined) {
-    await checkProfile(client, options.model);
-  }
-  const topicId = await openTopic(client, options.resume);
-  await client.expect("PUT", "/workspace", { topic_id: topicId, workspace_dir: options.cwd });
-  return topicId;
+  readonly origin?: InputOrigin | undefined;
+  accepted?: true;
 }
 
 /** How a session gets its Console; tests hand in a scripted one. */
@@ -93,6 +81,8 @@ export function morphSessionWith(acquire: AcquireConsole): StartSession {
 
     const kernel = createSessionKernel(topicId);
     const held: Held[] = [];
+    let dispatching = false;
+    let submitting = 0;
     const body = (task: string): Record<string, unknown> => ({
       task,
       topic_id: topicId,
@@ -101,40 +91,79 @@ export function morphSessionWith(acquire: AcquireConsole): StartSession {
     });
     // The runtime went away without anyone asking: one exit, then nothing runs.
     const lost = (code: number | null): void => {
-      if (kernel.unreachable() === null) {
-        kernel.respond("", { kind: "exited", code });
+      if (kernel.unreachable() !== null) {
+        return;
       }
-      tracker.close();
       held.length = 0;
+      tracker.close();
+      kernel.respond("", { kind: "exited", code });
     };
+    const send = async (input: string): Promise<{ readonly response: ResponseBody; readonly answered: boolean }> => {
+      try {
+        const answer = await submitTask(client, body(input));
+        tracker.follow(carrierTask(answer));
+        return { response: { kind: "accepted", native: answer }, answered: true };
+      } catch (error) {
+        return { response: morphRefusal(error), answered: error instanceof MorphRefusalError };
+      }
+    };
+    const dispatch = async (request: RequestRecord, next: Held): Promise<void> => {
+      try {
+        const sent = await send(next.input);
+        dispatching = false;
+        const stopped = kernel.unreachable();
+        if (stopped !== null) {
+          kernel.respond(request.id, sent.response.kind === "accepted" ? sent.response : stopped);
+          return;
+        }
+        if (sent.response.kind === "rejected") {
+          if (sent.answered) {
+            kernel.frame({
+              type: "morph/send_rejected",
+              native: sent.response.native ?? null,
+              events: [{ kind: "input_dropped", requestId: request.id, reason: "runtime_refused", message: sent.response.reason }],
+            });
+          } else {
+            delete next.accepted;
+            held.unshift(next);
+          }
+        }
+        kernel.respond(request.id, sent.response);
+        if (sent.response.kind !== "accepted") { drainHeld(); }
+      } finally {
+        dispatching = false;
+      }
+    };
+    function drainHeld(): void {
+      if (kernel.unreachable() !== null || dispatching || submitting > 0 || tracker.busy() || held[0]?.accepted !== true) { return; }
+      const next = held.shift();
+      if (next === undefined) { return; }
+      dispatching = true;
+      const request = kernel.request("toRuntime", {
+        kind: "prompt",
+        input: next.input,
+        carries: [next.inputId ?? next.request.id],
+        ...(next.origin === undefined ? {} : { origin: next.origin }),
+      });
+      const blocked = kernel.unreachable();
+      if (blocked !== null) {
+        dispatching = false;
+        kernel.respond(request.id, blocked);
+        return;
+      }
+      void dispatch(request, next);
+    }
     const tracker = createTaskTracker({
       client,
       kernel,
       topicId,
-      onIdle: () => {
-        const next = kernel.unreachable() !== null ? undefined : held.shift();
-        if (next !== undefined) {
-          // The input was taken over at queue time; a send that fails leaves no turn.
-          void send(next.input);
-        }
-      },
-      onUnreachable: lease.owned ? null : (): void => {
-        lost(null);
-      },
+      onIdle: () => { drainHeld(); },
+      onUnreachable: lease.owned ? null : (): void => { lost(null); },
     });
     lease.onExit(lost);
 
-    const send = async (input: string): Promise<ResponseBody> => {
-      try {
-        const answer = await submitTask(client, body(input));
-        tracker.follow(carrierTask(answer));
-        return { kind: "accepted", native: answer };
-      } catch (error) {
-        return refusal(error);
-      }
-    };
-
     const capabilities = { queue: { durable: false }, attribution: "opaque", images: false } as const;
+    const withdrawHeldControl = withdrawControl(kernel, held);
     const session: Session = sealSession({
       id: kernel.sessionId,
       capabilities,
@@ -143,61 +172,72 @@ export function morphSessionWith(acquire: AcquireConsole): StartSession {
         // records it synchronously), so the contract's invariant holds by
         // construction: a task followed but not yet seen working (a steer that
         // became its own task) does not make the topic busy, and a prompt sent
-        // meanwhile is steered into it by Console.
-        const running = session.status().value.kind === "running";
-        const result = await kernel.control({ kind: "prompt", input, ...inputOptions }, async (): Promise<ResponseBody> => {
-          if (running) {
-            return { kind: "rejected", code: "busy", reason: "busy" };
-          }
-          const refused = inputImagesRefusal(capabilities, inputOptions?.images);
-          if (refused !== null) {
-            return refused;
-          }
-          const outcome = await send(input);
-          return outcome;
-        });
-        return result;
+        // meanwhile is steered into it by Console. Held or draining inputs also
+        // keep the slot reserved so a prompt cannot overtake queued work.
+        const busy = session.status().value.kind === "running" || held.length > 0 || dispatching;
+        if (!busy) { submitting += 1; }
+        try {
+          const result = await kernel.control({ kind: "prompt", input, ...inputOptions }, async (): Promise<ResponseBody> => {
+            if (busy) { return { kind: "rejected", code: "busy", reason: "busy" }; }
+            const refused = inputImagesRefusal(capabilities, inputOptions?.images);
+            if (refused !== null) { return refused; }
+            const sent = await send(input);
+            return sent.response;
+          });
+          return result;
+        } finally {
+          if (!busy) { submitting -= 1; }
+          drainHeld();
+        }
       },
       steer: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
-        const result = await kernel.control({ kind: "steer", input, ...inputOptions }, async (): Promise<ResponseBody> => {
-          if (!tracker.busy()) {
-            return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" };
-          }
-          const refused = inputImagesRefusal(capabilities, inputOptions?.images);
-          if (refused !== null) {
-            return refused;
-          }
-          try {
-            const answer = await submitTask(client, body(input));
-            if (carrierTask(answer) === answer.id && answer.status === "done") {
-              // Console found the run but did not hold the input for it.
-              return { kind: "rejected", code: "runtime_refused", reason: "not_steerable: morph did not queue the input for the running task", native: answer };
+        submitting += 1;
+        try {
+          const result = await kernel.control({ kind: "steer", input, ...inputOptions }, async (): Promise<ResponseBody> => {
+            if (!tracker.busy()) { return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" }; }
+            const refused = inputImagesRefusal(capabilities, inputOptions?.images);
+            if (refused !== null) { return refused; }
+            try {
+              const answer = await submitTask(client, body(input));
+              if (carrierTask(answer) === answer.id && answer.status === "done") {
+                // Console found the run but did not hold the input for it.
+                return { kind: "rejected", code: "runtime_refused", reason: "not_steerable: morph did not queue the input for the running task", native: answer };
+              }
+              // Steered into the run, or (the run ended first) a task of its own.
+              tracker.follow(carrierTask(answer));
+              return { kind: "accepted", native: answer };
+            } catch (error) {
+              return morphRefusal(error);
             }
-            // Steered into the run, or (the run ended first) a task of its own.
-            tracker.follow(carrierTask(answer));
-            return { kind: "accepted", native: answer };
-          } catch (error) {
-            return refusal(error);
-          }
-        });
-        return result;
+          });
+          return result;
+        } finally {
+          submitting -= 1;
+          drainHeld();
+        }
       },
       queue: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
-        const result = await kernel.control({ kind: "queue", input, ...inputOptions }, async (): Promise<ResponseBody> => {
+        const result = await kernel.control({ kind: "queue", input, ...inputOptions }, (request): ResponseBody => {
           const refused = inputImagesRefusal(capabilities, inputOptions?.images);
-          if (refused !== null) {
-            return refused;
-          }
-          if (tracker.busy()) {
-            held.push({ input, inputId: inputOptions?.inputId });
-            return { kind: "accepted" };
-          }
-          const outcome = await send(input);
-          return outcome;
+          if (refused !== null) { return refused; }
+          enqueueHeld(held, {
+            request,
+            input,
+            ...(inputOptions?.inputId === undefined ? {} : { inputId: inputOptions.inputId }),
+            ...(inputOptions?.origin === undefined ? {} : { origin: inputOptions.origin }),
+          });
+          return { kind: "accepted", queued: "adapter" };
         });
+        const entry = held.find((item) => item.request.id === result.request.id);
+        if (entry !== undefined && result.response.body.kind === "accepted") { entry.accepted = true; }
+        drainHeld();
         return result;
       },
-      withdraw: withdrawControl(kernel, held),
+      withdraw: async (inputId: string): Promise<ControlResult> => {
+        const result = await withdrawHeldControl(inputId);
+        drainHeld();
+        return result;
+      },
       abort: async (): Promise<ControlResult> => {
         const result = await kernel.control({ kind: "abort" }, async (): Promise<ResponseBody> => {
           const active = tracker.active();

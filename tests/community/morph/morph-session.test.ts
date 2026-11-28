@@ -3,6 +3,8 @@ import { setTimeout as delay } from "node:timers/promises";
 import { expect, test } from "vitest";
 import { UnsupportedOptionError } from "../../../packages/oar/src/contracts/errors.js";
 import type { ControlOutcome, Event, Session, SessionOptions } from "../../../packages/oar/src/contracts/session.js";
+import { conversationOf } from "../../../packages/oar/src/observe/conversation.js";
+import { initialSessionView, reduceSessionView } from "../../../packages/oar/src/observe/session-view.js";
 import { ConsoleClient, type ConsoleLease, type ConsoleReply } from "../../../packages/oar/src/community/morph/console.js";
 import { morphSessionWith } from "../../../packages/oar/src/community/morph/session.js";
 
@@ -222,19 +224,206 @@ test("abort stops the running task and its canceled status ends the turn aborted
   await session.dispose();
 });
 
+test("abort maps 5xx from stopTask to error and 400 to runtime_refused", async () => {
+  const fake = new FakeConsole();
+  const { session } = await open(fake);
+  await session.prompt("long");
+  fake.routes.set("POST /tasks/task-1/stop", () => ({ status: 503, body: { error: "console unavailable" } }));
+  const serverFailure = await session.abort();
+  expect(serverFailure).toMatchObject({ kind: "rejected", code: "error", reason: "console unavailable" });
+  expect(serverFailure.response.body).toMatchObject({ native: { error: "console unavailable" } });
+  fake.routes.set("POST /tasks/task-1/stop", () => ({ status: 400, body: { error: "bad stop request" } }));
+  const clientRefusal = await session.abort();
+  expect(clientRefusal).toMatchObject({ kind: "rejected", code: "runtime_refused", reason: "bad stop request" });
+  expect(clientRefusal.response.body).toMatchObject({ native: { error: "bad stop request" } });
+  fake.routes.delete("POST /tasks/task-1/stop");
+  await session.dispose();
+});
+
 // oxlint-disable-next-line eslint/max-statements -- one held queue, withdrawn, drained and run, in order.
 test("queue is held while busy, withdrawable, and sent as a spontaneous turn when the topic goes idle", async () => {
   const fake = new FakeConsole();
   const { session, events } = await open(fake);
   await session.prompt("first");
-  assert.equal(answer(await session.queue("second")), "accepted");
-  await session.queue("third", { inputId: "8f0c3d1e-0000-4000-8000-000000000003" });
+  const second = await session.queue("second", { origin: { kind: "automation", source: "ci" } });
+  assert.deepEqual(second.response.body, { kind: "accepted", queued: "adapter" });
+  const third = await session.queue("third", { inputId: "8f0c3d1e-0000-4000-8000-000000000003" });
+  assert.deepEqual(third.response.body, { kind: "accepted", queued: "adapter" });
   assert.equal(answer(await session.withdraw?.("8f0c3d1e-0000-4000-8000-000000000003")), "accepted");
+  const overtake: { status?: string; prompt?: ReturnType<Session["prompt"]> } = {};
+  const unsubscribe = session.rawEvents((record) => {
+    if (overtake.prompt !== undefined || record.kind !== "frame" || !record.body.events.some((event) => event.kind === "turn_ended")) {
+      return;
+    }
+    overtake.status = session.status().value.kind;
+    overtake.prompt = session.prompt("overtake");
+  });
   fake.finish("task-1");
   await until(() => fake.statuses.has("task-2"), "the held input to be sent");
+  unsubscribe();
+  expect(overtake.status).toBe("running");
+  expect(await overtake.prompt).toMatchObject({ kind: "rejected", code: "busy" });
+  const secondId = second.request.kind === "request" && second.request.body.kind === "queue" ? second.request.body.inputId : undefined;
+  assert.ok(secondId !== undefined);
+  assert.equal(answer(await session.withdraw?.(secondId)), "not_queued");
+  const dispatch = session.records().find((record) => record.kind === "request" && record.body.kind === "prompt" && record.body.carries?.includes(secondId) === true);
+  assert.ok(dispatch?.kind === "request");
+  expect(dispatch.body).toEqual({ kind: "prompt", input: "second", carries: [secondId], origin: { kind: "automation", source: "ci" } });
   assert.deepEqual(fake.sent(), ["first", "second"]);
   fake.finish("task-2");
   await until(() => turnEnds(events) === 2, "the queued turn's end");
+  const view = session.records().reduce((state, record) => reduceSessionView(state, record), initialSessionView());
+  expect(view.messages.filter((message) => message.kind === "input" && message.input.input === "second")).toHaveLength(1);
+  await session.dispose();
+});
+
+test("queue while idle returns queued:'adapter' and dispatches with carries", async () => {
+  const fake = new FakeConsole();
+  const { session, events } = await open(fake);
+  const liveId = "8f0c3d1e-0000-4000-8000-000000000012";
+  const queued = await session.queue("run now", { inputId: liveId });
+  expect(queued.response.body).toEqual({ kind: "accepted", queued: "adapter" });
+  await until(() => fake.statuses.has("task-1"), "idle queued input dispatch");
+  const dispatch = session.records().find((record) => record.kind === "request" && record.body.kind === "prompt" && record.body.carries?.includes(liveId) === true);
+  expect(dispatch?.kind === "request" ? dispatch.body : undefined).toEqual({ kind: "prompt", input: "run now", carries: [liveId] });
+  fake.finish("task-1");
+  await until(() => turnEnds(events) === 1, "idle queued turn end");
+  await session.dispose();
+});
+
+test("acceptance observer can withdraw a queued input before dispatch", async () => {
+  const fake = new FakeConsole();
+  const { session } = await open(fake);
+  const inputId = "8f0c3d1e-0000-4000-8000-000000000011";
+  const withdrawal: { value?: Promise<ControlOutcome> } = {};
+  const unsubscribe = session.rawEvents((record) => {
+    if (record.kind === "response" && record.body.kind === "accepted" && record.body.queued === "adapter") {
+      withdrawal.value = session.withdraw?.(inputId);
+    }
+  });
+  const withdrawnQueue = await session.queue("cancel me", { inputId });
+  expect(withdrawnQueue.response.body).toEqual({ kind: "accepted", queued: "adapter" });
+  expect(answer(await withdrawal.value)).toBe("accepted");
+  unsubscribe();
+  expect(fake.sent()).toEqual([]);
+  await session.dispose();
+});
+
+// oxlint-disable-next-line eslint/max-statements -- checks refusal drop, error mapping, and subsequent drain.
+test("failed drain send records input_dropped on HTTP refusal and preserves ownership on transport throw", async () => {
+  const fake = new FakeConsole();
+  const { session, events } = await open(fake);
+  await session.prompt("first");
+  const refusedId = "8f0c3d1e-0000-4000-8000-000000000021";
+  const droppedId = "8f0c3d1e-0000-4000-8000-000000000022";
+  const finalId = "8f0c3d1e-0000-4000-8000-000000000023";
+  await session.queue("bad-500", { inputId: refusedId });
+  await session.queue("transport-fail", { inputId: droppedId });
+  await session.queue("succeeds", { inputId: finalId });
+
+  let attempt = 0;
+  fake.routes.set("POST /tasks", () => {
+    attempt += 1;
+    if (attempt === 1) {
+      return { status: 500, body: { error: "internal failure" } };
+    }
+    fake.routes.delete("POST /tasks");
+    throw new Error("socket closed");
+  });
+
+  fake.finish("task-1");
+  await until(() => events.some((event) => event.kind === "input_dropped"), "input_dropped on HTTP 500 refusal");
+  await until(() => attempt === 2, "transport throw attempt");
+  await delay(50);
+
+  const convBeforeWithdraw = conversationOf(session.records());
+  const firstHeld = [...convBeforeWithdraw.inputs.values()].find((entry) => entry.inputId === refusedId);
+  expect(firstHeld).toMatchObject({ state: "dropped", reason: "runtime_refused" });
+  expect(firstHeld?.attempts.at(-1)?.response?.body).toMatchObject({ kind: "rejected", code: "error" });
+
+  // Transport failure kept the second queued item held without fabricating input_dropped.
+  expect(events.filter((event) => event.kind === "input_dropped")).toHaveLength(1);
+  expect(session.status().value.kind).toBe("running");
+  assert.equal(answer(await session.withdraw?.(droppedId)), "accepted");
+
+  await until(() => fake.statuses.has("task-2"), "third held item to drain after withdrawal");
+  expect(fake.sent().at(-1)).toBe("succeeds");
+  fake.finish("task-2");
+  await until(() => turnEnds(events) === 2, "final queued turn end");
+  await session.dispose();
+});
+
+test("reentrant queue calls drain in recorded request order", async () => {
+  const fake = new FakeConsole();
+  const { session, events } = await open(fake);
+  const secondQueue: { value?: ReturnType<Session["queue"]> } = {};
+  const unsubOrder = session.rawEvents((record) => {
+    if (record.kind === "request" && record.body.kind === "queue" && record.body.input === "first-q") {
+      secondQueue.value = session.queue("second-q");
+    }
+  });
+  await session.queue("first-q");
+  await secondQueue.value;
+  unsubOrder();
+  await until(() => fake.statuses.has("task-1"), "first reentrant queue started");
+  expect(fake.sent()).toEqual(["first-q"]);
+  fake.finish("task-1");
+  await until(() => fake.statuses.has("task-2"), "second reentrant queue started");
+  expect(fake.sent()).toEqual(["first-q", "second-q"]);
+  fake.finish("task-2");
+  await until(() => turnEnds(events) === 2, "both reentrant turns finished");
+  await session.dispose();
+});
+
+test("dispatch-observer dispose prevents sending the carried prompt", async () => {
+  const fakeDispose = new FakeConsole();
+  const { session } = await open(fakeDispose);
+  const disposed: { value?: Promise<void> } = {};
+  session.rawEvents((record) => {
+    if (record.kind === "request" && record.body.kind === "prompt" && record.body.carries !== undefined) {
+      disposed.value = session.dispose();
+    }
+  });
+  await session.queue("blocked-by-dispose");
+  await disposed.value;
+  expect(fakeDispose.sent()).toEqual([]);
+  const dispatchReq = session.records().find((record) => record.kind === "request" && record.body.kind === "prompt");
+  assert.ok(dispatchReq?.kind === "request");
+  expect(session.records().find((record) => record.kind === "response" && record.requestId === dispatchReq.id)).toMatchObject({
+    body: { kind: "rejected", code: "disposed" },
+  });
+});
+
+test("queue during an in-flight prompt waits until the prompt settles, even on refusal", async () => {
+  const fakeFlight = new FakeConsole();
+  const { session, events } = await open(fakeFlight);
+  const promptStarted = Promise.withResolvers<void>();
+  const releasePrompt = Promise.withResolvers<void>();
+  const posted: unknown[] = [];
+  const originalCall = fakeFlight.call.bind(fakeFlight);
+  fakeFlight.call = async (method, route, body) => {
+    if (method === "POST" && route === "/tasks") {
+      posted.push(body);
+    }
+    if (method === "POST" && route === "/tasks" && body !== null && typeof body === "object" && "task" in body && body.task === "inflight") {
+      promptStarted.resolve();
+      await releasePrompt.promise;
+      return { status: 400, body: { error: "rejected prompt" } };
+    }
+    return originalCall(method, route, body);
+  };
+  const promptOutcome = session.prompt("inflight");
+  await promptStarted.promise;
+  const queuedDuringFlight = await session.queue("queued-during-flight");
+  expect(queuedDuringFlight.response.body).toEqual({ kind: "accepted", queued: "adapter" });
+  expect(posted).toHaveLength(1);
+  releasePrompt.resolve();
+  expect(await promptOutcome).toMatchObject({ kind: "rejected", code: "runtime_refused" });
+  await until(() => fakeFlight.statuses.has("task-1"), "queued item drained after in-flight prompt failed");
+  expect(posted).toHaveLength(2);
+  expect(fakeFlight.sent()).toEqual(["queued-during-flight"]);
+  fakeFlight.finish("task-1");
+  await until(() => turnEnds(events) === 1, "drained turn after prompt failure");
   await session.dispose();
 });
 
