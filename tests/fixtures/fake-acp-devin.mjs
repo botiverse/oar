@@ -1,4 +1,4 @@
-/* oxlint-disable import/no-nodejs-modules, eslint/no-underscore-dangle, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-argument, typescript/no-unsafe-call, typescript/no-unsafe-return -- Standalone ACP wire fixture replaying devin 3000.12.57 payloads. */
+/* oxlint-disable eslint/max-lines, import/no-nodejs-modules, eslint/no-underscore-dangle, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-argument, typescript/no-unsafe-call, typescript/no-unsafe-return -- Standalone ACP wire fixture replaying devin 3000.14.30821 payloads. */
 import { appendFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 
@@ -192,20 +192,58 @@ function handleSessionLoad(req) {
   });
 }
 
-function handleSessionPrompt(req) {
-  if (process.env.FAKE_DEVIN_PROMPT_ERROR !== undefined) {
-    send({ jsonrpc: "2.0", id: req.id, error: JSON.parse(process.env.FAKE_DEVIN_PROMPT_ERROR) });
-    return;
-  }
+const pendingRequests = new Map();
+let agentRequests = 0;
+
+/** A reverse request from the agent (terminal/create, terminal/wait_for_exit, …); `answer` receives the client's reply. */
+function askClient(method, params, answer) {
+  agentRequests += 1;
+  const id = `devin-request-${String(agentRequests)}`;
+  logCall(`toApp:${method}`);
+  pendingRequests.set(id, answer);
+  send({ jsonrpc: "2.0", id, method, params });
+}
+
+function chunk(text) {
   send({
     jsonrpc: "2.0",
     method: "session/update",
     params: {
       sessionId: activeSessionId,
-      update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text: `mode:${currentMode}` } },
+      update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text } },
     },
   });
-  send({ jsonrpc: "2.0", id: req.id, result: { stopReason: "end_turn" } });
+}
+
+function handleSessionPrompt(req) {
+  if (process.env.FAKE_DEVIN_PROMPT_ERROR !== undefined) {
+    send({ jsonrpc: "2.0", id: req.id, error: JSON.parse(process.env.FAKE_DEVIN_PROMPT_ERROR) });
+    return;
+  }
+  const finish = (text) => {
+    chunk(text);
+    send({ jsonrpc: "2.0", id: req.id, result: { stopReason: "end_turn" } });
+  };
+  const text = String(req.params?.prompt?.find((block) => block?.type === "text")?.text ?? "");
+  // `terminal-shell`: devin 3000.14.30821 sends the tool's whole command line in `command`, with no `args`.
+  // The quoted program path and single-quoted JS run under both a POSIX shell and cmd.exe's /s /c wrapping.
+  if (text === "terminal-shell") {
+    const program = "require('node:fs').writeFileSync('marker.txt','shell-line-ok');process.stdout.write('shell-line-ok')";
+    askClient("terminal/create", { sessionId: activeSessionId, command: `"${process.execPath}" -e "${program}"` }, (created) => {
+      if (created.error !== undefined) {
+        finish(`terminal-error:${String(created.error.message)}`);
+        return;
+      }
+      const terminalId = created.result?.terminalId;
+      askClient("terminal/wait_for_exit", { sessionId: activeSessionId, terminalId }, () => {
+        askClient("terminal/output", { sessionId: activeSessionId, terminalId }, (read) => {
+          finish(`terminal:${String(read.result?.output ?? "")}`);
+        });
+      });
+    });
+    return;
+  }
+  finish(`mode:${currentMode}`);
 }
 
 const methodHandlers = {
@@ -279,6 +317,15 @@ if (args[0] === "auth" && args[1] === "status") {
   createInterface({ input: process.stdin }).on("line", (line) => {
     const req = JSON.parse(line);
     if (req.id !== undefined) {
+      // The client's answer to a reverse request: no method.
+      if (req.method === undefined) {
+        const answer = pendingRequests.get(req.id);
+        if (answer !== undefined) {
+          pendingRequests.delete(req.id);
+          answer(req);
+        }
+        return;
+      }
       handleRequest(req);
     }
   });
