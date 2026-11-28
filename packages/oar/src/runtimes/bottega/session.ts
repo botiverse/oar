@@ -135,12 +135,15 @@ async function open(installation: AvailableInstallation, options: SessionOptions
   let taken = false;
   /** The prompt bottega has not yet started a turn for: what an input it gives back without an id was. */
   let pending: Pending | null = null;
+  /** Count of turn settlements observed from bottega; distinguishes an in-flight busy race from a turn that already ended. */
+  let settledTurns = 0;
 
   const send = async (method: string, payload: JsonRecord): Promise<ResponseBody> => {
     try { return { kind: "accepted", native: await control.request(method, payload) }; }
     catch (error) { return refusalOf(error); }
   };
   const busy = (): boolean => taken || projection.turnOpen;
+  const isPending = (requestId: string): boolean => pending?.request.id === requestId;
   // A held input's prompt carries its id rather than holding it: the id goes with it to bottega all the same.
   const start = async (request: RequestRecord, text: string, inputOptions: InputOptions | undefined, inputId = inputIdOf(request)): Promise<ResponseBody> => {
     if (busy()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
@@ -148,9 +151,10 @@ async function open(installation: AvailableInstallation, options: SessionOptions
     taken = true;
     pending = { request, inputId };
     const answer = await send("prompt", inputFields(text, inputId, inputOptions));
-    if (answer.kind !== "accepted" && !projection.turnOpen) {
+    if (answer.kind !== "accepted" && !projection.turnOpen && isPending(request.id)) {
       taken = false;
       pending = null;
+      fallback.clear();
     }
     return answer;
   };
@@ -161,16 +165,24 @@ async function open(installation: AvailableInstallation, options: SessionOptions
     if (next === undefined) { return; }
     void (async (): Promise<void> => {
       const { inputId: _inputId, ...body } = next.body;
-      await kernel.control({ ...body, kind: "prompt", carries: [next.inputId ?? next.request.id] }, async (request): Promise<ResponseBody> => {
+      const turnsBefore = settledTurns;
+      const outcome = await kernel.control({ ...body, kind: "prompt", carries: [next.inputId ?? next.request.id] }, async (request): Promise<ResponseBody> => {
         const answer = kernel.unreachable() ?? await start(request, next.body.input, next.body, next.inputId);
+        if (answer.kind === "rejected" && answer.code === "busy" && kernel.unreachable() === null) {
+          // A pre-abort steer can already be starting the next turn in bottega; keep this input queued until that turn settles.
+          held.unshift(next);
+          return answer;
+        }
         // A held input bottega refused is handed back: the queue accepted it, and nothing else would say what became of it.
-        if (answer.kind === "rejected" && "native" in answer && answer.native !== undefined) {
+        if (answer.kind === "rejected" && kernel.unreachable() === null) {
           const dropped: RuntimeEventBody = { kind: "input_dropped", reason: "runtime_refused", message: answer.reason, requestId: request.id, ...(next.inputId === undefined ? {} : { inputId: next.inputId }) };
-          kernel.frame({ type: "bottega/held_refused", native: answer.native, events: [dropped] });
+          const native = "native" in answer && answer.native !== undefined ? answer.native : { code: answer.code, reason: answer.reason };
+          kernel.frame({ type: "bottega/held_refused", native, events: [dropped] });
         }
         return answer;
       });
-      drain();
+      const deferred = outcome.response.body.kind === "rejected" && outcome.response.body.code === "busy";
+      if (!deferred || settledTurns > turnsBefore) { drain(); }
     })();
   }
   receive = (message, receivedAt): void => {
@@ -183,7 +195,10 @@ async function open(installation: AvailableInstallation, options: SessionOptions
       : folded.body;
     if (dropped || body.events.some((event) => event.kind === "turn_active")) { pending = null; }
     const settled = dropped || body.events.some((event) => event.kind === "turn_ended");
-    if (settled && !projection.turnOpen) { taken = false; }
+    if (settled && !projection.turnOpen) {
+      taken = false;
+      settledTurns += 1;
+    }
     kernel.frame(body, { receivedAt });
     if (settled && !projection.turnOpen) {
       fallback.clear();
