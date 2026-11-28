@@ -124,8 +124,7 @@ next step, and the model honored it). The adapter answers:
 no `inputId`: morph names none). Text with file references or commands never
 steers (Console's rule); OAR sends neither.
 
-**Queue** is held by the adapter while a task runs and sent when the topic
-goes idle (a spontaneous turn); `withdraw` removes a held entry until then.
+**Queue** is held by the adapter (`queued: "adapter"`) and drained when the topic goes idle as a `prompt` carrying the held input identity (`carries`); `withdraw` removes a held entry until dispatch begins. Refused sends during drain emit `input_dropped` (`runtime_refused`), while transport errors leave the entry held and withdrawable.
 
 A prompt that races the end of a run can be steered into that run by Console:
 the answer names `steer_target_task_id` and the prompt's turn is that task's.
@@ -134,7 +133,8 @@ the answer names `steer_target_task_id` and the prompt's turn is that task's.
 
 `POST /tasks/{id}/stop` on the running task: `accepted` when Console answered
 `found: true`; `no_active_turn` when nothing is running or Console found no
-work. The task's terminal `canceled` (error "stopped by user", ~2 s later in
+work; `runtime_refused` on HTTP `400` and `error` on other non-200 responses
+(such as 5xx). The task's terminal `canceled` (error "stopped by user", ~2 s later in
 the probe) is the `turn_ended` `aborted`.
 
 ### Events, history and children
@@ -216,8 +216,6 @@ Not handled yet, each a candidate for a test and a fix:
   started can race its start and its release (a session acquiring while the
   last holder releases may get a Console that is stopping), and a user
   starting their own Console meanwhile is only detected at the next start.
-- **Held queue while draining**: the next held input is taken off the queue
-  before its `POST /tasks` succeeds; a failed send loses it without a record.
 - **Abort before the task exists**: an abort between the prompt's submission
   and the adapter following its task finds no active task and is rejected,
   though the task then runs.

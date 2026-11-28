@@ -1,4 +1,4 @@
-import type { ResponseBody } from "../../contracts/session.js";
+import type { ResponseBody, SessionOptions } from "../../contracts/session.js";
 import { asRecord, asRecordList } from "../../shared/json.js";
 import { replyMessage, type ConsoleClient, type ConsoleReply } from "./console.js";
 
@@ -13,6 +13,21 @@ export class MorphRefusalError extends Error {
     this.native = reply.body;
     this.refused = reply.status === 400;
   }
+}
+
+export function morphRefusal(error: unknown): ResponseBody {
+  return error instanceof MorphRefusalError
+    ? { kind: "rejected", code: error.refused ? "runtime_refused" : "error", reason: error.message, native: error.native }
+    : { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) };
+}
+
+export async function prepareTopic(client: ConsoleClient, options: SessionOptions): Promise<string> {
+  if (options.model !== undefined) {
+    await checkProfile(client, options.model);
+  }
+  const topicId = await openTopic(client, options.resume);
+  await client.expect("PUT", "/workspace", { topic_id: topicId, workspace_dir: options.cwd });
+  return topicId;
 }
 
 /** The topic a session runs in: the one to resume, checked to exist, or a new empty one (`POST /topics`). */
@@ -67,7 +82,7 @@ export async function submitTask(client: ConsoleClient, body: Readonly<Record<st
 export async function stopTask(client: ConsoleClient, taskId: string): Promise<ResponseBody> {
   const reply = await client.call("POST", `/tasks/${encodeURIComponent(taskId)}/stop`);
   if (reply.status !== 200) {
-    return { kind: "rejected", code: "runtime_refused", reason: replyMessage(reply), native: reply.body };
+    return { kind: "rejected", code: reply.status === 400 ? "runtime_refused" : "error", reason: replyMessage(reply), native: reply.body };
   }
   return asRecord(reply.body)?.found === true
     ? { kind: "accepted", native: reply.body }
