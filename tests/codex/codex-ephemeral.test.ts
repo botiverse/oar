@@ -77,10 +77,18 @@ test("ephemeral with resume without fork, with name, with goals, or below versio
   expect(spawnLineProcess).not.toHaveBeenCalled();
 });
 
-test("openThread refuses ephemeral unsent when initialize reports a binary below 0.169.0", async () => {
-  const srv = server({ id: "should-not-open", ephemeral: true, path: null }, "codex/0.168.0 (linux)");
+test.each(["codex/0.168.0 (linux)", "codex/0.169.0-rc.1 (linux)"])("openThread refuses ephemeral unsent when initialize reports %s", async (agent) => {
+  const srv = server({ id: "should-not-open", ephemeral: true, path: null }, agent);
   await expect(codexSession(installation, { cwd: "/work", ephemeral: true })).rejects.toMatchObject({ code: "runtime_outdated" });
   expect(srv.requests.some((request) => request.method === "thread/start" || request.method === "thread/fork")).toBe(false);
+});
+
+test("openThread accepts prefixed --version fallback when initialize omits userAgent", async () => {
+  const prefixed = server({ id: "ephem-prefixed", ephemeral: true, path: null });
+  const prefixedInstall = { kind: "available", via: "executable", command: "codex", version: "codex-cli 0.172.0" } as const;
+  const session = await codexSession(prefixedInstall, { cwd: "/work", ephemeral: true });
+  expect([session.id, prefixed.requests.some((request) => request.method === "thread/start")]).toEqual(["ephem-prefixed", true]);
+  await session.dispose();
 });
 
 test("codexSession opens ephemeral thread/start with adapter-held queue, withdraw, and no nativeSessionFile", async () => {
@@ -124,6 +132,29 @@ async function withEphemeralSession(id: string, body: (srv: ServerHandle, sessio
 const DROP_ID = "00000000-0000-4000-8000-000000000001";
 const RUN_ID = "00000000-0000-4000-8000-000000000002";
 const COMPACT_ID = "00000000-0000-4000-8000-000000000003";
+const CARRY_ID = "00000000-0000-4000-8000-000000000004";
+const UNKNOWN_ID = "00000000-0000-4000-8000-000000000099";
+
+test("ephemeral prompt rejects unknown carries with unsupported before sending turn/start", async () => {
+  await withEphemeralSession("ephem-carries-bad", async (srv, session) => {
+    const missing = await session.prompt("bad carry", { carries: [UNKNOWN_ID] });
+    expect([missing.kind, missing.kind === "rejected" ? missing.code : null, turnStarts(srv).length]).toEqual(["rejected", "unsupported", 0]);
+  });
+});
+
+test("ephemeral prompt rejects already-dispatched or already-carried inputs and accepts carrying a withdrawn input", async () => {
+  await withEphemeralSession("ephem-carries", async (srv, session) => {
+    await Promise.all([session.prompt("first", { inputId: DROP_ID }), session.queue("carry me", { inputId: CARRY_ID })]);
+    expect(await session.withdraw?.(CARRY_ID)).toMatchObject({ kind: "accepted" });
+    srv.finishTurn("turn-1");
+    expect(await session.prompt("already sent", { carries: [DROP_ID] })).toMatchObject({ kind: "rejected", code: "unsupported" });
+    expect(await session.prompt("merged", { carries: [CARRY_ID] })).toMatchObject({ kind: "accepted" });
+    expect(turnStarts(srv).length).toBe(2);
+    srv.finishTurn("turn-2");
+    expect(await session.prompt("reuse", { carries: [CARRY_ID] })).toMatchObject({ kind: "rejected", code: "unsupported" });
+    expect(turnStarts(srv).length).toBe(2);
+  });
+});
 
 test("ephemeral queue holds inputs in adapter, withdraws before drain, and drains via turn/start", async () => {
   await withEphemeralSession("ephem-q", async (srv, session) => {

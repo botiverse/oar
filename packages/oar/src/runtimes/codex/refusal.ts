@@ -1,6 +1,7 @@
 import { RuntimeFailureError } from "../../contracts/runtime-failure-error.js";
 import type { FailureClass, ResponseBody } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
+import { semverAtLeast } from "../../shared/semver.js";
 import { versionAtLeast } from "../../shared/update.js";
 import { CODEX_EPHEMERAL_SINCE } from "./options.js";
 
@@ -42,7 +43,7 @@ export function codexForkThroughRefusal(version: string | null, through: string 
 
 /** Refuse `ephemeral: true` before sending `thread/start` or `thread/fork` when the running binary is below the verified floor or unreported. */
 export function codexEphemeralOpenRefusal(version: string | null, ephemeral: boolean | undefined, method: string): RuntimeFailureError | null {
-  if (ephemeral !== true || (version !== null && versionAtLeast(version, CODEX_EPHEMERAL_SINCE))) { return null; }
+  if (ephemeral !== true || semverAtLeast(version ?? undefined, CODEX_EPHEMERAL_SINCE)) { return null; }
   return outdated(version, `has no verified ${method} ephemeral support (SessionOptions.ephemeral)`, CODEX_EPHEMERAL_SINCE, { method });
 }
 

@@ -88,7 +88,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       busy: options.ephemeral === true ? (): boolean => nativeBusy() || ephemeralQueue?.hasHeld() === true : codexCompactionBusy(kernel, nativeBusy),
       busyReason: "Codex manual compaction requires an idle session without an active goal or queued input",
       create: () => { compactOperation = codexCompaction(client, threadId); return compactOperation; },
-      ...(options.ephemeral === true ? { released: (): void => { ephemeralQueue?.drain(); } } : {}),
+      ...(options.ephemeral === true ? { released: (): void => { queueMicrotask(() => { ephemeralQueue?.drain(); }); } } : {}),
     });
     const busy = (): boolean => nativeBusy() || compaction.busy();
     const abortFallback = createAbortFallback(() => { client.kill(); });

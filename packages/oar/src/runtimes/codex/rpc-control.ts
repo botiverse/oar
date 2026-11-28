@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
 import { SessionUnavailableError, type SessionUnavailableReason } from "../../contracts/session-unavailable-error.js";
-import { emptyInputRefusal } from "../../shared/control-input.js";
+import { carriesRefusal, emptyInputRefusal } from "../../shared/control-input.js";
 import type {
   ControlResult,
   RequestBody,
@@ -45,7 +45,7 @@ export async function rpcControl(
   client: AppServerClient,
   plan: RpcControlPlan,
 ): Promise<ControlResult> {
-  const blocked = kernel.unreachable();
+  const blocked = kernel.unreachable() ?? carriesRefusal(plan.body, kernel.records(), kernel.sessionId, []);
   const request = kernel.request("toRuntime", plan.body);
   const refused = blocked ?? emptyInputRefusal(plan.body) ?? plan.gate(request);
   if (refused !== null) {
