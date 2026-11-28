@@ -11,6 +11,9 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: read
+
 jobs:
   # Observations remain red on failure and retain artifacts. This workflow
   # never runs on pull requests; ci.yml remains the merge and release gate.
