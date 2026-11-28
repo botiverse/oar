@@ -2,7 +2,7 @@
 
 Pi Durable runs an agent over a host-owned `Harness`, storage, model catalog,
 extension registry and execution environment. OAR uses
-`@earendil-works/pi-durable` **1.6.1**, using its synchronous
+`@earendil-works/pi-durable` **1.7.0**, using its synchronous
 `Harness.observeConversation` interface. This is a separate runtime from the Pi coding-agent
 SDK: it does not load a Pi CLI login, settings directory or session file.
 
@@ -50,16 +50,16 @@ The host passes the **same `Models` instance or `() => Models` supplier** it
 supplied to `Harness.open`. A supplier lets the host replace its catalog
 without recreating either the Harness or OAR runtime. Harness exposes no
 public catalog getter, so OAR cannot verify this identity. Build this catalog
-with the Pi AI version matching the host Harness, currently 1.6.1, through a
-version alias. The bundled coding SDK and normal Pi AI now also use 1.6.1:
+with the Pi AI version matching the host Harness, currently 1.7.0, through a
+version alias. The bundled coding SDK and normal Pi AI now also use 1.7.0:
 
 ```json
 {
   "dependencies": {
-    "@earendil-works/pi-ai": "1.6.1",
-    "@earendil-works/pi-ai-durable": "npm:@earendil-works/pi-ai@1.6.1",
-    "@earendil-works/pi-durable": "1.6.1",
-    "@earendil-works/chord": "1.6.1"
+    "@earendil-works/pi-ai": "1.7.0",
+    "@earendil-works/pi-ai-durable": "npm:@earendil-works/pi-ai@1.7.0",
+    "@earendil-works/pi-durable": "1.7.0",
+    "@earendil-works/chord": "1.7.0"
   }
 }
 ```
@@ -67,17 +67,17 @@ version alias. The bundled coding SDK and normal Pi AI now also use 1.6.1:
 Use `import { createModels } from "@earendil-works/pi-ai-durable/models"`
 and the same alias for Durable provider imports. Tool parameter schemas are
 JSON Schema objects; Pi AI 1.5.2+ no longer supplies the old `Type` export. Pinning the normal
-`@earendil-works/pi-ai` name to another version instead can split the coding SDK's 1.6.1
+`@earendil-works/pi-ai` name to another version instead can split the coding SDK's 1.7.0
 registration instances, and a single-file host then fails OAuth derivation
 with `Cannot find module` for the provider module. The factory takes its
 catalog type from the Durable peer, independently of OAR's bundled Pi coding
-SDK 1.6.1.
-The host installs `@earendil-works/pi-durable@~1.6.1` and
-`@earendil-works/chord@~1.6.1`, both optional peers of OAR. Resolve both to
+SDK 1.7.0.
+The host installs `@earendil-works/pi-durable@~1.7.0` and
+`@earendil-works/chord@~1.7.0`, both optional peers of OAR. Resolve both to
 exactly the same native version; mismatched copies can split native identities.
 OAR operates on
 the host's native package instances, without bundling another copy. Tests pin
-1.6.1, the same version as the bundled Pi coding SDK and normal Pi AI.
+1.7.0, the same version as the bundled Pi coding SDK and normal Pi AI.
 The [migration report](../../experiments/pi-durable-native-watch/README.md)
 records the native API, persistence and observation controls.
 
