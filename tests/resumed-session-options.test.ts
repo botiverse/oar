@@ -19,6 +19,7 @@ test("the complete resume declaration inventory is measured and never declares a
     const declared = Object.fromEntries(runtimes.map(({ name, runtime }) => [name, runtime.resumedSessionOptions === undefined ? null : Object.keys(runtime.resumedSessionOptions).toSorted()]));
     expect(declared).toEqual({
       antigravity: null,
+      bottega: ["appendSystemPrompt", "effort"],
       claude: ["appendSystemPrompt", "systemPrompt"],
       codebuddy: null,
       codex: ["appendSystemPrompt", "systemPrompt"],

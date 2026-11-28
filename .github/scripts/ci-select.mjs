@@ -8,7 +8,7 @@ import { execFileSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
-const behavior = ["claude-aimock", "codex-aimock", "pi-aimock", "pi-rpc-aimock", "pi-durable-aimock", "qwen-aimock", "qoder-native", "dsh-aimock", "factory-aimock"];
+const behavior = ["claude-aimock", "codex-aimock", "pi-aimock", "pi-rpc-aimock", "pi-durable-aimock", "qwen-aimock", "qoder-native", "dsh-aimock", "factory-aimock", "bottega-aimock"];
 const acp = ["kimi-aimock", "grok-aimock", "opencode-aimock", "codebuddy-aimock"];
 const acpInstallations = [
   ...acp.map(backend => ({ backend })),
@@ -83,7 +83,7 @@ const backendsOf = {
   claude: ["claude-aimock"], codex: ["codex-aimock"], pi: ["pi-aimock", "pi-rpc-aimock", "pi-durable-aimock"], // pi-durable imports pi
   "pi-durable": ["pi-durable-aimock"], qwen: ["qwen-aimock"], qoder: ["qoder-native"],
   dsh: ["dsh-aimock"], factory: ["factory-aimock"], kimi: ["kimi-aimock"], grok: ["grok-aimock"],
-  opencode: ["opencode-aimock"], codebuddy: ["codebuddy-aimock"], antigravity: [], devin: [], cursor: [],
+  opencode: ["opencode-aimock"], codebuddy: ["codebuddy-aimock"], antigravity: [], devin: [], cursor: [], bottega: ["bottega-aimock"],
 };
 const runtimes = Object.keys(backendsOf).sort((a, b) => b.length - a.length);
 

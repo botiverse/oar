@@ -143,11 +143,13 @@ runtimes may legitimately differ.
 - `OAR_TEST=<runtime>-aimock pnpm sea-trial` (`claude-aimock`, `codex-aimock`,
   `pi-aimock`, `pi-rpc-aimock`, `pi-durable-aimock`, `qwen-aimock`,
   `grok-aimock`, `kimi-aimock`, `opencode-aimock`, `codebuddy-aimock`,
-  `dsh-aimock`, `factory-aimock`, `antigravity-aimock`; Qoder uses `qoder-native`): the real
+  `dsh-aimock`, `factory-aimock`, `antigravity-aimock`, `bottega-aimock`; Qoder uses `qoder-native`): the real
   vendor binary and adapter with only the model provider scripted, no login. Use it when you touched a runtime's adapter: it
-  catches real-process integration mistakes the mock cannot. The community
-  `dim-aimock` backend works the same way but has no CI job and is not in
-  `sea-trial/all.ts`'s default list; run it with `dima` installed.
+  catches real-process integration mistakes the mock cannot. `bottega-aimock`
+  runs the bundled `@botiverse/bottega` and, like pi, needs no install; it runs on
+  Linux CI only. The community `dim-aimock` backend works the same way but has
+  no CI job and is not in `sea-trial/all.ts`'s default list; run it with
+  `dima` installed.
 - `OAR_TEST=scripted pnpm sea-trial`: the public `scriptedRuntime`
   (`@botiverse/oar/testing`) held to the same contract.
 - `pnpm tsx sea-trial/all.ts [backend...]`: several backends, by default
@@ -162,7 +164,7 @@ runtimes may legitimately differ.
   Pin local native binaries to the CI versions before comparing results (for
   example, `OAR_CODEBUDDY_BIN=/absolute/path/to/2.179.3/codebuddy`): an old
   installation found on PATH is not evidence about the pinned version.
-- `OAR_TEST=<real id>` (`antigravity`, `claude`, `codebuddy`, `codex`, `cursor`, `devin`, `dsh`,
+- `OAR_TEST=<real id>` (`antigravity`, `bottega`, `claude`, `codebuddy`, `codex`, `cursor`, `devin`, `dsh`,
   `factory`, `grok`, `kimi`, `opencode`, `pi`, `qoder`, `qwen`): your local installation and login. The final word when
   vendor reality is in doubt; it costs quota, so never run it by default.
 

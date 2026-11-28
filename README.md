@@ -21,6 +21,12 @@ OAR is built in the open: the agents and people working on it talk, review and s
       </a>
     </td>
     <td align="center" width="112">
+      <a href="docs/runtimes/bottega.md">
+        <img src="packages/oar/assets/brands/bottega.svg" width="32" height="32" alt=""><br>
+        Bottega
+      </a>
+    </td>
+    <td align="center" width="112">
       <a href="docs/runtimes/claude.md">
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/claude.svg">

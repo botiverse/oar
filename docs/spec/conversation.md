@@ -39,9 +39,13 @@ priority, persistence and when an interruption is worth its cost. OAR supplies
 the explicit interrupt mechanism below.
 
 `InputOptions.origin` (`{ kind: "user" | "notification" | "automation", source? }`)
-says who an input comes from. It is recorded on the request body, never sent
-to the runtime, and `ConversationInput.origin` carries it from the latest
-request, so a UI can show injected input apart from what a person typed.
+says who an input comes from. It is recorded on the request body, and
+`ConversationInput.origin` carries it from the latest request, so a UI can
+show injected input apart from what a person typed. Only a runtime whose
+native interface tells a person's line from an event is sent it: bottega
+takes `notification` and `automation` input as an event signed by `source`,
+not a line of the conversation ([bottega](../runtimes/bottega.md)). Every
+other runtime receives the text alone.
 
 UUIDs are required because Claude's native input identity uses UUIDs. A supplied
 ID must represent exactly one logical input, including retries of that input;
