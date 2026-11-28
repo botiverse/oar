@@ -1,8 +1,19 @@
-import type { TaskEventBody } from "../../contracts/tasks.js";
+import type { RuntimeEventBody } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 
-/** Grok 1.0.77 reports task lifecycle on the parent's extension stream. */
-export function grokTaskViews(method: string, params: JsonRecord): TaskEventBody[] {
+/** Grok 1.0.77 reports task lifecycle and accepted steer echoes on the parent's extension stream. */
+export function grokTaskViews(method: string, params: JsonRecord): RuntimeEventBody[] {
+  if (method === "_x.ai/session/interjection") {
+    const input = params.text;
+    const inputId = params.interjectionId;
+    if (typeof input !== "string" && (typeof inputId !== "string" || inputId === "")) { return []; }
+    return [{
+      kind: "user_message",
+      input: typeof input === "string" ? input : "",
+      ...(typeof inputId === "string" && inputId !== "" ? { inputId, nativeMessageId: inputId } : {}),
+      evidence: "acknowledged",
+    }];
+  }
   if (method !== "_x.ai/session_notification") { return []; }
   const update = asRecord(params.update);
   const taskId = update?.subagent_id;
