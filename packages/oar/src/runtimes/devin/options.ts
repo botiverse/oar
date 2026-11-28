@@ -9,7 +9,6 @@ export const devinRefusedSessionOptions: RefusedSessionOptions = {
   additionalDirectories: "Devin ACP advertises sessionCapabilities.additionalDirectories, and OAR has not verified that primary cwd and tool scope honor it",
   appendSystemPrompt: "Devin ACP exposes no verified system prompt append channel",
   disallowedTools: "Devin ACP exposes no verified tool-denial channel",
-  endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted Devin turn's processes while its session stays usable",
   goals: "This runtime interface exposes no structured native goal controls",
   name: "Devin exposes no verified session name setting",
   outputSchema: "Devin ACP and launch configuration expose no final-output schema channel",

@@ -39,6 +39,31 @@ Devin behaves, and why OAR maps it this way.
 - **No account usage, limit resets or provider settings.** Devin has no
   native surface for them.
 
+## Ending a turn's processes on abort
+
+**What native leaves:** `session/cancel` ends the Devin turn (the prompt
+answers `{"stopReason":"cancelled"}`) but the command the turn started keeps
+running in the terminal OAR hosts, and the session takes the next prompt
+either way.
+
+**Mapped (opt-in):** `SessionOptions.endTurnProcessesOnAbort: true` opts into
+the shared ACP cleanup, as for Grok: OAR associates each `terminal/create`
+with the turn that asked for it; once an accepted abort's turn closes as
+`aborted`, OAR stops that turn's terminals (their process groups) and records
+one `cleanup` response on the abort request with the number signalled. Devin
+can still read and release the terminals; an earlier turn's terminals and
+child sessions are spared.
+
+**Verified:** Linux x64, CLI 3000.14.30821, real account, one turn per run.
+With the option, the turn's `terminal/create`
+(`command: "sleep 8; touch <marker>"`, no `args`) was answered, the abort
+answered `accepted`, the native turn ended `aborted`, and the abort request
+recorded `{"kind":"cleanup","result":{"kind":"completed","signalled":1}}`;
+the marker never appeared (11 s later) and the next prompt completed. Without
+the option the same run's marker appeared and no cleanup was recorded.
+Attribution and the record shape are also covered against a fixture
+([test](../../tests/devin/turn-terminals.test.ts)).
+
 ## Authentication
 
 On 2026-11-21, OAR 0.125.0 read `logged_in` on Devin Pro with CLI
@@ -101,7 +126,8 @@ disable them was found.
 
 CI has no `aimock` backend for Devin because it talks ConnectRPC to
 Cognition's servers; live verification covers one Linux `3000.14.30821`
-`logged_in` read, model list, and `swe-2-high` turn above. Still open: rate-limit
+`logged_in` read, model list, an `swe-2-high` turn, and the
+[abort cleanup](#ending-a-turns-processes-on-abort) above. Still open: rate-limit
 and quota payloads, mid-turn prompts, tool-call detail, child attribution,
 installer runs on Linux and Windows, and skill queries on macOS and Windows.
 

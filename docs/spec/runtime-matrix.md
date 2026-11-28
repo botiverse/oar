@@ -386,9 +386,10 @@ that starts a parent and a child process ([report](../../experiments/runtime-res
 |---|---|---|
 | codex 0.165.0 | keeps running until it exits by itself (about 45 s in the probe), both in an OAR session and in a shared app-server; OAR's 10 s fallback does not apply once codex has ended the turn | `dispose()`, or [`endTurnProcessesOnAbort`](#ending-a-turns-processes-on-abort) on a session that opted in. Native `thread/backgroundTerminals/terminate` and `thread/archive` also stop the probed command; OAR does not call them |
 | grok 1.0.70 (ACP) | keeps running: native cancel and close leave the terminals grok created through the host | `dispose()` releases every terminal OAR hosted for the session, or [`endTurnProcessesOnAbort`](#ending-a-turns-processes-on-abort) stops the aborted turn's |
+| devin 3000.14.30821 (ACP, Linux 2026-11-27) | keeps running: native cancel answers the prompt `cancelled` and leaves the command in the terminal OAR hosts; the session takes the next prompt | [`endTurnProcessesOnAbort`](#ending-a-turns-processes-on-abort) stops the aborted turn's hosted terminals ([devin](../runtimes/devin.md#ending-a-turns-processes-on-abort)); `dispose()` releases the session's terminals |
 | kimi 2.3.3, opencode 1.19.5 and 2.2.0, antigravity 1.4.3 (ACP) | stopped within 2 s of the cancel | |
 | antigravity 1.5.9 (ACP, Linux 2026-11-17) | foreground `du` stopped; already-backgrounded `du` survived the native cancelled turn; after ordinary turn end, abort returns `no_active_turn` | `dispose()` cleared all observed native and shell process groups ([report](../../experiments/antigravity-disk-scan/README.md)); natural completion is independent of abort |
-| claude, codebuddy, devin, dsh, factory, qwen, qoder, pi (RPC) | not measured | `dispose()`: OAR owns the process |
+| claude, codebuddy, dsh, factory, qwen, qoder, pi (RPC) | not measured | `dispose()`: OAR owns the process |
 | pi (in process), cursor (in process) | not measured | they run in the host process: `dispose()` ends the SDK session; whether its commands stop is not measured |
 | cursor (subprocess mode) | not measured | `dispose()` stops the session's child, its process group and the descendants found by parent pid (POSIX), plus on Linux every process that kept the child's environment marker, such as a finished command's background job (tested on Linux); a process that cleared the marker, or on macOS one reparented away from the child, is not reached; Windows: `taskkill /T` on its tree, not run ([execution modes](../runtimes/cursor.md#execution-modes)) |
 | pi-durable | not measured | the host owns the harness: `dispose()` ends observation only |
@@ -432,14 +433,15 @@ on the model. [Native controls and request excerpts](../../experiments/abort-aft
 
 `SessionOptions.endTurnProcessesOnAbort: true` makes an accepted abort also end
 what that turn started, keeping the runtime and session for the next prompt.
-Codex in an isolated app-server and Grok take it; every other runtime, and
+Codex in an isolated app-server, Grok and Devin take it; every other runtime, and
 Codex in shared placement, refuses it before launch (Grok's shared placement
 is not admitted; its experimental shared adapter accepts the option but has
 not been run with it). Codex
-compares process-table reads; Grok stops the terminals OAR hosted for that
-turn ([grok](../runtimes/grok.md#ending-a-turns-processes-on-abort)). Omitted or false
+compares process-table reads; Grok and Devin stop the terminals OAR hosted
+for that turn ([grok](../runtimes/grok.md#ending-a-turns-processes-on-abort),
+[devin](../runtimes/devin.md#ending-a-turns-processes-on-abort)). Omitted or false
 changes nothing. On Windows Codex accepts it and ends nothing, with `failed`
-saying why; Grok uses the process-tree kill there, not yet run. A `cleanup` response on the abort request reports the outcome
+saying why; Grok and Devin use the process-tree kill there, not yet run. A `cleanup` response on the abort request reports the outcome
 ([record shape](record-stream.md#the-rules),
 [Codex mechanism and limits](../runtimes/codex.md#ending-a-turns-processes-on-abort)).
 
@@ -1055,7 +1057,7 @@ isolation is unverified declares `mcpServerCredentials`. Every
 
 `goals: true` is refused everywhere except Codex and DSH ([native goals](#native-goals)),
 `endTurnProcessesOnAbort: true` everywhere except Codex in an isolated
-app-server and Grok ([ending a turn's processes](#ending-a-turns-processes-on-abort)),
+app-server, Grok and Devin ([ending a turn's processes](#ending-a-turns-processes-on-abort)),
 `nativeMemoryDefault: "off"` everywhere except Qwen `>= 0.26.0`
 ([native memory default](#native-memory-default)),
 `sessionLogUpload: "off"` everywhere except DSH `>= 0.2.1-rc.5`
