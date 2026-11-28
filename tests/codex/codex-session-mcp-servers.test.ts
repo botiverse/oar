@@ -75,6 +75,17 @@ test("served tools are required on new, resumed and forked threads", async () =>
   } finally { await served.close(); }
 });
 
+test("required stdio and http servers carry required and 30s startup timeout on new, resumed and forked threads", () => {
+  const servers: readonly McpServer[] = [{ ...echo, required: true }, { ...remote, required: true }];
+  for (const options of [{}, { resume: "one" }, { resume: "one", fork: {} }]) {
+    const { config } = codexThreadOpen({ cwd: "/work", ...options, mcpServers: servers }).params;
+    expect(config).toEqual({ mcp_servers: {
+      echo: { command: echo.command, args: echo.args, env: echo.env, enabled: true, required: true, startup_timeout_sec: 30 },
+      "remote.v2": { url: remote.url, http_headers: remote.headers, enabled: true, required: true, startup_timeout_sec: 30 },
+    } });
+  }
+});
+
 test("a name codex would refuse to start, or one given twice, fails the open before codex starts", async () => {
   await expect(codexSession(installation, { cwd: "/work", mcpServers: [{ name: "my server", command: "x" }] })).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: codex starts no MCP server named "my server": its names match ^[\\w:@/.-]+$]`);
   await expect(codexSession(installation, { cwd: "/work", mcpServers: [echo, echo] })).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: mcpServers names "echo" twice; names are unique within a session]`);

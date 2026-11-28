@@ -4,7 +4,7 @@ import type { AcpOpenReadiness } from "../../shared/acp/open-readiness.js";
 /** Grok reports per-server status asynchronously around session-wide discovery completion. */
 export function grokMcpStartup(options: SessionOptions): AcpOpenReadiness | undefined {
   const served = new Set(options.mcpServers?.flatMap(server =>
-    "type" in server && server.origin === "serveMcpTools" ? [server.name] : []));
+    server.required === true || ("type" in server && server.origin === "serveMcpTools") ? [server.name] : []));
   if (served.size === 0) { return undefined; }
 
   // Notifications can precede the session/new or session/resume reply that reveals our id,
