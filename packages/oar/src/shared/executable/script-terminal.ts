@@ -50,8 +50,8 @@ export interface ScriptTerminalHost {
   /** `pid` below zero is a process group, as for `process.kill`. */
   signal(pid: number, signal: NodeJS.Signals): void;
   hostPid: number;
-  /** Start identity of `hostPid` at launch, so the watchdog rejects a reused PID. */
-  hostStartedAt?(): string | undefined;
+  /** Start identity of `pid` at launch, so the watchdog rejects a reused PID. */
+  hostStartedAt?(pid: number): string | undefined;
   /** Ends the processes started with this environment entry (Linux; see environment-marker.ts). */
   killMarked?(entry: string): Promise<void>;
 }
@@ -103,6 +103,30 @@ function listHostProcesses(): TerminalProcess[] {
   return processes;
 }
 
+function readPsStart(pid: number): string | undefined {
+  const args = ["-p", String(pid), "-o", "lstart="];
+  const run = (binary: string): string => execFileSync(binary, args, {
+    encoding: "utf8",
+    timeout: 2000,
+    env: { ...process.env, LC_ALL: "C" },
+    windowsHide: true,
+  }).trim();
+  try {
+    const output = run("/bin/ps");
+    return output === "" ? undefined : output;
+  } catch (error) {
+    if (typeof error === "object" && error !== null && Reflect.get(error, "code") === "ENOENT") {
+      try {
+        const output = run("ps");
+        return output === "" ? undefined : output;
+      } catch {
+        return undefined;
+      }
+    }
+    return undefined;
+  }
+}
+
 /** Start identity of `pid` on the current host, or `undefined` when unavailable. */
 function readProcessStart(pid: number, platform: NodeJS.Platform = process.platform): string | undefined {
   if (!Number.isSafeInteger(pid) || pid <= 0) { return undefined; }
@@ -117,17 +141,7 @@ function readProcessStart(pid: number, platform: NodeJS.Platform = process.platf
       return undefined;
     }
   }
-  try {
-    const output = execFileSync("ps", ["-p", String(pid), "-o", "lstart="], {
-      encoding: "utf8",
-      timeout: 2000,
-      env: { ...process.env, LC_ALL: "C" },
-      windowsHide: true,
-    }).trim();
-    return output === "" ? undefined : output;
-  } catch {
-    return undefined;
-  }
+  return readPsStart(pid);
 }
 
 const HOST: ScriptTerminalHost = {
@@ -138,7 +152,7 @@ const HOST: ScriptTerminalHost = {
     process.kill(pid, signal);
   },
   hostPid: process.pid,
-  hostStartedAt: () => readProcessStart(process.pid),
+  hostStartedAt: (pid: number) => readProcessStart(pid),
 };
 
 function shellQuote(value: string): string {
@@ -250,7 +264,7 @@ export function openScriptTerminal(input: OpenClaudeLimitResetTerminalInput, hos
   if (script === null || script === "") { return null; }
   const marker = newEnvironmentMarker("OAR_TERMINAL_CHILD");
   const rawHostStart = host.hostStartedAt !== undefined
-    ? host.hostStartedAt()
+    ? host.hostStartedAt(host.hostPid)
     : host.listProcesses().find((each) => each.pid === host.hostPid)?.startedAt;
   const hostStartedAt = rawHostStart !== undefined && rawHostStart !== "" ? rawHostStart : undefined;
   const invocation = scriptInvocation({ ...input, env: { ...input.env, [marker.name]: "1" } }, script, host.hostPid, hostStartedAt);

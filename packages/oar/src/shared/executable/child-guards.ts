@@ -1,6 +1,5 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
-import { createParentDeathMonitor, type ParentDeathMonitor } from "./parent-death.js";
 
 type ProcessRow = readonly [pid: number, ppid: number, start: string];
 
@@ -70,6 +69,17 @@ function killLinuxMarkedProcesses(marker: string): void {
   }
 }
 
+function isParentGone(initialParentPid: number): boolean {
+  if (process.ppid !== initialParentPid) { return true; }
+  if (process.platform !== "win32") { return false; }
+  try {
+    process.kill(initialParentPid, 0);
+    return false;
+  } catch (error) {
+    return typeof error === "object" && error !== null && Reflect.get(error, "code") === "ESRCH";
+  }
+}
+
 function killPosixDescendants(seen: ReadonlyMap<number, string>): void {
   try {
     const rows = readPosixProcessTable();
@@ -123,11 +133,9 @@ export function installIpcChildGuards(options: ChildGuardOptions): { readonly sh
     }
   });
 
-  let monitor: ParentDeathMonitor | undefined = undefined;
   const shutdown = async (code: number): Promise<void> => {
     if (stopping) { return; }
     stopping = true;
-    monitor?.stop();
     asked = code === 0;
     remember();
     const pending = options.closeAll();
@@ -142,13 +150,13 @@ export function installIpcChildGuards(options: ChildGuardOptions): { readonly sh
     process.exit(1);
   });
   process.on("disconnect", () => { orphaned = true; void shutdown(1); });
-  monitor = createParentDeathMonitor({
-    taskkill: options.taskkill,
-    onOrphan: () => {
+  const initialParentPid = process.ppid;
+  setInterval(() => {
+    if (isParentGone(initialParentPid)) {
       orphaned = true;
       void shutdown(1);
-    },
-  });
+    }
+  }, 1000).unref();
 
   return { shutdown };
 }

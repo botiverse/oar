@@ -64,40 +64,57 @@ async function waitForExit(terminal: NonNullable<ReturnType<typeof openScriptTer
   }
 }
 
-// oxlint-disable-next-line eslint/max-statements -- Live PID reuse reproduction using a real POSIX script session and /proc stat.
-test.skipIf(process.platform !== "linux" || findScriptUtility() === null)("watchdog stops when live hostPid has a different start time (PID reuse) and stays alive when it matches", async () => {
+async function createPidReuseFixture(): Promise<{
+  readonly dir: string;
+  readonly program: string;
+  readonly pid: number;
+  readonly startedAt: string;
+  readonly cleanup: () => Promise<void>;
+}> {
   const dir = await mkdtemp(path.join(os.tmpdir(), "oar-script-reuse-"));
   const program = path.join(dir, "program.sh");
   await writeFile(program, "#!/bin/sh\nexec sleep 30\n", { mode: 0o700 });
   const replacement = spawn(process.execPath, ["-e", "setTimeout(() => {}, 30_000)"], { stdio: "ignore" });
-  expect(replacement.pid).toBeDefined();
-  const replacementPid = replacement.pid ?? 0;
-  const replacementStart = processStart(replacementPid);
-  expect(replacementStart).toBeDefined();
-  const baseHost = {
+  const pid = replacement.pid ?? 0;
+  const startedAt = processStart(pid) ?? "";
+  expect(pid).toBeGreaterThan(0);
+  expect(startedAt).not.toBe("");
+  return {
+    dir,
+    program,
+    pid,
+    startedAt,
+    cleanup: async () => {
+      if (pid > 0 && processStart(pid) === startedAt) { process.kill(pid, "SIGKILL"); }
+      await rm(dir, { recursive: true, force: true });
+    },
+  };
+}
+
+function openLinuxReuseTerminal(spec: { dir: string; program: string; hostPid: number; startedAt: string }): NonNullable<ReturnType<typeof openScriptTerminal>> {
+  const terminal = openScriptTerminal({ command: spec.program, cwd: spec.dir, env: { PATH: "/usr/bin:/bin" }, cols: 80, rows: 24, platform: "linux" }, {
     findScript: findScriptUtility,
     spawn,
-    listProcesses: () => [{ pid: replacementPid, parentPid: 1, startedAt: replacementStart ?? "" }],
+    listProcesses: () => [{ pid: spec.hostPid, parentPid: 1, startedAt: spec.startedAt }],
     signal: (targetPid: number, sig: NodeJS.Signals) => { process.kill(targetPid, sig); },
-    hostPid: replacementPid,
-  };
-  const liveTerminal = openScriptTerminal({ command: program, cwd: dir, env: { PATH: "/usr/bin:/bin" }, cols: 80, rows: 24, platform: "linux" }, baseHost);
-  const reusedTerminal = openScriptTerminal({ command: program, cwd: dir, env: { PATH: "/usr/bin:/bin" }, cols: 80, rows: 24, platform: "linux" }, {
-    ...baseHost,
-    listProcesses: () => [{ pid: replacementPid, parentPid: 1, startedAt: `${replacementStart ?? "1"}999` }],
+    hostPid: spec.hostPid,
   });
+  expect(terminal).not.toBeNull();
+  if (terminal === null) { throw new Error("expected script terminal"); }
+  terminal.onData(() => {});
+  return terminal;
+}
+
+test.skipIf(process.platform !== "linux" || findScriptUtility() === null)("watchdog stops when live hostPid has a different start time (PID reuse) and stays alive when it matches", async () => {
+  const fixture = await createPidReuseFixture();
+  const liveTerminal = openLinuxReuseTerminal({ dir: fixture.dir, program: fixture.program, hostPid: fixture.pid, startedAt: fixture.startedAt });
+  const reusedTerminal = openLinuxReuseTerminal({ dir: fixture.dir, program: fixture.program, hostPid: fixture.pid, startedAt: `${fixture.startedAt}999` });
   try {
-    expect(liveTerminal).not.toBeNull();
-    expect(reusedTerminal).not.toBeNull();
-    if (liveTerminal === null || reusedTerminal === null) { return; }
-    liveTerminal.onData(() => {});
-    reusedTerminal.onData(() => {});
     expect(await waitForExit(reusedTerminal, 6000)).toBe(true);
     expect(await waitForExit(liveTerminal, 1500)).toBe(false);
   } finally {
-    await liveTerminal?.kill();
-    await reusedTerminal?.kill();
-    if (replacementPid > 0 && processStart(replacementPid) === replacementStart) { process.kill(replacementPid, "SIGKILL"); }
-    await rm(dir, { recursive: true, force: true });
+    await liveTerminal.kill();
+    await reusedTerminal.kill();
+    await fixture.cleanup();
   }
 }, 20_000);

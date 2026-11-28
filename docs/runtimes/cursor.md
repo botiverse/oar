@@ -257,9 +257,9 @@ its IPC channel disconnects (the host ended, or died without running any
 exit hook), or when its parent is gone (checked every second, by an unref'd timer,
 for a child whose event loop was too busy to see the disconnect but still
 yields: on POSIX its parent pid has changed, because an orphan is
-reparented; on Windows, which keeps the dead parent's pid, it verifies both
-liveness via `process.kill(parent, 0)` and the parent's `CreationDate` via
-Windows CIM so a reused PID still counts as a dead parent), the child shuts down as above: it closes its open agents, waiting
+reparented; on Windows, which keeps the dead parent's pid, no process with
+that pid exists any more, so a pid reused within that second goes
+unnoticed), the child shuts down as above: it closes its open agents, waiting
 for them for up to half of `OAR_KILL_GRACE_MS`, exits, ends its descendants
 from its exit hook, and also SIGKILLs its own process group (POSIX), since
 no host is left to. A host that calls `process.exit` ends it and its

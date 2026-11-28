@@ -108,6 +108,22 @@ test("openScriptTerminal reads hostPid start time from host process list", () =>
   void terminal.kill();
 });
 
+test("openScriptTerminal passes host.hostPid to hostStartedAt when provided", () => {
+  const { host, spawned } = fakeHost();
+  const seenPids: number[] = [];
+  const terminal = opened(openScriptTerminal(INPUT, {
+    ...host,
+    hostPid: 9876,
+    hostStartedAt: (pid) => {
+      seenPids.push(pid);
+      return "778899";
+    },
+  }));
+  assert.deepEqual(seenPids, [9876]);
+  assert.ok((spawned[0]?.args[1] ?? "").includes("'778899'"));
+  void terminal.kill();
+});
+
 function killProcessGroup(pid: number | undefined): void {
   if (pid === undefined) { return; }
   try { process.kill(-pid, "SIGKILL"); } catch {}
@@ -125,22 +141,33 @@ async function runDarwinWatchdogCase(spec: { dir: string; prog: string; pid: num
   return done;
 }
 
-// oxlint-disable-next-line eslint/max-statements -- Exercises the generated Darwin ps watchdog in /bin/sh with a controlled ps binary.
-test.skipIf(process.platform === "win32")("Darwin watchdog stops on reused PID start mismatch and stays alive when start matches", async () => {
-  vi.useRealTimers();
+async function createDarwinWatchdogFixture(): Promise<{ dir: string; prog: string; pid: number; cleanup: () => Promise<void> }> {
   const dir = await mkdtemp(path.join(os.tmpdir(), "oar-darwin-watchdog-"));
   const replacement = spawn(process.execPath, ["-e", "setTimeout(() => {}, 30_000)"], { stdio: "ignore" });
   const pid = replacement.pid ?? 0;
   assert.ok(pid > 0);
   const prog = path.join(dir, "prog.sh");
-  await writeFile(path.join(dir, "ps"), `#!/bin/sh\necho "S+   Wed Nov  2 09:05:00 2026"\n`, { mode: 0o700 });
+  await writeFile(path.join(dir, "ps"), "#!/bin/sh\necho \"S+   Wed Nov  2 09:05:00 2026\"\n", { mode: 0o700 });
   await writeFile(prog, "#!/bin/sh\nexec sleep 30\n", { mode: 0o700 });
+  return {
+    dir,
+    prog,
+    pid,
+    cleanup: async () => {
+      try { process.kill(pid, "SIGKILL"); } catch {}
+      await rm(dir, { recursive: true, force: true });
+    },
+  };
+}
+
+test.skipIf(process.platform === "win32")("Darwin watchdog stops on reused PID start mismatch and stays alive when start matches", async () => {
+  vi.useRealTimers();
+  const fixture = await createDarwinWatchdogFixture();
   try {
-    assert.equal(await runDarwinWatchdogCase({ dir, prog, pid, startedAt: "Wed Nov  2 09:04:00 2026", timeoutMs: 5000 }), true);
-    assert.equal(await runDarwinWatchdogCase({ dir, prog, pid, startedAt: "Wed Nov  2 09:05:00 2026", timeoutMs: 1500 }), false);
+    assert.equal(await runDarwinWatchdogCase({ dir: fixture.dir, prog: fixture.prog, pid: fixture.pid, startedAt: "Wed Nov  2 09:04:00 2026", timeoutMs: 5000 }), true);
+    assert.equal(await runDarwinWatchdogCase({ dir: fixture.dir, prog: fixture.prog, pid: fixture.pid, startedAt: "Wed Nov  2 09:05:00 2026", timeoutMs: 1500 }), false);
   } finally {
-    try { process.kill(pid, "SIGKILL"); } catch {}
-    await rm(dir, { recursive: true, force: true });
+    await fixture.cleanup();
   }
 }, 20_000);
 

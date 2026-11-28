@@ -46,12 +46,11 @@ import { killGraceMs } from "../../../shared/executable/index.js";
  * (environment-marker.ts), which reaches what it started and was
  * reparented away from it (a shell's background job after the shell
  * exited), unless that process cleared the variable; it scans again until
- * a pass finds nothing, at most five times. After a disconnect, or once its parent is gone (checked every second, for a
- * host gone without the disconnect being seen: POSIX reparenting changes ppid,
- * while Windows verifies both liveness and the parent's CIM CreationDate so a
- * reused PID still counts as gone), with no host left to do it, it also
- * SIGKILLs its own process group. A child blocked in synchronous code runs
- * neither check.
+ * a pass finds nothing, at most five times. After a disconnect, or once its
+ * parent pid changed (checked every second, for a host gone without the
+ * disconnect being seen), with no host left to do it, it also SIGKILLs its
+ * own process group. A child blocked in synchronous code runs neither
+ * check.
  * Not reached: on macOS and Windows, a process reparented away from the
  * child before its exit (no marker scan there); anywhere, a process that
  * cleared the marker and left the child's tree or group.
@@ -60,11 +59,8 @@ const SCRIPT = String.raw`
 const [sdkModule, graceMs, electron, taskkill, marker] = JSON.parse(process.argv[1]);
 const path = require("node:path");
 const fs = require("node:fs");
-const { execFile, execFileSync } = require("node:child_process");
+const { execFileSync } = require("node:child_process");
 const windows = process.platform === "win32";
-const powershell = taskkill
-  ? path.win32.join(path.win32.dirname(taskkill), "WindowsPowerShell", "v1.0", "powershell.exe")
-  : path.win32.join(process.env.SystemRoot || "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
 let stopping = false;
 let orphaned = false;
 let seen = new Map();
@@ -132,14 +128,11 @@ const closeAgent = (agent) => {
   closing.add(done);
   return done;
 };
-let parentTimer = null;
-let parentProbe = null;
 const shutdown = async (code) => {
   if (stopping) { return; }
   stopping = true;
-  if (parentTimer !== null) { clearInterval(parentTimer); parentTimer = null; }
-  if (parentProbe !== null) { try { parentProbe.kill(); } catch {} parentProbe = null; }
-  asked = code === 0; remember();
+  asked = code === 0;
+  remember();
   for (const agent of agents.values()) { void closeAgent(agent); }
   agents.clear();
   await Promise.race([Promise.allSettled([...closing]), new Promise((resolve) => { setTimeout(resolve, graceMs); })]);
@@ -151,40 +144,16 @@ process.on("uncaughtException", (error) => {
   try { fs.writeSync(2, (error instanceof Error && error.stack ? error.stack : String(error)) + "\n"); } catch {}
   process.exit(1);
 });
+process.on("disconnect", () => { orphaned = true; void shutdown(1); });
 // A host gone without the disconnect reaching this process. Needs an event loop that still yields. POSIX reparents an
-// orphan, so its ppid changes; Windows keeps the dead parent's pid, so check both liveness and CIM CreationDate.
+// orphan, so its ppid changes; Windows keeps the dead parent's pid, so there the parent pid is checked for a live process.
 const parent = process.ppid;
-let parentStart = null;
-const orphan = () => { orphaned = true; void shutdown(1); };
-process.on("disconnect", orphan);
-const parentReplaced = (rows, accessDenied) => {
-  const byPid = new Map();
-  for (const row of rows) { if (row && typeof row.ProcessId === "number") { byPid.set(row.ProcessId, typeof row.Started === "string" && row.Started !== "" ? row.Started : null); } }
-  const selfStart = byPid.get(process.pid);
-  if (typeof selfStart !== "string") { return false; }
-  if (!byPid.has(parent)) { return true; }
-  const observed = byPid.get(parent);
-  if (observed === null) { return parentStart !== null || accessDenied; }
-  if (observed > selfStart) { return true; }
-  return parentStart === null ? (parentStart = observed, false) : observed !== parentStart;
+const parentGone = () => {
+  if (process.ppid !== parent) { return true; }
+  if (!windows) { return false; }
+  try { process.kill(parent, 0); return false; } catch (error) { return error.code === "ESRCH"; }
 };
-const checkParent = () => {
-  if (stopping) { return; }
-  if (process.ppid !== parent) { orphan(); return; }
-  if (!windows) { return; }
-  let accessDenied = false;
-  try { process.kill(parent, 0); } catch (error) { if (error && error.code === "ESRCH") { orphan(); return; } accessDenied = true; }
-  if (parentProbe !== null) { return; }
-  const command = "$ErrorActionPreference='Stop'; @(Get-CimInstance Win32_Process -Filter 'ProcessId=" + parent + " OR ProcessId=" + process.pid + "' | Select-Object ProcessId,@{Name='Started';Expression={if ($null -ne $_.CreationDate) { $_.CreationDate.ToUniversalTime().ToString('o') }}}) | ConvertTo-Json -Compress";
-  parentProbe = execFile(powershell, ["-NoProfile", "-NonInteractive", "-Command", command], { encoding: "utf8", timeout: 5000, windowsHide: true }, (error, stdout) => {
-    parentProbe = null;
-    if (stopping || error || stdout.trim() === "") { return; }
-    try { const parsed = JSON.parse(stdout); if (parentReplaced(Array.isArray(parsed) ? parsed : [parsed], accessDenied)) { orphan(); } } catch {}
-  });
-  parentProbe.unref();
-};
-parentTimer = setInterval(checkParent, 1000);
-parentTimer.unref();
+setInterval(() => { if (parentGone()) { orphaned = true; void shutdown(1); } }, 1000).unref();
 if (electron === null) { delete process.env.ELECTRON_RUN_AS_NODE; } else if (typeof electron === "string") { process.env.ELECTRON_RUN_AS_NODE = electron; }
 try {
   const root = path.dirname(require("node:module").createRequire(sdkModule).resolve("@cursor/sdk-" + process.platform + "-" + process.arch + "/package.json"));
@@ -206,8 +175,16 @@ let pending;
 let abort;
 const runs = new Map();
 const streams = new Map();
-const opened = async (id, opening) => { const agent = await opening; agents.set(id, agent); return { agentId: agent.agentId, model: agent.model, summarize: typeof agent.summarize === "function" }; };
-const started = async (id, starting) => { const run = await starting; runs.set(id, run); return { runId: run.id, steer: typeof run.steer === "function" }; };
+const opened = async (id, opening) => {
+  const agent = await opening;
+  agents.set(id, agent);
+  return { agentId: agent.agentId, model: agent.model, summarize: typeof agent.summarize === "function" };
+};
+const started = async (id, starting) => {
+  const run = await starting;
+  runs.set(id, run);
+  return { runId: run.id, steer: typeof run.steer === "function" };
+};
 const calls = {
   models: (id, options) => sdk.Cursor.models.list(options),
   listRuns: (id, agentId, options) => sdk.Agent.listRuns(agentId, options),
@@ -228,7 +205,11 @@ const calls = {
     const iterator = runs.get(run).stream()[Symbol.asyncIterator]();
     streams.set(id, iterator);
     try {
-      for (let next = await iterator.next(); !next.done; next = await iterator.next()) { post({ t: "event", id, v: plain(next.value) }); }
+      for (;;) {
+        const next = await iterator.next();
+        if (next.done) { return; }
+        post({ t: "event", id, v: plain(next.value) });
+      }
     } finally { streams.delete(id); }
   },
   unstream: (id, stream) => { void streams.get(stream)?.return?.(); },
