@@ -83,7 +83,7 @@ const backendsOf = {
   claude: ["claude-aimock"], codex: ["codex-aimock"], pi: ["pi-aimock", "pi-rpc-aimock", "pi-durable-aimock"], // pi-durable imports pi
   "pi-durable": ["pi-durable-aimock"], qwen: ["qwen-aimock"], qoder: ["qoder-native"],
   dsh: ["dsh-aimock"], factory: ["factory-aimock"], kimi: ["kimi-aimock"], grok: ["grok-aimock"],
-  opencode: ["opencode-aimock"], codebuddy: ["codebuddy-aimock"], antigravity: [], devin: [], cursor: [],
+  opencode: ["opencode-aimock"], codebuddy: ["codebuddy-aimock"], antigravity: [], devin: [], cursor: [], bottega: [],
 };
 const runtimes = Object.keys(backendsOf).sort((a, b) => b.length - a.length);
 

@@ -14,6 +14,7 @@ test("registry preserves one canonical runtime per id", () => {
 test("built-in registry exposes concrete ACP runtimes, not a generic ACP identity", () => {
   assert.deepEqual(defaultRuntimes.list().map((runtime) => runtime.id), [
     "antigravity",
+    "bottega",
     "claude",
     "codex",
     "codebuddy",

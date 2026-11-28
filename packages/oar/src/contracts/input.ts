@@ -8,9 +8,11 @@ export interface InputImage {
 
 /**
  * Who an input comes from, as the host says it. Recorded on the request
- * record (OAR's own evidence) and read back by the conversation projection;
- * never sent to the runtime. Lets a UI show input a person typed apart from
- * input the host injected.
+ * record (OAR's own evidence) and read back by the conversation projection,
+ * so a UI can show input a person typed apart from input the host injected.
+ * Sent only to a runtime whose native interface tells a person's line from an
+ * event (bottega, docs/runtimes/bottega.md); every other runtime receives the
+ * text alone.
  */
 export interface InputOrigin {
   /**

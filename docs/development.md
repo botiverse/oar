@@ -145,9 +145,10 @@ runtimes may legitimately differ.
   `grok-aimock`, `kimi-aimock`, `opencode-aimock`, `codebuddy-aimock`,
   `dsh-aimock`, `factory-aimock`, `antigravity-aimock`; Qoder uses `qoder-native`): the real
   vendor binary and adapter with only the model provider scripted, no login. Use it when you touched a runtime's adapter: it
-  catches real-process integration mistakes the mock cannot. The community
-  `dim-aimock` backend works the same way but has no CI job and is not in
-  `sea-trial/all.ts`'s default list; run it with `dima` installed.
+  catches real-process integration mistakes the mock cannot. The
+  `bottega-aimock` backend and the community `dim-aimock` backend work the
+  same way but have no CI job and are not in `sea-trial/all.ts`'s default
+  list; run them with `bottega` (or `OAR_BOTTEGA_BIN`) or `dima` installed.
 - `OAR_TEST=scripted pnpm sea-trial`: the public `scriptedRuntime`
   (`@botiverse/oar/testing`) held to the same contract.
 - `pnpm tsx sea-trial/all.ts [backend...]`: several backends, by default
@@ -162,7 +163,7 @@ runtimes may legitimately differ.
   Pin local native binaries to the CI versions before comparing results (for
   example, `OAR_CODEBUDDY_BIN=/absolute/path/to/2.179.3/codebuddy`): an old
   installation found on PATH is not evidence about the pinned version.
-- `OAR_TEST=<real id>` (`antigravity`, `claude`, `codebuddy`, `codex`, `cursor`, `devin`, `dsh`,
+- `OAR_TEST=<real id>` (`antigravity`, `bottega`, `claude`, `codebuddy`, `codex`, `cursor`, `devin`, `dsh`,
   `factory`, `grok`, `kimi`, `opencode`, `pi`, `qoder`, `qwen`): your local installation and login. The final word when
   vendor reality is in doubt; it costs quota, so never run it by default.
 

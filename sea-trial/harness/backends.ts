@@ -28,6 +28,8 @@ import { grokSharedBackend } from "./grok-shared.js";
 import { createDimRuntime } from "../../packages/oar/src/community/dim/index.js";
 import { startDimAimock } from "./dim-aimock.js";
 import { opencodeSharedBackend } from "./opencode-shared.js";
+import { bottegaRuntime } from "../../packages/oar/src/runtimes/bottega/index.js";
+import { startBottegaAimock } from "./bottega-aimock.js";
 
 const claudeSession = claudeRuntime.session;
 const codexInstallation = codexRuntime.installation;
@@ -186,6 +188,19 @@ export async function selectBackend(target: string): Promise<Backend> {
         return session;
       };
       return { aimock, runtime: { ...dim, id: target, session: open } };
+    }
+    case "bottega-aimock": {
+      // Runs locally against an installed bottega (OAR_BOTTEGA_BIN, or the package beside OAR); no CI job installs it yet.
+      const aimock = await startBottegaAimock();
+      const open: Runtime["session"] = async (installation, options) => {
+        const session = await bottegaRuntime.session(installation, { ...options, cwd: aimock.cwd, env: { ...options.env, ...aimock.env } });
+        return session;
+      };
+      const listModels: Runtime["listModels"] = async (installation, options) => {
+        const listed = await bottegaRuntime.listModels(installation, { ...options, cwd: aimock.cwd, env: { ...options?.env, ...aimock.env } });
+        return listed;
+      };
+      return { aimock, runtime: { ...bottegaRuntime, id: target, session: open, listModels } };
     }
     case "antigravity-aimock": return acpBackend("antigravity");
     case "kimi-aimock": return acpBackend("kimi");

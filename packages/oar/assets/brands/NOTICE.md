@@ -18,6 +18,8 @@ Dim: https://dimagent.com/dimagent-favicon.svg (retrieved 2026-11-26), unmodifie
 
 Factory Droid: https://factory.com/favicon.svg (retrieved 2026-11-15), unmodified official site asset for identification. Factory branding belongs to its owner; the LobeHub MIT license below does not cover this asset. It carries its own dark background and is used on both backgrounds.
 
+Bottega: the mark of bottega's desktop app (`bottega/desktop/build/icon.html` in botiverse/bottega), redrawn without its shadows and cropped to its tile: the context meter, one bar per window coloured by its app. It carries its own dark background and is used on both backgrounds. Bottega is a Botiverse project; the LobeHub MIT license below does not cover this asset.
+
 Pi: https://pi.dev/logo-on-dark.svg (retrieved 2026-09-16), unmodified official site asset for identification on dark backgrounds. Pi branding belongs to its respective owner; the LobeHub MIT license below does not cover this asset.
 
 ## Theme variants
