@@ -16,6 +16,13 @@ export interface ModelEntry {
   readonly displayName?: string;
   /** Runtime-enumerated reasoning effort menu; omitted when not exposed. */
   readonly effortLevels?: readonly string[];
+  /**
+   * The reasoning effort a session uses when no `effort` is set, where the
+   * runtime says so (for example codex's configured `model_reasoning_effort`
+   * for `ListModelsOptions.cwd` when in `effortLevels`, else its catalog
+   * `defaultReasoningEffort`). Omitted when not reported or not in
+   * `effortLevels`; OAR never picks one.
+   */
   readonly defaultEffort?: string;
   /**
    * This query could not determine the model's effort menu. A short explanation,

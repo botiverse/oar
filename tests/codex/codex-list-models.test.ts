@@ -141,6 +141,33 @@ test("codex lister overrides catalog defaultReasoningEffort with config/read mod
   });
 });
 
+test("codex lister preserves catalog defaultReasoningEffort when config/read model_reasoning_effort is null", async () => {
+  spawnLineProcess.mockReturnValue(fakeLineProcess((line, child) => {
+    const message = asRecord(parseJson(line));
+    if (typeof message?.id !== "number") { return; }
+    const results: Record<string, unknown> = {
+      "model/list": {
+        data: [
+          {
+            model: "gpt-6.2-sol",
+            isDefault: true,
+            defaultReasoningEffort: "low",
+            supportedReasoningEfforts: [{ reasoningEffort: "low" }, { reasoningEffort: "medium" }],
+          },
+        ],
+        nextCursor: null,
+      },
+      "config/read": { config: { model: "gpt-6.2-sol", model_reasoning_effort: null } },
+    };
+    const result = typeof message.method === "string" ? results[message.method] ?? {} : {};
+    child.emit(`${JSON.stringify({ id: message.id, result })}\n`);
+  }));
+  await expect(codexListModels(installation)).resolves.toStrictEqual({
+    kind: "ok",
+    models: [{ id: "gpt-6.2-sol", effortLevels: ["low", "medium"], defaultEffort: "low", default: true }],
+  });
+});
+
 // rowrow lists per workspace: a project's .codex/config.toml can set another model.
 test("codex lister reads the configuration for the requested directory, from an app-server started like a session's", async () => {
   const requests: { method: unknown; params: unknown }[] = [];
