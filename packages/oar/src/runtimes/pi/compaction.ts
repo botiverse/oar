@@ -26,8 +26,9 @@ export function piCompaction(kernel: SessionKernel, run: () => Promise<unknown>)
         if (event.kind === "compaction_started" && event.trigger === "manual") { started = true; reply?.({ kind: "accepted" }); }
         if (!started || event.kind !== "compaction_ended" || event.trigger !== "manual") { continue; }
         ended = true;
+        const notCompacted = typeof event.reason === "string" && event.reason.includes("Nothing to compact");
         return event.outcome === "failed"
-          ? { kind: "failed", code: "native_failed", reason: event.reason ?? "Pi reported compaction failure", frame }
+          ? { kind: "failed", code: notCompacted ? "not_compacted" : "native_failed", reason: event.reason ?? "Pi reported compaction failure", frame }
           : { kind: event.outcome, frame };
       }
       return null;
