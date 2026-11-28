@@ -9,10 +9,10 @@ import { bottegaCheckUpdate } from "./update.js";
 import { BOTTEGA_MINIMUM_VERSION } from "./version.js";
 
 /**
- * bottega, an agent whose context is a screen of app windows, driven through
- * `bottega serve` (docs/runtimes/bottega.md). It runs from the optional
- * dependency `@botiverse/bottega` under this Node, or from `bottega` on PATH
- * or `OAR_BOTTEGA_BIN`.
+ * bottega, an agent whose state lives in apps and whose context is a screen of
+ * their windows, driven through `bottega serve` (docs/runtimes/bottega.md). It
+ * runs from the optional dependency `@botiverse/bottega` under this Node, or
+ * from `bottega` on PATH or `OAR_BOTTEGA_BIN`.
  */
 export const bottegaRuntime = defineRuntime({
   id: "bottega",

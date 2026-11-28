@@ -30,3 +30,4 @@ minimumReleaseAgeExclude:
   - '@tsrs/linux-x64-musl@0.20.0-ts7.1.0-beta'
   - '@tsrs/win32-x64@0.20.0-ts7.1.0-beta'
   - tsrs@0.20.0-ts7.1.0-beta
+  - '@botiverse/bottega@0.3.0'

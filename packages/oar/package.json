@@ -105,6 +105,7 @@
     "which": "^2.0.2"
   },
   "optionalDependencies": {
+    "@botiverse/bottega": "~0.3.0",
     "@earendil-works/pi-ai": "~1.7.0",
     "@earendil-works/pi-coding-agent": "~1.7.0"
   },
