@@ -63,7 +63,7 @@ export function opencodeSessionCapabilities(installation: AvailableInstallation)
     taskEventTypes: background ? ["agent"] : [],
     ...(background ? { subagentResults: { background: "child_text" } as const } : {}),
     ...(!background && atLeastV2(release, { minor: 2, patch: 7 }) ? { subagentResults: { foreground: "parent_tool_result" } as const } : {}),
-    stopTask: false, contextUsage: { tokens: true, contextWindow: true },
+    images: true, stopTask: false, contextUsage: { tokens: true, contextWindow: true },
     ...(atLeastV2(release, V2_MCP_HTTP) ? { mcpTransports: ["stdio", "http"] as const } : {}),
     refusedSessionOptions: opencodeV2PromptRefusals(release), manualCompaction: { kind: "supported", activeTurn: "reject" },
   };
