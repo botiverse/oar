@@ -53,6 +53,7 @@ const { steerParams: _v1SteerParams, ...commonProfile } = opencodeAcpProfile;
 export const opencodeV2RefusedSessionOptions: RefusedSessionOptions = opencodeRefusedSessionOptions;
 export const opencodeV2AcpProfile: AcpSessionProfile = {
   ...commonProfile,
+  confirmConfigOptionUpdates: "when_stale",
   wholeSessionFork: true,
   promptTokenUsage: opencodePromptTokenUsage,
   compaction: opencodeCompaction,

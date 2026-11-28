@@ -69,8 +69,8 @@ export interface AcpSessionProfile extends AcpDerivedSessionHooks, AcpSteerReque
   readonly modelViaConfigOption?: boolean;
   /** Vendor selection policy; all native calls retain shared confirmation and recording. */
   readonly configureModel?: AcpModelConfiguration;
-  /** Wait for each native config notification before the next setting; agy publishes snapshots asynchronously. */
-  readonly confirmConfigOptionUpdates?: boolean;
+  /** Wait for each native config notification before the next setting; `"when_stale"` waits only when the RPC reply still shows a different value. */
+  readonly confirmConfigOptionUpdates?: boolean | "when_stale";
   /**
    * The agent resumes a session in the directory it was created in, whatever
    * `cwd` the resume names (kimi 2.1.1, probed 2026-10-03: a resume naming B
@@ -264,10 +264,11 @@ export async function openInitializedAcpSession(
   process: AcpProcess, profile: AcpSessionProfile, options: SessionOptions, initialized: JsonRecord,
   observe: AcpOpenObserver = () => {}, bind: (sessionId: string) => void = () => {}, observers?: AcpOpenObservers,
 ): Promise<OpenedAcpSession> {
-  if (profile.confirmConfigOptionUpdates === true && observers === undefined) {
+  const confirmsUpdates = profile.confirmConfigOptionUpdates === true || profile.confirmConfigOptionUpdates === "when_stale";
+  if (confirmsUpdates && observers === undefined) {
     throw new Error("ACP configuration confirmation requires a session notification observer");
   }
-  const updates = profile.confirmConfigOptionUpdates === true ? observers?.configUpdates : undefined;
+  const updates = confirmsUpdates ? observers?.configUpdates : undefined;
   const startedAt = performance.now();
   const opened = await acpOpenStep(createOrResume(process, profile, initialized, options, profile.sessionMeta?.(options, initialized)), "open", profile.openFailure);
   bind(opened.sessionId);
