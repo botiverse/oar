@@ -279,3 +279,13 @@ it("Codex declares per-file kinds from the first verified native version", () =>
   expect(codexRuntime.sessionCapabilities(executable()).fileChanges).toBeUndefined();
   expect(codexRuntime.sessionCapabilities(executable("0.159.0")).fileChanges).toBeUndefined();
 });
+
+it.each([
+  ["0.168.0", true],
+  ["0.169.0-rc.1", true],
+  ["0.169.0", false],
+  ["codex-cli 0.172.0", false],
+  [undefined, true],
+] as const)("gates Codex ephemeral refusal at 0.169.0 (%s)", (version, refused) => {
+  expect(codexRuntime.sessionCapabilities(executable(version)).refusedSessionOptions?.ephemeral === undefined).toBe(!refused);
+});

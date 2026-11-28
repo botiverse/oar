@@ -5,6 +5,7 @@ export const qoderRefusedSessionOptions: RefusedSessionOptions = {
   modelRequests: "This adapter has no verified capture of the root agent's provider request",
   fork: "OAR has not verified a native Qoder fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",
+  ephemeral: "This adapter has no verified switch to open an ephemeral session without native persistence",
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted Qoder turn's processes while its session stays usable",
   serviceTier: "Qoder has no verified service-tier option",
   outputSchema: "Qoder has no verified structured-output option for long-lived sessions",

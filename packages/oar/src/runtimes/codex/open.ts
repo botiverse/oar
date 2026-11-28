@@ -6,7 +6,7 @@ import { validateCodexToolDenials } from "./tool-denials.js";
 import type { McpServer, RuntimeEventBody, SessionOptions } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { checkMcpServerNames, givenMcpServers, isHttpMcpServer } from "../../shared/mcp-servers.js";
-import { codexLaunchSandboxMode, codexRefusedSessionOptions, codexResumeSandboxParams } from "./options.js";
+import { checkCodexEphemeral, codexEphemeralRefusal, codexLaunchSandboxMode, codexRefusedSessionOptions, codexResumeSandboxParams } from "./options.js";
 import { checkSessionName, refuseSessionOptions } from "../../shared/session-options.js";
 
 /*
@@ -72,6 +72,7 @@ export function codexThreadOpen(
   refuseSessionOptions(codexRefusedSessionOptions, options);
   validateCodexToolDenials(options);
   checkSessionName(options);
+  checkCodexEphemeral(options);
   const { redact } = sessionCredentialRedactor(options);
   // System prompt seams (probed 2026-08-24 via the aimock journal):
   // baseInstructions REPLACES codex's base prompt; developerInstructions
@@ -103,6 +104,7 @@ export function codexThreadOpen(
   const roots = workspaceRoots(options);
   const directoryParams = roots === null ? {} : { runtimeWorkspaceRoots: roots };
   const approvalParams = options.nativePermissions === "inherit" ? {} : { approvalPolicy: "never" };
+  const ephemeralParams = options.ephemeral === true ? { ephemeral: true } : {};
   const resumeSandboxParams = codexResumeSandboxParams(options, sandboxMode);
   if (options.resume === undefined) {
     return {
@@ -114,6 +116,7 @@ export function codexThreadOpen(
         ...modelParams,
         ...tierParams,
         ...approvalParams,
+        ...ephemeralParams,
         // Required in addition to initialize.experimentalApi. This exposes
         // the completed Responses API reasoning item, whose encrypted_content
         // lets us distinguish redaction from genuinely empty reasoning.
@@ -148,6 +151,7 @@ export function codexThreadOpen(
         ...modelParams,
         ...tierParams,
         ...approvalParams,
+        ...ephemeralParams,
         ...resumeSandboxParams,
         ...instructionParams,
         ...configParams(mcpConfig),
@@ -225,11 +229,12 @@ export function codexOpenReadback(
     ...(effort === null ? [] : [{ kind: "effort" as const, effort }]),
     ...codexServiceTierEvents(reply),
   ];
-  // A fork must be a new thread; one answering with its source would be resumed, not forked.
-  const threadId = asRecord(reply.thread)?.id;
-  if (method === "thread/fork" && threadId === options.resume) {
-    return { events, refusal: `codex thread/fork answered with its source thread ${String(threadId)}, not a new one`, resumeEffort: null };
+  const thread = asRecord(reply.thread);
+  if (method === "thread/fork" && thread?.id === options.resume) {
+    return { events, refusal: `codex thread/fork answered with its source thread ${String(thread?.id)}, not a new one`, resumeEffort: null };
   }
+  const ephemeralRefusal = codexEphemeralRefusal(method, options, thread);
+  if (ephemeralRefusal !== null) { return { events, refusal: ephemeralRefusal, resumeEffort: null }; }
   const roots = workspaceRoots(options);
   const reportedRoots = reply.runtimeWorkspaceRoots;
   if (roots !== null && (!Array.isArray(reportedRoots) || roots.some((root) => !reportedRoots.includes(root)))) {

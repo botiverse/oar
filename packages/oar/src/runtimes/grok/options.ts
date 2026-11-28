@@ -8,6 +8,7 @@ export const grokRefusedSessionOptions: RefusedSessionOptions = {
   modelRequests: "This adapter has no verified capture of the root agent's provider request",
   fork: "OAR has not verified a native Grok fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",
+  ephemeral: "This adapter has no verified switch to open an ephemeral session without native persistence",
   userConfiguration: "grok has no verified separation of user configuration from its native login",
   additionalDirectories: "grok ACP exposes no effective additional workspace directory setting",
   serviceTier: "grok exposes no verified per-session service-tier setting and readback",

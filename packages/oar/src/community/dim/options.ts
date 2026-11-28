@@ -14,6 +14,7 @@ export const dimRefusedSessionOptions: RefusedSessionOptions = {
   disallowedTools: "Dim's ACP gateway exposes no per-session tool-denial channel",
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted Dim turn's processes while its session stays usable",
   goals: "This adapter does not map Dim's goal commands to structured goal controls",
+  ephemeral: "This adapter has no verified switch to open an ephemeral session without native persistence",
   name: "This adapter has no verified session name setting for Dim",
   outputSchema: "Dim's ACP gateway exposes no final-output schema channel",
   serviceTier: "Dim's ACP gateway does not publish service-tier config options (0.1.0-alpha.29)",

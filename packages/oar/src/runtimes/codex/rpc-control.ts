@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
 import { SessionUnavailableError, type SessionUnavailableReason } from "../../contracts/session-unavailable-error.js";
-import { emptyInputRefusal } from "../../shared/control-input.js";
+import { carriesRefusal, emptyInputRefusal } from "../../shared/control-input.js";
 import type {
   ControlResult,
   RequestBody,
@@ -13,7 +13,7 @@ import { asRecord, type JsonRecord } from "../../shared/json.js";
 import type { SessionKernel } from "../../shared/session-kernel.js";
 import type { AppServerClient } from "./app-server-client.js";
 import type { CodexOpenMethod } from "./open.js";
-import { codexForkThroughRefusal, codexOpenFailure } from "./refusal.js";
+import { codexEphemeralOpenRefusal, codexForkThroughRefusal, codexOpenFailure } from "./refusal.js";
 
 export interface RpcControlPlan {
   readonly body: RequestBody;
@@ -45,7 +45,7 @@ export async function rpcControl(
   client: AppServerClient,
   plan: RpcControlPlan,
 ): Promise<ControlResult> {
-  const blocked = kernel.unreachable();
+  const blocked = kernel.unreachable() ?? carriesRefusal(plan.body, kernel.records(), kernel.sessionId, []);
   const request = kernel.request("toRuntime", plan.body);
   const refused = blocked ?? emptyInputRefusal(plan.body) ?? plan.gate(request);
   if (refused !== null) {
@@ -126,11 +126,13 @@ function resumeError(method: string, resumeId: string | undefined, cause: JsonRe
 export async function openThread(
   method: CodexOpenMethod,
   send: () => Promise<JsonRecord>,
-  context: { readonly version: string | null; readonly serviceTier?: string | undefined; readonly resumeId?: string | undefined; readonly through?: string | undefined },
+  context: { readonly version: string | null; readonly serviceTier?: string | undefined; readonly resumeId?: string | undefined; readonly through?: string | undefined; readonly ephemeral?: boolean | undefined },
 ): Promise<JsonRecord> {
   const { serviceTier, resumeId } = context;
   const outdatedFork = method === "thread/fork" ? codexForkThroughRefusal(context.version, context.through) : null;
   if (outdatedFork !== null) { throw outdatedFork; }
+  const outdatedEphemeral = codexEphemeralOpenRefusal(context.version, context.ephemeral, method);
+  if (outdatedEphemeral !== null) { throw outdatedEphemeral; }
   try {
     return await send();
   } catch (error) {

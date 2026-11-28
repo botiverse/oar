@@ -6,7 +6,7 @@ import { appendCleanupFailure } from "../../shared/executable/process-cleanup.js
 import { codexGoalControl, confirmCodexGoals } from "./goal.js";
 /* oxlint-disable import/max-dependencies -- The adapter composes protocol, input and process-lifetime mechanisms. */
 import { randomUUID } from "node:crypto";
-import type { ControlResult, InputOptions, RequestRecord, Session, StartSession } from "../../contracts/session.js";
+import type { ControlResult, InputOptions, PromptOptions, RequestRecord, Session, StartSession } from "../../contracts/session.js";
 import { createAbortFallback } from "../../shared/abort-fallback.js";
 import { acceptCodexSteer, codexUserInput, codexQueueRefusal } from "./input-delivery.js";
 import { inputImagesRefusal } from "../../shared/input-images.js";
@@ -15,7 +15,9 @@ import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
 import { newSessionLinks } from "../../shared/session-links.js";
 import { startAppServerClient, type RpcOutcome } from "./app-server-client.js";
+import { createCodexEphemeralQueue, type CodexEphemeralQueue } from "./ephemeral-queue.js";
 import { CODEX_SETTINGS_REPORT_MS, codexLaunchSandboxMode, codexOpenReadback, codexResumeEffortRefusal, codexThreadName, codexThreadOpen } from "./open.js";
+import { codexEphemeralVersionRefusal } from "./options.js";
 import { foldCodexNotification, initialCodexProjection, type CodexProjectionState } from "./projection.js";
 import { prepareCodexOpenParams } from "./open-config.js";
 import { missingDirectoryError, nameThread, openThread, rpcControl, updateThreadEffort, type RpcControlPlan } from "./rpc-control.js";
@@ -40,19 +42,14 @@ interface CodexSessionState {
 export const codexSession: StartSession = withSessionCredentials(async (installation, options, credentials, context) => {
   if (installation.via !== "executable") { throw new Error("The codex session adapter needs an executable installation"); }
   refuseSharedTurnProcesses(options, context);
-  refuseSessionOptions(codexUserQuestionRefusal(installation.version), options);
-  // Threads persist so a later SessionOptions.resume can reattach; the thread
-  // id is the runtime-native identity and becomes Session.id (open.ts builds
-  // the request, and refuses what it cannot build before anything starts).
+  refuseSessionOptions({ ...codexUserQuestionRefusal(installation.version), ...codexEphemeralVersionRefusal(installation.version) }, options);
   const sandboxMode = codexLaunchSandboxMode(options);
   const { method: openMethod, params: openParams, redact } = codexThreadOpen(options, sandboxMode);
   const configOverrides = { ...(sandboxMode === "inherit" ? {} : { sandbox_mode: `"${sandboxMode}"` }), ...(options.goals === true ? { "features.goals": "true" } : {}), ...(options.userQuestions === "host" ? CODEX_QUESTION_CONFIG : {}) };
-  // Client errors redact the MCP credentials carried by the open config.
   const client = startAppServerClient(installation.command, options.env, configOverrides, options.cwd, { redact, ...(options.launchArgs === undefined ? {} : { launchArgs: options.launchArgs }) });
   const cleanup: { reason?: string } = {};
   client.onExit((_code, reason) => { if (reason !== undefined) { cleanup.reason = reason; } });
   try {
-    // The running binary's own version; the probed one when codex names none.
     const version = codexVersion(await client.request("initialize", {
       clientInfo: { name: "oar", version: "0.0.0" },
       capabilities: { experimentalApi: true },
@@ -60,25 +57,17 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
     client.notify("initialized", {});
     if (options.goals === true) { await confirmCodexGoals(client); }
     const effectiveOpenParams = await prepareCodexOpenParams(client, options, openParams);
-    // The open event is marked at the reply's wire position AS the reply line
-    // is read (onSettled → client.mark), not after this await: a frame codex
-    // wrote in the same chunk right after the reply (thread/started) would
-    // otherwise precede it. The mark runs when the handlers register below,
-    // once the kernel exists; a failed open registers none, so it never runs.
+    // Mark the open event at the reply's wire position so same-chunk frames stay ordered.
     let recordOpen: (() => void) | null = null;
     const markOpen = (outcome: RpcOutcome): void => {
-      if (outcome.kind === "result") {
-        client.mark(() => recordOpen?.());
-      }
+      if (outcome.kind === "result") { client.mark(() => recordOpen?.()); }
     };
     const started = await openThread(openMethod, async () => {
       const reply = await client.request(openMethod, effectiveOpenParams, markOpen);
       return reply;
-    }, { version, serviceTier: options.serviceTier, resumeId: options.resume, through: options.fork?.through });
+    }, { version, serviceTier: options.serviceTier, resumeId: options.resume, through: options.fork?.through, ephemeral: options.ephemeral });
     const threadId = asRecord(started.thread)?.id;
     if (typeof threadId !== "string") { throw new TypeError("codex thread/start, thread/resume or thread/fork returned no thread id"); }
-    // The reply is codex's word on the model and effort the thread runs (the
-    // open frame's events); anything but what was requested refuses the open.
     const readback = codexOpenReadback(openMethod, options, started);
     if (readback.refusal !== null) { throw typeof readback.refusal === "string" ? new Error(readback.refusal) : readback.refusal; }
     const kernel = credentials.kernel(threadId);
@@ -87,16 +76,20 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       spontaneous: false,
       codexTurnId: null,
       queuePausedAfterInterrupt: false,
-      // A resume awaits codex's re-report of the thread's total so far: the
-      // baseline this Session's token totals count from (projection.ts, #169).
       projection: initialCodexProjection(threadId, openMethod),
     };
     const questions = options.userQuestions === "host" ? createUserQuestions(kernel) : undefined;
     const secretQuestions = options.userQuestions === "host" ? createCodexSecretQuestions(credentials.add) : undefined;
     const tasks = codexTaskControl(kernel, client, () => state.projection.subagents);
     const nativeBusy = (): boolean => state.active !== null || state.spontaneous;
+    let ephemeralQueue: CodexEphemeralQueue | null = null;
     let compactOperation: ReturnType<typeof codexCompaction> | null = null;
-    const compaction = manualCompaction(kernel, { busy: codexCompactionBusy(kernel, nativeBusy), busyReason: "Codex manual compaction requires an idle session without an active goal or queued input", create: () => { compactOperation = codexCompaction(client, threadId); return compactOperation; } });
+    const compaction = manualCompaction(kernel, {
+      busy: options.ephemeral === true ? (): boolean => nativeBusy() || ephemeralQueue?.hasHeld() === true : codexCompactionBusy(kernel, nativeBusy),
+      busyReason: "Codex manual compaction requires an idle session without an active goal or queued input",
+      create: () => { compactOperation = codexCompaction(client, threadId); return compactOperation; },
+      ...(options.ephemeral === true ? { released: (): void => { queueMicrotask(() => { ephemeralQueue?.drain(); }); } } : {}),
+    });
     const busy = (): boolean => nativeBusy() || compaction.busy();
     const abortFallback = createAbortFallback(() => { client.kill(); });
     const turnProcesses = codexTurnProcesses(options, kernel, client);
@@ -146,14 +139,14 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
             break;
         }
       }
-      if (isRoot && method === "turn/completed") { turnProcesses.turnCompleted(params); }
+      if (isRoot && method === "turn/completed") { turnProcesses.turnCompleted(params); ephemeralQueue?.drain(); }
       if (isRoot && method === "thread/settings/updated") { settingsWaiter?.(params); }
     };
     const onServerRequest = codexServerRequests(kernel, client, questions, secretQuestions);
     // Registering flushes held frames in wire order around the open mark.
     client.handle({ onNotification, onServerRequest });
     client.onExit((code, reason) => {
-      abortFallback.clear(); secretQuestions?.clear();
+      abortFallback.clear(); secretQuestions?.clear(); ephemeralQueue?.clear();
       turnProcesses.exited();
       // The exit is an outcome only oar observes: it answers our dispose when
       // we caused it, and stands alone when the app-server died on its own.
@@ -181,20 +174,19 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
     await nameThread(client, threadId, codexThreadName(openMethod, options, started), (native) => { kernel.frame({ type: "thread/name/set/error", native, events: [] }); });
     /** Turn a plan builder into a Session control member. */
     const via = <Args extends unknown[]>(plan: (...args: Args) => RpcControlPlan) => async (...args: Args): Promise<ControlResult> => { const result = await rpcControl(kernel, client, plan(...args)); return result; };
-    const capabilities = { queue: { durable: true }, attribution: "nested", images: true } as const;
-    const promptPlan = (input: string, inputOptions?: InputOptions): RpcControlPlan => ({
+    const capabilities = { queue: { durable: options.ephemeral !== true }, attribution: "nested", images: true } as const;
+    const promptPlan = (input: string, inputOptions?: PromptOptions, internal?: { readonly allowHeld?: boolean; readonly wireInputId?: string | undefined }): RpcControlPlan => ({
       body: { kind: "prompt", input, ...inputOptions },
       gate: (request) => {
-        const refused = busy() ? { kind: "rejected", code: "busy", reason: "busy" } as const : inputImagesRefusal(capabilities, inputOptions?.images);
-        if (refused !== null) {
-          return refused;
-        }
-        // Hold the slot while the RPC is in flight so a concurrent prompt is busy.
+        const refused = busy() || (internal?.allowHeld !== true && ephemeralQueue?.hasHeld() === true)
+          ? { kind: "rejected", code: "busy", reason: "busy" } as const
+          : inputImagesRefusal(capabilities, inputOptions?.images);
+        if (refused !== null) { return refused; }
         state.active = request;
         return null;
       },
       method: "turn/start",
-      params: () => ({ threadId, input: codexUserInput(input, inputOptions?.images), clientUserMessageId: inputOptions?.inputId, ...(options.outputSchema === undefined ? {} : { outputSchema: options.outputSchema }) }),
+      params: () => ({ threadId, input: codexUserInput(input, inputOptions?.images), clientUserMessageId: internal?.wireInputId ?? inputOptions?.inputId, ...(options.outputSchema === undefined ? {} : { outputSchema: options.outputSchema }) }),
       onReply: (reply) => {
         const turnId = asRecord(reply.turn)?.id;
         if (typeof turnId !== "string") {
@@ -209,6 +201,10 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
         return codexControlRefusal(message, native);
       },
     });
+    const promptDispatch = via(turnProcesses.prompting(promptPlan));
+    ephemeralQueue = options.ephemeral === true
+      ? createCodexEphemeralQueue({ kernel, capabilities, busy, dispatch: async (input, promptOptions, wireInputId) => { const result = await promptDispatch(input, promptOptions, { allowHeld: true, wireInputId }); return result; } })
+      : null;
     const steerPlan = (input: string, inputOptions?: InputOptions): RpcControlPlan => {
       const expectedTurnId = state.codexTurnId;
       return {
@@ -265,10 +261,10 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       ...(options.goals === true ? { goal: codexGoalControl(kernel, client, threadId) } : {}),
       capabilities,
       compact: compaction.compact,
-      prompt: via(turnProcesses.prompting(promptPlan)),
+      prompt: async (input, inputOptions) => { const result = await promptDispatch(input, inputOptions); return result; },
       steer: via(steerPlan),
-      queue: via(queuePlan),
-      // No withdraw: the queue is codex's own, and thread/queue/delete is experimental and not live-verified (docs/runtimes/input-cancellation.md).
+      queue: ephemeralQueue === null ? via(queuePlan) : ephemeralQueue.queue,
+      ...(ephemeralQueue === null ? {} : { withdraw: ephemeralQueue.withdraw }),
       abort: via(turnProcesses.aborting(abortPlan)),
       stopTask: tasks.stop,
       ...(questions === undefined ? {} : { answerQuestion: questions.answer }),
@@ -278,6 +274,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       resources: client.resources,
       dispose: async () => {
         await kernel.dispose(async () => {
+          ephemeralQueue?.clear();
           // Idle app-server exits on stdin EOF; active turns stop immediately and await exit so codex releases CODEX_HOME sqlite locks.
           if (!busy() && client.close !== undefined) {
             await client.close();

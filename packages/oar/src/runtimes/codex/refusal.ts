@@ -1,7 +1,9 @@
 import { RuntimeFailureError } from "../../contracts/runtime-failure-error.js";
 import type { FailureClass, ResponseBody } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
+import { semverAtLeast } from "../../shared/semver.js";
 import { versionAtLeast } from "../../shared/update.js";
+import { CODEX_EPHEMERAL_SINCE } from "./options.js";
 
 /*
  * Codex's refusals in its own words and codes, read into OAR's types
@@ -37,6 +39,12 @@ export const CODEX_FORK_THROUGH_SINCE = "0.143.0";
 export function codexForkThroughRefusal(version: string | null, through: string | undefined): RuntimeFailureError | null {
   if (through === undefined || (version !== null && versionAtLeast(version, CODEX_FORK_THROUGH_SINCE))) { return null; }
   return outdated(version, "has no thread/fork lastTurnId, which OAR needs to fork through a turn (SessionOptions.fork.through)", CODEX_FORK_THROUGH_SINCE, { method: "thread/fork" });
+}
+
+/** Refuse `ephemeral: true` before sending `thread/start` or `thread/fork` when the running binary is below the verified floor or unreported. */
+export function codexEphemeralOpenRefusal(version: string | null, ephemeral: boolean | undefined, method: string): RuntimeFailureError | null {
+  if (ephemeral !== true || semverAtLeast(version ?? undefined, CODEX_EPHEMERAL_SINCE)) { return null; }
+  return outdated(version, `has no verified ${method} ephemeral support (SessionOptions.ephemeral)`, CODEX_EPHEMERAL_SINCE, { method });
 }
 
 /** Service tiers codex accepts from 0.129.0; earlier releases know only `fast` and `flex`. */

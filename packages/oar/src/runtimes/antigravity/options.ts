@@ -6,6 +6,7 @@ export const antigravityRefusedSessionOptions: RefusedSessionOptions = {
   modelRequests: "This adapter has no verified capture of the root agent's provider request",
   fork: "OAR has not verified a native Antigravity fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",
+  ephemeral: "This adapter has no verified switch to open an ephemeral session without native persistence",
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted Antigravity turn's processes while its session stays usable",
   userConfiguration: "antigravity has no verified separation of user configuration from its native login",
   additionalDirectories: "agy CLI 1.5.0 can select an additional workspace as the command cwd instead of preserving the primary cwd",

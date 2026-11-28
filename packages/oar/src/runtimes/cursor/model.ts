@@ -65,6 +65,7 @@ export const cursorRefusedSessionOptions: RefusedSessionOptions = {
   partialUserConfiguration: "Cursor settingSources controls user configuration as a group and cannot exclude individual categories",
   fork: "OAR has not verified a native Cursor fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",
+  ephemeral: "This adapter has no verified switch to open an ephemeral session without native persistence",
   endTurnProcessesOnAbort: "Cursor runs in the host process through its SDK, so OAR owns no runtime process tree to read for one turn",
   outputSchema: "Cursor SDK exposes no final-output schema option",
   name: "cursor exposes no verified session name setting",

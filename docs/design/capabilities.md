@@ -169,6 +169,11 @@ Where it goes depends on how long it holds:
   `SessionOptions.endTurnProcessesOnAbort: true` follows the same pattern:
   unsupported runtimes declare and refuse it, and omission and false change
   nothing ([contract](../spec/runtime-matrix.md#ending-a-turns-processes-on-abort)).
+  `SessionOptions.ephemeral: true` follows the same pattern for non-persisted
+  sessions: unsupported runtimes (and Codex installations below its verified
+  `0.169.0` floor or with an unknown version) declare and refuse it, while
+  omission and false preserve native persistence
+  ([contract](../spec/runtime-matrix.md#refused-session-options)).
 
 A package the host installs is handed over, never looked up. Written in the
 host's own code, `import("@cursor/sdk")` fails the host's compile when the

@@ -16,6 +16,7 @@ export const dshRefusedSessionOptions: RefusedSessionOptions = {
   nativeMemoryDefault: "DSH exposes no verified below-user default layer for background auto-memory",
   nativePermissions: "This adapter has no verified per-session switch to inherit native permission and sandbox settings",
   userQuestions: "This adapter has no verified way for a host to answer the agent's questions",
+  ephemeral: "This adapter has no verified switch to open an ephemeral session without native persistence",
 };
 
 /** Session-scoped directory grants are effective for file and process writes on these platforms. */

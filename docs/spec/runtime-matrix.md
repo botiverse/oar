@@ -182,7 +182,7 @@ before that `prompt` decides, so adapter-held sessions refuse the `prompt` as
 | qoder | yes: stdin user message with `priority: next`, joining at a tool boundary or following a text-only turn | yes, while held | no |
 | qwen | no: native busy writes queue | yes, while held | no |
 | claude | yes: a user message written to stdin mid-turn | yes | no |
-| codex | yes: `turn/steer` with `expectedTurnId` | no: the queue is codex's own (`thread/queue/add`; [why](record-stream.md#withdrawing-held-input)) | yes |
+| codex | yes: `turn/steer` with `expectedTurnId` | no on persistent threads (the queue is codex's own, `thread/queue/add`; [why](record-stream.md#withdrawing-held-input)); yes on `ephemeral: true` sessions (`thread/queue/add` rejects ephemeral threads, so OAR holds the queue in the adapter) | yes on persistent threads; no on `ephemeral: true` sessions |
 | pi-durable | yes: native `submit`, `whenBusy: steer` | yes: `submission.abort()` | yes |
 | pi | yes: the SDK session's `steer` | yes | no |
 | cursor (`@cursor/sdk`) | yes, text only: `run.steer` (images are rejected `unsupported`); `complete_delivered` and SDK 1.4.0 `queued` are accepted (a queued steer is Cursor's follow-up, unobserved by OAR), `revert_to_followup` is refused ([mapping](../runtimes/cursor.md#prompt-steering-queueing-and-abort)) | yes | no |
@@ -995,8 +995,8 @@ the 0.118.0 schema), but forks were run on 0.169.0 and 0.169.1 only.
 A missing source is `SessionNotFoundError` on both, read with the resume's
 words. Claude keeps rejecting `--fork-session` in `launchArgs` (use this
 option), and with a fork also `--resume-session-at`. Codex forks carry no
-`experimentalRawEvents` and are ordinary threads (not `ephemeral`, not
-`attachToSource`). They do not send `deferGoalContinuation`: with
+`experimentalRawEvents` and are ordinary threads (not `attachToSource`;
+`ephemeral: true` is forwarded when requested on `>= 0.169.0`). They do not send `deferGoalContinuation`: with
 `goals: true` and an active goal on the source, codex may start the goal's
 automatic continuation turn as the fork opens (untested). A codex fork
 reports no token totals for its whole Session, not only before its first
@@ -1034,7 +1034,7 @@ reading the message.
 
 `Runtime.refusedSessionOptions` declares, before any session opens, the
 `SessionOptions` a runtime refuses when given (`env`, `mcpServers`, `disallowedTools`, `launchArgs`, `additionalDirectories`: a
-non-empty one; `userConfiguration`: any exclusion; `partialUserConfiguration`: a proper nonempty subset; `goals`, `endTurnProcessesOnAbort`: `true`; `fork`: any value; `nativeMemoryDefault`: `"off"`; `sessionLogUpload`: `"off"`; `nativePermissions`: `"inherit"`), each with that reason. The adapter checks the same map, so
+non-empty one; `userConfiguration`: any exclusion; `partialUserConfiguration`: a proper nonempty subset; `ephemeral`, `goals`, `endTurnProcessesOnAbort`: `true`; `fork`: any value; `nativeMemoryDefault`: `"off"`; `sessionLogUpload`: `"off"`; `nativePermissions`: `"inherit"`), each with that reason. The adapter checks the same map, so
 the declaration and the refusal cannot drift
 (`tests/refused-session-options.test.ts`). A host leaves a declared option
 out instead of naming runtimes. `outputSchema` is considered given even
@@ -1053,6 +1053,7 @@ the first turn can run. A runtime that cannot meet this rule or whose
 isolation is unverified declares `mcpServerCredentials`. Every
 `serveMcpTools` entry carries a bearer token, so the same rule applies to it.
 
+`ephemeral: true` is refused everywhere except Codex `>= 0.169.0` (older or unknown Codex versions declare `refusedSessionOptions.ephemeral` in `sessionCapabilities` and refuse unsent before `thread/start` / `thread/fork`; supported versions forward `ephemeral: true` on `thread/start` and `thread/fork`, confirm `thread.ephemeral === true` on readback, hold queued inputs in the adapter with `capabilities.queue.durable: false` and `Session.withdraw`, omit `Session.nativeSessionFile`, and refuse `ephemeral: true` combined with `name`, `goals: true`, or `resume` without `fork`),
 `goals: true` is refused everywhere except Codex and DSH ([native goals](#native-goals)),
 `endTurnProcessesOnAbort: true` everywhere except Codex in an isolated
 app-server and Grok ([ending a turn's processes](#ending-a-turns-processes-on-abort)),
@@ -1071,7 +1072,7 @@ upload switch, a verified per-session native permissions inherit path, or a veri
 can copy a whole session. Other adapters refuse `fork`
 ([forking a session](#forking-a-session)). `modelRequests: "latest"` is accepted
 by Claude (`>= 2.1.274`) and Pi SDK, and refused elsewhere
-([model-request.md](model-request.md)). The table omits all seven, apart
+([model-request.md](model-request.md)). The table omits all eight, apart
 from Codex's shared-placement refusal.
 These refusals have one reason wherever the table lists them: `serviceTier`,
 no verified per-session tier setting and readback; `outputSchema`, no

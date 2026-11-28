@@ -13,6 +13,7 @@ import type { RefusedSessionOptions, SessionCapabilityDeclaration } from "../../
 export const opencodeRefusedSessionOptions: RefusedSessionOptions = {
   modelRequests: "This adapter has no verified capture of the root agent's provider request",
   goals: "This runtime interface exposes no structured native goal controls",
+  ephemeral: "This adapter has no verified switch to open an ephemeral session without native persistence",
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted OpenCode turn's processes while its session stays usable",
   userConfiguration: "opencode has no verified separation of user configuration from its native login",
   outputSchema: "OpenCode ACP exposes no final-output schema channel; its HTTP prompt format is not configurable through ACP",

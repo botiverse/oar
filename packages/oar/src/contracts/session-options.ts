@@ -59,6 +59,8 @@ export interface SessionOptions {
    * so a host wanting the full history persists it. Omitted: retain everything.
    */
   readonly retainedBytes?: number;
+  /** Open an ephemeral session not materialized to the runtime's persisted store or UI session list (Codex `>= 0.169.0` `thread/start` and `thread/fork`, confirmed on readback; refused with `resume` without `fork`, with `name` or `goals: true` on Codex, and by unsupported runtimes). Not recorded. */
+  readonly ephemeral?: boolean;
   /**
    * Enable structured native goals, including any model-visible goal tools.
    * Only Codex currently supports true; other runtimes refuse it before open.
