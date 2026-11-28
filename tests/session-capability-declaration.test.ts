@@ -38,10 +38,11 @@ describe("Runtime.sessionCapabilities", () => {
   it("reports OpenCode manual compaction, contextUsage and whole-history fork refusals by installation", () => {
     const v1 = opencodeRuntime.sessionCapabilities(executable("1.19.6"));
     expect(v1).toMatchObject({ manualCompaction: { kind: "unsupported" }, contextUsage: { tokens: true, contextWindow: true } });
+    expect(v1.images).toBeUndefined();
     expect(v1.refusedSessionOptions?.fork).toContain("v1");
     expect(v1.refusedSessionOptions?.additionalDirectories).toContain("v1");
     const v2 = opencodeRuntime.sessionCapabilities(executable("opencode v2.3.2"));
-    expect(v2).toMatchObject({ manualCompaction: { kind: "supported", activeTurn: "reject" }, contextUsage: { tokens: true, contextWindow: true } });
+    expect(v2).toMatchObject({ images: true, manualCompaction: { kind: "supported", activeTurn: "reject" }, contextUsage: { tokens: true, contextWindow: true } });
     expect(v2.refusedSessionOptions?.fork).toBeUndefined();
     const unknown = opencodeRuntime.sessionCapabilities(executable());
     expect([unknown.manualCompaction, unknown.contextUsage, unknown.refusedSessionOptions?.fork]).toEqual([undefined, undefined, undefined]);
