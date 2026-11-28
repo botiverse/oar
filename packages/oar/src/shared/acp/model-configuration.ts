@@ -21,7 +21,11 @@ export async function configureAcpModel(
   opened: Pick<OpenedAcpSession, "response" | "sessionId" | "openMethod">,
   observe: AcpOpenObserver, updates?: AcpConfigUpdates,
 ): Promise<JsonRecord | undefined> {
-  const context = { timeoutMs: profile.requestTimeoutMs ?? 15_000, observe, ...(updates === undefined ? {} : { updates }) };
+  const context = {
+    timeoutMs: profile.requestTimeoutMs ?? 15_000,
+    observe,
+    ...(updates === undefined ? {} : { updates, confirmWhenStale: profile.confirmConfigOptionUpdates === "when_stale" }),
+  };
   const setModel = async (model: string): Promise<JsonRecord | undefined> => {
     const result = await acpOpenStep(
     applyAcpModel(process, opened.sessionId, model, { ...context, viaConfigOption: profile.modelViaConfigOption === true }), "model", profile.openFailure);

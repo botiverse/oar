@@ -18,7 +18,7 @@ interface ConfigOptionResult { readonly response: JsonRecord | undefined; readon
  */
 async function setConfigOption(
   process: AcpProcess, sessionId: string, configId: string, value: string,
-  context: { readonly timeoutMs: number; readonly updates?: AcpConfigUpdates; readonly observe: ObserveStep },
+  context: { readonly timeoutMs: number; readonly updates?: AcpConfigUpdates; readonly confirmWhenStale?: boolean; readonly observe: ObserveStep },
 ): Promise<ConfigOptionResult> {
   const method = "session/set_config_option";
   const { updates } = context;
@@ -33,6 +33,10 @@ async function setConfigOption(
     withAcpDeadline(process, method, context.timeoutMs, async requestOptions => {
       const response = asRecord(await process.connection.agent.request(method, { sessionId, configId, value }, requestOptions)) ?? undefined;
       context.observe({ method, response: response ?? {} });
+      if (context.confirmWhenStale === true
+        && asRecordList(response?.configOptions).find(option => option.id === configId)?.currentValue === value) {
+        return { response };
+      }
       const signals = [process.connection.signal, ...(requestOptions?.cancellationSignal === undefined ? [] : [requestOptions.cancellationSignal])];
       return { response, confirmed: await wait(AbortSignal.any(signals)) };
     }));
@@ -79,6 +83,7 @@ export async function applyAcpEffort(
   context: {
     readonly timeoutMs: number;
     readonly updates?: AcpConfigUpdates;
+    readonly confirmWhenStale?: boolean;
     readonly observe: ObserveStep;
   },
 ): Promise<JsonRecord> {
@@ -119,6 +124,7 @@ export async function applyAcpModel(
     readonly viaConfigOption: boolean;
     readonly timeoutMs: number;
     readonly updates?: AcpConfigUpdates;
+    readonly confirmWhenStale?: boolean;
     readonly observe: ObserveStep;
   },
 ): Promise<JsonRecord | undefined> {
