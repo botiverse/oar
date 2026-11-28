@@ -19,11 +19,13 @@ export type McpTransport = "stdio" | "http";
  * record and error text, the shared known-credential rules select values by
  * name and shape (docs/spec/record-stream.md). Ordinary settings such as
  * NODE_ENV and Content-Type remain readable. Values must be strings: null
- * removal belongs to SessionOptions.env, not this native config.
+ * removal belongs to SessionOptions.env, not this native config. Setting
+ * `required: true` asks runtimes with asynchronous MCP discovery (Codex,
+ * Grok) to wait for this server during open and reject if it fails to start.
  */
 export type McpServer =
-  | { readonly name: string; readonly command: string; readonly args?: readonly string[]; readonly env?: Readonly<Record<string, string>> }
-  | { readonly name: string; readonly type: "http"; readonly url: string; readonly headers?: Readonly<Record<string, string>>;
+  | { readonly name: string; readonly command: string; readonly args?: readonly string[]; readonly env?: Readonly<Record<string, string>>; readonly required?: boolean }
+  | { readonly name: string; readonly type: "http"; readonly url: string; readonly headers?: Readonly<Record<string, string>>; readonly required?: boolean;
       /** Set by serveMcpTools so the runtime can require the host's server during startup. */
       readonly origin?: "serveMcpTools" };
 

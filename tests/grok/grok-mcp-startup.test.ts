@@ -68,3 +68,23 @@ test("other non-ready terminal statuses reject using status as fallback reason",
   auth.observe(status, { sessionId: "mine", name: "host", status: "needsauth" });
   await expect(secondWait).rejects.toThrow('Grok served MCP server "host": needsauth');
 });
+
+const requiredStdio = { name: "local", command: "node", args: ["server.js"], required: true } as const;
+
+test("required stdio and http entries wait for ready status", async () => {
+  const gate = grokMcpStartup({ cwd: "/work", mcpServers: [requiredStdio, { ...second, required: true }] });
+  assert.ok(gate);
+  const pending = gate.wait("mine", new AbortController().signal);
+  gate.observe(complete, { sessionId: "mine", mcpToolCount: 2 });
+  gate.observe(status, { sessionId: "mine", name: "local", status: "ready" });
+  gate.observe(status, { sessionId: "mine", name: "extra", status: "ready" });
+  await pending;
+});
+
+test("required stdio entry rejects immediately on failure", async () => {
+  const failing = grokMcpStartup({ cwd: "/work", mcpServers: [requiredStdio] });
+  assert.ok(failing);
+  const failed = failing.wait("mine", new AbortController().signal);
+  failing.observe(status, { sessionId: "mine", name: "local", status: "unavailable", reason: "spawn_failed" });
+  await expect(failed).rejects.toThrow('Grok served MCP server "local": spawn_failed');
+});
