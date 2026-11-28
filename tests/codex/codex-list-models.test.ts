@@ -1,7 +1,7 @@
 import { readerEnvironment, expectReaderEnvironment } from "../fixtures/reader-environment.js";
 import path from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
-import { codexListModels } from "../../packages/oar/src/runtimes/codex/list-models.js";
+import { codexDefaultEffort, codexListModels } from "../../packages/oar/src/runtimes/codex/list-models.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 import { fakeLineProcess, type FakeLineProcess } from "../fixtures/fake-line-process.js";
 
@@ -85,6 +85,60 @@ test("codex lister marks the model codex's configuration sets, read for the host
   }));
   await expect(codexListModels(installation)).resolves.toEqual({ kind: "ok", models: [{ id: "gpt-6.1-sol" }, { id: "gpt-5.5", default: true }] });
   expect(requests.find((request) => request.method === "config/read")?.params).toEqual({ cwd: process.cwd(), includeLayers: false });
+});
+
+test("codex defaultEffort follows configured model_reasoning_effort when supported by the model", () => {
+  const models = [
+    { id: "gpt-6.2-sol", effortLevels: ["low", "medium", "high"], defaultEffort: "low" },
+    { id: "gpt-5-mini", effortLevels: ["low", "high"], defaultEffort: "low" },
+    { id: "bare" },
+  ];
+  expect(codexDefaultEffort(models, undefined)).toEqual(models);
+  expect(codexDefaultEffort(models, "medium")).toEqual([
+    { id: "gpt-6.2-sol", effortLevels: ["low", "medium", "high"], defaultEffort: "medium" },
+    { id: "gpt-5-mini", effortLevels: ["low", "high"] },
+    { id: "bare" },
+  ]);
+  expect(codexDefaultEffort(models, "unsupported")).toEqual([
+    { id: "gpt-6.2-sol", effortLevels: ["low", "medium", "high"] },
+    { id: "gpt-5-mini", effortLevels: ["low", "high"] },
+    { id: "bare" },
+  ]);
+});
+
+test("codex lister overrides catalog defaultReasoningEffort with config/read model_reasoning_effort", async () => {
+  spawnLineProcess.mockReturnValue(fakeLineProcess((line, child) => {
+    const message = asRecord(parseJson(line));
+    if (typeof message?.id !== "number") { return; }
+    const results: Record<string, unknown> = {
+      "model/list": {
+        data: [
+          {
+            model: "gpt-6.2-sol",
+            isDefault: true,
+            defaultReasoningEffort: "low",
+            supportedReasoningEfforts: [{ reasoningEffort: "low" }, { reasoningEffort: "medium" }, { reasoningEffort: "high" }],
+          },
+          {
+            model: "gpt-5-mini",
+            defaultReasoningEffort: "low",
+            supportedReasoningEfforts: [{ reasoningEffort: "low" }, { reasoningEffort: "high" }],
+          },
+        ],
+        nextCursor: null,
+      },
+      "config/read": { config: { model: "gpt-6.2-sol", model_reasoning_effort: "medium" } },
+    };
+    const result = typeof message.method === "string" ? results[message.method] ?? {} : {};
+    child.emit(`${JSON.stringify({ id: message.id, result })}\n`);
+  }));
+  await expect(codexListModels(installation)).resolves.toStrictEqual({
+    kind: "ok",
+    models: [
+      { id: "gpt-6.2-sol", effortLevels: ["low", "medium", "high"], defaultEffort: "medium", default: true },
+      { id: "gpt-5-mini", effortLevels: ["low", "high"] },
+    ],
+  });
 });
 
 // rowrow lists per workspace: a project's .codex/config.toml can set another model.

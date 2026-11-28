@@ -70,6 +70,23 @@ export function codexDefaultModel(models: readonly ModelEntry[], configured: str
   });
 }
 
+/**
+ * The reasoning effort a session with no `effort` runs at: codex's own
+ * configuration (`config/read`'s `model_reasoning_effort`) overrides each
+ * model's catalog `defaultReasoningEffort` when supported by that model's
+ * `effortLevels`, and clears `defaultEffort` when unsupported. When unset,
+ * each model keeps its catalog `defaultEffort`.
+ */
+export function codexDefaultEffort(models: readonly ModelEntry[], configured: string | undefined): ModelEntry[] {
+  if (configured === undefined) {
+    return [...models];
+  }
+  return models.map((model) => {
+    const { defaultEffort: _catalog, ...rest } = model;
+    return model.effortLevels?.includes(configured) === true ? { ...rest, defaultEffort: configured } : rest;
+  });
+}
+
 export const codexListModels: ModelLister = async (installation, options = {}) => {
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "codex model listing requires the codex executable" };
@@ -98,7 +115,14 @@ export const codexListModels: ModelLister = async (installation, options = {}) =
         if (cursor !== null) { cursors.add(cursor); }
       } while (cursor !== null);
       const effective = await client.request("config/read", { cwd, includeLayers: false });
-      return { kind: "ok", models: codexDefaultModel(models, text(asRecord(effective.config)?.model)) };
+      const config = asRecord(effective.config);
+      return {
+        kind: "ok",
+        models: codexDefaultEffort(
+          codexDefaultModel(models, text(config?.model)),
+          text(config?.model_reasoning_effort),
+        ),
+      };
     });
   } catch (error) {
     throw new Error(error instanceof DOMException && error.name === "TimeoutError" ? `Failed to list Codex models: timed out after ${String(timeoutMs)} ms` : "Failed to list Codex models", { cause: error });
