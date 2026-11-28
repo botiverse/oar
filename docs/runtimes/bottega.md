@@ -14,8 +14,12 @@ bottega behaves, and why OAR maps it this way.
 
 ## Native concepts
 
-Bottega's context is a screen of app windows drawn again each step, not a
-transcript. Three of its ideas shape the mapping:
+Bottega keeps an agent's state in apps, not in its context. The context is a
+screen of the apps' windows: between rebuilds each step appends what changed
+to a record of what was done and said, and the screen is drawn whole again
+from the apps when that is cheaper, when the context is nearly full, or when
+the provider's cache has gone cold. No model call compacts it. Three of its
+ideas shape the mapping:
 
 - A **session** is a directory under bottega's home (`BOTTEGA_HOME`, default
   `~/.bottega`), keyed by the working directory and its id. It holds the

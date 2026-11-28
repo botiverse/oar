@@ -143,12 +143,13 @@ runtimes may legitimately differ.
 - `OAR_TEST=<runtime>-aimock pnpm sea-trial` (`claude-aimock`, `codex-aimock`,
   `pi-aimock`, `pi-rpc-aimock`, `pi-durable-aimock`, `qwen-aimock`,
   `grok-aimock`, `kimi-aimock`, `opencode-aimock`, `codebuddy-aimock`,
-  `dsh-aimock`, `factory-aimock`, `antigravity-aimock`; Qoder uses `qoder-native`): the real
+  `dsh-aimock`, `factory-aimock`, `antigravity-aimock`, `bottega-aimock`; Qoder uses `qoder-native`): the real
   vendor binary and adapter with only the model provider scripted, no login. Use it when you touched a runtime's adapter: it
-  catches real-process integration mistakes the mock cannot. The
-  `bottega-aimock` backend and the community `dim-aimock` backend work the
-  same way but have no CI job and are not in `sea-trial/all.ts`'s default
-  list; run them with `bottega` (or `OAR_BOTTEGA_BIN`) or `dima` installed.
+  catches real-process integration mistakes the mock cannot. `bottega-aimock`
+  runs the bundled `@botiverse/bottega` and, like pi, needs no install; it runs on
+  Linux CI only. The community `dim-aimock` backend works the same way but has
+  no CI job and is not in `sea-trial/all.ts`'s default list; run it with
+  `dima` installed.
 - `OAR_TEST=scripted pnpm sea-trial`: the public `scriptedRuntime`
   (`@botiverse/oar/testing`) held to the same contract.
 - `pnpm tsx sea-trial/all.ts [backend...]`: several backends, by default
