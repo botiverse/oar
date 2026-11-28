@@ -105,13 +105,13 @@
     "which": "^2.0.2"
   },
   "optionalDependencies": {
-    "@earendil-works/pi-ai": "~1.6.1",
-    "@earendil-works/pi-coding-agent": "~1.6.1"
+    "@earendil-works/pi-ai": "~1.7.0",
+    "@earendil-works/pi-coding-agent": "~1.7.0"
   },
   "peerDependencies": {
     "@cursor/sdk": "1.4.1",
-    "@earendil-works/pi-durable": "~1.6.1",
-    "@earendil-works/chord": "~1.6.1"
+    "@earendil-works/pi-durable": "~1.7.0",
+    "@earendil-works/chord": "~1.7.0"
   },
   "peerDependenciesMeta": {
     "@cursor/sdk": {
@@ -129,7 +129,7 @@
     "@types/cross-spawn": "^6.0.6",
     "@types/js-yaml": "3.12.10",
     "@types/which": "^2.0.2",
-    "@earendil-works/pi-durable": "1.6.1",
-    "@earendil-works/chord": "1.6.1"
+    "@earendil-works/pi-durable": "1.7.0",
+    "@earendil-works/chord": "1.7.0"
   }
 }
