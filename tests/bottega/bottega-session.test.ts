@@ -199,6 +199,22 @@ describe.skipIf(process.platform === "win32")("bottega adapter mechanics", () =>
     await session.dispose();
   });
 
+  test("a held input's prompt goes to bottega with its input id, and the turn it starts says so", async () => {
+    const session = await open();
+    assert.ok(session.steer !== undefined);
+    const first = await session.prompt("hold on");
+    expect(await answerOf(session.queue("after that", { inputId: KEPT }))).toEqual({ kind: "accepted", queued: "adapter" });
+    await until(() => eventsOf(session.records()).some((event) => event.kind === "turn_active"));
+    await session.steer("release");
+    expect(await awaitTurnEnd(session, first.seq)).toEqual({ kind: "completed" });
+    await until(() => eventsOf(session.records()).filter((event) => event.kind === "turn_ended").length === 2);
+    const events = eventsOf(session.records());
+    expect(events.find((event) => event.kind === "user_message" && event.input === "after that")).toMatchObject({ inputId: KEPT });
+    expect(events.findLast((event) => event.kind === "turn_active")).toEqual({ kind: "turn_active", inputId: KEPT });
+    expect(events.findLast((event) => event.kind === "turn_ended")).toMatchObject({ inputIds: [KEPT] });
+    await session.dispose();
+  });
+
   test("a failed turn and one stopped at the step limit are failures with bottega's own words", async () => {
     const session = await open();
     const failed = await session.prompt("fail now");

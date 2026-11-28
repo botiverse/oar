@@ -78,6 +78,13 @@ names pi reads), `BOTTEGA_HOME/.env`, custom endpoints in
 login in `CODEX_HOME/auth.json`. An empty list is `unauthenticated`. Bottega
 manages these itself; OAR has no login for it.
 
+Two members are absent, each after checking bottega 0.3.0 for its own
+interface: `upgrade`, because bottega has no self-update command (`install`
+reinstalls the npm package, and a bundled bottega moves with the OAR that
+carries it); and `accountUsage`, because neither `bottega serve` nor the
+command line reports a plan, quota or balance. Each step's tokens and cost
+arrive as `step` lines on the stream instead.
+
 ## Running it in a container
 
 The adapter spawns the pinned executable with the session's `cwd` as its
@@ -95,16 +102,17 @@ mounted at the path it has on the host, and the session's environment
 ## Evidence
 
 - `OAR_TEST=bottega-aimock pnpm sea-trial` against the real `bottega serve`:
-  19 passed, 1 skipped (`accountUsage`), both with the package beside OAR and
-  with `OAR_BOTTEGA_BIN` (2026-11-28). The fixture's home has only a loopback
-  endpoint, an empty `CODEX_HOME`, and a stand-in `raft` first on PATH.
+  19 passed, 1 skipped (`accountUsage`), with 0.3.0 from npm beside OAR and
+  with `OAR_BOTTEGA_BIN` (2026-11-28); `OAR_TEST=bottega-aimock pnpm vitest
+  run sea-trial/vendor`: 3 passed. Linux CI runs both (`bottega-aimock`). The
+  fixture's home has only a loopback endpoint, an empty `CODEX_HOME`, and a
+  stand-in `raft` first on PATH.
 - `pnpm vitest run tests/bottega`: the projection, the options and the
-  adapter against a scripted `bottega serve` (21 tests); with
+  adapter against a scripted `bottega serve` (22 tests); with
   `OAR_BOTTEGA_BIN`, 6 more against the real process: where each kind of
   input lands on the screen the provider is sent, the Raft app coming on for
   a Raft wake, appended instructions, resume, and the abort and run-of-events
   points above. The failed-turn rule is tested in bottega's own
   `bottega/src/serve.test.ts`.
-- Not verified: Windows; Linux and CI (no CI job installs bottega yet);
-  images; a provider failure through the real process; a host's own MCP
-  servers.
+- Not verified: Windows; macOS in CI; images; a provider failure through the
+  real process; a host's own MCP servers.

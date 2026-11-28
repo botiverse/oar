@@ -81,9 +81,11 @@ function inputIdOf(request: RequestRecord): string | undefined {
   return "inputId" in request.body && typeof request.body.inputId === "string" ? request.body.inputId : undefined;
 }
 
+/** A prompt sent to bottega, and the input id it went with. */
+interface Pending { readonly request: RequestRecord; readonly inputId: string | undefined }
+
 /** The pending prompt, given back. */
-function droppedPending(request: RequestRecord, message: JsonRecord): RuntimeEventBody {
-  const inputId = inputIdOf(request);
+function droppedPending({ request, inputId }: Pending, message: JsonRecord): RuntimeEventBody {
   return {
     kind: "input_dropped", reason: "runtime_refused", requestId: request.id,
     ...(inputId === undefined ? {} : { inputId }),
@@ -132,19 +134,20 @@ async function open(installation: AvailableInstallation, options: SessionOptions
   /** From a prompt bottega took until the turn it started ends, or the input comes back. */
   let taken = false;
   /** The prompt bottega has not yet started a turn for: what an input it gives back without an id was. */
-  let pending: RequestRecord | null = null;
+  let pending: Pending | null = null;
 
   const send = async (method: string, payload: JsonRecord): Promise<ResponseBody> => {
     try { return { kind: "accepted", native: await control.request(method, payload) }; }
     catch (error) { return refusalOf(error); }
   };
   const busy = (): boolean => taken || projection.turnOpen;
-  const start = async (request: RequestRecord, text: string, inputOptions: InputOptions | undefined): Promise<ResponseBody> => {
+  // A held input's prompt carries its id rather than holding it: the id goes with it to bottega all the same.
+  const start = async (request: RequestRecord, text: string, inputOptions: InputOptions | undefined, inputId = inputIdOf(request)): Promise<ResponseBody> => {
     if (busy()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
     // Taken before bottega answers: its turn can begin before the answer is read.
     taken = true;
-    pending = request;
-    const answer = await send("prompt", inputFields(text, inputIdOf(request), inputOptions));
+    pending = { request, inputId };
+    const answer = await send("prompt", inputFields(text, inputId, inputOptions));
     if (answer.kind !== "accepted" && !projection.turnOpen) {
       taken = false;
       pending = null;
@@ -159,7 +162,7 @@ async function open(installation: AvailableInstallation, options: SessionOptions
     void (async (): Promise<void> => {
       const { inputId: _inputId, ...body } = next.body;
       await kernel.control({ ...body, kind: "prompt", carries: [next.inputId ?? next.request.id] }, async (request): Promise<ResponseBody> => {
-        const answer = kernel.unreachable() ?? await start(request, next.body.input, next.body);
+        const answer = kernel.unreachable() ?? await start(request, next.body.input, next.body, next.inputId);
         // A held input bottega refused is handed back: the queue accepted it, and nothing else would say what became of it.
         if (answer.kind === "rejected" && "native" in answer && answer.native !== undefined) {
           const dropped: RuntimeEventBody = { kind: "input_dropped", reason: "runtime_refused", message: answer.reason, requestId: request.id, ...(next.inputId === undefined ? {} : { inputId: next.inputId }) };
