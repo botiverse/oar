@@ -16,7 +16,7 @@ import { BOTTEGA_MINIMUM_VERSION } from "./version.js";
  */
 export const bottegaRuntime = defineRuntime({
   id: "bottega",
-  sessionCapabilities: () => ({ steer: true, images: false, contextUsage: { tokens: true, contextWindow: true } }),
+  sessionCapabilities: () => ({ taskEventTypes: [], steer: true, images: false, contextUsage: { tokens: true, contextWindow: true }, mcpTransports: [], stopTask: false }),
   brand: runtimeBrands.bottega,
   minVersion: BOTTEGA_MINIMUM_VERSION,
   credentials: bottegaCredentials,
