@@ -173,7 +173,17 @@ export const claudeProjectionProfile: StreamJsonProjectionProfile<ClaudeProjecti
     return { events,
       state: task.descriptions === state.taskDescriptions ? state : { ...state, taskDescriptions: task.descriptions } };
   },
-  other: (state, message) => ({ events: [], state: message.type === "rate_limit_event" ? { ...state, limitResetsAt: claudeLimitReset(asRecord(message.rate_limit_info)) } : state }),
+  other: (state, message) => {
+    if (message.type === "tool_progress" && typeof message.tool_use_id === "string"
+      && message.tool_use_id.trim().length > 0 && typeof message.elapsed_time_seconds === "number"
+      && Number.isFinite(message.elapsed_time_seconds) && message.elapsed_time_seconds > 0) {
+      const callId = message.tool_use_id.replace(/-heartbeat-\d+$/u, "");
+      if (callId.length > 0) {
+        return { events: [{ kind: "tool_call_progress", callId, elapsedSeconds: message.elapsed_time_seconds }], state };
+      }
+    }
+    return { events: [], state: message.type === "rate_limit_event" ? { ...state, limitResetsAt: claudeLimitReset(asRecord(message.rate_limit_info)) } : state };
+  },
 };
 
 /** The same runtime profile is used for live frames and offline replay. */
