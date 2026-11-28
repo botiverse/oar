@@ -68,7 +68,8 @@ ideas shape the mapping:
 OAR runs the `@botiverse/bottega` package it carries as an optional
 dependency (`via: "bundled"`, under the host's Node), or, in a single-file or
 Electron host or where the package is absent, an installed `bottega` at or
-above `BOTTEGA_MINIMUM_VERSION` on PATH. `OAR_BOTTEGA_BIN` pins an executable,
+above `BOTTEGA_MINIMUM_VERSION` on PATH or in npm's global bin directory
+(`not_found` when neither is present). `OAR_BOTTEGA_BIN` pins an executable,
 which may be a launcher (below). Install and update checks use npm.
 
 `listModels` runs `bottega models --json --stale` in the session environment:
