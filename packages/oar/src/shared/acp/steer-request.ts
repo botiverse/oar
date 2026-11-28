@@ -1,5 +1,5 @@
 import { RequestError } from "@agentclientprotocol/sdk";
-import type { InputOptions, RequestRecord, ResponseBody, SessionCapabilities } from "../../contracts/session.js";
+import type { InputOptions, RequestRecord, ResponseBody, RuntimeEventBody, SessionCapabilities } from "../../contracts/session.js";
 import { withInputImages } from "../input-images.js";
 import type { SessionKernel } from "../session-kernel.js";
 import type { JsonRecord } from "../json.js";
@@ -21,6 +21,8 @@ export interface AcpSteerRequestHooks {
    * does not recognize. Absent: every answer admits (grok).
    */
   readonly steerRequestAnswer?: (answer: unknown) => "accepted" | "no_active_turn" | null;
+  /** Optional projected events for an accepted steer answer (e.g. OpenCode v2's synchronous `{ outcome: "injected" }` reply). */
+  readonly steerRequestEvents?: (context: { readonly answer: unknown; readonly input: string; readonly inputId: string | undefined }) => readonly RuntimeEventBody[];
 }
 
 /**
@@ -56,9 +58,12 @@ export async function sendAcpSteerRequest(
           if (!deps.running()) { throw stale; }
           return runtime.connection.agent.request(method, params, requestOptions);
         });
-      kernel.frame({ type: method, native: native ?? null, responseTo: request.id, events: [] });
       const read = profile.steerRequestAnswer;
       const answer = read === undefined ? "accepted" : read(native);
+      const events = answer === "accepted" && profile.steerRequestEvents !== undefined
+        ? profile.steerRequestEvents({ answer: native, input, inputId: options?.inputId })
+        : [];
+      kernel.frame({ type: method, native: native ?? null, responseTo: request.id, events });
       if (answer === "accepted") { return { kind: "accepted" }; }
       if (answer === "no_active_turn") { return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: the runtime reports no running turn" }; }
       return { kind: "rejected", code: "error", reason: `unrecognized ${method} answer; whether the runtime took the input is unknown` };

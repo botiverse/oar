@@ -10,7 +10,7 @@ import { asRecord } from "../../shared/json.js";
  */
 export const OPENCODE_STEERING = "_session/steering";
 
-export const opencodeSteering: Pick<AcpSessionProfile, "steerRequest" | "steerRequestAdvertised" | "steerRequestAnswer"> = {
+export const opencodeSteering: Pick<AcpSessionProfile, "steerRequest" | "steerRequestAdvertised" | "steerRequestAnswer" | "steerRequestEvents"> = {
   // The extension reads only `sessionId` and `prompt`; it has no input identity field.
   steerRequest: ({ sessionId, prompt }) => ({ method: OPENCODE_STEERING, params: { sessionId, prompt } }),
   // oxlint-disable-next-line eslint/no-underscore-dangle -- Native ACP metadata envelope.
@@ -20,4 +20,8 @@ export const opencodeSteering: Pick<AcpSessionProfile, "steerRequest" | "steerRe
     if (outcome === "injected") { return "accepted"; }
     return outcome === "promptRequired" ? "no_active_turn" : null;
   },
+  steerRequestEvents: ({ answer, input, inputId }) =>
+    asRecord(answer)?.outcome === "injected"
+      ? [{ kind: "user_message", input, ...(inputId === undefined ? {} : { inputId }), evidence: "acknowledged" }]
+      : [],
 };

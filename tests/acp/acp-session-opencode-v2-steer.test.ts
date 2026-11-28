@@ -33,14 +33,23 @@ test("an advertised steering extension gives v2 `steer`; an injected steer joins
     await awaitTurnEnd(session, started.seq);
     const records = session.records();
     const frames = steeringFrames(records);
+    const steerInputIds = records.flatMap((record) =>
+      record.kind === "request" && record.body.kind === "steer" ? [record.body.inputId] : [],
+    );
     expect(frames.map((frame) => [frame.body.native, frame.body.events])).toEqual([
-      [{ outcome: "injected" }, []], [{ outcome: "injected" }, []], [{ outcome: "injected" }, []],
+      [{ outcome: "injected" }, [{ kind: "user_message", input: "also this", inputId: steerId, evidence: "acknowledged" }]],
+      [{ outcome: "injected" }, [{ kind: "user_message", input: "and this", inputId: steerInputIds[1], evidence: "acknowledged" }]],
+      [{ outcome: "injected" }, [{ kind: "user_message", input: "steer-and-finish", inputId: steerInputIds[2], evidence: "acknowledged" }]],
     ]);
     expect(frames[0]?.body.responseTo).toBe(steered?.requestId);
     expect(requests(records)).toEqual(["open", "prompt", "steer", "steer", "steer"]);
     expect(texts(records)).toEqual(["steered:also this", "steered:and this", "steered:steer-and-finish"]);
     expect(events(records).filter((event) => event.kind === "turn_ended")).toEqual([{ kind: "turn_ended", outcome: { kind: "completed" } }]);
-    expect([...conversationOf(records).inputs.values()].find((input) => input.inputId === steerId)).toMatchObject({ input: "also this", state: "accepted" });
+    expect([...conversationOf(records).inputs.values()].find((input) => input.inputId === steerId)).toMatchObject({
+      input: "also this",
+      state: "accepted",
+      observations: [expect.objectContaining({ kind: "user_message", input: "also this", inputId: steerId, evidence: "acknowledged" })],
+    });
   } finally { await session.dispose(); }
 });
 
