@@ -927,8 +927,10 @@ and `high` after a resume asking for it, on the thread's own model.
 The open is refused when a start reply keeps another level (`codex
 thread/start kept effort medium although effort low was requested`), or when
 the resume update is refused, unconfirmed within 10 s, or pushes another
-level. Without an effort, `thread/start` answers `reasoningEffort: null` (the
-model default applies) and yields no `effort` event, and a resume runs and
+level. Without an effort, when `model_reasoning_effort` is unset in config,
+`thread/start` answers `reasoningEffort: null` (the model default applies) and
+yields no `effort` event (when `model_reasoning_effort` is configured,
+`thread/start` answers that configured effort instead), and a resume runs and
 reports the level and model the thread last ran with (live: `medium`,
 although `config.toml` says `model_reasoning_effort = "low"`). codex validates
 no level: it echoes an unknown one as `reasoningEffort` and forwards it, so
@@ -991,7 +993,12 @@ It does not read deprecated `additionalSpeedTiers`. No tier is invented for
 is the model a session with no `model` runs on: the one codex's
 configuration sets for `ListModelsOptions.cwd` (`config/read`, user and
 project config) when it is listed, or the catalog's `isDefault` when none is
-configured; a configured model that is not listed marks nothing.
+configured; a configured model that is not listed marks nothing. Likewise,
+`defaultEffort` reconciles `config.model_reasoning_effort` from that same
+`config/read` for `ListModelsOptions.cwd`: when configured, it overrides each
+model's catalog `defaultReasoningEffort` if present in that model's
+`effortLevels` and omits `defaultEffort` when not supported by `effortLevels`;
+when unset, each model keeps its catalog `defaultReasoningEffort`.
 [Model listing][oar-models], [regressions](../../tests/codex/codex-service-tier.test.ts).
 An explicit static catalog has different update costs for running sessions
 and fresh queries ([idle model catalog refresh](#idle-model-catalog-refresh)).
