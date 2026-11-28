@@ -44,6 +44,13 @@ export function supportsDevinBypass(response: JsonRecord): boolean {
 export const devinAcpProfile: AcpSessionProfile = {
   args: () => devinAcpArgs(),
   resumeKeepsSessionCwd: true,
+  // A second session/prompt mid-turn joins the running turn; initialize advertises
+  // `cognition.ai/midTurnPrompts`, and without that the session has no `steer`.
+  steerParams: () => ({}),
+  // oxlint-disable-next-line eslint/no-underscore-dangle -- Native ACP metadata envelope.
+  steerParamsAdvertised: (initialized) => asRecord(asRecord(initialized.agentCapabilities)?._meta)?.["cognition.ai/midTurnPrompts"] === true,
+  steerSupersedesPrompt: true,
+  steerOutcomeIsLatest: true,
   isResumeNotFound: (native) =>
     native.code === -32_016 && asRecord(native.data)?.["cognition.ai/errorKind"] === "session_not_found",
   capabilities: { queue: { durable: false }, attribution: "opaque" },

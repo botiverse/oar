@@ -13,9 +13,10 @@ Devin behaves, and why OAR maps it this way.
 
 ## Where Devin differs from the contract
 
-- **No steering.** `initialize` advertises `cognition.ai/midTurnPrompts`, but
-  a second prompt mid-turn was never observed without a live account, so
-  `Session.steer` is absent.
+- **Steering is native when advertised.** `initialize` advertises
+  `cognition.ai/midTurnPrompts`, and a second `session/prompt` mid-turn joins
+  the running turn; `Session.steer` exists only when that capability is
+  there ([steering](#steering)).
 - **No manual compaction.** `/compact` appears in the command list with no
   completion signal to settle on.
 - **Resume stays in the saved directory.** Devin ignores a different `cwd` on
@@ -38,6 +39,30 @@ Devin behaves, and why OAR maps it this way.
   login is not offered ([login contract](../spec/login.md#logout)).
 - **No account usage, limit resets or provider settings.** Devin has no
   native surface for them.
+
+## Steering
+
+`initialize` advertises
+`agentCapabilities._meta["cognition.ai/midTurnPrompts"]`, and Devin folds a
+second `session/prompt` sent during a turn into that turn: it answers both
+requests with the same final result (`stopReason`, usage and
+`cognition.ai/userMessageId`), and the turn ends once, when the last request
+answers. OAR sends the steer's text as that prompt (`steerParams` adds no
+fields), and without the advertised capability the session has no `steer`
+(`steerParamsAdvertised`): a second prompt would then start a turn of its own.
+
+Both answers repeat the same `usage` object, the whole turn's totals, instead
+of splitting them between the two requests. OAR wires no `promptTokenUsage`
+for Devin today, so nothing counts twice; a future wiring must take the
+closing answer only and never sum the superseded replies.
+
+**Verified:** Linux x64, CLI 3000.14.30821, real account, one turn. A turn
+running `sleep 12` through `terminal/create` took "Before you finish, also
+reply with the single word BANANA in your final answer." as a second
+`session/prompt`; the steer answered `accepted`, both prompt frames carried
+the same `stopReason: "end_turn"` and the same usage, exactly one
+`turn_ended` was recorded, and the turn's reply was `DONE BANANA`
+([test](../../tests/devin/steering.test.ts)).
 
 ## Authentication
 
@@ -102,7 +127,7 @@ disable them was found.
 CI has no `aimock` backend for Devin because it talks ConnectRPC to
 Cognition's servers; live verification covers one Linux `3000.14.30821`
 `logged_in` read, model list, and `swe-2-high` turn above. Still open: rate-limit
-and quota payloads, mid-turn prompts, tool-call detail, child attribution,
+and quota payloads, tool-call detail, child attribution,
 installer runs on Linux and Windows, and skill queries on macOS and Windows.
 
 ## Failures
