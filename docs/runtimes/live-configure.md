@@ -3,8 +3,10 @@
 Local probes, 2026-09-29: claude 2.1.284, codex-cli 0.155.1, grok 1.0.41,
 kimi 2.0.0, pi SDK 0.84.2. Reproduction:
 [experiments/effort-channels.ts](../../experiments/effort-channels.ts). These
-are native facts for a later `Session.configure` design; nothing here is
-implemented.
+are native facts for a later turn-ordered `Session.configure` design. What
+exists is narrower: ACP sessions with advertised `configOptions` expose the
+transport-level `Session.setConfigOption`, whose ordering against input is
+the host's responsibility.
 
 **The question.** Which native surface changes the model and/or reasoning
 effort of a *running* session between turns without restarting the runtime
@@ -69,7 +71,7 @@ request at any time, but when it reaches the running model calls is unknown;
 codex's `turn/settings/update` is the one surface documented for it), and a
 change racing a queued input.
 
-## What a `Session.configure` would have to settle
+## What a turn-ordered `Session.configure` would still have to settle
 
 - **A control like the others.** A `configure` request record answered by
   the runtime's own acknowledgement. The effect is the `model` / `effort`

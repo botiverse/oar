@@ -4,7 +4,7 @@
 > [hard problems 5-8](../design/hard-problems.md#the-session-and-event-model),
 > [foundations](../design/foundations.md).
 
-Control (open / prompt / steer / queue / withdraw / abort / stop_task / compact / goal controls / dispose and their replies) and
+Control (open / prompt / steer / queue / withdraw / abort / stop_task / compact / goal controls / set_config_option / dispose and their replies) and
 facts (what the runtime actually said) are records on one stream, and
 control never decides whether a fact exists. A model that pushes both
 through control objects lets the control plane trim, synthesize, and
@@ -273,7 +273,7 @@ Further rules:
   `exited` response (the runtime is gone), `released` response (OAR has
   relinquished control) or a `dispose` request (the
   session is being released), every later prompt / steer / queue / withdraw /
-  abort, stop_task, compact or goal-control request is rejected (`runtime_exited` / `session_released` / `disposed`) by the shared kernel
+  abort, stop_task, compact, goal-control or set_config_option request is rejected (`runtime_exited` / `session_released` / `disposed`) by the shared kernel
   before any adapter code runs: no adapter keeps a private "is it alive"
   flag. `dispose` is the one control that still goes through after a
   release or observed exit. After exit it is recorded and answered `accepted` at once (nothing is
@@ -872,7 +872,7 @@ Session credentials and recognizable token shapes are redacted. If the retained
 
 
 The control surface that produces these records (`Session.prompt / steer /
-queue / withdraw / abort / stopTask / compact / dispose`, `rawEvents(observer, cursor?)`, `records()`,
+queue / withdraw / abort / stopTask / compact / setConfigOption / dispose`, `rawEvents(observer, cursor?)`, `records()`,
 `graph()`, and the folds) is documented on the contract itself. A `prompt`
 while a turn runs is rejected `busy`, never queued: a session has one
 control plane and at most one active turn
@@ -884,7 +884,8 @@ Explicit `deliver(..., { when: "interrupt", maxWaitMs })` can instead
 withdraw, abort and merge those inputs ([contract](conversation.md#interrupting-and-merging-held-inputs)). `queue` is on
 every session; `capabilities.queue.durable` says whether held input
 survives a restart. See [withdrawing held input](#withdrawing-held-input).
-An adapter's `prompt / steer / queue / withdraw / stopTask / abort` and optional
+An adapter's `prompt / steer / queue / withdraw / stopTask / abort`, optional
+`setConfigOption`, and optional
 [goal controls](goals.md) return
 both records they appended (`ControlResult`); the `Session` a consumer holds
 returns them read (`ControlOutcome`): `kind` is `accepted` or `rejected`
@@ -894,6 +895,17 @@ takes), and `request` / `response` are still the records themselves.
 The optional [manual compaction](manual-compaction.md) control returns
 `CompactionOutcome`: its response only admits or refuses, while its promise
 observes native terminal evidence.
+
+ACP sessions whose open or applied model configuration advertises
+`configOptions` also expose `setConfigOption(configId, value)` for select
+(string) options. This is the transport-level
+`session/set_config_option` control, not the high-level model/effort
+configure operation sketched in [live configuration](../runtimes/live-configure.md):
+it is not ordered against prompts or queued input, and acceptance means the
+agent answered and reported the requested current value (directly, or through
+the confirming `config_option_update` a profile already uses at open). The
+wire answer or error is correlated with the control through `responseTo`;
+`model` / `effort` facts still come only from the runtime's recorded frames.
 
 `FrameBody.responseTo` links native evidence to an OAR request through an
 identifier OAR supplied to the runtime (RPC id, command UUID, etc.) or the

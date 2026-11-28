@@ -9,17 +9,17 @@ import type { AcpConfigUpdates } from "./config-updates.js";
 type ObserveStep = (step: { readonly method: string; readonly response: JsonRecord }) => void;
 
 /** The verbatim answer, and with confirmation the `config_option_update` that reported the requested value. */
-interface ConfigOptionResult { readonly response: JsonRecord | undefined; readonly confirmed?: JsonRecord }
+export interface AcpConfigOptionResult { readonly response: JsonRecord | undefined; readonly confirmed?: JsonRecord }
 
 /**
  * `session/set_config_option`, its answer observed as it arrives so the record
  * keeps the wire order (a confirming notification recorded after a stale
  * answer stays the current value).
  */
-async function setConfigOption(
+export async function setAcpConfigOption(
   process: AcpProcess, sessionId: string, configId: string, value: string,
   context: { readonly timeoutMs: number; readonly updates?: AcpConfigUpdates; readonly observe: ObserveStep },
-): Promise<ConfigOptionResult> {
+): Promise<AcpConfigOptionResult> {
   const method = "session/set_config_option";
   const { updates } = context;
   if (updates === undefined) {
@@ -44,7 +44,7 @@ async function setConfigOption(
  * Dim (0.1.0-alpha.29) answers an effort change made right after a model
  * switch with the previous level and pushes the applied one after it.
  */
-function reportedOptions({ response, confirmed }: ConfigOptionResult, configId: string, value: string): JsonRecord | undefined {
+export function reportedAcpConfigOptions({ response, confirmed }: AcpConfigOptionResult, configId: string, value: string): JsonRecord | undefined {
   const answered = asRecordList(response?.configOptions).find(option => option.id === configId);
   return confirmed === undefined || answered?.currentValue === value ? response : confirmed;
 }
@@ -89,15 +89,15 @@ export async function applyAcpEffort(
     throw new UnsupportedOptionError("effort", `${opened.openMethod} advertises no thought_level config option, so effort ${effort} cannot be applied`);
   }
   const method = "session/set_config_option";
-  let result: ConfigOptionResult | undefined = undefined;
+  let result: AcpConfigOptionResult | undefined = undefined;
   try {
-    result = await setConfigOption(process, opened.sessionId, configId, effort, context);
+    result = await setAcpConfigOption(process, opened.sessionId, configId, effort, context);
   } catch (error) {
     // The opener adds the owned child's exit diagnostics to transport failures.
     if (error instanceof AcpError) { throw error; }
     throw new Error(`${method} ${configId}=${effort} was refused: ${rpcErrorText(error)}`, { cause: error });
   }
-  const response = reportedOptions(result, configId, effort) ?? {};
+  const response = reportedAcpConfigOptions(result, configId, effort) ?? {};
   const applied = acpReportedEffort(response);
   if (applied !== effort) {
     throw new Error(`${method} left ${configId} at ${applied ?? "an unreported value"} although effort ${effort} was requested`);
@@ -123,7 +123,7 @@ export async function applyAcpModel(
   },
 ): Promise<JsonRecord | undefined> {
   if (context.viaConfigOption) {
-    return reportedOptions(await setConfigOption(process, sessionId, "model", model, context), "model", model);
+    return reportedAcpConfigOptions(await setAcpConfigOption(process, sessionId, "model", model, context), "model", model);
   }
   const method = "session/set_model";
   const response = asRecord(await withAcpDeadline(

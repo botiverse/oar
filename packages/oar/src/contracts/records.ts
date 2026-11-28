@@ -1,3 +1,4 @@
+/* oxlint-disable eslint/max-lines -- Control actions and their records stay in one stream contract. */
 import type { FileChange, ToolCallProgress, ToolOutputPart } from "./tool-output.js";
 import type { GoalSetOptions, GoalSnapshot } from "./goal.js";
 import type { InputImage, InputOrigin, InputReference, UserMessage } from "./input.js";
@@ -197,7 +198,7 @@ export type RuntimeEventBody =
   | { readonly kind: "app_request_cancelled"; readonly requestId: string };
 
 /** The toRuntime control actions a Session issues. */
-export type ControlAction = "prompt" | "steer" | "queue" | "withdraw" | "stop_task" | "abort" | "dispose" | "compact" | "goal_set" | "goal_read" | "goal_clear";
+export type ControlAction = "prompt" | "steer" | "queue" | "withdraw" | "stop_task" | "abort" | "dispose" | "compact" | "goal_set" | "goal_read" | "goal_clear" | "set_config_option";
 
 /**
  * Event kinds read off request and response records, so a consumer of
@@ -247,6 +248,8 @@ export type RequestBody =
   /** Take back the held input `inputId` (an earlier queue request's) before it is sent. The queue request and its response are never changed. */
   | { readonly kind: "withdraw"; readonly inputId: string }
   | { readonly kind: "stop_task"; readonly taskId: string }
+  /** Set one runtime-native session configuration option. Acceptance is the runtime's own answer; the effective value is what later frames report. */
+  | { readonly kind: "set_config_option"; readonly configId: string; readonly value: string }
   | { readonly kind: "abort" }
   | { readonly kind: "dispose" }
   /** A runtime→app request, verbatim; `type` is the runtime's method/subtype. */

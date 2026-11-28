@@ -40,6 +40,7 @@ function actionLabel(action: ControlAction): string {
     case "goal_set": return "Set goal";
     case "goal_read": return "Read goal";
     case "goal_clear": return "Clear goal";
+    case "set_config_option": return "Set config option";
     default: return unreachable(action);
   }
 }

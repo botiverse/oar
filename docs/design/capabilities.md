@@ -20,7 +20,7 @@ optional member and its presence is the capability. `Runtime.accountUsage`,
 `redeemLimitReset`, `inspectLimitResets`, `listModels`, `installPlan`,
 `install`, `checkUpdate`, `upgrade`, `login`, `logout`, `authStatus`,
 `providers` and `sideQuestion` work this way, and so do the optional `Session` members
-(`steer`, `withdraw`, `stopTask`, `compact`, `resources`,
+(`steer`, `withdraw`, `stopTask`, `compact`, `setConfigOption`, `resources`,
 `contextBreakdown`, `goal`, `lastModelRequest`, `nativeSessionFile`). A session that cannot steer has no `steer`;
 one whose queue OAR does not hold has no `withdraw`; one OAR has no memory
 reader for has no `resources`. A session without structured native goal

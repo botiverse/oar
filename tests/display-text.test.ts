@@ -61,6 +61,7 @@ const actions = {
   goal_set: ["goal_set", "Set goal rejected: native refusal"], goal_read: ["goal_read", "Read goal rejected: native refusal"], goal_clear: ["goal_clear", "Clear goal rejected: native refusal"],
   prompt: ["prompt", "Prompt rejected: native refusal"], steer: ["steer", "Steer rejected: native refusal"], queue: ["queue", "Queue rejected: native refusal"],
   withdraw: ["withdraw", "Withdraw rejected: native refusal"], abort: ["abort", "Abort rejected: native refusal"], dispose: ["dispose", "Dispose rejected: native refusal"],
+  set_config_option: ["set_config_option", "Set config option rejected: native refusal"],
 } satisfies { [Action in ControlAction]: [Action, string] };
 
 test.each(Object.values(actions))("rejected %s is named", (action, expected) => {

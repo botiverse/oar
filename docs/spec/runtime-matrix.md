@@ -166,11 +166,14 @@ recorded. Evidence: [probe](../../experiments/user-questions-2026-11-25.md),
 
 ## Session controls
 
-`prompt`, `queue` and `abort` are on every session. `steer`, `withdraw` and `stopTask`
-are members a session may lack: a control the runtime cannot do is an
+`prompt`, `queue` and `abort` are on every session. `steer`, `withdraw`, `stopTask`
+and `setConfigOption` are members a session may lack: a control the runtime cannot do is an
 absent member, never a request that is always rejected
 ([record stream](record-stream.md#the-rules)). Where `queue.durable` is
-false, the adapter holds queued input in this process; a synchronous observer
+false, the adapter holds queued input in this process. ACP sessions have
+`setConfigOption` when the open or applied model configuration advertises
+`configOptions`; it is a transport-level control, not a turn-ordered
+model/effort configure operation. A synchronous observer
 of a `prompt` request that reentrantly calls `queue` places the queued entry
 before that `prompt` decides, so adapter-held sessions refuse the `prompt` as
 `busy` and drain the queued entry instead.

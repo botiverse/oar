@@ -1,4 +1,4 @@
-/* oxlint-disable import/max-dependencies -- Session assembly wires the environment, process, terminal host, recorder and control machinery. */
+/* oxlint-disable import/max-dependencies, eslint/max-lines -- Session assembly wires the environment, process, terminal host, recorder and control machinery. */
 import type { SessionCleanup } from "../../contracts/placement.js";
 import { appendCleanupFailure, cleanupFailureReason } from "../executable/process-cleanup.js";
 import { reportedStderr } from "../executable/reported-stderr.js";
@@ -28,7 +28,7 @@ import {
   type AcpSessionProfile,
   type OpenedAcpSession,
 } from "./profile.js";
-import type { JsonRecord } from "../json.js";
+import { asRecordList, type JsonRecord } from "../json.js";
 import { acpLaunchArgs } from "./launch-args.js";
 import { startAcpProcess, type AcpProcess } from "./process.js";
 import { AcpError, acpProcessExitedError } from "./errors.js";
@@ -37,6 +37,7 @@ import { acpTakesImages } from "./prompt.js";
 import { createAcpSessionState, type AcpSessionState } from "./session-state.js";
 import { acpTurnTerminals } from "./turn-terminals.js";
 import { sendAcpSteerRequest } from "./steer-request.js";
+import { sendAcpConfigOption } from "./config-option-control.js";
 
 export type { AcpSessionProfile } from "./profile.js";
 export { createAcpSessionState, type AcpSessionState } from "./session-state.js";
@@ -106,7 +107,7 @@ export function finishAcpSession(
   sessionState: AcpSessionState,
   shared?: SharedAcpSessionOwnership,
 ): Session {
-  const { terminalHost, recorder, usageGate, tokenUsage, nativeTurns } = sessionState;
+  const { terminalHost, recorder, usageGate, tokenUsage, nativeTurns, configUpdates } = sessionState;
   const kernel = credentials.kernel(opened.sessionId, shared?.redact);
 
   const capabilities = { ...profile.capabilities, images: profile.capabilities.images ?? acpTakesImages(opened.initialized) };
@@ -244,6 +245,12 @@ export function finishAcpSession(
       }),
     };
 
+  const hasConfigOptions = asRecordList(opened.response.configOptions).length > 0 || asRecordList(opened.setModelResponse?.configOptions).length > 0;
+  const setConfigOption = (configId: string, value: string): Promise<ControlResult> => control(
+    { kind: "set_config_option", configId, value },
+    request => sendAcpConfigOption({ kernel, runtime, profile, configUpdates }, request, configId, value),
+  );
+
   return credentials.seal({
     id: kernel.sessionId,
     capabilities,
@@ -251,6 +258,7 @@ export function finishAcpSession(
       (turns.active() === null && !turns.queued() && compaction?.busy() !== true ? turns.begin(request, input, inputOptions?.images) : { kind: "rejected", code: "busy", reason: "busy" })),
     ...steer,
     ...(compaction === null ? {} : { compact: compaction.compact }),
+    ...(hasConfigOptions ? { setConfigOption } : {}),
     queue: (input, inputOptions?: InputOptions): Promise<ControlResult> => heldControl({ kind: "queue", input, ...inputOptions }, (request) => turns.hold(input, inputOptions?.images, inputOptions?.inputId, request)),
     // The queue is held here (turns.ts), not by the vendor: an entry can be taken back until the drain sends it.
     withdraw: (inputId: string): Promise<ControlResult> => heldControl({ kind: "withdraw", inputId }, () => turns.withdraw(inputId)),
