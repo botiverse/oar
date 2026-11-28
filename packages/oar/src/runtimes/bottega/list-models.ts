@@ -1,6 +1,9 @@
 import type { ListModelsResult, ModelEntry, ModelLister } from "../../contracts/list-models.js";
+import { sessionCredentialRedactor } from "../../shared/credential-redactor.js";
 import { sessionEnvironment } from "../../shared/environment.js";
+import { assertRan } from "../../shared/executable/diagnostics.js";
 import { runExecutable } from "../../shared/executable/index.js";
+import { withQueryDeadline } from "../../shared/executable/query.js";
 import { asRecord, asRecordList, parseJson } from "../../shared/json.js";
 import { listingCwd } from "../../shared/listing-cwd.js";
 import { bottegaCommand } from "./launch.js";
@@ -37,19 +40,29 @@ export function projectBottegaModels(listing: unknown): readonly ModelEntry[] {
  */
 export const bottegaListModels: ModelLister = async (installation, options = {}): Promise<ListModelsResult> => {
   const { command, args } = bottegaCommand(installation, ["models", "--json", "--stale"]);
-  const result = await runExecutable(command, args, {
-    cwd: listingCwd(options), env: sessionEnvironment(options.env), timeoutMs: options.timeoutMs ?? LIST_TIMEOUT_MS,
-  });
-  if (!result.ok) {
-    const said = result.stderr.trim().split("\n").at(-1) ?? "";
-    return { kind: "unsupported", reason: `bottega models --json failed${result.exitCode === null ? "" : ` (${String(result.exitCode)})`}${said.length > 0 ? `: ${said}` : ""}` };
+  const cwd = listingCwd(options);
+  const timeoutMs = options.timeoutMs ?? LIST_TIMEOUT_MS;
+  const credentials = sessionCredentialRedactor({ cwd, ...(options.env === undefined ? {} : { env: options.env }) });
+  try {
+    return await withQueryDeadline<ListModelsResult>("Bottega model listing", timeoutMs, async (signal) => {
+      const result = await runExecutable(command, args, {
+        cwd, env: sessionEnvironment(options.env), timeoutMs, signal,
+      });
+      assertRan(result, "Failed to list bottega models");
+      if (!result.ok) {
+        const said = credentials.redact(result.stderr.trim().split("\n").at(-1) ?? "");
+        return { kind: "unsupported", reason: `bottega models --json failed${result.exitCode === null ? "" : ` (${String(result.exitCode)})`}${said.length > 0 ? `: ${said}` : ""}` };
+      }
+      const listing = parseJson(result.stdout.trim());
+      if (asRecord(listing) === null || !Array.isArray(asRecord(listing)?.models)) {
+        return { kind: "unsupported", reason: "bottega models --json printed no model list" };
+      }
+      const models = projectBottegaModels(listing);
+      return models.length === 0
+        ? { kind: "unauthenticated", detail: "No bottega provider has credentials: set a provider's API key (OPENROUTER_API_KEY, ANTHROPIC_API_KEY, ...) or add one with bottega's key file." }
+        : { kind: "ok", models };
+    });
+  } catch (error) {
+    throw credentials.redactValue(error);
   }
-  const listing = parseJson(result.stdout.trim());
-  if (asRecord(listing) === null || !Array.isArray(asRecord(listing)?.models)) {
-    return { kind: "unsupported", reason: "bottega models --json printed no model list" };
-  }
-  const models = projectBottegaModels(listing);
-  return models.length === 0
-    ? { kind: "unauthenticated", detail: "No bottega provider has credentials: set a provider's API key (OPENROUTER_API_KEY, ANTHROPIC_API_KEY, ...) or add one with bottega's key file." }
-    : { kind: "ok", models };
 };

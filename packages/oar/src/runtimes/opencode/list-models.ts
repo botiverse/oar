@@ -1,4 +1,5 @@
 import { withQueryDeadline } from "../../shared/executable/query.js";
+import { sessionCredentialRedactor } from "../../shared/credential-redactor.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import type { ListModelsResult, ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import { runExecutable } from "../../shared/executable/index.js";
@@ -68,21 +69,25 @@ export const opencodeListModels: ModelLister = async (installation, options = {}
     return { kind: "unsupported", reason: "opencode model listing requires the opencode executable" };
   }
   const timeoutMs = options.timeoutMs ?? 30_000;
-  const answer = await withQueryDeadline<ListModelsResult>("OpenCode model listing", timeoutMs, async (signal, own) => {
-    const cwd = listingCwd(options);
-    const { major } = await opencodeRelease(installation, { signal, timeoutMs, cwd, ...(options.env === undefined ? {} : { env: options.env }) });
-    signal.throwIfAborted();
-    const env = sessionEnvironment(options.env);
-    if (major === 2) {
-      return listV2Models(installation.command, cwd, env, signal, own);
-    }
-    const result = await runExecutable(installation.command, ["models", "--verbose"], { cwd, env, timeoutMs, signal });
-    if (!result.ok) {
-      throw processFailure("Failed to list opencode models", result.diagnostics ?? {
-        exitCode: result.exitCode, signal: null, stderr: stderrTail(result.stderr),
-      });
-    }
-    return { kind: "ok", models: projectOpencodeModels(result.stdout) };
-  });
-  return answer;
+  const cwd = listingCwd(options);
+  const credentials = sessionCredentialRedactor({ cwd, ...(options.env === undefined ? {} : { env: options.env }) });
+  try {
+    return await withQueryDeadline<ListModelsResult>("OpenCode model listing", timeoutMs, async (signal, own) => {
+      const { major } = await opencodeRelease(installation, { signal, timeoutMs, cwd, ...(options.env === undefined ? {} : { env: options.env }) });
+      signal.throwIfAborted();
+      const env = sessionEnvironment(options.env);
+      if (major === 2) {
+        return listV2Models(installation.command, cwd, env, signal, own);
+      }
+      const result = await runExecutable(installation.command, ["models", "--verbose"], { cwd, env, timeoutMs, signal });
+      if (!result.ok) {
+        throw processFailure("Failed to list opencode models", result.diagnostics ?? {
+          exitCode: result.exitCode, signal: null, stderr: stderrTail(result.stderr),
+        });
+      }
+      return { kind: "ok", models: projectOpencodeModels(result.stdout) };
+    });
+  } catch (error) {
+    throw credentials.redactValue(error);
+  }
 };

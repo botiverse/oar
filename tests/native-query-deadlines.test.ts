@@ -9,7 +9,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const script = fileURLToPath(new URL("fixtures/stalled-native-reader.mjs", import.meta.url));
 // One representative per distinct transport and return shape (shared withQueryDeadline paths are not repeated per runtime).
 const cases = [
-  ["antigravity", "listModels"], ["codex", "listModels"], ["factory", "listModels"], ["qoder", "listModels"],
+  ["antigravity", "listModels"], ["bottega", "listModels"], ["codex", "listModels"], ["factory", "listModels"], ["qoder", "listModels"],
   ["claude", "skills"], ["dsh", "skills"], ["kimi", "skills"],
   ["pi", "listModels"], ["cursor", "listModels"], ["cursor", "authStatus"],
 ] as const;
