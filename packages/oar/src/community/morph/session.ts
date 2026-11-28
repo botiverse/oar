@@ -121,15 +121,20 @@ export function morphSessionWith(acquire: AcquireConsole): StartSession {
             kernel.frame({
               type: "morph/send_rejected",
               native: sent.response.native ?? null,
-              events: [{ kind: "input_dropped", requestId: request.id, reason: "runtime_refused", message: sent.response.reason }],
+              events: [{
+                kind: "input_dropped",
+                requestId: request.id,
+                ...(next.inputId === undefined ? {} : { inputId: next.inputId }),
+                reason: "runtime_refused",
+                message: sent.response.reason,
+              }],
             });
           } else {
-            delete next.accepted;
             held.unshift(next);
           }
         }
         kernel.respond(request.id, sent.response);
-        if (sent.response.kind !== "accepted") { drainHeld(); }
+        if (sent.response.kind === "rejected" && sent.answered) { drainHeld(); }
       } finally {
         dispatching = false;
       }
@@ -174,7 +179,7 @@ export function morphSessionWith(acquire: AcquireConsole): StartSession {
         // became its own task) does not make the topic busy, and a prompt sent
         // meanwhile is steered into it by Console. Held or draining inputs also
         // keep the slot reserved so a prompt cannot overtake queued work.
-        const busy = session.status().value.kind === "running" || held.length > 0 || dispatching;
+        const busy = session.status().value.kind === "running" || held.length > 0 || dispatching || submitting > 0;
         if (!busy) { submitting += 1; }
         try {
           const result = await kernel.control({ kind: "prompt", input, ...inputOptions }, async (): Promise<ResponseBody> => {

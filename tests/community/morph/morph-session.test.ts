@@ -342,7 +342,9 @@ test("failed drain send records input_dropped on HTTP refusal and preserves owne
   expect(firstHeld?.attempts.at(-1)?.response?.body).toMatchObject({ kind: "rejected", code: "error" });
 
   // Transport failure kept the second queued item held without fabricating input_dropped.
-  expect(events.filter((event) => event.kind === "input_dropped")).toHaveLength(1);
+  expect(events.filter((event) => event.kind === "input_dropped")).toMatchObject([
+    { kind: "input_dropped", inputId: refusedId, reason: "runtime_refused", message: "internal failure" },
+  ]);
   expect(session.status().value.kind).toBe("running");
   assert.equal(answer(await session.withdraw?.(droppedId)), "accepted");
 
@@ -350,6 +352,110 @@ test("failed drain send records input_dropped on HTTP refusal and preserves owne
   expect(fake.sent().at(-1)).toBe("succeeds");
   fake.finish("task-2");
   await until(() => turnEnds(events) === 2, "final queued turn end");
+  await session.dispose();
+});
+
+function gateTaskPosts(fake: FakeConsole, match?: (body: unknown) => boolean): {
+  readonly started: Promise<void>;
+  readonly release: () => void;
+  readonly posted: unknown[];
+} {
+  const started = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  const posted: unknown[] = [];
+  const originalCall = fake.call.bind(fake);
+  fake.call = async (method, route, body) => {
+    if (method === "POST" && route === "/tasks") {
+      posted.push(body);
+      if (match === undefined || match(body)) {
+        started.resolve();
+        await release.promise;
+      }
+    }
+    return originalCall(method, route, body);
+  };
+  return { started: started.promise, release: () => { release.resolve(); }, posted };
+}
+
+test("transient transport error during drain leaves held[0] withdrawable and unblocked when draining resumes", async () => {
+  const fake = new FakeConsole();
+  const { session, events } = await open(fake);
+  await session.prompt("init");
+  const firstId = "8f0c3d1e-0000-4000-8000-000000000031";
+  const secondId = "8f0c3d1e-0000-4000-8000-000000000032";
+  const thirdId = "8f0c3d1e-0000-4000-8000-000000000033";
+  await session.queue("withdrawable", { inputId: firstId });
+  await session.queue("resumed", { inputId: secondId });
+  await session.queue("trailing", { inputId: thirdId });
+
+  let attempts = 0;
+  fake.routes.set("POST /tasks", () => {
+    attempts += 1;
+    if (attempts === 2) { fake.routes.delete("POST /tasks"); }
+    throw new Error("socket closed");
+  });
+
+  fake.finish("task-1");
+  await until(() => attempts === 1, "first drain transport throw");
+  await delay(40);
+  expect(attempts).toBe(1);
+  expect(events.filter((event) => event.kind === "input_dropped")).toEqual([]);
+  assert.equal(answer(await session.withdraw?.(firstId)), "accepted");
+
+  await until(() => attempts === 2, "second drain transport throw");
+  await delay(40);
+  expect(attempts).toBe(2);
+  expect(events.filter((event) => event.kind === "input_dropped")).toEqual([]);
+  expect(session.status().value.kind).toBe("running");
+  expect(fake.statuses.has("task-2")).toBe(false);
+
+  // Resume draining without withdrawing held[0] ("resumed"): it drains cleanly and unblocks "trailing".
+  expect(answer(await session.prompt("overtake"))).toBe("busy");
+  await until(() => fake.statuses.has("task-2"), "held[0] drained on resume without withdrawal");
+  expect(fake.sent().slice(-1)).toEqual(["resumed"]);
+  fake.finish("task-2");
+  await until(() => fake.statuses.has("task-3"), "trailing held item drained");
+  expect(fake.sent().slice(-1)).toEqual(["trailing"]);
+  fake.finish("task-3");
+  await until(() => turnEnds(events) === 3, "all three turns ended");
+  await session.dispose();
+});
+
+test("concurrent idle prompt calls cannot both POST /tasks", async () => {
+  const fake = new FakeConsole();
+  const { session, events } = await open(fake);
+  const gate = gateTaskPosts(fake);
+  const first = session.prompt("first");
+  const second = session.prompt("second");
+  await gate.started;
+  expect(await second).toMatchObject({ kind: "rejected", code: "busy" });
+  expect(gate.posted).toHaveLength(1);
+  expect(gate.posted[0]).toMatchObject({ task: "first" });
+  gate.release();
+  expect(await first).toMatchObject({ kind: "accepted" });
+  expect(fake.sent()).toEqual(["first"]);
+  fake.finish("task-1");
+  await until(() => turnEnds(events) === 1, "first turn ended");
+  await session.dispose();
+});
+
+test("prompt rejects as busy while an in-flight steer submission finishes past turn end", async () => {
+  const fake = new FakeConsole();
+  const { session, events } = await open(fake);
+  await session.prompt("init");
+  const gate = gateTaskPosts(fake, (body) => body !== null && typeof body === "object" && "task" in body && body.task === "steered");
+  const steered = session.steer?.("steered");
+  await gate.started;
+  fake.finish("task-1");
+  await until(() => turnEnds(events) === 1, "active task ended while steer POST /tasks is in flight");
+  expect(session.status().value.kind).toBe("idle");
+  expect(await session.prompt("raced")).toMatchObject({ kind: "rejected", code: "busy" });
+  expect(gate.posted).toHaveLength(1);
+  expect(gate.posted[0]).toMatchObject({ task: "steered" });
+  gate.release();
+  expect(await steered).toMatchObject({ kind: "accepted" });
+  fake.finish("task-2");
+  await until(() => turnEnds(events) === 2, "steered task ended");
   await session.dispose();
 });
 
