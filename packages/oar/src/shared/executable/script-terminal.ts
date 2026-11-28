@@ -50,6 +50,8 @@ export interface ScriptTerminalHost {
   /** `pid` below zero is a process group, as for `process.kill`. */
   signal(pid: number, signal: NodeJS.Signals): void;
   hostPid: number;
+  /** Start identity of `hostPid` at launch, so the watchdog rejects a reused PID. */
+  hostStartedAt?(): string | undefined;
   /** Ends the processes started with this environment entry (Linux; see environment-marker.ts). */
   killMarked?(entry: string): Promise<void>;
 }
@@ -101,6 +103,33 @@ function listHostProcesses(): TerminalProcess[] {
   return processes;
 }
 
+/** Start identity of `pid` on the current host, or `undefined` when unavailable. */
+function readProcessStart(pid: number, platform: NodeJS.Platform = process.platform): string | undefined {
+  if (!Number.isSafeInteger(pid) || pid <= 0) { return undefined; }
+  if (platform === "linux") {
+    try {
+      const stat = readFileSync(`/proc/${String(pid)}/stat`, "utf8");
+      const fields = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
+      if (fields[0] === "Z") { return undefined; }
+      const started = fields[19];
+      return started !== undefined && /^\d+$/u.test(started) ? started : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+  try {
+    const output = execFileSync("ps", ["-p", String(pid), "-o", "lstart="], {
+      encoding: "utf8",
+      timeout: 2000,
+      env: { ...process.env, LC_ALL: "C" },
+      windowsHide: true,
+    }).trim();
+    return output === "" ? undefined : output;
+  } catch {
+    return undefined;
+  }
+}
+
 const HOST: ScriptTerminalHost = {
   findScript: findScriptUtility,
   spawn,
@@ -109,10 +138,29 @@ const HOST: ScriptTerminalHost = {
     process.kill(pid, signal);
   },
   hostPid: process.pid,
+  hostStartedAt: () => readProcessStart(process.pid),
 };
 
 function shellQuote(value: string): string {
   return `'${value.replaceAll("'", String.raw`'\''`)}'`;
+}
+
+function hostAliveSnippet(platform: NodeJS.Platform, hostPid: number, hostStartedAt: string | undefined): { readonly preamble: string; readonly check: string } {
+  const pid = String(hostPid);
+  if (hostStartedAt === undefined || hostStartedAt === "") {
+    return { preamble: "", check: `kill -0 ${pid} 2>/dev/null` };
+  }
+  const expected = shellQuote(hostStartedAt);
+  if (platform === "linux") {
+    return {
+      preamble: `host_alive() { kill -0 ${pid} 2>/dev/null || return 1; IFS= read -r _s < /proc/${pid}/stat 2>/dev/null || return 1; set -f; set -- \${_s##*) }; [ "$1" != Z ] && [ "\${20}" = ${expected} ]; }; `,
+      check: "host_alive",
+    };
+  }
+  return {
+    preamble: `host_alive() { kill -0 ${pid} 2>/dev/null || return 1; _s=$(PATH="\${PATH:+"$PATH:"}/bin:/usr/bin" LC_ALL=C ps -p ${pid} -o stat=,lstart= 2>/dev/null) || return 1; _s=\${_s#"\${_s%%[![:space:]]*}"}; _st=\${_s%%[[:space:]]*}; _s=\${_s#"$_st"}; _s=\${_s#"\${_s%%[![:space:]]*}"}; _s=\${_s%"\${_s##*[![:space:]]}"}; case "$_st" in Z*) return 1 ;; esac; [ "$_s" = ${expected} ]; }; `,
+    check: "host_alive",
+  };
 }
 
 /**
@@ -123,11 +171,12 @@ function shellQuote(value: string): string {
  * - leaves a watchdog behind that ends the program if the host dies while
  *   it runs (a killed host can run no cleanup of its own). `$$` is the
  *   shell's pid, which `exec` hands to the program; the watchdog stops as
- *   soon as either is gone. `script` makes that shell a session leader, so
- *   `$$` is also the session's id: the watchdog ends the whole session (the
- *   program and what it started: MCP servers, hooks), TERM first, then KILL,
- *   and the program alone where `pkill` is missing. It ignores TERM itself so
- *   it lives to send the KILL, which ends it too;
+ *   soon as either is gone, verifying `hostPid`'s start time when known so a
+ *   reused PID never keeps the session alive. `script` makes that shell a
+ *   session leader, so `$$` is also the session's id: the watchdog ends the
+ *   whole session (the program and what it started: MCP servers, hooks),
+ *   TERM first, then KILL, and the program alone where `pkill` is missing. It
+ *   ignores TERM itself so it lives to send the KILL, which ends it too;
  * - then runs the program, and once it exits ends the whole session (each
  *   member `pgrep -s` lists, else the shell's process group): whatever the program left
  *   behind there, even when it exits before the terminal could look at its
@@ -137,9 +186,13 @@ function shellQuote(value: string): string {
  * util-linux takes the line as one `-c` string and runs it with $SHELL, so
  * SHELL is forced to /bin/sh; BSD (macOS) takes the command as arguments.
  */
-export function scriptInvocation(input: OpenClaudeLimitResetTerminalInput, scriptPath: string, hostPid: number): { file: string; args: string[]; env: NodeJS.ProcessEnv } {
-  const watchdog = `( trap '' TERM; while kill -0 ${hostPid} 2>/dev/null && kill -0 $$ 2>/dev/null; do sleep 1; done; `
-    + `kill -0 ${hostPid} 2>/dev/null || { pkill -TERM -s $$ || kill -TERM $$; sleep 2; pkill -KILL -s $$ || kill -KILL $$; } ) </dev/null >/dev/null 2>&1 &`;
+export function scriptInvocation(input: OpenClaudeLimitResetTerminalInput, scriptPath: string, hostPid: number, hostStartedAt?: string): { file: string; args: string[]; env: NodeJS.ProcessEnv } {
+  if (!Number.isSafeInteger(hostPid) || hostPid <= 0) {
+    throw new RangeError(`Invalid hostPid: ${String(hostPid)}`);
+  }
+  const { preamble, check } = hostAliveSnippet(input.platform, hostPid, hostStartedAt);
+  const watchdog = `( trap '' TERM; ${preamble}while ${check} && kill -0 $$ 2>/dev/null; do sleep 1; done; `
+    + `${check} || { pkill -TERM -s $$ || kill -TERM $$; sleep 2; pkill -KILL -s $$ || kill -KILL $$; } ) </dev/null >/dev/null 2>&1 &`;
   // Not `exec`: the shell outlives the program to end the session it leaves
   // behind, every other member first, so they are gone before `script` exits.
   const sessionEnd = `if command -v pgrep >/dev/null 2>&1; then for p in $(pgrep -s $$); do [ "$p" = "$$" ] || kill -KILL "$p" 2>/dev/null; done; else kill -KILL 0; fi`;
@@ -196,7 +249,11 @@ export function openScriptTerminal(input: OpenClaudeLimitResetTerminalInput, hos
   const script = host.findScript(input.env);
   if (script === null || script === "") { return null; }
   const marker = newEnvironmentMarker("OAR_TERMINAL_CHILD");
-  const invocation = scriptInvocation({ ...input, env: { ...input.env, [marker.name]: "1" } }, script, host.hostPid);
+  const rawHostStart = host.hostStartedAt !== undefined
+    ? host.hostStartedAt()
+    : host.listProcesses().find((each) => each.pid === host.hostPid)?.startedAt;
+  const hostStartedAt = rawHostStart !== undefined && rawHostStart !== "" ? rawHostStart : undefined;
+  const invocation = scriptInvocation({ ...input, env: { ...input.env, [marker.name]: "1" } }, script, host.hostPid, hostStartedAt);
   // A value Node refuses (a NUL byte) is cut from the error: env may hold the account's secrets.
   const child = spawnChecked(() => host.spawn(invocation.file, invocation.args, {
     cwd: input.cwd,

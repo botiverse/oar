@@ -1,8 +1,10 @@
+import { spawn } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { expect, test } from "vitest";
 import { findScriptUtility, openScriptTerminal } from "../packages/oar/src/shared/executable/script-terminal.js";
+import { processStart } from "./fixtures/process-tree.js";
 
 /*
  * The real `script` utility and a synthetic program, no Claude: a program
@@ -47,6 +49,55 @@ test.skipIf(process.platform !== "linux" || findScriptUtility() === null)("a chi
   } finally {
     // Never leave the probe's own child behind, and never signal a reused pid.
     if (pid !== undefined && started !== undefined && await startTicks(pid) === started) { process.kill(pid, "SIGKILL"); }
+    await rm(dir, { recursive: true, force: true });
+  }
+}, 20_000);
+
+async function waitForExit(terminal: NonNullable<ReturnType<typeof openScriptTerminal>>, ms: number): Promise<boolean> {
+  const exited = Promise.withResolvers<boolean>();
+  terminal.onExit(() => { exited.resolve(true); });
+  const timer = setTimeout(() => { exited.resolve(false); }, ms);
+  try {
+    return await exited.promise;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// oxlint-disable-next-line eslint/max-statements -- Live PID reuse reproduction using a real POSIX script session and /proc stat.
+test.skipIf(process.platform !== "linux" || findScriptUtility() === null)("watchdog stops when live hostPid has a different start time (PID reuse) and stays alive when it matches", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "oar-script-reuse-"));
+  const program = path.join(dir, "program.sh");
+  await writeFile(program, "#!/bin/sh\nexec sleep 30\n", { mode: 0o700 });
+  const replacement = spawn(process.execPath, ["-e", "setTimeout(() => {}, 30_000)"], { stdio: "ignore" });
+  expect(replacement.pid).toBeDefined();
+  const replacementPid = replacement.pid ?? 0;
+  const replacementStart = processStart(replacementPid);
+  expect(replacementStart).toBeDefined();
+  const baseHost = {
+    findScript: findScriptUtility,
+    spawn,
+    listProcesses: () => [{ pid: replacementPid, parentPid: 1, startedAt: replacementStart ?? "" }],
+    signal: (targetPid: number, sig: NodeJS.Signals) => { process.kill(targetPid, sig); },
+    hostPid: replacementPid,
+  };
+  const liveTerminal = openScriptTerminal({ command: program, cwd: dir, env: { PATH: "/usr/bin:/bin" }, cols: 80, rows: 24, platform: "linux" }, baseHost);
+  const reusedTerminal = openScriptTerminal({ command: program, cwd: dir, env: { PATH: "/usr/bin:/bin" }, cols: 80, rows: 24, platform: "linux" }, {
+    ...baseHost,
+    listProcesses: () => [{ pid: replacementPid, parentPid: 1, startedAt: `${replacementStart ?? "1"}999` }],
+  });
+  try {
+    expect(liveTerminal).not.toBeNull();
+    expect(reusedTerminal).not.toBeNull();
+    if (liveTerminal === null || reusedTerminal === null) { return; }
+    liveTerminal.onData(() => {});
+    reusedTerminal.onData(() => {});
+    expect(await waitForExit(reusedTerminal, 6000)).toBe(true);
+    expect(await waitForExit(liveTerminal, 1500)).toBe(false);
+  } finally {
+    await liveTerminal?.kill();
+    await reusedTerminal?.kill();
+    if (replacementPid > 0 && processStart(replacementPid) === replacementStart) { process.kill(replacementPid, "SIGKILL"); }
     await rm(dir, { recursive: true, force: true });
   }
 }, 20_000);

@@ -1,6 +1,10 @@
 /* oxlint-disable unicorn/prefer-event-target -- The fake child stands in for Node's ChildProcess and its streams, which are EventEmitters. */
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
+import { spawn } from "node:child_process";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { afterEach, beforeEach, test, vi } from "vitest";
 
 import { openScriptTerminal, scriptInvocation, type ClaudeLimitResetTerminal, type ScriptTerminalHost, type TerminalProcess } from "../../packages/oar/src/shared/executable/script-terminal.js";
@@ -85,6 +89,60 @@ test("BSD script takes the same line as arguments to /bin/sh", () => {
   assert.deepEqual(args.slice(0, 4), ["-q", "/dev/null", "/bin/sh", "-c"]);
   assert.equal(args[4], scriptInvocation(INPUT, "/usr/bin/script", 4242).args[1]);
 });
+
+test("watchdog verifies host start identity on Linux and Darwin when provided", () => {
+  const linuxLine = scriptInvocation(INPUT, "/usr/bin/script", 4242, "987654").args[1] ?? "";
+  assert.ok(linuxLine.includes("IFS= read -r _s < /proc/4242/stat"));
+  assert.ok(linuxLine.includes(`[ "\${20}" = '987654' ]`));
+  const darwinLine = scriptInvocation({ ...INPUT, platform: "darwin" }, "/usr/bin/script", 4242, "Wed Nov  2 09:05:00 2026").args[4] ?? "";
+  assert.ok(darwinLine.includes("ps -p 4242 -o stat=,lstart="));
+  assert.ok(darwinLine.includes("[ \"$_s\" = 'Wed Nov  2 09:05:00 2026' ]"));
+});
+
+test("openScriptTerminal reads hostPid start time from host process list", () => {
+  const { host, spawned } = fakeHost();
+  const prevList = host.listProcesses.bind(host);
+  host.listProcesses = () => [...prevList(), { pid: 4242, parentPid: 1, startedAt: "445566" }];
+  const terminal = opened(openScriptTerminal(INPUT, host));
+  assert.ok((spawned[0]?.args[1] ?? "").includes("'445566'"));
+  void terminal.kill();
+});
+
+function killProcessGroup(pid: number | undefined): void {
+  if (pid === undefined) { return; }
+  try { process.kill(-pid, "SIGKILL"); } catch {}
+}
+
+async function runDarwinWatchdogCase(spec: { dir: string; prog: string; pid: number; startedAt: string; timeoutMs: number }): Promise<boolean> {
+  const env = { PATH: `${spec.dir}:/usr/bin:/bin` };
+  const child = spawn("/bin/sh", ["-c", scriptInvocation({ ...INPUT, platform: "darwin", command: spec.prog, env }, "/usr/bin/script", spec.pid, spec.startedAt).args[4] ?? ""], { env, detached: true, stdio: "ignore" });
+  const exited = Promise.withResolvers<boolean>();
+  child.once("exit", () => { exited.resolve(true); });
+  const timer = setTimeout(() => { exited.resolve(false); }, spec.timeoutMs);
+  const done = await exited.promise;
+  clearTimeout(timer);
+  if (!done) { killProcessGroup(child.pid); }
+  return done;
+}
+
+// oxlint-disable-next-line eslint/max-statements -- Exercises the generated Darwin ps watchdog in /bin/sh with a controlled ps binary.
+test.skipIf(process.platform === "win32")("Darwin watchdog stops on reused PID start mismatch and stays alive when start matches", async () => {
+  vi.useRealTimers();
+  const dir = await mkdtemp(path.join(os.tmpdir(), "oar-darwin-watchdog-"));
+  const replacement = spawn(process.execPath, ["-e", "setTimeout(() => {}, 30_000)"], { stdio: "ignore" });
+  const pid = replacement.pid ?? 0;
+  assert.ok(pid > 0);
+  const prog = path.join(dir, "prog.sh");
+  await writeFile(path.join(dir, "ps"), `#!/bin/sh\necho "S+   Wed Nov  2 09:05:00 2026"\n`, { mode: 0o700 });
+  await writeFile(prog, "#!/bin/sh\nexec sleep 30\n", { mode: 0o700 });
+  try {
+    assert.equal(await runDarwinWatchdogCase({ dir, prog, pid, startedAt: "Wed Nov  2 09:04:00 2026", timeoutMs: 5000 }), true);
+    assert.equal(await runDarwinWatchdogCase({ dir, prog, pid, startedAt: "Wed Nov  2 09:05:00 2026", timeoutMs: 1500 }), false);
+  } finally {
+    try { process.kill(pid, "SIGKILL"); } catch {}
+    await rm(dir, { recursive: true, force: true });
+  }
+}, 20_000);
 
 // oxlint-disable-next-line eslint/max-statements -- One terminal: how it was started, then its output and keys.
 test("the terminal is its own process group in the work directory; keys go to it and its output comes back", () => {
