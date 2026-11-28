@@ -19,4 +19,6 @@ export interface ToolCallProgress {
   readonly output?: string;
   /** Append this chunk to the preview (Codex `item/commandExecution/outputDelta`). If both fields are present, replace with `output` first, then append this. */
   readonly outputDelta?: string;
+  /** Native elapsed seconds reported for a still-running tool call heartbeat (Claude `tool_progress`). */
+  readonly elapsedSeconds?: number;
 }
