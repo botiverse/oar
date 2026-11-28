@@ -71,7 +71,7 @@ export interface InputOptions {
    * `unsupported` when `capabilities.images` is false.
    */
   readonly images?: readonly InputImage[];
-  /** Who the input comes from; kept on the request record, never sent to the runtime. */
+  /** Who the input comes from; kept on the request record, and sent only to a runtime that tells a person's line from an event (`InputOrigin`). */
   readonly origin?: InputOrigin;
 }
 /** A single prompt may also deliver earlier inputs, without changing their historical queue/withdraw records. */

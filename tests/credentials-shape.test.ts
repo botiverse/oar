@@ -47,7 +47,7 @@ function assertRuntimeCredentials(runtime: Runtime): void {
 test("every built-in runtime declares complete, disjoint credential metadata", async () => {
   await withAllRuntimes((runtimes) => {
     expect(runtimes.map(r => r.id).toSorted()).toEqual([
-      "antigravity", "claude", "codebuddy", "codex", "cursor", "devin", "dsh",
+      "antigravity", "bottega", "claude", "codebuddy", "codex", "cursor", "devin", "dsh",
       "factory", "grok", "kimi", "opencode", "pi", "pi-durable", "qoder", "qwen",
     ]);
     for (const runtime of runtimes) {
@@ -59,8 +59,8 @@ test("every built-in runtime declares complete, disjoint credential metadata", a
 test("runtime credential management, scope, interpolation and keychain services match native evidence", async () => {
   await withAllRuntimes((runtimes) => {
     const byId = new Map(runtimes.map(r => [r.id, r]));
-    expect(runtimes.filter(r => r.credentials?.management === "external").map(r => r.id).toSorted()).toEqual(["dsh", "pi-durable"]);
-    expect(runtimes.filter(r => r.credentials?.scope === "per_provider").map(r => r.id).toSorted()).toEqual(["opencode", "pi", "pi-durable", "qwen"]);
+    expect(runtimes.filter(r => r.credentials?.management === "external").map(r => r.id).toSorted()).toEqual(["bottega", "dsh", "pi-durable"]);
+    expect(runtimes.filter(r => r.credentials?.scope === "per_provider").map(r => r.id).toSorted()).toEqual(["bottega", "opencode", "pi", "pi-durable", "qwen"]);
     expect(byId.get("pi")?.credentials?.interpolation).toEqual([{ syntax: "$VAR", target: "env" }, { syntax: "!command", target: "shell" }]);
     expect(byId.get("opencode")?.credentials?.interpolation).toEqual([{ syntax: "{env:VAR}", target: "env" }]);
     expect(byId.get("codex")?.credentials?.stores?.find(s => s.kind === "keychain")).toEqual({
@@ -72,7 +72,7 @@ test("runtime credential management, scope, interpolation and keychain services 
 test("runtime sign-in paste kind and usageDirectoryEnv match native evidence", async () => {
   await withAllRuntimes((runtimes) => {
     expect(Object.fromEntries(runtimes.map(r => [r.id, r.credentials?.signInPaste]))).toEqual({
-      antigravity: "code_or_url", claude: "code", codebuddy: "none", codex: "none", cursor: "none",
+      antigravity: "code_or_url", bottega: undefined, claude: "code", codebuddy: "none", codex: "none", cursor: "none",
       devin: undefined, dsh: undefined, factory: "none", grok: "none", kimi: "none",
       opencode: "code", pi: "code_or_url", "pi-durable": undefined, qoder: "none", qwen: undefined,
     });

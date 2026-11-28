@@ -6,6 +6,7 @@ test("the declarations say how a running session takes a change to an MCP server
   const declared = Object.fromEntries(allRuntimes.list().map((runtime) => [runtime.id, runtime.mcpToolsListChanged ?? null]));
   expect(declared).toEqual({
     antigravity: "none",
+    bottega: null,
     claude: "additions",
     codebuddy: null,
     codex: "none",

@@ -1,6 +1,7 @@
 /* oxlint-disable import/max-dependencies -- The root entry is the composition point for all built-in runtimes. */
 import { RuntimeRegistry } from "./registry.js";
 import { antigravityRuntime } from "./runtimes/antigravity/index.js";
+import { bottegaRuntime } from "./runtimes/bottega/index.js";
 import { claudeRuntime } from "./runtimes/claude/index.js";
 import { codebuddyRuntime } from "./runtimes/codebuddy/index.js";
 import { codexRuntime } from "./runtimes/codex/index.js";
@@ -50,6 +51,7 @@ export { piRuntime, createPiRuntime, type PiRuntimeOptions } from "./runtimes/pi
  */
 export const defaultRuntimes = new RuntimeRegistry([
   antigravityRuntime,
+  bottegaRuntime,
   claudeRuntime,
   codexRuntime,
   codebuddyRuntime,
@@ -82,5 +84,6 @@ export { userShellEnvironment } from "./shared/shell-environment.js";
 export { writeShellEnvironmentCapture } from "./shared/shell-environment-capture.js";
 export { factoryRuntime } from "./runtimes/factory/index.js";
 export { dshRuntime } from "./runtimes/dsh/index.js";
+export { bottegaRuntime } from "./runtimes/bottega/index.js";
 export { codebuddyRuntime } from "./runtimes/codebuddy/index.js";
 export { devinRuntime } from "./runtimes/devin/index.js";
