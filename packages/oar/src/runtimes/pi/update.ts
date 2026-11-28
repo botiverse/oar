@@ -10,6 +10,7 @@ import {
   upgradeExecutable,
   versionAtLeast,
 } from "../../shared/update.js";
+import { piSubprocessEnv } from "./environment.js";
 
 /** Official Pi CLI release version endpoint (`version-check.js`). */
 export const PI_LATEST_VERSION_URL = "https://pi.dev/api/latest-version";
@@ -48,6 +49,10 @@ export const piCheckUpdate = piUpdateCheck();
 
 /** Run native `pi update --self --no-approve` on the probed executable. */
 export const piUpgrade: Upgrader = async (installation, options) => {
-  const result = await upgradeExecutable(installation, { check: piCheckUpdate, args: ["update", "--self", "--no-approve"] }, options);
+  const result = await upgradeExecutable(installation, {
+    check: piCheckUpdate,
+    args: ["update", "--self", "--no-approve"],
+    env: () => piSubprocessEnv(),
+  }, options);
   return result;
 };

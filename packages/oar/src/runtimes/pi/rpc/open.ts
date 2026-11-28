@@ -7,12 +7,13 @@ import { homedir } from "node:os";
 import path from "node:path";
 import type { RpcSessionState, RpcResponse } from "@earendil-works/pi-coding-agent";
 import type { RefusedSessionOptions, SessionOptions } from "../../../contracts/index.js";
-import { environmentValue, sessionEnvironment } from "../../../shared/environment.js";
+import { environmentValue } from "../../../shared/environment.js";
 import { spawnLineProcess, type LineProcess } from "../../../shared/executable/index.js";
 import { privateTempDir, type PrivateTempDir } from "../../../shared/private-temp.js";
 import { checkSessionName, refuseSessionOptions } from "../../../shared/session-options.js";
 import { reportedStderr } from "../../../shared/executable/reported-stderr.js";
 import type { CredentialRedactor } from "../../../shared/credential-redactor.js";
+import { piSubprocessEnv } from "../environment.js";
 import { piMcpServerConfig, validatePiMcpEnvironment } from "../mcp.js";
 import { piThinkingLevel, piRefusedSessionOptions, piEffortRefusal, checkPiSystemPrompt } from "../open.js";
 import { piFindSessionFile, piSessionDir, splitPiModelId } from "../resolve.js";
@@ -64,7 +65,7 @@ export async function openPiRpc(options: SessionOptions, credentials: Credential
   validatePiMcpEnvironment({ ...options, env: {} });
   if (options.effort !== undefined) { piThinkingLevel(options.effort); }
   if (options.model !== undefined) { splitPiModelId(options.model); }
-  const env = sessionEnvironment(options.env);
+  const env = piSubprocessEnv(options.env);
   const agentDir = path.resolve([environmentValue(env, "OAR_PI_AGENT_DIR"), environmentValue(env, "PI_CODING_AGENT_DIR")].find((value) => value !== undefined && value.length > 0)
     ?? path.join(environmentValue(env, "HOME") ?? environmentValue(env, "USERPROFILE") ?? homedir(), ".pi", "agent"));
   const sessionDir = piSessionDir(options.cwd, agentDir);
