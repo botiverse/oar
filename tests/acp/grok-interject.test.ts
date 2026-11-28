@@ -29,9 +29,14 @@ test("a steer is an interjection into the running turn, which ends once with its
     expect(interject?.kind === "frame" ? interject.body.responseTo : undefined).toBe(steered?.requestId);
     expect(ends(records)).toEqual([{ kind: "turn_ended", outcome: { kind: "completed" } }]);
     expect(texts(records)).toContain("took:also this");
-    // Grok's echo is recorded; the interjection never names a turn of its own.
+    // Grok's echo is recorded and projected as an acknowledged user_message with its steer inputId; the interjection never names a turn of its own.
     expect(records.some((record) => record.kind === "frame" && record.body.type === "_x.ai/session/interjection"
-      && asRecord(record.body.native)?.interjectionId === steerId)).toBe(true);
+      && asRecord(record.body.native)?.interjectionId === steerId
+      && record.body.events.some((event) => event.kind === "user_message"
+        && event.inputId === steerId
+        && event.nativeMessageId === steerId
+        && event.input === "also this"
+        && event.evidence === "acknowledged"))).toBe(true);
     expect(statusOf(records, session.id).value.kind).toBe("idle");
   } finally { await session.dispose(); }
 });

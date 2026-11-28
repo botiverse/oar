@@ -57,6 +57,14 @@ test("grok lineage: subagent_finished names only the child; the parent is the en
   ]);
 });
 
+test("grok interjection echo projects an acknowledged user_message carrying interjectionId", () => {
+  assert.deepEqual(
+    grokTaskViews("_x.ai/session/interjection", { sessionId: PARENT, text: "also check tests", interjectionId: "steer-1" }),
+    [{ kind: "user_message", input: "also check tests", inputId: "steer-1", nativeMessageId: "steer-1", evidence: "acknowledged" }],
+  );
+  assert.deepEqual(grokTaskViews("_x.ai/session/interjection", { sessionId: PARENT }), []);
+});
+
 test("lineage is never fabricated: no pair, a self pair, or a vendor kind without ids yields null", () => {
   assert.equal(acpLineageOf({ sessionId: PARENT, update: { sessionUpdate: "model_changed", model_id: "grok-4.6" } }), null);
   assert.equal(acpLineageOf({ sessionId: PARENT, update: { sessionUpdate: "turn_completed", prompt_id: "p", stop_reason: "end_turn" } }), null);
